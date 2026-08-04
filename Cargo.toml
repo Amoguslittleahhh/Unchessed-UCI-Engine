@@ -1,0 +1,11 @@
+[workspace]
+resolver = "2"
+members = ["unchessed-core", "unchessed-adapter", "unchessed-reviewer", "unchessed-datagen"]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+
+[profile.test]
+opt-level = 2

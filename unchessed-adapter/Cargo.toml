@@ -1,0 +1,11 @@
+[package]
+name = "unchessed-adapter"
+version = "0.2.3"
+edition = "2021"
+
+[dependencies]
+unchessed-core = { path = "../unchessed-core" }
+
+[[bin]]
+name = "unchessed-adapter"
+path = "src/main.rs"
