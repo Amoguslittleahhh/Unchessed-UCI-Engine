@@ -26,8 +26,7 @@ pub struct EvalParams {
     /// Percent scale applied to the mobility bonus below. 0 = feature off.
     pub mobility_pct: i32,
     /// Percent scale applied to the rook-file/rook-on-7th bonus below.
-    /// 0 = feature off. Not yet SPRT-validated -- defaults to 0 until a
-    /// direct gate confirms a value (same discipline every prior term used).
+    /// 0 = feature off.
     pub rook_pct: i32,
 }
 
@@ -39,7 +38,9 @@ impl Default for EvalParams {
         // mobility: 100 SPRT-validated (2026-08-03): +52.3 +/- 18.1 Elo vs
         // the passed-pawn baseline, 984 games, LLR crossed the upper bound
         // -- the single biggest eval-term gain in this project so far.
-        EvalParams { passed_mg_pct: 100, passed_eg_pct: 100, mobility_pct: 100, rook_pct: 0 }
+        // rook file/7th: 100 SPRT-validated (2026-08-04): +10.5 +/- 7.2 Elo
+        // vs the mobility baseline, 6019 games, LLR crossed the upper bound.
+        EvalParams { passed_mg_pct: 100, passed_eg_pct: 100, mobility_pct: 100, rook_pct: 100 }
     }
 }
 

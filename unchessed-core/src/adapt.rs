@@ -513,7 +513,28 @@ impl HeuristicPrior {
         }
 
         // blend toward neutrality as target rises
-        1.0 * (1.0 - strength) + w * strength
+        let blended = 1.0 * (1.0 - strength) + w * strength;
+
+        // Voluntarily forfeiting castling rights is a near-universal red
+        // flag that doesn't fade with (estimated) opponent strength the
+        // way ordinary stylistic tells do -- real humans essentially never
+        // do this without a concrete tactical reason, at almost any rating
+        // above complete beginner. Applied as a final hard multiplier
+        // AFTER the blend above (not folded into `w`), because the blend
+        // itself dilutes any in-`w` penalty too much at the moderate
+        // target Elo (~1800-2200) where MATCH mode's blunder simulator is
+        // most active -- confirmed via a live 3-min game vs full-strength
+        // RubiChess where the old flat 0.45 king-walk penalty (diluted by
+        // the blend down to ~0.87 net weight at target~1838) still let
+        // 3.Kd2 get sampled as a "human blunder", forfeiting all castling
+        // rights on move 3 for no tactical reason and losing the game.
+        if piece == KING && mv.kind() != MK_CASTLE {
+            let own_castle = if let Color::White = us { WK | WQ } else { BK | BQ };
+            if (pos.castling & own_castle) != 0 && (next.castling & own_castle) == 0 {
+                return blended * 0.15;
+            }
+        }
+        blended
     }
 }
 
@@ -932,5 +953,40 @@ mod tests {
             );
             assert_eq!(sel.mv, mvs[0], "sampled a move that walks into mate");
         }
+    }
+
+    #[test]
+    fn king_move_that_forfeits_castling_scores_far_below_a_normal_king_walk() {
+        // Regression: a live 3-min game vs full-strength RubiChess had
+        // MATCH mode's blunder simulator pick 3.Kd2 (forfeiting all
+        // castling rights on move 3) because the old flat 0.45 king-walk
+        // penalty wasn't nearly low enough relative to an ordinary
+        // developing move. White has both castling rights here; Ke1d2
+        // forfeits them both, Nb1c3 doesn't touch them at all.
+        use crate::fen;
+        let pos = fen::parse("4k3/8/8/8/8/8/8/RN2K2R w KQ - 0 1").unwrap();
+        let king_walk = crate::movegen::legal(&pos)
+            .as_slice()
+            .iter()
+            .copied()
+            .find(|m| m.from() == 4 && m.to() == 11) // e1 -> d2
+            .expect("Ke1-d2 should be legal here");
+        let knight_dev = crate::movegen::legal(&pos)
+            .as_slice()
+            .iter()
+            .copied()
+            .find(|m| m.from() == 1 && m.to() == 18) // b1 -> c3
+            .expect("Nb1-c3 should be legal here");
+        let prior = HeuristicPrior;
+        let target = 1800; // comfortably inside MATCH mode's active range
+        let w_king = prior.single(&pos, king_walk, target);
+        let w_knight = prior.single(&pos, knight_dev, target);
+        assert!(
+            w_king < w_knight * 0.5,
+            "castling-forfeiting king walk (weight {}) should score well below an ordinary \
+             developing move (weight {})",
+            w_king,
+            w_knight
+        );
     }
 }

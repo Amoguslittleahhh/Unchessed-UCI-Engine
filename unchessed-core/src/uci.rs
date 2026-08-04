@@ -201,9 +201,9 @@ pub fn run(ident: EngineIdent) {
                 println!("option name PassedPawnEgPct type spin default 100 min 0 max 200");
                 // Mobility: 100 is SPRT-validated (+52.3 Elo, 2026-08-03).
                 println!("option name MobilityPct type spin default 100 min 0 max 200");
-                // Rook file / rook-on-7th: not yet SPRT-validated, defaults
-                // to 0 (off) until a direct gate confirms a candidate value.
-                println!("option name RookPct type spin default 0 min 0 max 200");
+                // Rook file / rook-on-7th: 100 is SPRT-validated
+                // (+10.5 Elo, 2026-08-04).
+                println!("option name RookPct type spin default 100 min 0 max 200");
                 println!("uciok");
                 println!("info string [Unchessed] eval: {}", eval_desc);
                 if ident.adaptive_engine {
