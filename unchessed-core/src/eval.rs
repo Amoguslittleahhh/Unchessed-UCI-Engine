@@ -5,7 +5,9 @@
 //! network evaluator.
 
 use crate::board::*;
-use crate::movegen::{attacked, bishop_att, queen_att, rook_att, FILE_A, KNIGHT_ATT, PAWN_ATT, RANK_1};
+use crate::movegen::{
+    attacked, bishop_att, queen_att, rook_att, FILE_A, KNIGHT_ATT, PAWN_ATT, RANK_1,
+};
 
 pub trait Eval: Send + Sync {
     /// Score in centipawns from the side-to-move's perspective.
@@ -40,7 +42,12 @@ impl Default for EvalParams {
         // -- the single biggest eval-term gain in this project so far.
         // rook file/7th: 100 SPRT-validated (2026-08-04): +10.5 +/- 7.2 Elo
         // vs the mobility baseline, 6019 games, LLR crossed the upper bound.
-        EvalParams { passed_mg_pct: 100, passed_eg_pct: 100, mobility_pct: 100, rook_pct: 100 }
+        EvalParams {
+            passed_mg_pct: 100,
+            passed_eg_pct: 100,
+            mobility_pct: 100,
+            rook_pct: 100,
+        }
     }
 }
 
