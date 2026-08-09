@@ -106,10 +106,24 @@ fn mobility_area(pos: &Position, color: Color) -> Bitboard {
 }
 
 /// Mobility bonus for `color`'s knights/bishops/rooks/queens, as an
-/// (mg, eg) magnitude pair (sign applied by the caller).
+/// (mg, eg) magnitude pair (sign applied by the caller). Bishop/rook
+/// attacks are computed through an x-rayed occupancy (own same-type
+/// sliders + queens removed from the blocker set) rather than plain
+/// `pos.occ` -- matching RubiChess (the source of the ported
+/// eMobilitybonus table below), Stockfish, Ethereal, and Berserk, all of
+/// which x-ray friendly sliders on the same ray for mobility purposes.
+/// Without this the table was being fed move counts from a different
+/// distribution than the one its SPSA-tuned constants were fitted on
+/// (e.g. a rook backed by another rook on the same file was scored as
+/// less mobile than RubiChess's own tuner assumed). The queen is
+/// deliberately NOT x-rayed, matching every reference engine checked.
 fn mobility_term(pos: &Position, color: Color, area: Bitboard) -> (i32, i32) {
     let mut mg = 0i32;
     let mut eg = 0i32;
+
+    let xray_bishop_occ =
+        pos.occ & !(pos.bb[color.idx()][BISHOP] | pos.bb[color.idx()][QUEEN]);
+    let xray_rook_occ = pos.occ & !(pos.bb[color.idx()][ROOK] | pos.bb[color.idx()][QUEEN]);
 
     let mut nb = pos.bb[color.idx()][KNIGHT];
     while nb != 0 {
@@ -123,7 +137,7 @@ fn mobility_term(pos: &Position, color: Color, area: Bitboard) -> (i32, i32) {
     while bs != 0 {
         let s = bs.trailing_zeros() as usize;
         bs &= bs - 1;
-        let cnt = ((bishop_att(s as u8, pos.occ) & area).count_ones() as usize).min(27);
+        let cnt = ((bishop_att(s as u8, xray_bishop_occ) & area).count_ones() as usize).min(27);
         mg += MOBILITY_MG[1][cnt];
         eg += MOBILITY_EG[1][cnt];
     }
@@ -131,7 +145,7 @@ fn mobility_term(pos: &Position, color: Color, area: Bitboard) -> (i32, i32) {
     while rk != 0 {
         let s = rk.trailing_zeros() as usize;
         rk &= rk - 1;
-        let cnt = ((rook_att(s as u8, pos.occ) & area).count_ones() as usize).min(27);
+        let cnt = ((rook_att(s as u8, xray_rook_occ) & area).count_ones() as usize).min(27);
         mg += MOBILITY_MG[2][cnt];
         eg += MOBILITY_EG[2][cnt];
     }
@@ -183,22 +197,28 @@ fn rook_term(pos: &Position, color: Color) -> (i32, i32) {
             mg += ROOK_FREE_FILE_MG[idx];
             eg += ROOK_FREE_FILE_EG[idx];
         }
+    }
 
-        let rank = s / 8;
-        let on_7th = if let Color::White = color { rank == 6 } else { rank == 1 };
-        if on_7th {
-            let king_sq = pos.bb[opp.idx()][KING].trailing_zeros() as usize;
-            if king_sq < 64 {
-                let king_rank = king_sq / 8;
-                let king_pinned_back = if let Color::White = color {
-                    king_rank == 6 || king_rank == 7
-                } else {
-                    king_rank == 1 || king_rank == 0
-                };
-                if king_pinned_back {
-                    mg += ROOK_7TH_MG;
-                    eg += ROOK_7TH_EG;
-                }
+    // Rook(s) on the 7th pressing an enemy king pinned back to the 7th/8th.
+    // Awarded ONCE PER SIDE (a bitboard truthiness test), matching
+    // RubiChess's real semantics -- not once per rook. The magnitude
+    // (ROOK_7TH_MG/EG) was ported from RubiChess's once-per-side constant;
+    // applying it per-rook (as an earlier version of this function did)
+    // double-counted doubled rooks on the 7th, since RubiChess's own tuner
+    // never saw that case paid out twice.
+    let rank7: Bitboard = if let Color::White = color { RANK_1 << 48 } else { RANK_1 << 8 };
+    if pos.bb[color.idx()][ROOK] & rank7 != 0 {
+        let king_sq = pos.bb[opp.idx()][KING].trailing_zeros() as usize;
+        if king_sq < 64 {
+            let king_rank = king_sq / 8;
+            let king_pinned_back = if let Color::White = color {
+                king_rank == 6 || king_rank == 7
+            } else {
+                king_rank == 1 || king_rank == 0
+            };
+            if king_pinned_back {
+                mg += ROOK_7TH_MG;
+                eg += ROOK_7TH_EG;
             }
         }
     }
@@ -252,6 +272,40 @@ const fn build_passed_masks() -> [[u64; 64]; 2] {
 }
 
 static PASSED_MASKS: [[u64; 64]; 2] = build_passed_masks();
+
+/// Same-file-only mask of squares strictly ahead of `s` (toward promotion
+/// for `color`). Used to dedupe doubled passers: only the FRONT pawn of a
+/// doubled pair should score a passer bonus. Real engines (Stockfish:
+/// `passed &= !(forward_file_bb(Us,s) & ourPawns)`, Ethereal's `several()`
+/// short-circuit) all exclude the rear pawn explicitly -- this project's
+/// PASSED_MASKS only ever excluded ENEMY pawns, so a doubled own pair on
+/// an open file was double-scoring as two independent full passers.
+const fn build_forward_file_masks() -> [[u64; 64]; 2] {
+    let mut masks = [[0u64; 64]; 2];
+    let mut s = 0usize;
+    while s < 64 {
+        let f = (s % 8) as i32;
+        let r = (s / 8) as i32;
+        let mut wm = 0u64;
+        let mut br = r + 1;
+        while br < 8 {
+            wm |= 1u64 << (br * 8 + f);
+            br += 1;
+        }
+        masks[0][s] = wm;
+        let mut bm = 0u64;
+        let mut br2 = r - 1;
+        while br2 >= 0 {
+            bm |= 1u64 << (br2 * 8 + f);
+            br2 -= 1;
+        }
+        masks[1][s] = bm;
+        s += 1;
+    }
+    masks
+}
+
+static FORWARD_FILE_MASKS: [[u64; 64]; 2] = build_forward_file_masks();
 
 pub struct Hce {
     pub params: EvalParams,
@@ -482,7 +536,9 @@ pub fn evaluate(pos: &Position, params: &EvalParams) -> i32 {
         while w != 0 {
             let s = w.trailing_zeros() as usize;
             w &= w - 1;
-            if PASSED_MASKS[0][s] & pos.bb[1][PAWN] == 0 {
+            if PASSED_MASKS[0][s] & pos.bb[1][PAWN] == 0
+                && FORWARD_FILE_MASKS[0][s] & pos.bb[0][PAWN] == 0
+            {
                 let rank = s / 8;
                 let target = s + 8;
                 let can_run = target < 64
@@ -497,7 +553,9 @@ pub fn evaluate(pos: &Position, params: &EvalParams) -> i32 {
         while b != 0 {
             let s = b.trailing_zeros() as usize;
             b &= b - 1;
-            if PASSED_MASKS[1][s] & pos.bb[0][PAWN] == 0 {
+            if PASSED_MASKS[1][s] & pos.bb[0][PAWN] == 0
+                && FORWARD_FILE_MASKS[1][s] & pos.bb[1][PAWN] == 0
+            {
                 let rank = 7 - s / 8;
                 let can_run = s >= 8
                     && (pos.occ & (1u64 << (s - 8))) == 0

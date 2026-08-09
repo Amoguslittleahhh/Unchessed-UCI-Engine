@@ -626,6 +626,18 @@ impl<'a> Searcher<'a> {
                 && alpha.abs() < MATE_IN_MAX
                 && static_eval + self.params.futility_margin * depth <= alpha
             {
+                // Fail-soft floor: this node's true score can't be proven
+                // below the futility bound itself, so `best` (and whatever
+                // gets stored in the TT) shouldn't be either -- matches
+                // every reference implementation (Stockfish, Heinz's 1998
+                // pseudocode), which raise the returned score the same way
+                // before skipping. A bare `continue` here previously let a
+                // node that pruned several quiets return an unnecessarily
+                // pessimistic fail-soft bound.
+                let futility_floor = static_eval + self.params.futility_margin * depth;
+                if futility_floor > best {
+                    best = futility_floor;
+                }
                 continue;
             }
 
