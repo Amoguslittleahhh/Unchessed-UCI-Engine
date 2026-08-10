@@ -30,6 +30,9 @@ pub struct EvalParams {
     /// Percent scale applied to the rook-file/rook-on-7th bonus below.
     /// 0 = feature off.
     pub rook_pct: i32,
+    /// Percent scale applied to the knight outpost bonus below. 0 = feature
+    /// off.
+    pub knight_outpost_pct: i32,
 }
 
 impl Default for EvalParams {
@@ -42,11 +45,17 @@ impl Default for EvalParams {
         // -- the single biggest eval-term gain in this project so far.
         // rook file/7th: 100 SPRT-validated (2026-08-04): +10.5 +/- 7.2 Elo
         // vs the mobility baseline, 6019 games, LLR crossed the upper bound.
+        // knight outpost: 100 SPRT-validated (2026-08-10): +12.0 +/- 7.8
+        // Elo, 4873 games, LLR crossed the upper bound (H1 accepted) --
+        // first attempt (10000-game cap) was inconclusive (+5.2 +/- 5.4,
+        // LLR never crossed either bound), extended to a 30000-game cap
+        // and converged cleanly on the second run.
         EvalParams {
             passed_mg_pct: 100,
             passed_eg_pct: 100,
             mobility_pct: 100,
             rook_pct: 100,
+            knight_outpost_pct: 100,
         }
     }
 }
@@ -236,6 +245,59 @@ fn rook_term(pos: &Position, color: Color) -> (i32, i32) {
                 eg += ROOK_7TH_EG;
             }
         }
+    }
+
+    (mg, eg)
+}
+
+/// Flat (mg, eg) bonus for a knight sitting on an outpost square --
+/// midpoint between RubiChess's real eKnightOutpost and Stockfish's real
+/// per-square outpost table (S(54,34) wing / S(9,-9) contested center),
+/// surfaced via this session's knight-outpost research. Deliberately a
+/// single flat value rather than Stockfish's full wing/center/defended
+/// split -- that finer table showed a counterintuitive *negative*
+/// contested-center case that isn't worth the extra complexity for a
+/// first cut; a real SPSA/SPRT pass can find the right single magnitude
+/// (including confirming 0 if flat doesn't work).
+const KNIGHT_OUTPOST_MG: i32 = 25;
+const KNIGHT_OUTPOST_EG: i32 = 20;
+
+/// Knight outpost bonus for `color`'s knights, as an (mg, eg) magnitude
+/// pair (sign applied by the caller). A knight qualifies when it sits on
+/// relative rank 4-6, is defended by one of its own pawns, and no enemy
+/// pawn on an adjacent file can ever reach a rank from which it would
+/// attack the square (the "no enemy pawn can ever attack it" outpost
+/// definition every reference engine checked uses). The adjacent-file/
+/// ranks-ahead mask is exactly PASSED_MASKS minus the pawn's own file
+/// (FORWARD_FILE_MASKS), reusing tables already built for passed-pawn
+/// detection instead of a third precomputed table.
+fn knight_outpost_term(pos: &Position, color: Color) -> (i32, i32) {
+    let opp = color.flip();
+    let mut mg = 0i32;
+    let mut eg = 0i32;
+
+    let mut nb = pos.bb[color.idx()][KNIGHT];
+    while nb != 0 {
+        let s = nb.trailing_zeros() as usize;
+        nb &= nb - 1;
+
+        let rel_rank = if let Color::White = color { s / 8 } else { 7 - s / 8 };
+        if !(3..=5).contains(&rel_rank) {
+            continue;
+        }
+
+        let defended = PAWN_ATT[opp.idx()][s] & pos.bb[color.idx()][PAWN] != 0;
+        if !defended {
+            continue;
+        }
+
+        let outpost_mask = PASSED_MASKS[color.idx()][s] & !FORWARD_FILE_MASKS[color.idx()][s];
+        if outpost_mask & pos.bb[opp.idx()][PAWN] != 0 {
+            continue;
+        }
+
+        mg += KNIGHT_OUTPOST_MG;
+        eg += KNIGHT_OUTPOST_EG;
     }
 
     (mg, eg)
@@ -637,6 +699,14 @@ pub fn evaluate(pos: &Position, params: &EvalParams) -> i32 {
         eg += (w_eg - b_eg) * params.rook_pct / 100;
     }
 
+    // knight outpost: scale is a tunable UCI param (0 = off, current default).
+    if params.knight_outpost_pct != 0 {
+        let (w_mg, w_eg) = knight_outpost_term(pos, Color::White);
+        let (b_mg, b_eg) = knight_outpost_term(pos, Color::Black);
+        mg += (w_mg - b_mg) * params.knight_outpost_pct / 100;
+        eg += (w_eg - b_eg) * params.knight_outpost_pct / 100;
+    }
+
     let phase = phase.min(TOTAL_PHASE);
     let score = (mg * phase + eg * (TOTAL_PHASE - phase)) / TOTAL_PHASE;
 
@@ -674,11 +744,11 @@ mod tests {
         let pos = fen::parse("4k3/P7/8/8/8/8/8/4K3 w - - 0 1").unwrap();
         let off = evaluate(
             &pos,
-            &EvalParams { passed_mg_pct: 0, passed_eg_pct: 0, mobility_pct: 0, rook_pct: 0 },
+            &EvalParams { passed_mg_pct: 0, passed_eg_pct: 0, mobility_pct: 0, rook_pct: 0, knight_outpost_pct: 0 },
         );
         let on = evaluate(
             &pos,
-            &EvalParams { passed_mg_pct: 100, passed_eg_pct: 100, mobility_pct: 0, rook_pct: 0 },
+            &EvalParams { passed_mg_pct: 100, passed_eg_pct: 100, mobility_pct: 0, rook_pct: 0, knight_outpost_pct: 0 },
         );
         assert_ne!(off, on, "scale=100 should differ from scale=0 for an advanced passed pawn");
     }
@@ -692,7 +762,7 @@ mod tests {
         // h8 and a7 is wide open. A naive "is it technically passed"
         // bonus would score these identically; the corrected version
         // (matching a real reference implementation) must not.
-        let params = EvalParams { passed_mg_pct: 100, passed_eg_pct: 100, mobility_pct: 0, rook_pct: 0 };
+        let params = EvalParams { passed_mg_pct: 100, passed_eg_pct: 100, mobility_pct: 0, rook_pct: 0, knight_outpost_pct: 0 };
         let blocked = fen::parse("8/k7/P7/8/8/8/8/4K3 w - - 0 1").unwrap();
         let free = fen::parse("7k/8/P7/8/8/8/8/4K3 w - - 0 1").unwrap();
         assert!(
@@ -708,8 +778,8 @@ mod tests {
         // A white knight with lots of open squares to jump to -- pct=0
         // must reproduce the exact pre-mobility score.
         let pos = fen::parse("4k3/8/8/8/4N3/8/8/4K3 w - - 0 1").unwrap();
-        let off = EvalParams { passed_mg_pct: 0, passed_eg_pct: 0, mobility_pct: 0, rook_pct: 0 };
-        let on = EvalParams { passed_mg_pct: 0, passed_eg_pct: 0, mobility_pct: 100, rook_pct: 0 };
+        let off = EvalParams { passed_mg_pct: 0, passed_eg_pct: 0, mobility_pct: 0, rook_pct: 0, knight_outpost_pct: 0 };
+        let on = EvalParams { passed_mg_pct: 0, passed_eg_pct: 0, mobility_pct: 100, rook_pct: 0, knight_outpost_pct: 0 };
         assert_ne!(
             evaluate(&pos, &off),
             evaluate(&pos, &on),
@@ -722,7 +792,7 @@ mod tests {
         // Same material, same side to move -- only difference is whether
         // white's knight sits in the open center (many safe squares) or
         // jammed in the corner (few safe squares).
-        let params = EvalParams { passed_mg_pct: 0, passed_eg_pct: 0, mobility_pct: 100, rook_pct: 0 };
+        let params = EvalParams { passed_mg_pct: 0, passed_eg_pct: 0, mobility_pct: 100, rook_pct: 0, knight_outpost_pct: 0 };
         let cornered = fen::parse("4k3/8/8/8/8/8/8/N3K3 w - - 0 1").unwrap();
         let mobile = fen::parse("4k3/8/8/8/4N3/8/8/4K3 w - - 0 1").unwrap();
         assert!(
@@ -739,9 +809,9 @@ mod tests {
         // exact pre-rook-term score.
         let pos = fen::parse("4k3/8/8/8/8/8/8/R3K3 w - - 0 1").unwrap();
         let off =
-            EvalParams { passed_mg_pct: 0, passed_eg_pct: 0, mobility_pct: 0, rook_pct: 0 };
+            EvalParams { passed_mg_pct: 0, passed_eg_pct: 0, mobility_pct: 0, rook_pct: 0, knight_outpost_pct: 0 };
         let on =
-            EvalParams { passed_mg_pct: 0, passed_eg_pct: 0, mobility_pct: 0, rook_pct: 100 };
+            EvalParams { passed_mg_pct: 0, passed_eg_pct: 0, mobility_pct: 0, rook_pct: 100, knight_outpost_pct: 0 };
         assert_ne!(
             evaluate(&pos, &off),
             evaluate(&pos, &on),
@@ -754,7 +824,7 @@ mod tests {
         // Same material (one pawn each) and same rook -- only difference
         // is whether the pawn sits on the rook's own a-file (blocking it)
         // or off on the b-file (leaving the a-file open).
-        let params = EvalParams { passed_mg_pct: 0, passed_eg_pct: 0, mobility_pct: 0, rook_pct: 100 };
+        let params = EvalParams { passed_mg_pct: 0, passed_eg_pct: 0, mobility_pct: 0, rook_pct: 100, knight_outpost_pct: 0 };
         let blocked = fen::parse("4k3/8/8/8/8/8/P7/R3K3 w - - 0 1").unwrap();
         let open = fen::parse("4k3/8/8/8/8/8/1P6/R3K3 w - - 0 1").unwrap();
         assert!(
@@ -770,7 +840,7 @@ mod tests {
         // Same rook, same enemy king pinned to the back rank -- only
         // difference is whether the rook itself sits on the 7th rank
         // (pressing) or one rank back.
-        let params = EvalParams { passed_mg_pct: 0, passed_eg_pct: 0, mobility_pct: 0, rook_pct: 100 };
+        let params = EvalParams { passed_mg_pct: 0, passed_eg_pct: 0, mobility_pct: 0, rook_pct: 100, knight_outpost_pct: 0 };
         let pressing = fen::parse("6k1/4R3/8/8/8/8/8/4K3 w - - 0 1").unwrap();
         let off_7th = fen::parse("6k1/8/4R3/8/8/8/8/4K3 w - - 0 1").unwrap();
         assert!(
@@ -778,6 +848,45 @@ mod tests {
             "7th-rank-pressing eval {} should exceed off-7th eval {}",
             evaluate(&pressing, &params),
             evaluate(&off_7th, &params)
+        );
+    }
+
+    #[test]
+    fn knight_outpost_scale_zero_is_a_true_noop() {
+        // White knight on d5, defended by the c4 pawn, no black pawn able
+        // to ever contest it -- pct=0 must reproduce the exact
+        // pre-outpost-term score.
+        let pos = fen::parse("4k3/7p/8/3N4/2P5/8/8/4K3 w - - 0 1").unwrap();
+        let off = EvalParams {
+            passed_mg_pct: 0, passed_eg_pct: 0, mobility_pct: 0, rook_pct: 0, knight_outpost_pct: 0,
+        };
+        let on = EvalParams {
+            passed_mg_pct: 0, passed_eg_pct: 0, mobility_pct: 0, rook_pct: 0, knight_outpost_pct: 100,
+        };
+        assert_ne!(
+            evaluate(&pos, &off),
+            evaluate(&pos, &on),
+            "knight outpost at pct=100 should differ from pct=0 for a qualifying knight"
+        );
+    }
+
+    #[test]
+    fn knight_outpost_scores_better_than_a_contestable_knight() {
+        // Same knight on d5, defended by the same c4 pawn -- only
+        // difference is whether black has a pawn on e7 (on the outpost
+        // mask, can eventually advance to e6 and attack d5) or off on h7
+        // (never a threat). A knight sitting on a square any enemy pawn
+        // could eventually contest is not a real outpost.
+        let params = EvalParams {
+            passed_mg_pct: 0, passed_eg_pct: 0, mobility_pct: 0, rook_pct: 0, knight_outpost_pct: 100,
+        };
+        let qualifying = fen::parse("4k3/7p/8/3N4/2P5/8/8/4K3 w - - 0 1").unwrap();
+        let contested = fen::parse("4k3/4p3/8/3N4/2P5/8/8/4K3 w - - 0 1").unwrap();
+        assert!(
+            evaluate(&qualifying, &params) > evaluate(&contested, &params),
+            "outpost eval {} should exceed contested eval {}",
+            evaluate(&qualifying, &params),
+            evaluate(&contested, &params)
         );
     }
 }

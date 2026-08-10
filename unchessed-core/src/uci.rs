@@ -204,6 +204,9 @@ pub fn run(ident: EngineIdent) {
                 // Rook file / rook-on-7th: 100 is SPRT-validated
                 // (+10.5 Elo, 2026-08-04).
                 println!("option name RookPct type spin default 100 min 0 max 200");
+                // Knight outpost: 100 is SPRT-validated (+12.0 +/- 7.8 Elo,
+                // 2026-08-10, 4873 games, LLR crossed the upper bound).
+                println!("option name KnightOutpostPct type spin default 100 min 0 max 200");
                 println!("uciok");
                 println!("info string [Unchessed] eval: {}", eval_desc);
                 if ident.adaptive_engine {
@@ -530,6 +533,14 @@ fn handle_setoption(
         "rookpct" => {
             if let Ok(v) = value.parse::<i32>() {
                 opt.eval_params.rook_pct = v.clamp(0, 200);
+                if *eval_is_hce {
+                    *eval_impl = Arc::new(Hce::new(opt.eval_params));
+                }
+            }
+        }
+        "knightoutpostpct" => {
+            if let Ok(v) = value.parse::<i32>() {
+                opt.eval_params.knight_outpost_pct = v.clamp(0, 200);
                 if *eval_is_hce {
                     *eval_impl = Arc::new(Hce::new(opt.eval_params));
                 }
