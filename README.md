@@ -5,8 +5,13 @@ A UCI chess engine family built from scratch in Rust:
 - **Unchessed Game Adapter** (`unchessed-adapter.exe`) — an adaptive engine that
   estimates its opponent's strength *live from their moves* (fully offline, no
   rating lookups) and shapes its play to match, punish, or clinch.
-- **Unchessed Game Reviewer** — planned next round: a full-strength analysis
-  engine + PGN annotator CLI.
+- **Unchessed Game Reviewer** (`unchessed-reviewer.exe`) — a full-strength
+  analysis engine: same `unchessed-core` eval/search as the adapter, but no
+  persona/opponent-modeling layer — always plays at its raw strength.
+
+Both binaries share the same `unchessed-core` crate (eval, search, movegen)
+and are always rebuilt/redeployed together after any change; they differ only
+in the UCI options and default behavior their own `main.rs` exposes.
 
 ## Status: barebones milestone (this build)
 
@@ -37,6 +42,25 @@ Produces `target\release\unchessed-adapter.exe` (standalone, no dependencies).
 
 Tests (perft suite, search, book, model): `cargo test`. Deep perft:
 `cargo test --release -- --ignored`.
+
+## Repository layout
+
+- `unchessed-core/` — shared eval, search, movegen, UCI protocol logic used
+  by both binaries.
+- `unchessed-adapter/`, `unchessed-reviewer/` — the two binary crates
+  (thin `main.rs` wrappers around `unchessed-core`).
+- `unchessed-datagen/` — training-data generation tooling.
+- `tools/` — auxiliary scripts (NNUE trainer, etc.).
+- `scripts/exhibition/` — the game-runner scripts used for exhibition
+  matches against reference engines (RubiChess).
+- `scripts/sprt-history/` — smoke-test/SPRT-launch scripts committed as a
+  record of specific past eval/search experiments (mix of passed and
+  reverted techniques — check project memory or `scripts/sprt-history/`
+  filenames for which).
+
+SPRT gate logs/PGNs and exhibition-series results themselves are not
+committed to git (they're large and regenerated per-run) — see the WSL
+build environment's `~/unchessed-ai/results/README.md` for that data.
 
 ## En Croissant setup
 
