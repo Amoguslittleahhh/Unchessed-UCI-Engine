@@ -396,6 +396,76 @@ pub fn king_safe_after(pos_after: &Position, mover: Color) -> bool {
     !attacked(pos_after, pos_after.king_sq(mover), pos_after.side)
 }
 
+/// Squares strictly between `a` and `b` (exclusive) if they share a rank,
+/// file, or diagonal; 0 otherwise. Used by `pinned_blockers` below to find
+/// the single piece (if any) sitting between a king and an aligned enemy
+/// slider.
+const fn build_between() -> [[u64; 64]; 64] {
+    let mut t = [[0u64; 64]; 64];
+    let mut a = 0usize;
+    while a < 64 {
+        let af = (a % 8) as i32;
+        let ar = (a / 8) as i32;
+        let mut b = 0usize;
+        while b < 64 {
+            if a != b {
+                let bf = (b % 8) as i32;
+                let br = (b / 8) as i32;
+                let df = bf - af;
+                let dr = br - ar;
+                if df == 0 || dr == 0 || df == dr || df == -dr {
+                    let step_f = if df == 0 { 0 } else if df > 0 { 1 } else { -1 };
+                    let step_r = if dr == 0 { 0 } else if dr > 0 { 1 } else { -1 };
+                    let mut bb = 0u64;
+                    let mut f = af + step_f;
+                    let mut r = ar + step_r;
+                    while f != bf || r != br {
+                        bb |= 1u64 << ((r * 8 + f) as usize);
+                        f += step_f;
+                        r += step_r;
+                    }
+                    t[a][b] = bb;
+                }
+            }
+            b += 1;
+        }
+        a += 1;
+    }
+    t
+}
+
+static BETWEEN: [[u64; 64]; 64] = build_between();
+
+/// For `us`'s king: the set of `us`'s own pieces that, if moved, would
+/// expose the king to a slider check (`blockers`), and the enemy sliders
+/// doing the pinning (`pinners`). Candidate "snipers" are found via a
+/// zero-occupancy ray from the king square (so they see through everything,
+/// matching every reference engine's real `attacks_bb(ksq, 0)` pattern);
+/// a sniper is a genuine pinner only if exactly one piece (of either color)
+/// sits strictly between it and the king.
+pub fn pinned_blockers(pos: &Position, us: Color) -> (Bitboard, Bitboard) {
+    let them = us.flip();
+    let ksq = pos.king_sq(us) as usize;
+    let mut blockers = 0u64;
+    let mut pinners = 0u64;
+
+    let snipers = (rook_att(ksq as u8, 0) & (pos.bb[them.idx()][ROOK] | pos.bb[them.idx()][QUEEN]))
+        | (bishop_att(ksq as u8, 0) & (pos.bb[them.idx()][BISHOP] | pos.bb[them.idx()][QUEEN]));
+    let occ_without_snipers = pos.occ & !snipers;
+
+    let mut s = snipers;
+    while s != 0 {
+        let sq = s.trailing_zeros() as usize;
+        s &= s - 1;
+        let between = BETWEEN[ksq][sq] & occ_without_snipers;
+        if between != 0 && (between & (between - 1)) == 0 {
+            blockers |= between;
+            pinners |= 1u64 << sq;
+        }
+    }
+    (blockers, pinners)
+}
+
 // ---------------------------------------------------------------------------
 // Move list
 // ---------------------------------------------------------------------------

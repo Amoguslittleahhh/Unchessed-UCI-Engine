@@ -6,7 +6,7 @@
 
 use crate::board::*;
 use crate::movegen::{
-    attacked, bishop_att, queen_att, rook_att, FILE_A, KNIGHT_ATT, PAWN_ATT, RANK_1,
+    attacked, bishop_att, queen_att, rook_att, FILE_A, KING_ATT, KNIGHT_ATT, PAWN_ATT, RANK_1,
 };
 
 pub trait Eval: Send + Sync {
@@ -172,18 +172,29 @@ const ROOK_FREE_FILE_EG: [i32; 2] = [7, 1];
 /// eRookon7thbonus constant.
 const ROOK_7TH_MG: i32 = -1;
 const ROOK_7TH_EG: i32 = 22;
+/// mg-only bonus for a rook whose file intersects the enemy king ring
+/// (the king's own square plus its 8 neighbors) -- real Stockfish's
+/// RookOnKingRing constant S(16,0), SPRT-validated as genuinely Elo-
+/// positive in Stockfish's own history (not just a simplification/
+/// non-regression pass), surfaced via this session's deep rook-file
+/// research. Needs only a king-attack-square lookup, no full king-danger
+/// formula -- deliberately much cheaper infrastructure than the twice-
+/// failed king-safety attack-unit attempts.
+const ROOK_ON_KING_RING_MG: i32 = 16;
 
 /// Rook-file/rook-on-7th bonus for `color`'s rooks, as an (mg, eg)
 /// magnitude pair (sign applied by the caller). Deliberately simplified
-/// vs RubiChess's real formula: no rook-vs-king-ring bonus, no castling-
-/// rights-based penalty for a rook stuck behind pawns -- both would need
-/// infrastructure (king ring, or castling-rights history) this term
-/// doesn't otherwise depend on, kept out to stay a single well-scoped
-/// idea like every other eval addition this project has gated.
+/// vs RubiChess's real formula: no castling-rights-based penalty for a
+/// rook stuck behind pawns -- would need castling-rights-history
+/// infrastructure this term doesn't otherwise depend on, kept out to
+/// stay a well-scoped idea.
 fn rook_term(pos: &Position, color: Color) -> (i32, i32) {
     let opp = color.flip();
     let mut mg = 0i32;
     let mut eg = 0i32;
+
+    let enemy_ksq = pos.king_sq(opp) as usize;
+    let king_ring: Bitboard = KING_ATT[enemy_ksq] | (1u64 << enemy_ksq);
 
     let mut rk = pos.bb[color.idx()][ROOK];
     while rk != 0 {
@@ -196,6 +207,10 @@ fn rook_term(pos: &Position, color: Color) -> (i32, i32) {
             let idx = if pos.bb[opp.idx()][PAWN] & file_mask == 0 { 1 } else { 0 };
             mg += ROOK_FREE_FILE_MG[idx];
             eg += ROOK_FREE_FILE_EG[idx];
+        }
+
+        if file_mask & king_ring != 0 {
+            mg += ROOK_ON_KING_RING_MG;
         }
     }
 
@@ -306,6 +321,16 @@ const fn build_forward_file_masks() -> [[u64; 64]; 2] {
 }
 
 static FORWARD_FILE_MASKS: [[u64; 64]; 2] = build_forward_file_masks();
+
+/// Chebyshev (king-move) distance between two squares.
+#[inline]
+fn cheb_dist(a: u8, b: u8) -> i32 {
+    let af = (a % 8) as i32;
+    let ar = (a / 8) as i32;
+    let bf = (b % 8) as i32;
+    let br = (b / 8) as i32;
+    (af - bf).abs().max((ar - br).abs())
+}
 
 pub struct Hce {
     pub params: EvalParams,
@@ -532,6 +557,9 @@ pub fn evaluate(pos: &Position, params: &EvalParams) -> i32 {
     // treating them the same overvalues pawns sitting right next to an
     // enemy piece/king with no real prospects.
     if params.passed_mg_pct != 0 || params.passed_eg_pct != 0 {
+        let white_ksq = pos.king_sq(Color::White);
+        let black_ksq = pos.king_sq(Color::Black);
+
         let mut w = pos.bb[0][PAWN];
         while w != 0 {
             let s = w.trailing_zeros() as usize;
@@ -547,6 +575,21 @@ pub fn evaluate(pos: &Position, params: &EvalParams) -> i32 {
                 let factor = if can_run { 100 } else { 40 };
                 mg += PASSED_MG[rank] * params.passed_mg_pct * factor / 10000;
                 eg += PASSED_EG[rank] * params.passed_eg_pct * factor / 10000;
+
+                // King-distance-to-stop-square: endgame-only, asymmetric
+                // (enemy king weighted more heavily than own king), only
+                // for pawns past their 3rd rank -- real Stockfish's
+                // formula (w=5*rank-13, enemy weight 19/4 vs own 2,
+                // distance capped at 5), surfaced via this session's deep
+                // passed-pawn research as the single most universal
+                // missing term across every reference engine checked.
+                if rank > 2 && target < 64 {
+                    let wgt = 5 * rank as i32 - 13;
+                    let us_prox = cheb_dist(white_ksq, target as u8).min(5);
+                    let them_prox = cheb_dist(black_ksq, target as u8).min(5);
+                    let eg_term = (them_prox * 19 / 4 - us_prox * 2) * wgt;
+                    eg += eg_term * params.passed_eg_pct / 100;
+                }
             }
         }
         let mut b = pos.bb[1][PAWN];
@@ -563,6 +606,15 @@ pub fn evaluate(pos: &Position, params: &EvalParams) -> i32 {
                 let factor = if can_run { 100 } else { 40 };
                 mg -= PASSED_MG[rank] * params.passed_mg_pct * factor / 10000;
                 eg -= PASSED_EG[rank] * params.passed_eg_pct * factor / 10000;
+
+                if rank > 2 && s >= 8 {
+                    let target = s - 8;
+                    let wgt = 5 * rank as i32 - 13;
+                    let us_prox = cheb_dist(black_ksq, target as u8).min(5);
+                    let them_prox = cheb_dist(white_ksq, target as u8).min(5);
+                    let eg_term = (them_prox * 19 / 4 - us_prox * 2) * wgt;
+                    eg -= eg_term * params.passed_eg_pct / 100;
+                }
             }
         }
     }

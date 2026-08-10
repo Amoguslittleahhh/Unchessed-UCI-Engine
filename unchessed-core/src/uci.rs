@@ -535,7 +535,6 @@ fn handle_setoption(
                 }
             }
         }
-
         "bookfile" => {
             let mut b = book.lock().unwrap();
             if value.is_empty() {

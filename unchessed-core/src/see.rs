@@ -8,7 +8,7 @@
 
 use crate::board::*;
 use crate::eval::MG_VALUE;
-use crate::movegen::{bishop_att, rook_att, KING_ATT, KNIGHT_ATT, PAWN_ATT};
+use crate::movegen::{bishop_att, pinned_blockers, rook_att, KING_ATT, KNIGHT_ATT, PAWN_ATT};
 
 /// All pieces (either color) currently attacking `to`, given occupancy `occ`.
 /// `occ` is expected to be a subset of the real position's occupancy (pieces
@@ -59,6 +59,18 @@ pub fn see(pos: &Position, m: Move) -> i32 {
     let mut side = pos.side;
     let mut occ = pos.occ;
 
+    // Pin info computed once from the STATIC position (an accepted
+    // approximation matching real Stockfish, which does the same rather
+    // than recomputing pins as pieces are removed mid-exchange -- see
+    // Stockfish commit 242c566, which explicitly documents this tradeoff:
+    // some positions get a slightly less accurate SEE in exchange for a
+    // cheap, single computation). A pinned piece can't be used to continue
+    // an exchange on `to` unless doing so wouldn't actually expose its own
+    // king (not checked here, matching Stockfish's own simplification) --
+    // we just exclude it outright while its pinner is still on the board.
+    let (white_blockers, white_pinners) = pinned_blockers(pos, Color::White);
+    let (black_blockers, black_pinners) = pinned_blockers(pos, Color::Black);
+
     let mut gain = [0i32; 32];
     let mut d = 0usize;
     gain[0] = if is_ep {
@@ -97,9 +109,15 @@ pub fn see(pos: &Position, m: Move) -> i32 {
             break;
         }
         let attackers = attackers_to(pos, to, occ);
+        let (blockers, pinners) = if side == Color::White {
+            (white_blockers, white_pinners)
+        } else {
+            (black_blockers, black_pinners)
+        };
+        let pin_mask = if pinners & occ != 0 { !blockers } else { !0u64 };
         let mut found = None;
         for pt in [PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING] {
-            let bb = attackers & pos.bb[side.idx()][pt] & occ;
+            let bb = attackers & pos.bb[side.idx()][pt] & occ & pin_mask;
             if bb != 0 {
                 found = Some((bb.trailing_zeros() as u8, pt));
                 break;
@@ -159,6 +177,20 @@ mod tests {
         let pos = fen::parse("4k3/8/8/2p5/3n4/8/8/3RK3 w - - 0 1").unwrap();
         let sc = see(&pos, mv("d1", "d4"));
         assert_eq!(sc, MG_VALUE[KNIGHT] - MG_VALUE[ROOK]);
+    }
+
+    #[test]
+    fn pinned_recapturer_is_excluded_from_the_exchange() {
+        // Black bishop e5 sits between white queen e1 and black king e8 on
+        // the open e-file -- a genuine pin, so it cannot legally recapture
+        // on d4 without exposing its own king, even though it geometrically
+        // attacks d4. White rook takes the undefended-except-for-the-pin
+        // knight on d4; the correct SEE is a clean, un-recaptured knight
+        // gain, not knight-minus-rook (which is what a pin-unaware
+        // attacker search would compute).
+        let pos = fen::parse("4k3/8/8/4b3/3n4/8/8/K2RQ3 w - - 0 1").unwrap();
+        let sc = see(&pos, mv("d1", "d4"));
+        assert_eq!(sc, MG_VALUE[KNIGHT]);
     }
 
     #[test]
