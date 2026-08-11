@@ -1,0 +1,52 @@
+Indexing opening suite...
+Started game 8 of 12 (SFFull vs AdaptVsFull)
+Started game 1 of 12 (AdaptVsFull vs SFFull)
+Started game 5 of 12 (AdaptVsFull vs SFFull)
+Started game 6 of 12 (SFFull vs AdaptVsFull)
+Started game 2 of 12 (SFFull vs AdaptVsFull)
+Started game 3 of 12 (AdaptVsFull vs SFFull)
+Started game 7 of 12 (AdaptVsFull vs SFFull)
+Started game 4 of 12 (SFFull vs AdaptVsFull)
+Finished game 4 (SFFull vs AdaptVsFull): 1-0 {White wins by adjudication}
+Score of AdaptVsFull vs SFFull: 0 - 1 - 0  [0.000] 1
+Started game 9 of 12 (AdaptVsFull vs SFFull)
+Finished game 5 (AdaptVsFull vs SFFull): 0-1 {Black wins by adjudication}
+Score of AdaptVsFull vs SFFull: 0 - 2 - 0  [0.000] 2
+Started game 10 of 12 (SFFull vs AdaptVsFull)
+Finished game 8 (SFFull vs AdaptVsFull): 1-0 {White wins by adjudication}
+Score of AdaptVsFull vs SFFull: 0 - 3 - 0  [0.000] 3
+Started game 11 of 12 (AdaptVsFull vs SFFull)
+Finished game 6 (SFFull vs AdaptVsFull): 1-0 {White wins by adjudication}
+Score of AdaptVsFull vs SFFull: 0 - 4 - 0  [0.000] 4
+Started game 12 of 12 (SFFull vs AdaptVsFull)
+Finished game 7 (AdaptVsFull vs SFFull): 0-1 {Black wins by adjudication}
+Score of AdaptVsFull vs SFFull: 0 - 5 - 0  [0.000] 5
+Finished game 1 (AdaptVsFull vs SFFull): 0-1 {Black mates}
+Score of AdaptVsFull vs SFFull: 0 - 6 - 0  [0.000] 6
+Finished game 3 (AdaptVsFull vs SFFull): 0-1 {Black wins by adjudication}
+Score of AdaptVsFull vs SFFull: 0 - 7 - 0  [0.000] 7
+Finished game 2 (SFFull vs AdaptVsFull): 1-0 {White wins by adjudication}
+Score of AdaptVsFull vs SFFull: 0 - 8 - 0  [0.000] 8
+Finished game 9 (AdaptVsFull vs SFFull): 0-1 {Black wins by adjudication}
+Score of AdaptVsFull vs SFFull: 0 - 9 - 0  [0.000] 9
+Finished game 12 (SFFull vs AdaptVsFull): 1-0 {White wins by adjudication}
+Score of AdaptVsFull vs SFFull: 0 - 10 - 0  [0.000] 10
+Finished game 10 (SFFull vs AdaptVsFull): 1-0 {White wins by adjudication}
+Score of AdaptVsFull vs SFFull: 0 - 11 - 0  [0.000] 11
+Finished game 11 (AdaptVsFull vs SFFull): 0-1 {Black wins by adjudication}
+Score of AdaptVsFull vs SFFull: 0 - 12 - 0  [0.000] 12
+...      AdaptVsFull playing White: 0 - 6 - 0  [0.000] 6
+...      AdaptVsFull playing Black: 0 - 6 - 0  [0.000] 6
+...      White vs Black: 6 - 6 - 0  [0.500] 12
+Elo difference: -inf +/- nan, LOS: 0.0 %, DrawRatio: 0.0 %
+SPRT: llr 0 (0.0%), lbound -inf, ubound inf
+
+Player: AdaptVsFull
+   "Loss: Black mates": 1
+   "Loss: Black wins by adjudication": 5
+   "Loss: White wins by adjudication": 6
+Player: SFFull
+   "Win: Black mates": 1
+   "Win: Black wins by adjudication": 5
+   "Win: White wins by adjudication": 6
+Finished match

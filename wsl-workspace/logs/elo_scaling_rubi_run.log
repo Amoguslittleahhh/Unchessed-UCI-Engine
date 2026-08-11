@@ -1,0 +1,13 @@
+=== ELO 500 vs RubiChess(LimitNps=20000) ===
+  done
+=== ELO 1000 vs RubiChess(LimitNps=20000) ===
+  done
+=== ELO 1500 vs RubiChess(LimitNps=20000) ===
+  done
+=== ELO 2000 vs RubiChess(LimitNps=20000) ===
+  done
+=== ELO 2500 vs RubiChess(LimitNps=20000) ===
+  done
+=== ELO 3000 vs RubiChess(LimitNps=20000) ===
+  done
+ALL DONE

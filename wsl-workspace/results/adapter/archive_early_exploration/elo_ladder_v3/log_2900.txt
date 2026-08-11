@@ -1,0 +1,14 @@
+Indexing opening suite...
+Started game 1 of 1 (Adapter2900 vs Stockfish)
+Finished game 1 (Adapter2900 vs Stockfish): 1/2-1/2 {Draw by 3-fold repetition}
+Score of Adapter2900 vs Stockfish: 0 - 0 - 1  [0.500] 1
+...      Adapter2900 playing White: 0 - 0 - 1  [0.500] 1
+...      White vs Black: 0 - 0 - 1  [0.500] 1
+Elo difference: 0.0 +/- 0.0, LOS: nan %, DrawRatio: 100.0 %
+SPRT: llr 0 (0.0%), lbound -inf, ubound inf
+
+Player: Adapter2900
+   "Draw by 3-fold repetition": 1
+Player: Stockfish
+   "Draw by 3-fold repetition": 1
+Finished match

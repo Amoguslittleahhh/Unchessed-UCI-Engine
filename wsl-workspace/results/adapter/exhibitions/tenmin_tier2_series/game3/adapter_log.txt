@@ -1,0 +1,803 @@
+>> uci
+<< id name Unchessed Game Adapter 0.2.3
+<< id author Unchessed AI project
+<< option name Hash type spin default 128 min 1 max 2048
+<< option name Threads type spin default 1 min 1 max 64
+<< option name Clear Hash type button
+<< option name MultiPV type spin default 1 min 1 max 8
+<< option name EvalFile type string default 
+<< option name Adaptive type check default true
+<< option name UCI_LimitStrength type check default false
+<< option name UCI_Elo type spin default 2400 min 500 max 3200
+<< option name Contempt type spin default 25 min 0 max 100
+<< option name Troll type combo default Auto var Off var Auto var On
+<< option name OwnBook type check default true
+<< option name BookFile type string default 
+<< option name BookDepth type spin default 16 min 0 max 40
+<< option name PolicyFile type string default 
+<< option name UCI_Opponent type string default 
+<< option name RFPMargin type spin default 90 min 10 max 300
+<< option name NullMoveBase type spin default 3 min 1 max 6
+<< option name NullMoveDivisor type spin default 6 min 2 max 12
+<< option name LMRMinDepth type spin default 3 min 1 max 8
+<< option name LMRMinMoveNumber type spin default 3 min 0 max 20
+<< option name LMRBigMoveNumber type spin default 12 min 4 max 40
+<< option name AspirationDelta type spin default 25 min 5 max 200
+<< option name AspirationMinDepth type spin default 4 min 1 max 12
+<< option name ProbCutMargin type spin default 200 min 50 max 400
+<< option name ProbCutReduction type spin default 4 min 2 max 6
+<< option name ProbCutMinDepth type spin default 5 min 3 max 10
+<< option name FutilityMargin type spin default 150 min 30 max 400
+<< option name FutilityMaxDepth type spin default 8 min 1 max 12
+<< option name PassedPawnMgPct type spin default 100 min 0 max 200
+<< option name PassedPawnEgPct type spin default 100 min 0 max 200
+<< option name MobilityPct type spin default 100 min 0 max 200
+<< option name RookPct type spin default 100 min 0 max 200
+<< uciok
+<< info string [Unchessed] eval: hand-crafted (no NNUE file found)
+<< info string [Unchessed] no policy net found — using heuristic move priors
+>> setoption name Threads value 1
+>> setoption name Adaptive value true
+>> setoption name OwnBook value true
+>> setoption name Hash value 128
+>> setoption name ContHistPct value 100
+>> isready
+<< readyok
+>> ucinewgame
+>> isready
+<< readyok
+>> position startpos
+>> go wtime 600000 btime 600000 winc 0 binc 0
+<< info string [Unchessed] book: London System (D02) [main] — opponent ~1500, playing the popular stuff
+<< bestmove d2d4
+>> position startpos moves d2d4 g8f6
+>> go wtime 600000 btime 561449 winc 0 binc 0
+<< info string [Unchessed] book: Trompowsky (A45) [main] — opponent ~1500, playing the popular stuff
+<< bestmove c1g5
+>> position startpos moves d2d4 g8f6 c1g5 d7d5
+>> go wtime 600000 btime 548333 winc 0 binc 0
+<< info string [Unchessed] opponent move d7d5 cp-loss 0 -> estimate ~2144 (±649), trending up
+<< info string [Unchessed] out of book at move 3
+<< info depth 1 multipv 1 score cp 7 nodes 33 nps 33000 time 0 pv e2e3
+<< info depth 2 multipv 1 score cp -11 nodes 227 nps 227000 time 0 pv e2e3 b8c6
+<< info depth 3 multipv 1 score cp 6 nodes 796 nps 796000 time 0 pv e2e3 h7h6 g5f4
+<< info depth 4 multipv 1 score cp -12 nodes 3547 nps 3547000 time 0 pv e2e3 h7h6 g5f4 b8c6
+<< info depth 5 multipv 1 score cp -4 nodes 9856 nps 9856000 time 1 pv e2e3 b8c6 g5f4 e7e6 g1f3
+<< info depth 6 multipv 1 score cp -20 nodes 22009 nps 7336333 time 3 pv e2e3 h7h6 g5f4 g7g5 f4e5 f8g7
+<< info depth 7 multipv 1 score cp -11 nodes 41805 nps 5972142 time 7 pv b1c3 h7h6 g5f6 e7f6 e2e4 d5e4 c3e4
+<< info depth 8 multipv 1 score cp -14 nodes 80756 nps 5383733 time 15 pv e2e3 h7h6 g5f4 g7g5 f4e5 b8c6 b1c3 c6e5
+<< info depth 9 multipv 1 score cp -14 nodes 222186 nps 4534408 time 49 pv e2e3 h7h6 g5f4 g7g5 f4e5 b8c6 b1c3 c6e5 d4e5
+<< info depth 10 multipv 1 score cp -16 nodes 446539 nps 3986955 time 112 pv e2e3 h7h6 g5f4 b8c6 b1c3 c8f5 g1f3 e7e6 f1d3 f8e7
+<< info depth 11 multipv 1 score cp -12 nodes 866359 nps 3850484 time 225 pv e2e3 h7h6 g5f4 b8c6 b1c3 g7g5 f4g3 f8g7 c3b5 e8g8 b5c7
+<< info depth 12 multipv 1 score cp -11 nodes 1591925 nps 3799343 time 419 pv e2e3 h7h6 g5f4 c8f5 b1c3 b8c6 g1f3 e7e6 f1d3 f8e7 e1g1 e8g8
+<< info depth 13 multipv 1 score cp 3 nodes 3048095 nps 3615771 time 843 pv e2e3 h7h6 g5f4 b8c6 b1c3 g7g5 f4g3 f8g7 h2h4 g5g4 c3b5 e8g8 b5c7
+<< info depth 14 multipv 1 score cp 2 nodes 5957997 nps 3544317 time 1681 pv e2e3 b8c6 b1c3 h7h6 g5f4 a7a6 g1f3 g7g5 f4g3 f8g7 f1e2 c8f5 h2h4 c6b4
+<< info depth 15 multipv 1 score cp -6 nodes 9909285 nps 3547900 time 2793 pv e2e3 b8c6 b1c3 h7h6 g5f4 c8f5 f1d3 e7e6 g1f3 f8e7 e1g1 e8g8 a2a3 f6e4 c3e4
+<< info depth 16 multipv 1 score cp -2 nodes 17328707 nps 3483857 time 4974 pv e2e3 b8c6 b1c3 h7h6 g5f4 c8f5 f1d3 e7e6 g1f3 f8e7 e1g1 e8g8 d3f5 e6f5 a2a3 a7a6
+<< info depth 17 multipv 1 score cp -8 nodes 32665266 nps 3289884 time 9929 pv e2e3 b8c6 b1c3 h7h6 g5f4 c8f5 g1f3 e7e6 f1d3 f8e7 e1g1 e8g8 d3f5 e6f5 a2a3 f6e4 h2h3
+<< info string [Unchessed] mode=MATCH opponent~2144 (±649) eval -8 cp: human-plausible at ~2204 (loss 0 cp)
+<< bestmove b1c3
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6
+>> go wtime 584748 btime 527196 winc 0 binc 0
+<< info string [Unchessed] opponent move h7h6 cp-loss 0 -> estimate ~2395 (±573), trending up
+<< info string [Unchessed] out of book at move 4
+<< info depth 1 multipv 1 score cp -7 nodes 79 nps 79000 time 0 pv g5f4
+<< info depth 2 multipv 1 score cp -32 nodes 468 nps 468000 time 0 pv g5f4 b8c6
+<< info depth 3 multipv 1 score cp -11 nodes 1468 nps 1468000 time 0 pv g5f6 e7f6 e2e4
+<< info depth 4 multipv 1 score cp -11 nodes 2633 nps 2633000 time 0 pv g5f6 e7f6 e2e4 d5e4
+<< info depth 5 multipv 1 score cp -11 nodes 5551 nps 5551000 time 1 pv g5f4 g7g5 f4g3 c8g4 g1f3
+<< info depth 6 multipv 1 score cp -18 nodes 11648 nps 5824000 time 2 pv g5f4 g7g5 f4g3 c8g4 h2h4 f8g7
+<< info depth 7 multipv 1 score cp -12 nodes 23927 nps 5981750 time 4 pv g5f4 g7g5 f4g3 b8c6 g1f3 f8g7 e2e3
+<< info depth 8 multipv 1 score cp -12 nodes 45581 nps 5064555 time 9 pv g5f4 g7g5 f4g3 b8c6 e2e3 f8g7 c3b5 e8g8
+<< info depth 9 multipv 1 score cp -10 nodes 83515 nps 4912647 time 17 pv g5f4 g7g5 f4g3 b8c6 e2e3 f8g7 g1f3 e8g8 h2h3
+<< info depth 10 multipv 1 score cp -11 nodes 162341 nps 4387594 time 37 pv g5f4 c8f5 g1f3 e7e6 e2e3 b8c6 f1d3 f8e7 e1g1 e8g8
+<< info depth 11 multipv 1 score cp 0 nodes 475123 nps 4060880 time 117 pv g5f4 b8c6 e2e3 c8d7 g1f3 g7g5 f4g3 f8g7 f1e2 e8g8 e1g1
+<< info depth 12 multipv 1 score cp -11 nodes 801875 nps 3892597 time 206 pv g5f4 b8c6 e2e3 c8f5 f1d3 e7e6 g1f3 f8e7 d3f5 e6f5 e1g1 e8g8
+<< info depth 13 multipv 1 score cp -6 nodes 1517452 nps 3851401 time 394 pv g5f4 b8c6 e2e3 c8f5 f1d3 e7e6 g1f3 f8e7 e1g1 e8g8 a2a3 f6e4 c3e4
+<< info depth 14 multipv 1 score cp -2 nodes 2572822 nps 3800327 time 677 pv g5f4 b8c6 e2e3 c8f5 f1d3 e7e6 g1f3 f8e7 d3f5 e6f5 e1g1 e8g8 a2a3 a7a6
+<< info depth 15 multipv 1 score cp -8 nodes 5284910 nps 3724390 time 1419 pv g5f4 b8c6 e2e3 c8f5 f1d3 e7e6 d3f5 e6f5 g1f3 f8e7 e1g1 e8g8 a2a3 f6e4 h2h3
+<< info depth 16 multipv 1 score cp -1 nodes 12243080 nps 3595618 time 3405 pv g5f4 b8c6 e2e3 c8f5 f1d3 e7e6 g1f3 f8e7 d3f5 e6f5 e1g1 e8g8 h2h3 f6e4 a2a4 e4c3
+<< info depth 17 multipv 1 score cp -9 nodes 21391704 nps 3486262 time 6136 pv g5f4 b8c6 e2e3 c8f5 g1f3 e7e6 f1e2 f8e7 e1g1 e8g8 a2a3 a7a6 h2h3 f6e4 g1h1 g8h8 c3e4
+<< info string [Unchessed] mode=MATCH opponent~2395 (±573) eval -9 cp: human-plausible at ~2455 (loss 0 cp)
+<< bestmove g5f4
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6
+>> go wtime 573467 btime 519127 winc 0 binc 0
+<< info string [Unchessed] opponent move a7a6 cp-loss 13 -> estimate ~2426 (±473), trending up
+<< info string [Unchessed] out of book at move 5
+<< info depth 1 multipv 1 score cp 32 nodes 37 nps 37000 time 0 pv e2e3
+<< info depth 2 multipv 1 score cp 15 nodes 260 nps 260000 time 0 pv e2e3 e7e6
+<< info depth 3 multipv 1 score cp 38 nodes 884 nps 884000 time 0 pv e2e3 e7e6 g1f3
+<< info depth 4 multipv 1 score cp 6 nodes 4339 nps 4339000 time 0 pv e2e3 g7g5 f4e5 f8g7
+<< info depth 5 multipv 1 score cp 5 nodes 11390 nps 5695000 time 2 pv e2e3 c8f5 g1f3 e7e6 h2h3
+<< info depth 6 multipv 1 score cp 1 nodes 27421 nps 5484200 time 5 pv e2e3 c8f5 f1d3 e7e6 d3f5 e6f5
+<< info depth 7 multipv 1 score cp 4 nodes 60718 nps 5059833 time 12 pv e2e3 b8c6 f1e2 c8f5 g1f3 e7e6 e1g1
+<< info depth 8 multipv 1 score cp -4 nodes 128283 nps 4751222 time 27 pv e2e3 b8c6 f1e2 c8f5 g1f3 e7e6 e1g1 f8e7
+<< info depth 9 multipv 1 score cp 4 nodes 213132 nps 4534723 time 47 pv e2e3 b8c6 f1e2 c8f5 g1f3 e7e6 e1g1 f8e7 h2h3
+<< info depth 10 multipv 1 score cp 6 nodes 353288 nps 4361580 time 81 pv e2e3 b8c6 g1f3 g7g5 f4g3 c8f5 f1d3 f5d3 c2d3 e7e6
+<< info depth 11 multipv 1 score cp 4 nodes 551185 nps 4113320 time 134 pv e2e3 b8c6 g1f3 g7g5 f4g3 f8g7 f1d3 c8d7 e1g1 e8g8 h2h3
+<< info depth 12 multipv 1 score cp 8 nodes 1114264 nps 3751730 time 297 pv e2e3 b8c6 g1f3 g7g5 f4g3 f8g7 f1d3 c8d7 e1g1 e8g8 h2h3 e7e6
+<< info depth 13 multipv 1 score cp 3 nodes 2330522 nps 3624451 time 643 pv e2e3 b8c6 g1f3 g7g5 f4g3 f8g7 f1d3 e8g8 e1g1 c8d7 a2a3 e7e6 h2h3
+<< info depth 14 multipv 1 score cp 5 nodes 4979037 nps 3436188 time 1449 pv e2e3 b7b5 g1f3 c8b7 f1e2 e7e6 e1g1 b8c6 a2a3 f8e7 h2h3 e8g8 g1h1 f6e4
+<< info depth 15 multipv 1 score cp -9 nodes 9388065 nps 3312655 time 2834 pv e2e3 b7b5 g1f3 c8b7 f1e2 e7e6 e1g1 b8c6 a2a3 f8e7 h2h3 e8g8 g1h1 g8h8 f4g3
+<< info depth 16 multipv 1 score cp -4 nodes 14963551 nps 3314186 time 4515 pv g1f3 b7b5 a2a3 e7e6 e2e3 f8e7 f1e2 b8c6 e1g1 e8g8 f4g3 c8b7 f3e5 c6e5 d4e5 f6e4
+<< info depth 17 multipv 1 score cp -9 nodes 31706643 nps 3478894 time 9114 pv g1f3 b7b5 e2e3 e7e6 f4g3 f8e7 f1e2 c8b7 e1g1 e8g8 a2a3 b8c6 g1h1 f6e4 h2h3 f7f5 f3e5
+<< info depth 18 multipv 1 score cp -7 nodes 53440828 nps 3540299 time 15095 pv g1f3 b7b5 e2e3 e7e6 f1e2 f8e7 a2a3 b8c6 e1g1 e8g8 h2h3 c8b7 f3e5 g8h8 e5c6 b7c6 f4e5 f6e4
+<< info depth 19 multipv 1 score cp -5 nodes 118781093 nps 3428124 time 34649 pv g1f3 b7b5 e2e3 c8b7 f1d3 e7e6 a2a4 b5b4 c3e2 b8c6 c2c4 b4c3 b2c3 f8e7 e1g1 e8g8 a1b1 a8b8 h2h3
+<< info string [Unchessed] mode=MATCH opponent~2426 (±473) eval -5 cp: human-plausible at ~2486 (loss 0 cp)
+<< bestmove g1f3
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6
+>> go wtime 497188 btime 510019 winc 0 binc 0
+<< info string [Unchessed] opponent move e7e6 cp-loss 6 -> estimate ~2485 (±409), trending up
+<< info string [Unchessed] out of book at move 6
+<< info depth 1 multipv 1 score cp 38 nodes 40 nps 40000 time 0 pv e2e3
+<< info depth 2 multipv 1 score cp 14 nodes 277 nps 277000 time 0 pv e2e3 c8d7
+<< info depth 3 multipv 1 score cp 23 nodes 1048 nps 1048000 time 0 pv e2e3 c8d7 f1e2
+<< info depth 4 multipv 1 score cp 8 nodes 4275 nps 4275000 time 0 pv e2e3 f8e7 h2h3 c8d7
+<< info depth 5 multipv 1 score cp 17 nodes 8889 nps 8889000 time 1 pv e2e3 f8e7 h2h3 c8d7 f1e2
+<< info depth 6 multipv 1 score cp 10 nodes 18127 nps 6042333 time 3 pv e2e3 f8e7 f1d3 c8d7 e1g1 e8g8
+<< info depth 7 multipv 1 score cp 16 nodes 41098 nps 5137250 time 8 pv e2e3 f8e7 f1d3 c8d7 e1g1 e8g8 e3e4
+<< info depth 8 multipv 1 score cp 5 nodes 102328 nps 4872761 time 21 pv e2e3 f8e7 f1d3 c8d7 e1g1 e8g8 f3e5 d7c6
+<< info depth 9 multipv 1 score cp 9 nodes 208509 nps 4738840 time 44 pv e2e3 f8e7 f1d3 b8c6 e1g1 e8g8 f3e5 c8d7 e5d7
+<< info depth 10 multipv 1 score cp 10 nodes 345404 nps 4544789 time 76 pv e2e3 f8e7 a2a3 c8d7 f1e2 e8g8 e1g1 b8c6 h2h3 f6e4
+<< info depth 11 multipv 1 score cp 17 nodes 601086 nps 4324359 time 139 pv e2e3 f8e7 a2a3 c8d7 f3e5 e8g8 f1e2 g7g5 f4g3 b8c6 e5d7
+<< info depth 12 multipv 1 score cp 13 nodes 1664425 nps 3934810 time 423 pv a2a4 c8d7 e2e3 f8b4 f1e2 f6e4 e1g1 b4c3 b2c3 e4c3 d1d3 c3e2 d3e2
+<< info depth 13 multipv 1 score cp -5 nodes 3233816 nps 3738515 time 865 pv a2a4 b7b6 e2e3 f8e7 f1e2 e8g8 e1g1 b8c6 f4g3 c8b7 g1h1 g8h8 h2h3
+<< info depth 14 multipv 1 score cp 7 nodes 5063704 nps 3619516 time 1399 pv a2a4 b7b6 e2e3 f8e7 f1e2 e8g8 e1g1 b8c6 f4g3 c8b7 g1h1 f6e4 c3e4 d5e4
+<< info depth 15 multipv 1 score cp 3 nodes 8429497 nps 3540317 time 2381 pv a2a4 b7b6 e2e3 f8e7 f1e2 e8g8 e1g1 b8c6 f4g3 c8b7 g1h1 f6e4 h2h3 e4g3 f2g3 g8h7
+<< info depth 16 multipv 1 score cp 6 nodes 14246357 nps 3511549 time 4057 pv a2a4 b7b6 e2e3 f8e7 f1e2 e8g8 e1g1 b8c6 f3e5 c8b7 h2h3 g8h7 f4g3 a6a5 f2f4 f6e4
+<< info depth 17 multipv 1 score cp -1 nodes 26153660 nps 3438104 time 7607 pv a2a4 b7b6 e2e3 f8e7 f1e2 e8g8 e1g1 b8c6 f3e5 c8b7 g1h1 c6e5 f4e5 g8h8 a4a5 b6b5 h2h3
+<< info string [Unchessed] mode=MATCH opponent~2485 (±409) eval -1 cp: human-plausible at ~2545 (loss 14 cp)
+<< bestmove f4g3
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6 f4g3 f8b4
+>> go wtime 480906 btime 496899 winc 0 binc 0
+<< info string [Unchessed] opponent move f8b4 cp-loss 28 -> estimate ~2439 (±359), trending down
+<< info string [Unchessed] out of book at move 7
+<< info depth 1 multipv 1 score cp 31 nodes 27 nps 27000 time 0 pv e2e3
+<< info depth 2 multipv 1 score cp 7 nodes 202 nps 202000 time 0 pv e2e3 c8d7
+<< info depth 3 multipv 1 score cp 12 nodes 1276 nps 1276000 time 0 pv e2e3 f6e4 d1d3
+<< info depth 4 multipv 1 score cp 19 nodes 6951 nps 6951000 time 1 pv a2a3 b4c3 b2c3 f6e4 e2e3
+<< info depth 5 multipv 1 score cp 13 nodes 13272 nps 4424000 time 3 pv a2a3 b4c3 b2c3 c8d7 e2e3 e8g8
+<< info depth 6 multipv 1 score cp 10 nodes 32861 nps 4694428 time 7 pv a2a3 b4c3 b2c3 f6e4 d1d3 c8d7 e2e3
+<< info depth 7 multipv 1 score cp 13 nodes 51298 nps 4274833 time 12 pv a2a3 b4c3 b2c3 f6e4 e2e3 e8g8 c3c4 c8d7
+<< info depth 8 multipv 1 score cp 21 nodes 90155 nps 4097954 time 22 pv a2a3 b4c3 b2c3 f6e4 e2e3 e8g8 c3c4 c8d7 f1e2
+<< info depth 9 multipv 1 score cp 0 nodes 157385 nps 4035512 time 39 pv a2a3 b4c3 b2c3 f6e4 e2e3 e8g8 c3c4 b8c6 f1e2 c8d7
+<< info depth 10 multipv 1 score cp 7 nodes 308640 nps 4008311 time 77 pv a2a3 b4c3 b2c3 f6e4 e2e3 e8g8 c3c4 b8c6 f1e2 e4c3 g3h4
+<< info depth 11 multipv 1 score cp 8 nodes 524404 nps 3884474 time 135 pv a2a3 b4c3 b2c3 f6e4 e2e3 e4c3 d1d3 c3e4 e1c1 c8d7 d3b3 e8g8
+<< info depth 12 multipv 1 score cp 1 nodes 1295425 nps 3690669 time 351 pv d1d3 c8d7 e1c1 e8g8 e2e3 b8c6 a2a3 b4c3 b2c3 d8e7 g3c7 e7a3 c1b1
+<< info depth 13 multipv 1 score cp -2 nodes 2091959 nps 3625578 time 577 pv d1d3 c8d7 e1c1 e8g8 e2e3 c7c5 d4c5 b4c5 e3e4 d7c6 f3d4 d5e4 d4c6
+<< info depth 14 multipv 1 score cp 18 nodes 4970783 nps 3406979 time 1459 pv a2a3 b4e7 d1d3 b7b5 e2e4 d5e4 c3e4 c8b7 e4f6 e7f6 f1e2 e8g8 e1c1 b8c6 h1e1
+<< info depth 15 multipv 1 score cp 12 nodes 9269703 nps 3391768 time 2733 pv a2a3 b4e7 d1d3 c8d7 e2e3 e8g8 e1c1 c7c5 d4c5 e7c5 e3e4 d8b6 e4d5 c5f2 f1e2
+<< info depth 16 multipv 1 score cp 12 nodes 14670883 nps 3371841 time 4351 pv a2a3 b4e7 d1d3 e8g8 e2e4 d5e4 c3e4 b8d7 e1c1 b7b5 e4f6 d7f6 c2c4 c8b7 d3b3 a8b8 c4b5
+<< info depth 17 multipv 1 score cp 8 nodes 30133004 nps 3289988 time 9159 pv a2a3 b4e7 d1d3 e8g8 e2e4 d5e4 c3e4 b8d7 e4f6 d7f6 f3e5 c8d7 e5d7 d8d7 e1c1 f8d8 f1e2 a8c8
+<< info depth 18 multipv 1 score cp 11 nodes 63540242 nps 3220651 time 19729 pv e2e3 e8g8 a2a3 b4e7 f1d3 b7b5 e3e4 b8c6 e4e5 f6h5 e1g1 c8b7 d1e2 h5g3 h2g3 f7f6 a1d1 f6e5
+<< info string [Unchessed] mode=MATCH opponent~2439 (±359) eval 12 cp: human-plausible at ~2499 (loss 1 cp)
+<< bestmove e2e3
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6 f4g3 f8b4 e2e3 f6e4
+>> go wtime 439299 btime 485756 winc 0 binc 0
+<< info string [Unchessed] opponent move f6e4 cp-loss 5 -> estimate ~2485 (±322), erratic (sandbagging?)
+<< info string [Unchessed] out of book at move 8
+<< info depth 1 multipv 1 score cp 12 nodes 339 nps 339000 time 0 pv d1d3
+<< info depth 2 multipv 1 score cp -15 nodes 1757 nps 1757000 time 0 pv d1d3 c8d7
+<< info depth 3 multipv 1 score cp 11 nodes 2931 nps 2931000 time 0 pv d1d3 c8d7 e1c1
+<< info depth 4 multipv 1 score cp 19 nodes 6027 nps 6027000 time 1 pv d1d3 c8d7 e1c1 e4c3
+<< info depth 5 multipv 1 score cp 19 nodes 10605 nps 5302500 time 2 pv d1d3 c8d7 e1c1 e4c3 b2c3
+<< info depth 6 multipv 1 score cp 13 nodes 19640 nps 4910000 time 4 pv d1d3 b4c3 b2c3 c8d7 e1c1 d7b5 c3c4
+<< info depth 7 multipv 1 score cp 14 nodes 37986 nps 4220666 time 9 pv d1d3 c7c5 d4c5 b8c6 a1d1 e8g8 f1e2
+<< info depth 8 multipv 1 score cp 13 nodes 60584 nps 4038933 time 15 pv d1d3 c8d7 e1c1 b4c3 b2c3 d7b5 c3c4 b5c4
+<< info depth 9 multipv 1 score cp 19 nodes 103762 nps 3843037 time 27 pv a2a3 b4c3 b2c3 e8g8 c3c4 b8c6 f1d3 c8d7 e1g1 g8h7
+<< info depth 10 multipv 1 score cp 2 nodes 269456 nps 3592746 time 75 pv a2a3 b4c3 b2c3 e8g8 c3c4 b8c6 d1d3 b7b5 c4b5 a6b5 d3b5
+<< info depth 11 multipv 1 score cp 5 nodes 477964 nps 3414028 time 140 pv a2a3 b4c3 b2c3 e8g8 c3c4 b8c6 d1d3 b7b5 c4b5 a6b5 d3b5 c8d7
+<< info depth 12 multipv 1 score cp 7 nodes 885659 nps 3208909 time 276 pv a2a3 b4c3 b2c3 e8g8 c3c4 b8c6 d1d3 b7b5 c4b5 a6b5 d3b5 c8d7 f1e2
+<< info depth 13 multipv 1 score cp 11 nodes 1565212 nps 3168445 time 494 pv a2a3 b4c3 b2c3 e8g8 c3c4 b8c6 d1d3 b7b5 c4b5 a6b5 d3b5 c8d7 b5b3 f8e8
+<< info depth 14 multipv 1 score cp 12 nodes 2595415 nps 3130778 time 829 pv a2a3 b4c3 b2c3 e8g8 d1d3 c7c5 c3c4 d8a5 f3d2 b8c6 f1e2 f8d8 c4d5 e6d5 e1c1 c8f5
+<< info depth 15 multipv 1 score cp 4 nodes 5537465 nps 3029247 time 1828 pv a2a3 b4c3 b2c3 e8g8 d1d3 c7c5 c3c4 d8a5 f3d2 b8c6 f1e2 f8d8 a1b1 e4g3 h2g3 c5d4 e3d4
+<< info depth 16 multipv 1 score cp 4 nodes 9366621 nps 3019542 time 3102 pv a2a3 b4c3 b2c3 e8g8 d1d3 c7c5 c3c4 d8a5 f3d2 b8c6 f1e2 f8d8 a1b1 e4g3 h2g3 c5d4 e3d4 d5c4
+<< info depth 17 multipv 1 score cp 11 nodes 22342807 nps 2947988 time 7579 pv a2a3 b4c3 b2c3 e4c3 d1d3 c3e4 f1e2 b8c6 f3d2 e4g3 h2g3 e8g8 d2f3 b7b5 e1c1 c8b7 c1b1 f8e8
+<< info string [Unchessed] mode=MATCH opponent~2485 (±322) eval 11 cp: human-plausible at ~2545 (loss 0 cp)
+<< bestmove a2a3
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6 f4g3 f8b4 e2e3 f6e4 a2a3 b4c3
+>> go wtime 424432 btime 476786 winc 0 binc 0
+<< info string [Unchessed] opponent move b4c3 cp-loss 0 -> estimate ~2544 (±301), erratic (sandbagging?)
+<< info depth 1 multipv 1 score cp 19 nodes 7 nps 7000 time 0 pv b2c3
+<< info depth 2 multipv 1 score cp 19 nodes 126 nps 126000 time 0 pv b2c3 e4c3
+<< info depth 3 multipv 1 score cp -14 nodes 399 nps 399000 time 0 pv b2c3 e4c3 d1d3
+<< info depth 4 multipv 1 score cp 13 nodes 1881 nps 1881000 time 0 pv b2c3 e8g8 c3c4 c8d7
+<< info depth 5 multipv 1 score cp 21 nodes 4032 nps 4032000 time 0 pv b2c3 e8g8 c3c4 c8d7 f1e2
+<< info depth 6 multipv 1 score cp 1 nodes 6878 nps 6878000 time 1 pv b2c3 e8g8 c3c4 c8d7 c4d5 e6d5
+<< info depth 7 multipv 1 score cp 2 nodes 13840 nps 4613333 time 3 pv b2c3 e8g8 c3c4 b8c6 d1d3 b7b5 c4b5
+<< info depth 8 multipv 1 score cp 8 nodes 27617 nps 4602833 time 6 pv b2c3 e4c3 d1d3 c3e4 e1c1 c8d7 d3b3 e8g8
+<< info depth 9 multipv 1 score cp 18 nodes 62308 nps 3894250 time 16 pv b2c3 e4c3 d1d3 c3e4 f3d2 e4g3 h2g3 b8c6 f1e2
+<< info depth 10 multipv 1 score cp 20 nodes 130851 nps 3738600 time 35 pv b2c3 e4c3 d1d3 c3e4 a1b1 b8c6 f1e2 b7b5 e1g1 c8b7
+<< info depth 11 multipv 1 score cp 14 nodes 252851 nps 3511819 time 72 pv b2c3 e8g8 c3c4 b8c6 f1d3 b7b5 c4b5 a6b5 d3b5 e4c3 g3h4
+<< info depth 12 multipv 1 score cp 11 nodes 458158 nps 3419089 time 134 pv b2c3 e8g8 c3c4 b8c6 d1d3 b7b5 c4b5 a6b5 d3b5 c8d7 b5b3 f8e8
+<< info depth 13 multipv 1 score cp 5 nodes 926486 nps 3109013 time 298 pv b2c3 e8g8 c3c4 b8c6 d1d3 b7b5 c4b5 a6b5 d3b5 c8d7 b5b3 a8b8 f1b5
+<< info depth 14 multipv 1 score cp 12 nodes 1696291 nps 3147107 time 539 pv b2c3 e4c3 d1d3 c3e4 c2c4 b8c6 f1e2 e8g8 a1b1 b7b6 e1g1 c8b7 c4d5 e6d5
+<< info depth 15 multipv 1 score cp 15 nodes 3235884 nps 2960552 time 1093 pv b2c3 e4c3 d1d3 c3e4 c2c4 b8c6 d3c2 e8g8 f1d3 c8d7 a1b1 b7b5 c4b5 a6b5 d3b5
+<< info depth 16 multipv 1 score cp 6 nodes 6440998 nps 2957299 time 2178 pv b2c3 b7b5 d1d3 b8d7 f1e2 c7c5 d4c5 d7c5 d3d4 e8g8 e1c1 c8b7 h1e1 f8e8 c1b1 a8c8
+<< info string [Unchessed] mode=MATCH opponent~2544 (±301) eval 6 cp: human-plausible at ~2600 (loss 0 cp)
+<< bestmove b2c3
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6 f4g3 f8b4 e2e3 f6e4 a2a3 b4c3 b2c3 e4c3
+>> go wtime 419138 btime 468220 winc 0 binc 0
+<< info string [Unchessed] opponent move e4c3 cp-loss 8 -> estimate ~2558 (±268), erratic (sandbagging?)
+<< info depth 1 multipv 1 score cp -14 nodes 123 nps 123000 time 0 pv d1d3
+<< info depth 2 multipv 1 score cp 25 nodes 661 nps 661000 time 0 pv d1d3 c3e4
+<< info depth 3 multipv 1 score cp 46 nodes 1554 nps 1554000 time 0 pv d1d3 c3e4 e1c1
+<< info depth 4 multipv 1 score cp 21 nodes 2638 nps 2638000 time 0 pv d1d3 c3e4 e1c1 c8d7
+<< info depth 5 multipv 1 score cp 38 nodes 5014 nps 5014000 time 1 pv d1d3 c3e4 e1c1 c8d7 f1e2
+<< info depth 6 multipv 1 score cp 14 nodes 9477 nps 4738500 time 2 pv d1d3 c3e4 f1e2 c8d7 e1c1 e8g8
+<< info depth 7 multipv 1 score cp 12 nodes 21045 nps 4209000 time 5 pv d1d3 c3e4 e1c1 e8g8 f1e2 c8d7 c2c4
+<< info depth 8 multipv 1 score cp 13 nodes 37434 nps 4159333 time 9 pv d1d3 c3e4 e1c1 e8g8 d3b3 b8c6 f1e2 b7b5
+<< info depth 9 multipv 1 score cp 18 nodes 66424 nps 3907294 time 17 pv d1d3 c3e4 f1e2 c8d7 d3b3 b7b5 e1c1 e8g8 h1f1
+<< info depth 10 multipv 1 score cp 17 nodes 125460 nps 3690000 time 34 pv d1d3 c3e4 c2c4 c8d7 d3b3 d7c6 e1c1 e8g8 f1e2 b8d7
+<< info depth 11 multipv 1 score cp 16 nodes 214565 nps 3576083 time 60 pv d1d3 c3e4 c2c4 c8d7 d3c2 c7c5 e1c1 c5d4 e3d4 e8g8 f1e2
+<< info depth 12 multipv 1 score cp 18 nodes 383360 nps 3616603 time 106 pv d1d3 c3e4 c2c4 c8d7 d3c2 b8c6 a1b1 b7b6 f1d3 e8g8 e1g1 e4g3
+<< info depth 13 multipv 1 score cp 9 nodes 749845 nps 3439655 time 218 pv d1d3 c3e4 c2c4 e8g8 f1e2 c8d7 e1g1 b8c6 a1b1 b7b6 f1d1 a6a5 c4d5
+<< info depth 14 multipv 1 score cp 17 nodes 1344161 nps 3368824 time 399 pv d1d3 c3e4 c2c4 e8g8 d3c2 c8d7 c4d5 e6d5 g3c7 d8e7 a1b1 d7c6 c7b6 e7a3
+<< info depth 15 multipv 1 score cp 21 nodes 2650746 nps 3260450 time 813 pv d1d3 c3e4 c2c4 e8g8 d3c2 c8d7 c4d5 e6d5 g3c7 d7a4 c2c1 d8d7 a1b1 a4b5 f1e2
+<< info depth 16 multipv 1 score cp 21 nodes 4709904 nps 3239273 time 1454 pv d1d3 c3e4 c2c4 e8g8 d3c2 c8d7 c4d5 e6d5 a1b1 d7c6 f3e5 f8e8 f1d3 c6b5 d3e4 d5e4
+<< info depth 17 multipv 1 score cp 6 nodes 9745030 nps 3232182 time 3015 pv d1d3 c3e4 c2c4 e8g8 f1e2 c8d7 a1b1 d7c6 d3c2 d5c4 e2c4 b8d7 e1g1 d7f6 f1c1 e4g3 h2g3
+<< info depth 18 multipv 1 score cp 5 nodes 20438084 nps 3223164 time 6341 pv d1d3 c3e4 c2c4 e8g8 f1e2 c8d7 a1b1 d7c6 d3c2 d5c4 e2c4 b8d7 e1g1 d8e7 g3c7 a8c8 c7g3 e4g3
+<< info string [Unchessed] mode=MATCH opponent~2558 (±268) eval 5 cp: human-plausible at ~2600 (loss 0 cp)
+<< bestmove d1d3
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6 f4g3 f8b4 e2e3 f6e4 a2a3 b4c3 b2c3 e4c3 d1d3 c3e4
+>> go wtime 409441 btime 460644 winc 0 binc 0
+<< info string [Unchessed] opponent move c3e4 cp-loss 0 -> estimate ~2599 (±251), erratic (sandbagging?)
+<< info depth 1 multipv 1 score cp 46 nodes 74 nps 74000 time 0 pv e1c1
+<< info depth 2 multipv 1 score cp 21 nodes 390 nps 390000 time 0 pv e1c1 c8d7
+<< info depth 3 multipv 1 score cp 38 nodes 1311 nps 1311000 time 0 pv e1c1 c8d7 f1e2
+<< info depth 4 multipv 1 score cp 14 nodes 2834 nps 2834000 time 0 pv e1c1 e8g8 f1e2 c8d7
+<< info depth 5 multipv 1 score cp 12 nodes 8717 nps 8717000 time 1 pv e1c1 e8g8 f1e2 c8d7 c2c4
+<< info depth 6 multipv 1 score cp 8 nodes 14804 nps 7402000 time 2 pv e1c1 e8g8 f1e2 c8d7 d3b3 d7b5
+<< info depth 7 multipv 1 score cp 16 nodes 30810 nps 5135000 time 6 pv a1b1 e8g8 f1e2 b7b5 e1g1 c8b7 f3e5
+<< info depth 8 multipv 1 score cp 8 nodes 94704 nps 4735200 time 20 pv c2c4 b8c6 a1b1 b7b6 f1e2 e8g8 e1g1 c8d7
+<< info depth 9 multipv 1 score cp 7 nodes 183698 nps 4373761 time 42 pv c2c4 b8c6 a1b1 b7b6 d3c2 c8b7 f1d3 e8g8 c4d5
+<< info depth 10 multipv 1 score cp 12 nodes 341822 nps 4118337 time 83 pv c2c4 b8c6 f1e2 e8g8 a1b1 b7b6 e1g1 c8b7 c4d5 e6d5
+<< info depth 11 multipv 1 score cp 7 nodes 705385 nps 3812891 time 185 pv c2c4 e8g8 f1e2 c8d7 d3c2 b8c6 a1b1 b7b6 e1g1 g8h8 c4c5
+<< info depth 12 multipv 1 score cp 10 nodes 1207150 nps 3646978 time 331 pv c2c4 e8g8 f1e2 c8d7 d3c2 d7c6 e1c1 b8d7 h1f1 d5c4 e2c4 d7f6
+<< info depth 13 multipv 1 score cp 5 nodes 2215148 nps 3567066 time 621 pv c2c4 e8g8 f1e2 c8d7 a1c1 d7c6 e1g1 d5c4 d3c4 b8d7 c4c2 d7f6 f3e5
+<< info depth 14 multipv 1 score cp 15 nodes 3852974 nps 3509083 time 1098 pv c2c4 e8g8 f1e2 c8d7 a1c1 d7c6 f3e5 e4g3 e5c6 b8c6 h2g3 f8e8 e1g1 g8h8
+<< info depth 15 multipv 1 score cp 5 nodes 8136107 nps 3414228 time 2383 pv c2c4 e8g8 f1e2 c8d7 a1c1 d7c6 d3c2 d5c4 e2c4 b8d7 e1g1 d7f6 g3e5 g8h8 h2h3
+<< info depth 16 multipv 1 score cp 7 nodes 16558983 nps 3325764 time 4979 pv c2c4 e8g8 f1e2 c8d7 a1c1 d7c6 d3c2 d5c4 e2c4 b8d7 e1g1 d7f6 g3e5 d8e7 h2h3 a8d8
+<< info string [Unchessed] mode=MATCH opponent~2599 (±251) eval 7 cp: human-plausible at ~2600 (loss 0 cp)
+<< bestmove c2c4
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6 f4g3 f8b4 e2e3 f6e4 a2a3 b4c3 b2c3 e4c3 d1d3 c3e4 c2c4 c7c5
+>> go wtime 399681 btime 449993 winc 0 binc 0
+<< info string [Unchessed] opponent move c7c5 cp-loss 51 -> estimate ~2529 (±261), erratic (sandbagging?)
+<< info depth 1 multipv 1 score cp 48 nodes 167 nps 167000 time 0 pv e1c1
+<< info depth 2 multipv 1 score cp 57 nodes 1034 nps 1034000 time 0 pv e1c1 c5d4
+<< info depth 3 multipv 1 score cp 57 nodes 3567 nps 3567000 time 0 pv e1c1 c5d4 d3d4
+<< info depth 4 multipv 1 score cp 54 nodes 9706 nps 4853000 time 2 pv e1c1 d8a5 d3b3 b8c6
+<< info depth 5 multipv 1 score cp 69 nodes 24859 nps 4971800 time 5 pv e1c1 b8c6 c4d5 e6d5 d4c5
+<< info depth 6 multipv 1 score cp 51 nodes 50947 nps 4245583 time 12 pv e1c1 d8a5 d3b3 a5c3 b3c3 e4c3 d1d2
+<< info depth 7 multipv 1 score cp 50 nodes 123364 nps 3855125 time 32 pv e1c1 d8a5 d3b3 a5c3 b3c3 e4c3 d1d3 c3a2 c1c2
+<< info depth 8 multipv 1 score cp 50 nodes 213870 nps 3752105 time 57 pv e1c1 d8a5 d3b3 a5c3 b3c3 e4c3 d1d3 c3a2 c1c2 d5c4
+<< info depth 9 multipv 1 score cp 62 nodes 385953 nps 3573638 time 108 pv e1c1 d8a5 d3b3 c8d7 d4c5 a5c5 c1b1 e4g3 h2g3
+<< info depth 10 multipv 1 score cp 46 nodes 761643 nps 3325951 time 229 pv e1c1 d8a5 c1b2 a5b6 b2a2 c5d4 e3d4 e8g8 f1e2 c8d7 h1e1
+<< info depth 11 multipv 1 score cp 47 nodes 1559146 nps 3162567 time 493 pv e1c1 d8a5 c1b2 a5b6 b2a2 c5d4 e3d4 e8g8 f1e2 c8d7 d1b1 b6c6
+<< info depth 12 multipv 1 score cp 36 nodes 3186800 nps 3037940 time 1049 pv e1c1 b8c6 f1e2 e8g8 d4c5 e4c5 d3c2 b7b6 h1f1 c8b7 c4d5 e6d5
+<< info depth 13 multipv 1 score cp 19 nodes 6955892 nps 2941180 time 2365 pv e1c1 b8c6 f1e2 c5d4 f3d4 e8g8 d4c2 e4c5 d3c3 c5e4 c3b3 e4c5 b3b2
+<< info depth 14 multipv 1 score cp 23 nodes 12759962 nps 2909248 time 4386 pv e1c1 d8a5 c1b2 a5b6 b2a1 c5d4 e3d4 b8c6 f1e2 e8g8 d1b1 b6a5 c4d5 e6d5 h1e1
+<< info string [Unchessed] mode=MATCH opponent~2529 (±261) eval 23 cp: human-plausible at ~2589 (loss 0 cp)
+<< bestmove e1c1
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6 f4g3 f8b4 e2e3 f6e4 a2a3 b4c3 b2c3 e4c3 d1d3 c3e4 c2c4 c7c5 e1c1 b8d7
+>> go wtime 391231 btime 437979 winc 0 binc 0
+<< info string [Unchessed] opponent move b8d7 cp-loss 31 -> estimate ~2496 (±245), erratic (sandbagging?)
+<< info depth 1 multipv 1 score cp 95 nodes 160 nps 160000 time 0 pv c4d5
+<< info depth 2 multipv 1 score cp 95 nodes 849 nps 849000 time 0 pv c4d5 e6d5
+<< info depth 3 multipv 1 score cp 95 nodes 2651 nps 2651000 time 0 pv c4d5 e6d5 d4c5
+<< info depth 4 multipv 1 score cp 91 nodes 7470 nps 7470000 time 1 pv c4d5 e6d5 d4c5 d7f6
+<< info depth 5 multipv 1 score cp 74 nodes 13645 nps 6822500 time 2 pv c4d5 e6d5 d4c5 d7f6 d3c2
+<< info depth 6 multipv 1 score cp 62 nodes 32112 nps 4587428 time 7 pv c4d5 e6d5 d4c5 d7f6 d3c2 e8g8
+<< info depth 7 multipv 1 score cp 57 nodes 68872 nps 4591466 time 15 pv f1e2 c5d4 e3d4 e8g8 d3c2 d7f6 h1e1
+<< info depth 8 multipv 1 score cp 42 nodes 151367 nps 4204638 time 36 pv f1e2 c5d4 e3d4 e8g8 d3b3 d7f6 h1e1 c8d7
+<< info depth 9 multipv 1 score cp 42 nodes 289398 nps 4019416 time 72 pv f1e2 c5d4 e3d4 d7f6 h1e1 e8g8 d3b3 c8d7 c4d5
+<< info depth 10 multipv 1 score cp 42 nodes 627511 nps 3826286 time 164 pv f1e2 c5d4 e3d4 d7f6 h1e1 e8g8 f3e5 e4g3 h2g3 c8d7
+<< info depth 11 multipv 1 score cp 30 nodes 1383519 nps 3502579 time 395 pv f1e2 c5d4 d3d4 d7f6 f3e5 e8g8 h1f1 d8e7 c1b2 c8d7 e5d7
+<< info depth 12 multipv 1 score cp 33 nodes 3036652 nps 3297124 time 921 pv f3d2 d8a5 d2e4 d5e4 d3b3 c5d4 e3d4 d7f6 f1e2 c8d7 b3b7 a5a3 b7b2
+<< info depth 13 multipv 1 score cp 22 nodes 8265237 nps 3079447 time 2684 pv f1e2 c5d4 d3d4 d7f6 f3e5 e8g8 f2f3 e4g3 h2g3 c8d7 e5d7 d8d7 c4d5
+<< info depth 14 multipv 1 score cp 14 nodes 14247695 nps 3112209 time 4578 pv f1e2 c5d4 d3d4 d7f6 e2d3 c8d7 d3e4 d5e4 f3e5 a8c8 h1f1 h8f8 e5d7 d8d7
+<< info depth 15 multipv 1 score cp 9 nodes 28541968 nps 3117637 time 9155 pv f1e2 c5d4 e3d4 d7f6 c4c5 c8d7 d3b3 e8g8 b3b7 e4c3 d1e1 c3e2 e1e2 d7b5 g3c7 d8d7
+<< info depth 16 multipv 1 score cp -9 nodes 57862187 nps 3011773 time 19212 pv f1e2 c5d4 d3d4 d7f6 e2d3 d8a5 c1b2 c8d7 c4d5 e6d5 d1c1 e8g8 g3c7 a5a4 d4a4 d7a4
+<< info string [Unchessed] mode=MATCH opponent~2496 (±245) eval -9 cp: human-plausible at ~2556 (loss 0 cp)
+<< bestmove f1e2
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6 f4g3 f8b4 e2e3 f6e4 a2a3 b4c3 b2c3 e4c3 d1d3 c3e4 c2c4 c7c5 e1c1 b8d7 f1e2 e8g8
+>> go wtime 360971 btime 425543 winc 0 binc 0
+<< info string [Unchessed] opponent move e8g8 cp-loss 32 -> estimate ~2467 (±230), erratic (sandbagging?)
+<< info depth 1 multipv 1 score cp 106 nodes 186 nps 186000 time 0 pv c4d5
+<< info depth 2 multipv 1 score cp 106 nodes 1058 nps 1058000 time 0 pv c4d5 e6d5
+<< info depth 3 multipv 1 score cp 100 nodes 2125 nps 2125000 time 0 pv c4d5 d7f6 d4c5
+<< info depth 4 multipv 1 score cp 59 nodes 5786 nps 5786000 time 1 pv h1e1 c5d4 d3d4 d7f6
+<< info depth 5 multipv 1 score cp 49 nodes 14198 nps 4732666 time 3 pv h1f1 c5d4 e3d4 d7f6 f1e1
+<< info depth 6 multipv 1 score cp 63 nodes 22854 nps 5713500 time 4 pv c4d5 e6d5 d4c5 d7f6 d3c2 c8f5
+<< info depth 7 multipv 1 score cp 47 nodes 51689 nps 4699000 time 11 pv c4d5 e6d5 d4c5 d7f6 d3c2 d8a5 c1b1
+<< info depth 8 multipv 1 score cp 45 nodes 140432 nps 4012342 time 35 pv c4d5 e6d5 d4c5 d7f6 d3c2 d8a5 c1b2 e4c5
+<< info depth 9 multipv 1 score cp 26 nodes 269085 nps 3899782 time 69 pv c4d5 e6d5 d4c5 d7f6 d3d4 c8f5 f3h4 e4g3 h2g3
+<< info depth 10 multipv 1 score cp 8 nodes 471699 nps 3714165 time 127 pv c4d5 e6d5 d4c5 d7f6 d3d4 c8f5 f3h4 f5e6 c1b1 a8c8
+<< info depth 11 multipv 1 score cp 5 nodes 1013440 nps 3400805 time 298 pv c4d5 e6d5 d4c5 d7f6 d3d4 c8f5 f3d2 d8a5 d2e4 a5a3 d4b2 a3b2 c1b2
+<< info depth 12 multipv 1 score cp 5 nodes 2355358 nps 2911443 time 809 pv c4d5 e6d5 d4c5 d7f6 d3d4 c8f5 f3d2 d8a5 d2e4 a5a3 d4b2 a3b2 c1b2 f5e4
+<< info depth 13 multipv 1 score cp -31 nodes 6442711 nps 2533508 time 2543 pv c4d5 e6d5 d4c5 d7f6 d3b3 e4c5 b3c2 d8a5 c1b2 a5b6 b2a2 c8d7 d1b1 d7b5
+<< info depth 14 multipv 1 score cp -37 nodes 12756872 nps 2606635 time 4894 pv f3d2 e4g3 h2g3 b7b5 c4d5 c5c4 d3c2 e6d5 e3e4 c8b7 e4d5 b7d5 e2f3 d7f6
+<< info depth 15 multipv 1 score cp -40 nodes 20159839 nps 2712572 time 7432 pv h1f1 b7b5 c4d5 e6d5 d4c5 c8b7 c5c6 b7c6 f3d4 d7c5 d3c2 a8c8 d4c6 c8c6 c1b1
+<< info depth 16 multipv 1 score cp -43 nodes 43956566 nps 2861010 time 15364 pv f3d2 e4g3 h2g3 b7b5 c4d5 c5c4 d3c2 e6d5 e3e4 c8b7 e4d5 f8e8 d1e1 b7d5 e2f3 d7f6
+<< info string [Unchessed] mode=MATCH opponent~2467 (±230) eval -43 cp: human-plausible at ~2527 (loss 0 cp)
+<< bestmove f3d2
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6 f4g3 f8b4 e2e3 f6e4 a2a3 b4c3 b2c3 e4c3 d1d3 c3e4 c2c4 c7c5 e1c1 b8d7 f1e2 e8g8 f3d2 e4g3
+>> go wtime 329972 btime 419839 winc 0 binc 0
+<< info string [Unchessed] opponent move e4g3 cp-loss 0 -> estimate ~2504 (±223), pinned at measurement ceiling — engine suspected
+<< info depth 1 multipv 1 score cp 47 nodes 205 nps 205000 time 0 pv h2g3
+<< info depth 2 multipv 1 score cp 54 nodes 1494 nps 1494000 time 0 pv h2g3 c5d4
+<< info depth 3 multipv 1 score cp 54 nodes 2220 nps 2220000 time 0 pv h2g3 c5d4 d3d4
+<< info depth 4 multipv 1 score cp 58 nodes 3933 nps 3933000 time 0 pv h2g3 d8c7 d2b3 f8d8
+<< info depth 5 multipv 1 score cp 58 nodes 7248 nps 7248000 time 1 pv h2g3 d8c7 d2b3 f8d8 d4c5
+<< info depth 6 multipv 1 score cp 33 nodes 15569 nps 5189666 time 3 pv h2g3 b7b5 c4d5 c5c4 d3c2 e6d5
+<< info depth 7 multipv 1 score cp 28 nodes 33478 nps 4782571 time 7 pv h2g3 b7b5 c4d5 c5c4 d3c2 e6d5 d2f3
+<< info depth 8 multipv 1 score cp -9 nodes 59066 nps 4543538 time 13 pv h2g3 b7b5 c4d5 c5c4 d3c2 e6d5 d2f3 c8b7
+<< info depth 9 multipv 1 score cp -22 nodes 109157 nps 4366280 time 25 pv h2g3 b7b5 c4d5 c5c4 d3c2 e6d5 d2f3 c8b7 c1b1
+<< info depth 10 multipv 1 score cp -25 nodes 256570 nps 4138225 time 62 pv h2g3 b7b5 c4d5 c5c4 d3c2 e6d5 d2f3 c8b7 f3e5 d7e5
+<< info depth 11 multipv 1 score cp -38 nodes 493674 nps 3856828 time 128 pv h2g3 b7b5 c4d5 c5c4 d3c2 e6d5 e2f3 d7f6 e3e4 f8e8 e4d5
+<< info depth 12 multipv 1 score cp -37 nodes 832672 nps 3750774 time 222 pv h2g3 b7b5 c4d5 c5c4 d3c2 e6d5 e2f3 d7f6 e3e4 c8e6 e4d5 e6d5
+<< info depth 13 multipv 1 score cp -43 nodes 1377475 nps 3702889 time 372 pv h2g3 b7b5 c4d5 c5c4 d3c2 e6d5 e2f3 c8b7 e3e4 f8e8 d1e1 d7f6 e4d5
+<< info depth 14 multipv 1 score cp -24 nodes 3174929 nps 3595616 time 883 pv h2g3 b7b5 c4d5 c5c4 d3c2 e6d5 e2f3 c8b7 e3e4 f8e8 d1e1 d7f6 e4e5 f6d7
+<< info depth 15 multipv 1 score cp -46 nodes 5478955 nps 3539376 time 1548 pv h2g3 b7b5 c4d5 c5c4 d3c2 e6d5 e2f3 c8b7 e3e4 f8e8 d1e1 d7f6 e4e5 f6d7 c2f5
+<< info depth 16 multipv 1 score cp -36 nodes 10917181 nps 3446079 time 3168 pv h2g3 b7b5 c4d5 c5c4 d3c2 e6d5 e2f3 c8b7 e3e4 f8e8 e4d5 d7f6 d1e1 b7d5 c2f5 d5f3
+<< info string [Unchessed] persona MATCH -> FULL (eval -36 cp, opponent ~2504)
+<< info string [Unchessed] mode=FULL opponent~2504 (±223) eval -36 cp: best move (full strength)
+<< bestmove h2g3
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6 f4g3 f8b4 e2e3 f6e4 a2a3 b4c3 b2c3 e4c3 d1d3 c3e4 c2c4 c7c5 e1c1 b8d7 f1e2 e8g8 f3d2 e4g3 h2g3 b7b5
+>> go wtime 324323 btime 413656 winc 0 binc 0
+<< info string [Unchessed] opponent move b7b5 cp-loss 0 -> estimate ~2536 (±215), pinned at measurement ceiling — engine suspected
+<< info depth 1 multipv 1 score cp 66 nodes 146 nps 146000 time 0 pv c4d5
+<< info depth 2 multipv 1 score cp 66 nodes 851 nps 851000 time 0 pv c4d5 e6d5
+<< info depth 3 multipv 1 score cp 63 nodes 1697 nps 1697000 time 0 pv c4d5 e6d5 d3f5
+<< info depth 4 multipv 1 score cp 33 nodes 6317 nps 6317000 time 1 pv c4d5 c5c4 d3c2 e6d5
+<< info depth 5 multipv 1 score cp 28 nodes 14230 nps 7115000 time 2 pv c4d5 c5c4 d3c2 e6d5 d2f3
+<< info depth 6 multipv 1 score cp -9 nodes 39595 nps 5656428 time 7 pv c4d5 c5c4 d3c2 e6d5 d2f3 c8b7
+<< info depth 7 multipv 1 score cp -22 nodes 66067 nps 5082076 time 13 pv c4d5 c5c4 d3c2 e6d5 d2f3 c8b7 c1b1
+<< info depth 8 multipv 1 score cp -30 nodes 99155 nps 4721666 time 21 pv c4d5 c5c4 d3c2 e6d5 d2f3 c8b7 c1b1 f8e8
+<< info depth 9 multipv 1 score cp -37 nodes 201762 nps 4292808 time 47 pv c4d5 c5c4 d3c2 e6d5 e2f3 c8b7 e3e4 d7f6 e4d5
+<< info depth 10 multipv 1 score cp -37 nodes 362789 nps 3943358 time 92 pv c4d5 c5c4 d3c2 e6d5 e3e4 c8b7 e4d5 b7d5 e2f3 d7f6
+<< info depth 11 multipv 1 score cp -43 nodes 681469 nps 3894108 time 175 pv c4d5 c5c4 d3c2 e6d5 e3e4 c8b7 e4d5 d7f6 e2f3 f8e8 d1e1
+<< info depth 12 multipv 1 score cp -43 nodes 1345199 nps 3705782 time 363 pv c4d5 c5c4 d3c2 e6d5 e3e4 c8b7 e4d5 d7f6 e2f3 f8e8 d1e1 b7d5
+<< info depth 13 multipv 1 score cp -38 nodes 4135070 nps 3375567 time 1225 pv c4d5 c5c4 d3c2 e6d5 e3e4 c8b7 e2f3 c4c3 d2b3 a8c8 e4d5 d8g5 c1b1 b7d5
+<< info depth 14 multipv 1 score cp -36 nodes 8331710 nps 3255846 time 2559 pv c4d5 c5c4 d3c2 e6d5 e3e4 c8b7 e2f3 f8e8 e4d5 d7f6 d1e1 b7d5 c2f5 d5f3
+<< info depth 15 multipv 1 score cp -57 nodes 14236007 nps 3173430 time 4486 pv c4d5 c5c4 d3c2 e6d5 e3e4 c8b7 e2f3 f8e8 e4d5 d7f6 d1e1 b7d5 c2f5 d5e6 f5c2
+<< info string [Unchessed] mode=FULL opponent~2536 (±215) eval -57 cp: best move (full strength)
+<< bestmove c4d5
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6 f4g3 f8b4 e2e3 f6e4 a2a3 b4c3 b2c3 e4c3 d1d3 c3e4 c2c4 c7c5 e1c1 b8d7 f1e2 e8g8 f3d2 e4g3 h2g3 b7b5 c4d5 c5c4
+>> go wtime 313291 btime 406621 winc 0 binc 0
+<< info string [Unchessed] opponent move c5c4 cp-loss 0 -> estimate ~2565 (±206), pinned at measurement ceiling — engine suspected
+<< info depth 1 multipv 1 score cp 100 nodes 198 nps 198000 time 0 pv d3e4
+<< info depth 2 multipv 1 score cp 76 nodes 1019 nps 1019000 time 0 pv d3e4 c8b7
+<< info depth 3 multipv 1 score cp -20 nodes 1464 nps 1464000 time 0 pv d3e4 c8b7 c1b2
+<< info depth 4 multipv 1 score cp -9 nodes 2764 nps 2764000 time 0 pv d3c2 e6d5 d2f3 c8b7
+<< info depth 5 multipv 1 score cp -22 nodes 4733 nps 4733000 time 0 pv d3c2 e6d5 d2f3 c8b7 c1b1
+<< info depth 6 multipv 1 score cp -25 nodes 9275 nps 9275000 time 1 pv d3c2 e6d5 d2f3 c8b7 f3e5 d7e5
+<< info depth 7 multipv 1 score cp -49 nodes 15272 nps 7636000 time 2 pv d3c2 e6d5 d2f3 c8b7 c1b1 f8e8 d1c1
+<< info depth 8 multipv 1 score cp -47 nodes 30184 nps 5030666 time 6 pv d3c3 e6d5 d2f3 c8b7 c1b1 f8e8 f3e5 d7f6
+<< info depth 9 multipv 1 score cp -53 nodes 53074 nps 4824909 time 11 pv d3c3 e6d5 e3e4 f8e8 e2f3 d7f6 d1e1 c8e6 e4d5
+<< info depth 10 multipv 1 score cp -53 nodes 120446 nps 4153310 time 29 pv d3c3 e6d5 e3e4 f8e8 e2f3 d7f6 d1e1 c8e6 e4d5 e6d5
+<< info depth 11 multipv 1 score cp -49 nodes 265651 nps 3850014 time 69 pv d3c2 e6d5 e3e4 c8b7 e2f3 f8e8 d1e1 d8b6 c2c3 d7f6 e4d5
+<< info depth 12 multipv 1 score cp -42 nodes 635030 nps 3547653 time 179 pv d3c2 e6d5 e3e4 c8b7 e2f3 f8e8 e4d5 d7f6 d1e1 f6d5 e1e8 d8e8 c2f5
+<< info depth 13 multipv 1 score cp -57 nodes 1402977 nps 3247631 time 432 pv d3c2 e6d5 e3e4 c8b7 e2f3 f8e8 e4d5 d7f6 d1e1 b7d5 c2f5 d5e6 f5c2
+<< info depth 14 multipv 1 score cp -60 nodes 2902397 nps 3144525 time 923 pv d3c2 e6d5 e3e4 c8b7 e4d5 d7f6 e2f3 b7d5 d1e1 a8c8 c1b1 c4c3 f3d5 c3d2
+<< info depth 15 multipv 1 score cp -68 nodes 4895944 nps 3112488 time 1573 pv d3c2 e6d5 e3e4 c8b7 e4d5 d7f6 e2f3 b7d5 h1e1 f8e8 e1e5 a8c8 f3d5 f6d5 d2f3
+<< info depth 16 multipv 1 score cp -74 nodes 11043367 nps 3059104 time 3610 pv d3c2 e6d5 e3e4 c8b7 e4d5 d7f6 e2f3 b7d5 h1e1 f8e8 e1e5 a8c8 f3d5 f6d5 d2f3 c4c3
+<< info depth 17 multipv 1 score cp -78 nodes 24932545 nps 2951994 time 8446 pv d3c3 e6d5 e3e4 f8e8 e2f3 d7f6 h1h4 d5e4 d2e4 f6d5 c3c2 c8f5 h4h5 d8d7 c1b1 a8d8 d1e1
+<< info depth 18 multipv 1 score cp -76 nodes 56365057 nps 2931252 time 19229 pv d3c3 e6d5 e3e4 f8e8 e4e5 a8b8 h1h5 a6a5 c3f3 c8b7 f3g4 d8e7 c1c2 c4c3 e2b5 c3d2 b5d7 e8d8
+<< info string [Unchessed] mode=FULL opponent~2565 (±206) eval -76 cp: best move (full strength)
+<< bestmove d3c3
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6 f4g3 f8b4 e2e3 f6e4 a2a3 b4c3 b2c3 e4c3 d1d3 c3e4 c2c4 c7c5 e1c1 b8d7 f1e2 e8g8 f3d2 e4g3 h2g3 b7b5 c4d5 c5c4 d3c3 e6d5
+>> go wtime 281688 btime 400997 winc 0 binc 0
+<< info string [Unchessed] opponent move e6d5 cp-loss 0 -> estimate ~2596 (±195), pinned at measurement ceiling — engine suspected
+<< info depth 1 multipv 1 score cp 16 nodes 54 nps 54000 time 0 pv d2f3
+<< info depth 2 multipv 1 score cp -21 nodes 323 nps 323000 time 0 pv d2f3 c8b7
+<< info depth 3 multipv 1 score cp -32 nodes 794 nps 794000 time 0 pv e3e4 c8b7 e4d5
+<< info depth 4 multipv 1 score cp -53 nodes 2126 nps 2126000 time 0 pv d2f3 d7f6 c3d2 c8f5
+<< info depth 5 multipv 1 score cp -51 nodes 5994 nps 5994000 time 1 pv e3e4 c8b7 c3f3 d7f6 e4d5
+<< info depth 6 multipv 1 score cp -39 nodes 27099 nps 5419800 time 5 pv e2f3 d7f6 e3e4 c8g4 e4e5 g4f3
+<< info depth 7 multipv 1 score cp -53 nodes 37658 nps 5379714 time 7 pv e2f3 c8b7 e3e4 f8e8 d1e1 d7f6 e4d5
+<< info depth 8 multipv 1 score cp -38 nodes 75668 nps 4729250 time 16 pv e2f3 c8b7 e3e4 d7b6 d1e1 a8b8 c1b1 f8e8
+<< info depth 9 multipv 1 score cp -51 nodes 128375 nps 4426724 time 29 pv e2f3 d7f6 e3e4 f8e8 h1h4 h6h5 e4e5 f6g4 h4h5
+<< info depth 10 multipv 1 score cp -69 nodes 352595 nps 4006761 time 88 pv e2f3 c8b7 e3e4 d7b6 d1e1 f8e8 c3a1 a8c8 a1c3 b6a4
+<< info depth 11 multipv 1 score cp -76 nodes 534557 nps 3845733 time 139 pv e3e4 f8e8 e4e5 a8b8 h1h5 a6a5 c3f3 c8b7 c1b1 b5b4 a3b4
+<< info depth 12 multipv 1 score cp -71 nodes 948134 nps 3732811 time 254 pv e3e4 f8e8 e4e5 a8b8 h1h5 a6a5 c3f3 c8b7 c1b2 b5b4 a3b4 a5b4
+<< info depth 13 multipv 1 score cp -79 nodes 2002752 nps 3557285 time 563 pv e3e4 f8e8 e4e5 a8b8 h1h5 a6a5 c3f3 d8e7 c1b2 c8b7 f3g4 b5b4 a3b4
+<< info depth 14 multipv 1 score cp -79 nodes 4480379 nps 3333615 time 1344 pv e3e4 d7b6 e4e5 c8f5 d2f1 b6a4 c3a1 f8e8 e2f3 f5d3 f1e3 a4b6 a1c3 a8c8
+<< info depth 15 multipv 1 score cp -83 nodes 8726174 nps 3306621 time 2639 pv e3e4 d7b6 h1h5 f8e8 e4e5 c8e6 d2f3 d8d7 c3a5 b6a4 d1h1 a8c8 h5h4 d7e7 a5a6
+<< info depth 16 multipv 1 score cp -84 nodes 22451212 nps 3278027 time 6849 pv e3e4 d7b6 h1h5 f8e8 e4e5 c8e6 d2f3 a6a5 h5h4 e6f5 d1h1 d8e7 h4h5 f5e4 h5h4 b5b4
+<< info string [Unchessed] mode=FULL opponent~2596 (±195) eval -84 cp: best move (full strength)
+<< bestmove e3e4
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6 f4g3 f8b4 e2e3 f6e4 a2a3 b4c3 b2c3 e4c3 d1d3 c3e4 c2c4 c7c5 e1c1 b8d7 f1e2 e8g8 f3d2 e4g3 h2g3 b7b5 c4d5 c5c4 d3c3 e6d5 e3e4 a6a5
+>> go wtime 269240 btime 393275 winc 0 binc 0
+<< info string [Unchessed] opponent move a6a5 cp-loss 69 -> estimate ~2540 (±222), pinned at measurement ceiling — engine suspected
+<< info depth 1 multipv 1 score cp 130 nodes 54 nps 54000 time 0 pv e4d5
+<< info depth 2 multipv 1 score cp 89 nodes 375 nps 375000 time 0 pv e4d5 d7f6
+<< info depth 3 multipv 1 score cp 4 nodes 2222 nps 2222000 time 0 pv e4d5 d7f6 d1e1
+<< info depth 4 multipv 1 score cp 4 nodes 6058 nps 6058000 time 1 pv e4d5 d7f6 d1e1 d8d5
+<< info depth 5 multipv 1 score cp -13 nodes 16922 nps 5640666 time 3 pv d1e1 d7f6 e2f3 b5b4 a3b4
+<< info depth 6 multipv 1 score cp -13 nodes 41157 nps 5144625 time 8 pv e2f3 d7f6 d1e1 b5b4 a3b4 a5b4
+<< info depth 7 multipv 1 score cp -4 nodes 74780 nps 4985333 time 15 pv e4d5 d7f6 c3b2 f8e8 d1e1 c8a6 e2f3
+<< info depth 8 multipv 1 score cp -4 nodes 128744 nps 4768296 time 27 pv e4d5 d7f6 c3b2 f8e8 d1e1 c8a6 e2f3 e8e1 h1e1
+<< info depth 9 multipv 1 score cp -12 nodes 342755 nps 4032411 time 85 pv e4d5 d7f6 c3b2 f6d5 b2b5 c8a6 b5c6 d5c3 e2c4
+<< info depth 10 multipv 1 score cp -12 nodes 764694 nps 3694173 time 207 pv e4d5 d7f6 c3b2 f6d5 b2b5 c8a6 b5c6 d5c3 e2c4 c3d1
+<< info depth 11 multipv 1 score cp -24 nodes 1735183 nps 3436005 time 505 pv e4d5 d7f6 c3b2 c8g4 e2g4 f6g4 b2b5 g4f2 b5c4 f2d1 h1d1
+<< info depth 12 multipv 1 score cp -47 nodes 3205069 nps 3314445 time 967 pv e2f3 d7f6 d1e1 f8e8 e4d5 e8e1 h1e1 f6d5 f3d5 d8d5 e1e8 g8h7 a3a4 c8d7
+<< info depth 13 multipv 1 score cp -54 nodes 6209212 nps 3176067 time 1955 pv e4d5 d7f6 c3b2 c8g4 f2f3 g4d7 d5d6 d8b8 a3a4 f8e8 d1e1 b8d6 a4b5
+<< info depth 14 multipv 1 score cp -55 nodes 13402140 nps 3085207 time 4344 pv e2f3 d7f6 d1e1 f8e8 e4d5 e8e1 h1e1 f6d5 f3d5 d8d5 e1e8 g8h7 d2f3 c8f5 e8e5 d5d7
+<< info depth 15 multipv 1 score cp -60 nodes 26788964 nps 2989506 time 8961 pv e2f3 d7f6 c3c2 f8e8 e4d5 f6d5 d1e1 c8e6 d2e4 b5b4 c2c4 a8c8 e4c5 d5f4 d4d5
+<< info depth 16 multipv 1 score cp -68 nodes 63279072 nps 2960008 time 21378 pv d1e1 d7f6 e4e5 f6g4 e1f1 f8e8 h1h4 f7f5 d2f3 b5b4 a3b4 a5b4 c3b4 a8a1 c1b2 a1f1 e2f1
+<< info string [Unchessed] mode=FULL opponent~2540 (±222) eval -68 cp: best move (full strength)
+<< bestmove d1e1
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6 f4g3 f8b4 e2e3 f6e4 a2a3 b4c3 b2c3 e4c3 d1d3 c3e4 c2c4 c7c5 e1c1 b8d7 f1e2 e8g8 f3d2 e4g3 h2g3 b7b5 c4d5 c5c4 d3c3 e6d5 e3e4 a6a5 d1e1 b5b4
+>> go wtime 218904 btime 384775 winc 0 binc 0
+<< info string [Unchessed] opponent move b5b4 cp-loss 96 -> estimate ~2476 (±255), pinned at measurement ceiling — engine suspected
+<< info depth 1 multipv 1 score cp 25 nodes 109 nps 109000 time 0 pv a3b4
+<< info depth 2 multipv 1 score cp 25 nodes 982 nps 982000 time 0 pv a3b4 a5b4
+<< info depth 3 multipv 1 score cp 25 nodes 2214 nps 2214000 time 0 pv a3b4 a5b4 c3b4
+<< info depth 4 multipv 1 score cp 48 nodes 5078 nps 5078000 time 1 pv a3b4 a5b4 c3b4 a8b8
+<< info depth 5 multipv 1 score cp 16 nodes 10083 nps 5041500 time 2 pv a3b4 a5b4 c3b4 a8b8 b4d6
+<< info depth 6 multipv 1 score cp 59 nodes 20403 nps 5100750 time 4 pv a3b4 a5b4 c3b4 a8b8 b4d6 c4c3
+<< info depth 7 multipv 1 score cp 71 nodes 36587 nps 4573375 time 8 pv a3b4 a5b4 c3b4 a8b8 b4c3 c8b7 e4d5
+<< info depth 8 multipv 1 score cp 66 nodes 69997 nps 4117470 time 17 pv a3b4 a5b4 c3b4 d5e4 d2e4 d7f6 e4d6 a8a1 c1c2
+<< info depth 9 multipv 1 score cp 37 nodes 142442 nps 3849783 time 37 pv a3b4 a5b4 c3b4 d8f6 e4d5 f6f2 b4c3 f8e8 c3c4
+<< info depth 10 multipv 1 score cp 71 nodes 231754 nps 3565446 time 65 pv a3b4 a5b4 c3b4 d5e4 d2e4 d7f6 e4d6 f6d5 b4c5 a8a1 c1c2
+<< info depth 11 multipv 1 score cp 66 nodes 480778 nps 3248500 time 148 pv a3b4 a5b4 c3b4 d7b6 e4d5 a8a1 d2b1 b6d5 b4c4 c8e6 c4c6 f8e8
+<< info depth 12 multipv 1 score cp 48 nodes 804539 nps 2957863 time 272 pv a3b4 a5b4 c3b4 d8f6 b4c3 f6f2 e4d5 d7f6 e2c4 f2g2 d5d6 f8d8
+<< info depth 13 multipv 1 score cp 28 nodes 1252165 nps 2871938 time 436 pv a3b4 a5b4 c3b4 d8f6 b4c3 f6f2 e4d5 f2g2 d5d6 f8e8 e2c4 c8b7 e1e8 a8e8
+<< info depth 14 multipv 1 score cp 24 nodes 3010545 nps 2779819 time 1083 pv a3b4 a5b4 c3b4 d8f6 b4c3 f6f2 e4d5 f2g2 d5d6 c8b7 d2c4 f8e8 c4e5 d7e5
+<< info depth 15 multipv 1 score cp 22 nodes 5289874 nps 2735198 time 1934 pv a3b4 a5b4 c3b4 d8f6 b4c3 f6f2 e4d5 f2g2 d5d6 c8b7 h1f1 d7f6 d2c4 f8c8 f1f5
+<< info string [Unchessed] mode=FULL opponent~2476 (±255) eval 22 cp: best move (full strength)
+<< bestmove a3b4
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6 f4g3 f8b4 e2e3 f6e4 a2a3 b4c3 b2c3 e4c3 d1d3 c3e4 c2c4 c7c5 e1c1 b8d7 f1e2 e8g8 f3d2 e4g3 h2g3 b7b5 c4d5 c5c4 d3c3 e6d5 e3e4 a6a5 d1e1 b5b4 a3b4 a5b4
+>> go wtime 214907 btime 376339 winc 0 binc 0
+<< info string [Unchessed] opponent move a5b4 cp-loss 0 -> estimate ~2509 (±246), pinned at measurement ceiling — engine suspected
+<< info depth 1 multipv 1 score cp 25 nodes 145 nps 145000 time 0 pv c3b4
+<< info depth 2 multipv 1 score cp 2 nodes 823 nps 823000 time 0 pv c3b4 a8a1 c1c2
+<< info depth 3 multipv 1 score cp 16 nodes 1996 nps 1996000 time 0 pv c3b4 a8b8 b4d6
+<< info depth 4 multipv 1 score cp 59 nodes 5689 nps 5689000 time 1 pv c3b4 a8b8 b4d6 c4c3
+<< info depth 5 multipv 1 score cp 46 nodes 11445 nps 5722500 time 2 pv c3b4 a8b8 b4c3 d7f6 e4d5
+<< info depth 6 multipv 1 score cp 46 nodes 20524 nps 4104800 time 5 pv c3b4 a8b8 b4c3 d7f6 e4d5 d8d5
+<< info depth 7 multipv 1 score cp 46 nodes 33441 nps 3715666 time 9 pv c3b4 a8b8 b4c3 d7f6 e4d5 d8d5 e2c4
+<< info depth 8 multipv 1 score cp 60 nodes 60734 nps 3572588 time 17 pv c3b4 d8f6 b4c3 f6f2 e4d5 f2g2 d5d6 f8e8
+<< info depth 9 multipv 1 score cp 34 nodes 127630 nps 3449459 time 37 pv c3b4 d8f6 b4c3 f6f2 e4d5 f2g2 d2c4 g2d5 e2f3
+<< info depth 10 multipv 1 score cp 46 nodes 183473 nps 3276303 time 56 pv c3b4 d8f6 b4c3 f6f2 e4d5 f2g2 e2c4 d7f6 c3f3 a8a1 c1c2
+<< info depth 11 multipv 1 score cp 28 nodes 320590 nps 2968425 time 108 pv c3b4 d8f6 b4c3 f6f2 e4d5 f2g2 h1g1 g2d5 e2c4 d5g5 g1f1
+<< info depth 12 multipv 1 score cp 38 nodes 781012 nps 2779402 time 281 pv c3b4 d8f6 b4c3 f6f2 e4d5 f2g2 c3f3 g2f3 e2f3 c4c3 d2e4 a8a3
+<< info depth 13 multipv 1 score cp 21 nodes 1516709 nps 2619531 time 579 pv c3b4 d8f6 b4c3 f6f2 e4d5 f2g2 h1g1 g2d5 e2f3 d5a5 c3a5 a8a5 d2c4
+<< info depth 14 multipv 1 score cp 24 nodes 2752281 nps 2598943 time 1059 pv c3b4 d8f6 b4c3 f6f2 e4d5 f2g2 h1g1 g2d5 e2f3 d5a5 c3a5 a8a5 d2c4 a5a1 c1c2
+<< info depth 15 multipv 1 score cp -2 nodes 9287390 nps 2547281 time 3646 pv c3b4 d5e4 e2c4 d7f6 d2b3 f8e8 c1b2 c8d7 e1a1 a8b8 b4a5 d8a5 a1a5 e8c8 h1c1
+<< info string [Unchessed] mode=FULL opponent~2509 (±246) eval -2 cp: best move (full strength)
+<< bestmove c3b4
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6 f4g3 f8b4 e2e3 f6e4 a2a3 b4c3 b2c3 e4c3 d1d3 c3e4 c2c4 c7c5 e1c1 b8d7 f1e2 e8g8 f3d2 e4g3 h2g3 b7b5 c4d5 c5c4 d3c3 e6d5 e3e4 a6a5 d1e1 b5b4 a3b4 a5b4 c3b4 d7f6
+>> go wtime 207679 btime 369768 winc 0 binc 0
+<< info string [Unchessed] opponent move d7f6 cp-loss 7 -> estimate ~2519 (±232), pinned at measurement ceiling — engine suspected
+<< info depth 1 multipv 1 score cp 59 nodes 247 nps 247000 time 0 pv e4d5
+<< info depth 2 multipv 1 score cp 59 nodes 1589 nps 1589000 time 0 pv e4d5 d8d5
+<< info depth 3 multipv 1 score cp 51 nodes 5190 nps 5190000 time 1 pv e4d5 a8a1 c1c2 c8f5 c2b2
+<< info depth 4 multipv 1 score cp 35 nodes 7781 nps 7781000 time 1 pv e4d5 a8a1 c1c2 a1a2 c2b1 f6d5
+<< info depth 5 multipv 1 score cp 51 nodes 13379 nps 4459666 time 3 pv e4d5 a8a1 c1c2 a1e1 h1e1 c8f5 c2b2
+<< info depth 6 multipv 1 score cp 23 nodes 24028 nps 4805600 time 5 pv e4d5 d8d5 b4c4 d5g2 e2f3 a8a1 c1c2
+<< info depth 7 multipv 1 score cp 56 nodes 63436 nps 3964750 time 16 pv e4d5 a8a1 d2b1 d8d5 b4c3 a1a4 e2f3 d5f5
+<< info depth 8 multipv 1 score cp 45 nodes 181516 nps 3424830 time 53 pv e4d5 a8a1 c1b2 a1e1 h1e1 d8d5 d2f3 c8e6 b4c5
+<< info depth 9 multipv 1 score cp 8 nodes 440876 nps 3171769 time 139 pv e4d5 a8a1 c1b2 a1e1 h1e1 d8d5 d2f3 c8e6 b2c2 f8d8
+<< info depth 10 multipv 1 score cp 7 nodes 866741 nps 3106598 time 279 pv e4d5 a8a1 c1b2 a1e1 h1e1 d8d5 d2f3 c8e6 e1a1 f8e8 a1a7
+<< info depth 11 multipv 1 score cp 6 nodes 2018874 nps 2973304 time 679 pv b4c3 c8e6 e2f3 d5e4 d2e4 f6e4 e1e4 f8e8 e4e6 e8e6 f3a8
+<< info depth 12 multipv 1 score cp -7 nodes 4749244 nps 2852398 time 1665 pv e4d5 a8a1 c1b2 a1e1 h1e1 d8d5 d2f3 c8e6 b2c2 f8e8 b4c5 e6f5 c2b2 e8b8 b2c3
+<< info depth 13 multipv 1 score cp -9 nodes 9136244 nps 2744440 time 3329 pv e4d5 a8a1 c1b2 a1e1 h1e1 d8d5 d2f3 c8e6 e1a1 f8c8 a1a5 c4c3 b2c2 e6f5 c2c1 d5e4
+<< info depth 14 multipv 1 score cp -45 nodes 25288776 nps 2512296 time 10066 pv b4c3 c8e6 e4e5 f6d7 f2f4 f8e8 d2f1 d8b6 f1e3 e8b8 f4f5 a8a2 e2d3 c4d3
+<< info string [Unchessed] mode=FULL opponent~2519 (±232) eval -45 cp: best move (full strength)
+<< bestmove b4c3
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6 f4g3 f8b4 e2e3 f6e4 a2a3 b4c3 b2c3 e4c3 d1d3 c3e4 c2c4 c7c5 e1c1 b8d7 f1e2 e8g8 f3d2 e4g3 h2g3 b7b5 c4d5 c5c4 d3c3 e6d5 e3e4 a6a5 d1e1 b5b4 a3b4 a5b4 c3b4 d7f6 b4c3 d5e4
+>> go wtime 191159 btime 356086 winc 0 binc 0
+<< info string [Unchessed] opponent move d5e4 cp-loss 30 -> estimate ~2500 (±223), pinned at measurement ceiling — engine suspected
+<< info depth 1 multipv 1 score cp 37 nodes 86 nps 86000 time 0 pv d2c4
+<< info depth 2 multipv 1 score cp 30 nodes 543 nps 543000 time 0 pv d2c4 c8b7
+<< info depth 3 multipv 1 score cp 18 nodes 1748 nps 1748000 time 0 pv d2c4 c8b7 c4e3
+<< info depth 4 multipv 1 score cp 16 nodes 4343 nps 4343000 time 0 pv d2c4 c8e6 c4e3 a8a2
+<< info depth 5 multipv 1 score cp 0 nodes 14090 nps 4696666 time 3 pv d2c4 c8e6 c4e5 a8a2 c1b1
+<< info depth 6 multipv 1 score cp 4 nodes 32929 nps 4704142 time 7 pv e2c4 c8b7 c4b3 f8e8 d2c4 a8c8
+<< info depth 7 multipv 1 score cp 3 nodes 66550 nps 4159375 time 16 pv e2c4 c8b7 f2f3 f8e8 f3e4 f6e4 d2e4
+<< info depth 8 multipv 1 score cp -11 nodes 157613 nps 3582113 time 44 pv d2c4 c8e6 c4e5 f6d5 c3c5 d8g5 c1c2 a8a2 c2b1 f8c8
+<< info depth 9 multipv 1 score cp -14 nodes 338743 nps 3257144 time 104 pv e2c4 c8e6 f2f3 e4f3 g2f3 f6d5 c3b3 f8e8 d2e4
+<< info depth 10 multipv 1 score cp -17 nodes 976806 nps 2960018 time 330 pv e2c4 c8e6 f2f3 e4f3 g2f3 f6d5 c3b3 f8e8 c1b2 a8c8
+<< info depth 11 multipv 1 score cp -24 nodes 2426037 nps 2747493 time 883 pv e2c4 c8e6 d2b3 a8a2 b3c5 a2f2 c5e6 f7e6 c4e6 g8h7 h1f1 f2g2
+<< info depth 12 multipv 1 score cp -53 nodes 5031342 nps 2743370 time 1834 pv e2c4 c8e6 d2b3 a8a2 b3c5 e6c4 c3c4 a2f2 c5e4 f6e4 e1e4 d8g5 c1b1
+<< info depth 13 multipv 1 score cp -60 nodes 8670391 nps 2723968 time 3183 pv e2c4 c8e6 d2b3 a8a2 c4e6 f7e6 h1f1 d8a8 c1b1 f6d5 c3c4 a2f2 f1f2
+<< info depth 14 multipv 1 score cp -60 nodes 22685619 nps 2564795 time 8845 pv e2c4 c8e6 d2b3 a8a2 c4e6 f7e6 h1f1 d8a8 c1b1 f6d5 c3c4 a2f2 f1f2 f8f2
+<< info string [Unchessed] mode=FULL opponent~2500 (±223) eval -60 cp: best move (full strength)
+<< bestmove e2c4
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6 f4g3 f8b4 e2e3 f6e4 a2a3 b4c3 b2c3 e4c3 d1d3 c3e4 c2c4 c7c5 e1c1 b8d7 f1e2 e8g8 f3d2 e4g3 h2g3 b7b5 c4d5 c5c4 d3c3 e6d5 e3e4 a6a5 d1e1 b5b4 a3b4 a5b4 c3b4 d7f6 b4c3 d5e4 e2c4 c8e6
+>> go wtime 172838 btime 350213 winc 0 binc 0
+<< info string [Unchessed] opponent move c8e6 cp-loss 0 -> estimate ~2525 (±218), pinned at measurement ceiling — engine suspected
+<< info depth 1 multipv 1 score cp 141 nodes 80 nps 80000 time 0 pv d2e4
+<< info depth 2 multipv 1 score cp 143 nodes 539 nps 539000 time 0 pv d2e4 f6e4
+<< info depth 3 multipv 1 score cp 143 nodes 1214 nps 1214000 time 0 pv d2e4 f6e4 e1e4
+<< info depth 4 multipv 1 score cp 125 nodes 4324 nps 4324000 time 1 pv d2e4 e6c4 c3c4 a8a1 c1c2
+<< info depth 5 multipv 1 score cp 126 nodes 9249 nps 4624500 time 2 pv d2e4 f6d5 c3b3 f8e8 e4c5
+<< info depth 6 multipv 1 score cp -10 nodes 33242 nps 4155250 time 8 pv f2f3 e6c4 d2c4 f6d5 c3b3 a8a1 c1c2
+<< info depth 7 multipv 1 score cp -45 nodes 78287 nps 3914350 time 20 pv f2f3 e6c4 d2c4 d8c7 e1e4 f6e4 f3e4
+<< info depth 8 multipv 1 score cp -40 nodes 189567 nps 3510500 time 54 pv d2b3 a8a2 c4e6 f7e6 h1f1 d8d5 b3c5 f8b8
+<< info depth 9 multipv 1 score cp -60 nodes 337267 nps 3406737 time 99 pv d2b3 a8a2 c4e6 f7e6 h1f1 d8a8 c1b1 f6d5 c3c4
+<< info depth 10 multipv 1 score cp -60 nodes 811913 nps 3122742 time 260 pv d2b3 a8a2 c4e6 f7e6 h1f1 d8a8 c1b1 f6d5 c3c4 a2f2
+<< info depth 11 multipv 1 score cp -60 nodes 1322745 nps 2965795 time 446 pv d2b3 a8a2 c4e6 f7e6 h1f1 d8a8 c1b1 f6d5 c3c4 a2f2 f1f2
+<< info depth 12 multipv 1 score cp -68 nodes 2230157 nps 2833744 time 787 pv d2b3 a8a2 c4e6 f7e6 h1f1 d8d5 c1b1 f8a8 b1c1 a8b8 b3c5 b8b2
+<< info depth 13 multipv 1 score cp -95 nodes 7046783 nps 2834586 time 2486 pv d2b3 f6d5 c4d5 e6d5 b3c5 d8g5 c1d1 g5g4 d1c1 a8a2 c3e3 f8c8 c1b1 c8b8 b1c1 a2a1 c1c2
+<< info string [Unchessed] mode=FULL opponent~2525 (±218) eval -95 cp: best move (full strength)
+<< bestmove d2b3
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6 f4g3 f8b4 e2e3 f6e4 a2a3 b4c3 b2c3 e4c3 d1d3 c3e4 c2c4 c7c5 e1c1 b8d7 f1e2 e8g8 f3d2 e4g3 h2g3 b7b5 c4d5 c5c4 d3c3 e6d5 e3e4 a6a5 d1e1 b5b4 a3b4 a5b4 c3b4 d7f6 b4c3 d5e4 e2c4 c8e6 d2b3 f6d5
+>> go wtime 167084 btime 345064 winc 0 binc 0
+<< info string [Unchessed] opponent move f6d5 cp-loss 0 -> estimate ~2548 (±213), pinned at measurement ceiling — engine suspected
+<< info depth 1 multipv 1 score cp 12 nodes 118 nps 118000 time 0 pv c3c2
+<< info depth 2 multipv 1 score cp 27 nodes 836 nps 836000 time 0 pv c3c2 d8g5 c1b1
+<< info depth 3 multipv 1 score cp 26 nodes 1712 nps 1712000 time 0 pv c3c2 d8g5 c1b1 e4e3
+<< info depth 4 multipv 1 score cp -31 nodes 4454 nps 4454000 time 0 pv c3b2 d8g5 b3d2 f8b8 b2c2
+<< info depth 5 multipv 1 score cp -19 nodes 11493 nps 5746500 time 2 pv c3d2 d8b6 c1b1 f8c8 e1c1
+<< info depth 6 multipv 1 score cp -27 nodes 23530 nps 4706000 time 5 pv c3d2 d8c7 b3c5 f8b8 c1c2 d5b4 c2c3
+<< info depth 7 multipv 1 score cp -49 nodes 38496 nps 3849600 time 10 pv c3d2 d8c7 b3c5 f8b8 c4d5 e6d5 d2e2
+<< info depth 8 multipv 1 score cp -46 nodes 63622 nps 3742470 time 17 pv c3d2 d8c7 b3c5 f8b8 c4d5 e6d5 d2c3 b8b3
+<< info depth 9 multipv 1 score cp -55 nodes 127838 nps 3364157 time 38 pv c3d2 d8c7 b3c5 f8b8 d2e2 d5c3 e2e3 e6c4 e3c3
+<< info depth 10 multipv 1 score cp -102 nodes 286714 nps 3050148 time 94 pv c4d5 e6d5 b3c5 d8g5 c1d1 g5g4 d1c1 a8a2 c3e3 f8c8 h1f1 a2a1 c1c2
+<< info depth 11 multipv 1 score cp -95 nodes 595346 nps 2862240 time 208 pv c4d5 e6d5 b3c5 d8g5 c1d1 g5g4 d1c1 a8a2 c3e3 f8c8 c1b1 c8b8 b1c1 a2a1 c1c2
+<< info depth 12 multipv 1 score cp -94 nodes 1311150 nps 2697839 time 486 pv c4d5 e6d5 b3c5 d8g5 c1d1 g5g4 d1c1 a8a2 c3e3 f8c8 c1b1 c8b8 b1c1 f7f5 c5d7
+<< info depth 13 multipv 1 score cp -108 nodes 2583467 nps 2570613 time 1005 pv c4d5 d8g5 c1d1 g5d5 b3c5 f8d8 d1e2 a8a2 e2f1 d5d4 c3d4 d8d4 c5e4 a2c2 h1h5
+<< info depth 14 multipv 1 score cp -122 nodes 6437241 nps 2412758 time 2668 pv c4d5 d8g5 e1e3 e6d5 b3c5 a8a2 h1h4 f8c8 h4f4 g8h7 c1b1 f7f5 c3b4 g5g6 e3e1
+<< info depth 15 multipv 1 score cp -122 nodes 13618678 nps 2422821 time 5621 pv c4d5 e6d5 b3c5 d8g5 e1e3 a8a2 h1h4 f8c8 h4f4 g8h7 c1b1 f7f5 b1c1 g7g6 c1b1 c8b8 b1c1
+<< info string [Unchessed] mode=FULL opponent~2548 (±213) eval -122 cp: best move (full strength)
+<< bestmove c4d5
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6 f4g3 f8b4 e2e3 f6e4 a2a3 b4c3 b2c3 e4c3 d1d3 c3e4 c2c4 c7c5 e1c1 b8d7 f1e2 e8g8 f3d2 e4g3 h2g3 b7b5 c4d5 c5c4 d3c3 e6d5 e3e4 a6a5 d1e1 b5b4 a3b4 a5b4 c3b4 d7f6 b4c3 d5e4 e2c4 c8e6 d2b3 f6d5 c4d5 d8d5
+>> go wtime 154141 btime 338880 winc 0 binc 0
+<< info string [Unchessed] opponent move d8d5 cp-loss 39 -> estimate ~2520 (±213), pinned at measurement ceiling — engine suspected
+<< info depth 1 multipv 1 score cp -14 nodes 86 nps 86000 time 0 pv b3c5
+<< info depth 2 multipv 1 score cp 5 nodes 673 nps 673000 time 0 pv b3c5 d5g5 c1b1
+<< info depth 3 multipv 1 score cp 3 nodes 2066 nps 2066000 time 0 pv b3c5 d5g5 c1d1 g5g4 d1c2
+<< info depth 4 multipv 1 score cp -58 nodes 6520 nps 6520000 time 1 pv b3c5 f8c8 e1e2 d5g5 c1b1
+<< info depth 5 multipv 1 score cp -50 nodes 16078 nps 5359333 time 3 pv b3c5 f8c8 e1e2 d5g5 c1b1 a8b8 e2b2
+<< info depth 6 multipv 1 score cp -64 nodes 29748 nps 4249714 time 7 pv b3c5 d5g5 c1d1 f8b8 d1e2 e6d5 e1c1
+<< info depth 7 multipv 1 score cp -82 nodes 61926 nps 3642705 time 17 pv b3c5 d5g5 c1d1 a8a2 e1e2 g5g4 f2f3 e4f3
+<< info depth 8 multipv 1 score cp -74 nodes 105682 nps 3302562 time 32 pv b3c5 d5g5 e1e3 f8c8 h1d1 e6d5 d1d2 g5g6 d2b2
+<< info depth 9 multipv 1 score cp -58 nodes 440727 nps 2720537 time 162 pv b3c5 d5g5 c1d1 f8b8 d1e2 e6d5 e2f1 g5g6 h1h4 f7f5
+<< info depth 10 multipv 1 score cp -71 nodes 904591 nps 2569860 time 352 pv b3c5 d5g5 e1e3 f8c8 h1d1 g5g4 d1e1 e6d5 e3e2 a8b8 e2b2
+<< info depth 11 multipv 1 score cp -78 nodes 1968290 nps 2510573 time 784 pv b3c5 d5g5 c1d1 g5g4 d1c1 e6d5 h1h4 g4g5 c1d1 f8c8 d1e2 a8a2 e2f1 g5g6 f1g1
+<< info depth 12 multipv 1 score cp -366 nodes 6280079 nps 2513036 time 2499 pv e1e3 a8b8 g3g4 d5b3 c3b3 e6b3 h1h5 f8c8 h5c5 b3d5 e3c3 c8d8 c5c7
+<< info depth 13 multipv 1 score cp -371 nodes 10098161 nps 2528332 time 3994 pv e1e3 a8b8 g3g4 d5b3 c3b3 e6b3 h1h5 f8d8 e3e4 b3d5 e4e5 d8c8 c1d2 d5g2
+<< info depth 14 multipv 1 score cp -375 nodes 16852276 nps 2451596 time 6874 pv e1e3 a8b8 g3g4 d5b3 c3b3 e6b3 h1h5 f8c8 h5c5 b3d5 c1c2 c8d8 c5c7 b8b4 c2c3
+<< info string [Unchessed] mode=FULL opponent~2520 (±213) eval -375 cp: best move (full strength)
+<< bestmove e1e3
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6 f4g3 f8b4 e2e3 f6e4 a2a3 b4c3 b2c3 e4c3 d1d3 c3e4 c2c4 c7c5 e1c1 b8d7 f1e2 e8g8 f3d2 e4g3 h2g3 b7b5 c4d5 c5c4 d3c3 e6d5 e3e4 a6a5 d1e1 b5b4 a3b4 a5b4 c3b4 d7f6 b4c3 d5e4 e2c4 c8e6 d2b3 f6d5 c4d5 d8d5 e1e3 f8b8
+>> go wtime 140397 btime 333739 winc 0 binc 0
+<< info string [Unchessed] opponent move f8b8 cp-loss 0 -> estimate ~2543 (±209), pinned at measurement ceiling — engine suspected
+<< info depth 1 multipv 1 score cp -81 nodes 101 nps 101000 time 0 pv b3c5
+<< info depth 2 multipv 1 score cp -41 nodes 1089 nps 1089000 time 0 pv b3c5 e6f5
+<< info depth 3 multipv 1 score cp -54 nodes 2449 nps 2449000 time 0 pv b3c5 e6f5 e3e1
+<< info depth 4 multipv 1 score cp -158 nodes 7588 nps 7588000 time 1 pv c1b2 a8a4 c3c5 d5d4 c5d4
+<< info depth 5 multipv 1 score cp -192 nodes 20088 nps 5022000 time 4 pv c1b2 a8a4 h1b1 a4d4 e3e1
+<< info depth 6 multipv 1 score cp -345 nodes 32383 nps 4626142 time 7 pv h1h4 a8a3 c3c2 a3b3 e3b3 b8b3
+<< info depth 7 multipv 1 score cp -217 nodes 73948 nps 3697400 time 20 pv c1b2 a8a4 f2f3 a4c4 c3e1 d5d4 b2b1 e4f3
+<< info depth 8 multipv 1 score cp -233 nodes 109269 nps 3524806 time 31 pv c1b2 a8a4 h1b1 a4c4 c3d2 c4d4 d2c2 d4d2
+<< info depth 9 multipv 1 score cp -341 nodes 242201 nps 3317821 time 73 pv c1b2 a8a4 h1b1 a4c4 c3d2 c4d4 d2c3 d4d2 b2a3 d2f2
+<< info depth 10 multipv 1 score cp -346 nodes 440314 nps 3122794 time 141 pv c1b2 a8a4 h1a1 a4d4 a1a6 d4d2 b2c1 d2f2 b3d4 b8c8 d4c6
+<< info depth 11 multipv 1 score cp -348 nodes 941760 nps 2853818 time 330 pv c3b2 a8a4 h1h4 a4b4 h4e4 b4b3 e3b3 b8b3 b2c2 h6h5 c2e2
+<< info depth 12 multipv 1 score cp -403 nodes 2164476 nps 2764337 time 783 pv c3c2 a8a3 h1e1 b8c8 e3c3 c8c3 c2c3 a3b3 c3c5 d5b7 c1d2 b3b2 d2e3
+<< info depth 13 multipv 1 score cp -403 nodes 3416189 nps 2793286 time 1223 pv h1e1 d5b3 c3b3 e6b3 e3e4 a8a1 c1d2 a1a2 d2c1 a2c2 c1b1 c2f2 e4e8 b8e8 e1e8 g8h7 e8b8 b3a2 b1c1
+<< info depth 14 multipv 1 score cp -429 nodes 7356409 nps 2755209 time 2670 pv c3b2 d5c4 e3c3 c4a4 c1d2 e6b3 h1b1 a4d4 d2e1 b3c4 b2b8 a8b8 b1b8 g8h7 c3a3 h7g6 b8c8 h6h5
+<< info depth 15 multipv 1 score cp -431 nodes 14796169 nps 2702990 time 5474 pv c3b2 d5c4 e3c3 c4a4 c1d2 e6b3 h1b1 a4d4 d2e1 b3c4 b2b8 a8b8 b1b8 g8h7 c3a3 h7g6 b8b7 d4d5 a3a7
+<< info depth 16 multipv 1 score cp -452 nodes 29082499 nps 2635000 time 11037 pv c3b2 d5c4 e3c3 c4a4 c1d2 e6b3 h1b1 a4d4 d2e1 b3c4 b2b8 a8b8 b1b8 g8h7 c3a3 c4d3 b8b3 h7g6 g3g4 d4d5
+<< info string [Unchessed] mode=FULL opponent~2543 (±209) eval -452 cp: best move (full strength)
+<< bestmove c3b2
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6 f4g3 f8b4 e2e3 f6e4 a2a3 b4c3 b2c3 e4c3 d1d3 c3e4 c2c4 c7c5 e1c1 b8d7 f1e2 e8g8 f3d2 e4g3 h2g3 b7b5 c4d5 c5c4 d3c3 e6d5 e3e4 a6a5 d1e1 b5b4 a3b4 a5b4 c3b4 d7f6 b4c3 d5e4 e2c4 c8e6 d2b3 f6d5 c4d5 d8d5 e1e3 f8b8 c3b2 d5g5
+>> go wtime 122451 btime 327967 winc 0 binc 0
+<< info string [Unchessed] opponent move d5g5 cp-loss 65 -> estimate ~2488 (±227), pinned at measurement ceiling — engine suspected
+<< info depth 1 multipv 1 score cp -101 nodes 136 nps 136000 time 0 pv c1b1
+<< info depth 2 multipv 1 score cp -81 nodes 762 nps 762000 time 0 pv c1b1 g5d5
+<< info depth 3 multipv 1 score cp -109 nodes 1909 nps 1909000 time 0 pv c1b1 g5b5 b1c2
+<< info depth 4 multipv 1 score cp -123 nodes 5136 nps 5136000 time 1 pv c1c2 e6c4 h1e1 c4d3 c2c1
+<< info depth 5 multipv 1 score cp -209 nodes 16668 nps 4167000 time 4 pv c1c2 g5f5 h1f1 e6c4 g3g4
+<< info depth 6 multipv 1 score cp -329 nodes 31371 nps 3921375 time 8 pv c1c2 g5f5 c2b1 f5b5 h1h4 e6b3
+<< info depth 7 multipv 1 score cp -334 nodes 61077 nps 3592764 time 17 pv c1c2 g5f5 e3c3 e4e3 c2d1 e3f2 h1f1 f5g4 d1c1
+<< info depth 8 multipv 1 score cp -353 nodes 108865 nps 3402031 time 32 pv c1c2 g5f5 c2b1 b8b3 e3b3 e4e3 b2c2 a8a1 b1a1 f5c2
+<< info depth 9 multipv 1 score cp -407 nodes 233141 nps 2988987 time 78 pv c1c2 g5f5 c2b1 f5b5 b1c2 e6b3 b2b3 b5a6 b3b8 a8b8 e3e4
+<< info depth 10 multipv 1 score cp -433 nodes 443905 nps 2791855 time 159 pv d4d5 g5d5 h1d1 d5c4 c1b1 b8b3 e3b3 c4b3 b2b3 e6b3 d1d7
+<< info depth 11 multipv 1 score cp -451 nodes 669623 nps 2711024 time 247 pv d4d5 g5d5 h1d1 b8b3 e3b3 d5b3 b2b3 e6b3 d1d6 a8a2 d6d8 g8h7
+<< info depth 12 multipv 1 score cp -461 nodes 1375187 nps 2546642 time 540 pv d4d5 g5d5 h1d1 b8b3 e3b3 d5b3 b2b3 e6b3 d1d4 a8a2 d4e4 a2c2 c1b1
+<< info depth 13 multipv 1 score cp -465 nodes 3352883 nps 2436688 time 1376 pv d4d5 g5d5 g3g4 b8b3 e3b3 d5b3 b2b3 e6b3 c1d2 b3d5 d2e3 a8a2 h1c1
+<< info depth 14 multipv 1 score cp -491 nodes 5807595 nps 2425895 time 2394 pv d4d5 g5d5 g3g4 d5c4 e3c3 c4b5 h1d1 b8c8 b2c2 c8c3 c2c3 e6b3 d1d6 b5f1 c1b2 a8b8
+<< info depth 15 multipv 1 score cp -494 nodes 11187557 nps 2398704 time 4664 pv d4d5 g5d5 e3c3 d5b5 h1d1 b8c8 b3c5 c8c5 b2b5 c5b5 d1d2 a8a1 c1c2 a1a2 c2c1 b5b1 c1b1 a2d2
+<< info string [Unchessed] mode=FULL opponent~2488 (±227) eval -494 cp: best move (full strength)
+<< bestmove d4d5
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6 f4g3 f8b4 e2e3 f6e4 a2a3 b4c3 b2c3 e4c3 d1d3 c3e4 c2c4 c7c5 e1c1 b8d7 f1e2 e8g8 f3d2 e4g3 h2g3 b7b5 c4d5 c5c4 d3c3 e6d5 e3e4 a6a5 d1e1 b5b4 a3b4 a5b4 c3b4 d7f6 b4c3 d5e4 e2c4 c8e6 d2b3 f6d5 c4d5 d8d5 e1e3 f8b8 c3b2 d5g5 d4d5 e6d5
+>> go wtime 114773 btime 320398 winc 0 binc 0
+<< info string [Unchessed] opponent move e6d5 cp-loss 184 -> estimate ~2386 (±300), erratic (sandbagging?)
+<< info depth 1 multipv 1 score cp -201 nodes 128 nps 128000 time 0 pv c1b1
+<< info depth 2 multipv 1 score cp -185 nodes 754 nps 754000 time 0 pv c1b1 g5g6
+<< info depth 3 multipv 1 score cp -188 nodes 1524 nps 1524000 time 0 pv c1b1 g5g6 h1d1
+<< info depth 4 multipv 1 score cp -196 nodes 4884 nps 4884000 time 1 pv c1b1 d5c4 b2c2 g5d5
+<< info depth 5 multipv 1 score cp -228 nodes 15895 nps 5298333 time 3 pv c1b1 g5f5 h1h4 f5e6 b1c2
+<< info depth 6 multipv 1 score cp -218 nodes 39787 nps 3978700 time 10 pv c1b1 g5f5 h1h4 f5e6 b1c2 b8c8 c2b1
+<< info depth 7 multipv 1 score cp -253 nodes 71014 nps 3737578 time 19 pv c1b1 g5f5 b1c1 f5e6 b3d4 b8b2 d4e6
+<< info depth 8 multipv 1 score cp -304 nodes 124664 nps 3369297 time 37 pv c1b1 g5f5 g3g4 f5e6 h1h3 e6g4 b2d4 d5b3
+<< info depth 9 multipv 1 score cp -463 nodes 257718 nps 3105036 time 83 pv c1b1 g5e3 f2e3 b8b3 h1d1 b3b2 b1b2 a8b8 b2c3 b8b5 c3d4
+<< info depth 10 multipv 1 score cp -464 nodes 381843 nps 3006637 time 127 pv c1b1 g5e3 f2e3 b8b3 h1d1 b3b2 b1b2 a8b8 b2c3 d5e6 d1f1 b8c8 c3d4
+<< info depth 11 multipv 1 score cp -463 nodes 921559 nps 2835566 time 325 pv c1b1 g5e3 f2e3 b8b3 h1d1 b3b2 b1b2 a8b8 b2c3 d5e6 d1d2 h6h5 d2d6
+<< info depth 12 multipv 1 score cp -467 nodes 1548172 nps 2687798 time 576 pv c1b1 g5e3 f2e3 b8b3 h1d1 b3b2 b1b2 a8b8 b2c3 d5e6 d1d2 h6h5 c3d4 b8d8 d4c3
+<< info depth 13 multipv 1 score cp -477 nodes 2431835 nps 2587058 time 940 pv c1b1 g5e3 f2e3 b8b3 h1d1 a8b8 d1d2 b3b2 d2b2 d5b3 b2d2 h6h5 b1c1 b8c8 c1b2
+<< info depth 14 multipv 1 score cp -476 nodes 5211602 nps 2428519 time 2146 pv c1b1 g5e3 f2e3 b8b3 h1d1 a8b8 d1d2 b3b2 d2b2 d5b3 b1c1 g8h7 b2d2 b3e6 d2d6
+<< info string [Unchessed] persona FULL -> DEFEND (eval -476 cp, opponent ~2386)
+<< info string [Unchessed] mode=DEFEND opponent~2386 (±300) eval -476 cp: maximum resistance
+<< bestmove c1b1
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6 f4g3 f8b4 e2e3 f6e4 a2a3 b4c3 b2c3 e4c3 d1d3 c3e4 c2c4 c7c5 e1c1 b8d7 f1e2 e8g8 f3d2 e4g3 h2g3 b7b5 c4d5 c5c4 d3c3 e6d5 e3e4 a6a5 d1e1 b5b4 a3b4 a5b4 c3b4 d7f6 b4c3 d5e4 e2c4 c8e6 d2b3 f6d5 c4d5 d8d5 e1e3 f8b8 c3b2 d5g5 d4d5 e6d5 c1b1 g5f5
+>> go wtime 103009 btime 315618 winc 0 binc 0
+<< info string [Unchessed] opponent move g5f5 cp-loss 61 -> estimate ~2351 (±295), erratic (sandbagging?)
+<< info depth 1 multipv 1 score cp -184 nodes 169 nps 169000 time 0 pv h1d1
+<< info depth 2 multipv 1 score cp -234 nodes 947 nps 947000 time 0 pv h1d1 d5b3
+<< info depth 3 multipv 1 score cp -207 nodes 1860 nps 1860000 time 0 pv h1e1 f5e6 b1c2
+<< info depth 4 multipv 1 score cp -352 nodes 3741 nps 3741000 time 0 pv h1e1 b8b3 e3b3 e4e3 b1c1
+<< info depth 5 multipv 1 score cp -367 nodes 8045 nps 4022500 time 2 pv h1d1 f5e6 d1d5 e6d5 b2c3
+<< info depth 6 multipv 1 score cp -377 nodes 14416 nps 4805333 time 3 pv g3g4 f5g4 h1c1 g4g2 e3g3 g2h2
+<< info depth 7 multipv 1 score cp -308 nodes 48359 nps 3454214 time 14 pv g3g4 f5g4 h1c1 h6h5 c1c5 b8b3 e3b3
+<< info depth 8 multipv 1 score cp -401 nodes 86211 nps 3078964 time 28 pv g3g4 f5g4 h1c1 g4g2 c1e1 g2h2 e3g3 h6h5
+<< info depth 9 multipv 1 score cp -395 nodes 368838 nps 2634557 time 140 pv g3g4 f5g4 h1c1 g4g2 c1e1 g2h2 e3g3 g7g6 e1d1
+<< info depth 10 multipv 1 score cp -425 nodes 687926 nps 2547874 time 270 pv g3g4 f5g4 h1c1 g4g2 c1e1 g2g6 b1c1 g6c6 e3c3 c6b6 e1e3
+<< info depth 11 multipv 1 score cp -422 nodes 1294869 nps 2424848 time 534 pv g3g4 f5g4 h1c1 g4g2 c1e1 g2g6 b1c1 h6h5 b2c2 h5h4 b3d4
+<< info depth 12 multipv 1 score cp -458 nodes 2283113 nps 2339255 time 976 pv g3g4 f5g4 h1c1 g4g2 c1e1 g2g6 b1c1 b8c8 e3c3 a8b8 c3c8 b8c8 c1d2 g6g5 e1e3 h6h5
+<< info depth 13 multipv 1 score cp -451 nodes 4978862 nps 2242730 time 2220 pv g3g4 f5g4 h1c1 g4g2 c1e1 g2g6 b1c1 b8c8 e3c3 a8b8 c3c8 b8c8 c1d2 g6g5 e1e3 g5g1 d2e2
+<< info string [Unchessed] mode=DEFEND opponent~2351 (±295) eval -451 cp: maximum resistance
+<< bestmove g3g4
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6 f4g3 f8b4 e2e3 f6e4 a2a3 b4c3 b2c3 e4c3 d1d3 c3e4 c2c4 c7c5 e1c1 b8d7 f1e2 e8g8 f3d2 e4g3 h2g3 b7b5 c4d5 c5c4 d3c3 e6d5 e3e4 a6a5 d1e1 b5b4 a3b4 a5b4 c3b4 d7f6 b4c3 d5e4 e2c4 c8e6 d2b3 f6d5 c4d5 d8d5 e1e3 f8b8 c3b2 d5g5 d4d5 e6d5 c1b1 g5f5 g3g4 f5e6
+>> go wtime 99576 btime 308333 winc 0 binc 0
+<< info string [Unchessed] opponent move f5e6 cp-loss 78 -> estimate ~2300 (±296), erratic (sandbagging?)
+<< info depth 1 multipv 1 score cp -290 nodes 139 nps 139000 time 0 pv h1h3
+<< info depth 2 multipv 1 score cp -290 nodes 921 nps 921000 time 0 pv h1h3 e6g4
+<< info depth 3 multipv 1 score cp -282 nodes 1728 nps 1728000 time 0 pv h1h3 e6g4 b2e5
+<< info depth 4 multipv 1 score cp -304 nodes 4608 nps 4608000 time 1 pv h1h3 e6g4 b2d4 d5b3
+<< info depth 5 multipv 1 score cp -304 nodes 25753 nps 4292166 time 6 pv h1h3 e6g4 b2d4 d5b3 e3b3
+<< info depth 6 multipv 1 score cp -304 nodes 40923 nps 4092300 time 10 pv h1h3 e6g4 b2d4 d5b3 e3b3 g4g2
+<< info depth 7 multipv 1 score cp -319 nodes 91160 nps 3646400 time 25 pv h1h3 e6g4 b2d4 d5b3 e3b3 g4g2 h3g3
+<< info depth 8 multipv 1 score cp -351 nodes 275519 nps 3095719 time 89 pv h1h3 e6g4 b2d4 d5b3 e3b3 g4g2 h3g3 g2f1 b1c2
+<< info depth 9 multipv 1 score cp -369 nodes 478001 nps 2862281 time 167 pv h1h3 e6g4 b2d2 d5b3 e3b3 g4h3 g2h3 b8b3 b1c1 a8c8 c1d1
+<< info depth 10 multipv 1 score cp -397 nodes 701887 nps 2741746 time 256 pv h1h3 e6g4 e3e1 g4g2 h3c3 g2g6 b2c2 g6e6 b1b2 e6g4
+<< info depth 11 multipv 1 score cp -394 nodes 1794154 nps 2395399 time 749 pv h1h3 e6g4 b2d4 d5b3 e3b3 g4g2 b1c2 a8a2 c2b1 b8b3 h3b3 a2f2 b3b8 g8h7
+<< info string [Unchessed] mode=DEFEND opponent~2300 (±296) eval -394 cp: maximum resistance
+<< bestmove h1h3
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6 f4g3 f8b4 e2e3 f6e4 a2a3 b4c3 b2c3 e4c3 d1d3 c3e4 c2c4 c7c5 e1c1 b8d7 f1e2 e8g8 f3d2 e4g3 h2g3 b7b5 c4d5 c5c4 d3c3 e6d5 e3e4 a6a5 d1e1 b5b4 a3b4 a5b4 c3b4 d7f6 b4c3 d5e4 e2c4 c8e6 d2b3 f6d5 c4d5 d8d5 e1e3 f8b8 c3b2 d5g5 d4d5 e6d5 c1b1 g5f5 g3g4 f5e6 h1h3 e6a6
+>> go wtime 97936 btime 302660 winc 0 binc 0
+<< info string [Unchessed] opponent move e6a6 cp-loss 39 -> estimate ~2286 (±280), erratic (sandbagging?)
+<< info depth 1 multipv 1 score cp -189 nodes 70 nps 70000 time 0 pv b2e5
+<< info depth 2 multipv 1 score cp -201 nodes 746 nps 746000 time 0 pv h3h1 a6c6
+<< info depth 3 multipv 1 score cp -220 nodes 2549 nps 2549000 time 0 pv h3h1 a6b6 h1h3
+<< info depth 4 multipv 1 score cp -372 nodes 5126 nps 5126000 time 1 pv h3h1 a6c4 h1e1 b8b3
+<< info depth 5 multipv 1 score cp -311 nodes 18290 nps 3658000 time 5 pv e3c3 d5b3 c3b3 a6f1 b1c2 f1f2 c2c1
+<< info depth 6 multipv 1 score cp -388 nodes 34174 nps 3797111 time 9 pv e3c3 d5b3 c3b3 a6f1 b1c2 f1f2 c2c1 f2f1 c1c2
+<< info depth 7 multipv 1 score cp -406 nodes 85241 nps 3157074 time 27 pv h3h1 a6b5 b2e5 d5b3 e5b5 b8b5 e3e4
+<< info depth 8 multipv 1 score cp -464 nodes 190906 nps 2937015 time 65 pv e3c3 d5b3 c3b3 a6f1 b1c2 f1f2 c2c1 f2f1 c1c2 f1g2 c2b1 b8b3
+<< info depth 9 multipv 1 score cp -482 nodes 388597 nps 2756007 time 141 pv e3c3 d5b3 c3b3 a6f1 b1c2 f1f2 c2c1 f2f1 c1c2 f1g2 c2b1 g2g1 b1c2 b8c8 b3c3
+<< info depth 10 multipv 1 score cp -482 nodes 636465 nps 2587256 time 246 pv e3c3 d5b3 c3b3 a6f1 b1c2 f1f2 c2c1 f2f1 c1c2 f1g2 c2b1 g2g1 b1c2 b8c8 b3c3 g1g4
+<< info depth 11 multipv 1 score cp -752 nodes 2314866 nps 2276171 time 1017 pv b1c2 a6f1 g4g5 f1f2 c2b1 f2f1 b2c1 b8b3 e3b3 a8a1 b1a1 f1c1 b3b1 c1g5 b1b8 g8h7 b8b2
+<< info depth 12 multipv 1 score cp -738 nodes 3275584 nps 2271556 time 1442 pv h3g3 a6f1 b2c1 f1f2 c1b2 f2f1 b2c1 b8b3 e3b3 a8a1 b1a1 f1c1 b3b1 c1d2 g3a3 e4e3 b1b8 g8h7
+<< info depth 13 multipv 1 score cp -761 nodes 4520807 nps 2268342 time 1993 pv h3g3 a6f1 b2c1 f1f2 c1b2 f2f1 b2c1 b8b3 e3b3 a8a1 b1a1 f1c1 b3b1 c1d2 g3a3 e4e3 b1b8 g8h7 a1b1
+<< info depth 14 multipv 1 score cp -811 nodes 8422328 nps 2274460 time 3703 pv f2f4 a6f1 b2c1 f1g2 c1b2 g2f1 b2c1 b8b3 e3b3 a8a1 b1a1 f1c1 b3b1 c1f4 h3c3 f4g4 b1b8 g8h7 a1b2 h6h5
+<< info string [Unchessed] mode=DEFEND opponent~2286 (±280) eval -800 cp: maximum resistance
+<< bestmove g4g5
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6 f4g3 f8b4 e2e3 f6e4 a2a3 b4c3 b2c3 e4c3 d1d3 c3e4 c2c4 c7c5 e1c1 b8d7 f1e2 e8g8 f3d2 e4g3 h2g3 b7b5 c4d5 c5c4 d3c3 e6d5 e3e4 a6a5 d1e1 b5b4 a3b4 a5b4 c3b4 d7f6 b4c3 d5e4 e2c4 c8e6 d2b3 f6d5 c4d5 d8d5 e1e3 f8b8 c3b2 d5g5 d4d5 e6d5 c1b1 g5f5 g3g4 f5e6 h1h3 e6a6 g4g5 d5b3
+>> go wtime 85496 btime 298266 winc 0 binc 0
+<< info string [Unchessed] opponent move d5b3 cp-loss 0 -> estimate ~2322 (±279), erratic (sandbagging?)
+<< info depth 1 multipv 1 score cp -187 nodes 91 nps 91000 time 0 pv e3b3
+<< info depth 2 multipv 1 score cp -187 nodes 522 nps 522000 time 0 pv e3b3 b8b3
+<< info depth 3 multipv 1 score cp -187 nodes 2321 nps 2321000 time 0 pv e3b3 b8b3 b2b3
+<< info depth 4 multipv 1 score cp -286 nodes 7051 nps 3525500 time 2 pv e3b3 b8b3 b2b3 a6f1 b1b2
+<< info depth 5 multipv 1 score cp -306 nodes 30019 nps 2729000 time 11 pv e3b3 b8b3 h3b3 a6f1 b1c2 f1f2 c2c1
+<< info depth 6 multipv 1 score cp -369 nodes 60691 nps 2528791 time 24 pv e3b3 b8b3 h3b3 a6f1 b1c2 f1f2 c2c1 f2f1 c1d2
+<< info depth 7 multipv 1 score cp -413 nodes 187208 nps 2400102 time 78 pv e3b3 b8b3 h3b3 a6f1 b1c2 f1f2 c2c1 a8c8 c1b1 f2e1 b1a2
+<< info depth 8 multipv 1 score cp -473 nodes 357748 nps 2338222 time 153 pv e3b3 b8b3 h3b3 a6f1 b1c2 a8c8 c2d2 f1f2 d2d1 c8d8 d1c1 f2f1 c1c2
+<< info depth 9 multipv 1 score cp -732 nodes 948167 nps 2205039 time 430 pv e3b3 b8b3 h3b3 a6f1 b1c2 a8c8 b3c3 f1d3 c2b3 c8b8 b3a2 b8b2 a2b2 d3d2 c3c2
+<< info depth 10 multipv 1 score cp -743 nodes 2631248 nps 2088292 time 1260 pv e3b3 b8b3 h3b3 a6f1 b1c2 a8c8 b3c3 f1d3 c2b3 c8b8 b3a2 b8b2 a2b2 d3b5 b2a3 b5g5
+<< info depth 11 multipv 1 score cp -745 nodes 6109906 nps 2034600 time 3003 pv e3b3 b8b3 h3b3 a6f1 b1c2 a8c8 b3c3 f1d3 c2b3 c8b8 b3a2 b8b2 a2b2 d3b5 b2a3 b5a5 a3b3 a5b6 b3c4
+<< info string [Unchessed] mode=DEFEND opponent~2322 (±279) eval -743 cp: maximum resistance
+<< bestmove e3b3
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6 f4g3 f8b4 e2e3 f6e4 a2a3 b4c3 b2c3 e4c3 d1d3 c3e4 c2c4 c7c5 e1c1 b8d7 f1e2 e8g8 f3d2 e4g3 h2g3 b7b5 c4d5 c5c4 d3c3 e6d5 e3e4 a6a5 d1e1 b5b4 a3b4 a5b4 c3b4 d7f6 b4c3 d5e4 e2c4 c8e6 d2b3 f6d5 c4d5 d8d5 e1e3 f8b8 c3b2 d5g5 d4d5 e6d5 c1b1 g5f5 g3g4 f5e6 h1h3 e6a6 g4g5 d5b3 e3b3 a6f1
+>> go wtime 68249 btime 292919 winc 0 binc 0
+<< info string [Unchessed] opponent move a6f1 cp-loss 198 -> estimate ~2227 (±323), erratic (sandbagging?)
+<< info depth 1 multipv 1 score cp -276 nodes 46 nps 46000 time 0 pv b2c1
+<< info depth 2 multipv 1 score cp -316 nodes 499 nps 499000 time 0 pv b1c2 b8c8 h3c3
+<< info depth 3 multipv 1 score cp -465 nodes 1158 nps 1158000 time 0 pv b1c2 f1f2 c2c1 f2g1 c1c2
+<< info depth 4 multipv 1 score cp -466 nodes 2998 nps 2998000 time 0 pv b1c2 f1f2 c2c1 f2g1 c1c2 b8c8 c2d2
+<< info depth 5 multipv 1 score cp -475 nodes 6282 nps 6282000 time 1 pv b1c2 f1f2 c2c1 f2f1 c1c2 b8c8 h3c3 f1g2 c2c1
+<< info depth 6 multipv 1 score cp -535 nodes 13641 nps 4547000 time 3 pv b1c2 f1f2 c2c1 f2f1 c1c2 f1g2 c2b1 g2f1 b1c2 b8c8 c2d2
+<< info depth 7 multipv 1 score cp -535 nodes 29156 nps 4165142 time 7 pv b1c2 f1f2 c2c1 f2f1 c1c2 f1g2 c2b1 g2f1 b1c2 b8c8 c2d2 h6g5
+<< info depth 8 multipv 1 score cp -545 nodes 62942 nps 3702470 time 17 pv b1c2 f1f2 c2b1 f2g1 b1c2 g1g2 c2b1 g2f1 b1c2 b8c8 h3c3 f1d3 c2c1 h6g5
+<< info depth 9 multipv 1 score cp -567 nodes 97837 nps 3762961 time 26 pv b1c2 f1f2 c2b1 f2g1 b1c2 g1g2 c2b1 g2f1 b1c2 b8c8 h3c3 h6g5 c3c8 a8c8 c2d2 f1f2 d2d1
+<< info depth 10 multipv 1 score cp -566 nodes 215132 nps 2987944 time 72 pv b1c2 f1f2 c2b1 f2g1 b1c2 g1g2 c2b1 g2f1 b1c2 b8c8 h3c3 h6g5 b3a3 f1f2 c2c1 f2e1 c1c2
+<< info depth 11 multipv 1 score cp -1026 nodes 1210197 nps 2449791 time 494 pv b2c1 a8a1 b1a1 f1c1 a1a2 c1d2 a2b1 d2e1 b1b2 e1f2 b2c1 f2g1 c1d2 b8d8 d2e2 g1g2 e2e1 g2d2 e1f1 h6g5
+<< info depth 12 multipv 1 score cp -1200 nodes 2223895 nps 2343408 time 949 pv b2c1 a8a1 b1a1 f1c1 a1a2 c1c2 a2a3 b8a8 a3b4 c2d2 h3c3 d2d4 b4b5 a8b8 b5c6 b8b3 c3b3 d4c4 c6d6 c4b3
+<< info depth 13 multipv 1 score cp -1204 nodes 5365101 nps 2144324 time 2502 pv b2c1 a8a1 b1a1 f1c1 a1a2 c1c2 a2a3 b8a8 a3b4 c2d2 h3c3 d2d4 b4b5 a8b8 b5c6 b8b3 c3b3 d4c4 c6d7 c4b3 g5h6
+<< info string [Unchessed] mode=DEFEND opponent~2227 (±323) eval -1200 cp: maximum resistance
+<< bestmove b2c1
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6 f4g3 f8b4 e2e3 f6e4 a2a3 b4c3 b2c3 e4c3 d1d3 c3e4 c2c4 c7c5 e1c1 b8d7 f1e2 e8g8 f3d2 e4g3 h2g3 b7b5 c4d5 c5c4 d3c3 e6d5 e3e4 a6a5 d1e1 b5b4 a3b4 a5b4 c3b4 d7f6 b4c3 d5e4 e2c4 c8e6 d2b3 f6d5 c4d5 d8d5 e1e3 f8b8 c3b2 d5g5 d4d5 e6d5 c1b1 g5f5 g3g4 f5e6 h1h3 e6a6 g4g5 d5b3 e3b3 a6f1 b2c1 a8a1
+>> go wtime 52650 btime 292909 winc 0 binc 0
+<< info string [Unchessed] opponent move a8a1 cp-loss 0 -> estimate ~2253 (±323), erratic (sandbagging?)
+<< info depth 1 multipv 1 score cp -756 nodes 45 nps 45000 time 0 pv b1a1
+<< info depth 2 multipv 1 score cp -756 nodes 231 nps 231000 time 0 pv b1a1 f1c1 a1a2
+<< info depth 3 multipv 1 score cp -808 nodes 524 nps 524000 time 0 pv b1a1 f1c1 a1a2 c1c2 a2a3
+<< info depth 4 multipv 1 score cp -868 nodes 1909 nps 1909000 time 0 pv b1a1 f1c1 a1a2 c1d2 a2b1 d2e1 b1c2
+<< info depth 5 multipv 1 score cp -868 nodes 5805 nps 5805000 time 1 pv b1a1 f1c1 a1a2 c1c2 a2a3 c2c5 a3b2 c5f2 b2c1
+<< info depth 6 multipv 1 score cp -1002 nodes 15808 nps 3952000 time 4 pv b1a1 f1c1 a1a2 c1c2 a2a3 c2c5 a3b2 c5f2 b2c1 f2f1 c1d2
+<< info depth 7 multipv 1 score cp -1004 nodes 47324 nps 3380285 time 14 pv b1a1 f1c1 a1a2 c1c2 a2a3 c2c5 a3b2 c5f2 b2c1 b8c8 b3c3 f2g1 c1d2
+<< info depth 8 multipv 1 score cp -1196 nodes 137076 nps 3514769 time 39 pv b1a1 f1c1 a1a2 c1c2 a2a3 b8a8 a3b4 c2d2 h3c3 d2d4 b4b5 a8b8 b5c6 b8c8 c6b5
+<< info depth 9 multipv 1 score cp -1196 nodes 439739 nps 3575113 time 123 pv b1a1 f1c1 a1a2 c1c2 a2a3 b8a8 a3b4 c2d2 h3c3 d2d4 b4b5 a8b8 b5c6 b8c8 c6b5 c8c3
+<< info depth 10 multipv 1 score cp -1197 nodes 1519118 nps 3696150 time 411 pv b1a1 f1c1 a1a2 c1c2 a2a3 b8a8 a3b4 c2d2 h3c3 d2d4 b4b5 a8b8 b5c6 b8b3 c3b3 d4c4 c6d7
+<< info depth 11 multipv 1 score cp -1200 nodes 5288351 nps 3846073 time 1375 pv b1a1 f1c1 a1a2 c1c2 a2a3 b8a8 a3b4 c2d2 h3c3 d2d4 b4b5 a8b8 b5c6 b8b3 c3b3 d4c4 c6d6 c4b3
+<< info string [Unchessed] mode=DEFEND opponent~2253 (±323) eval -1200 cp: maximum resistance
+<< bestmove b1a1
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6 f4g3 f8b4 e2e3 f6e4 a2a3 b4c3 b2c3 e4c3 d1d3 c3e4 c2c4 c7c5 e1c1 b8d7 f1e2 e8g8 f3d2 e4g3 h2g3 b7b5 c4d5 c5c4 d3c3 e6d5 e3e4 a6a5 d1e1 b5b4 a3b4 a5b4 c3b4 d7f6 b4c3 d5e4 e2c4 c8e6 d2b3 f6d5 c4d5 d8d5 e1e3 f8b8 c3b2 d5g5 d4d5 e6d5 c1b1 g5f5 g3g4 f5e6 h1h3 e6a6 g4g5 d5b3 e3b3 a6f1 b2c1 a8a1 b1a1 f1c1
+>> go wtime 47335 btime 292899 winc 0 binc 0
+<< info string [Unchessed] opponent move f1c1 cp-loss 0 -> estimate ~2277 (±318), erratic (sandbagging?)
+<< info depth 1 multipv 1 score cp -756 nodes 27 nps 27000 time 0 pv a1a2
+<< info depth 2 multipv 1 score cp -808 nodes 125 nps 125000 time 0 pv a1a2 c1c2 a2a3
+<< info depth 3 multipv 1 score cp -868 nodes 923 nps 923000 time 0 pv a1a2 c1d2 a2b1 d2e1 b1b2
+<< info depth 4 multipv 1 score cp -873 nodes 2612 nps 2612000 time 0 pv a1a2 b8a8 b3a3 c1d2 a2a1 d2e1 a1b2
+<< info depth 5 multipv 1 score cp -1002 nodes 5417 nps 5417000 time 1 pv a1a2 c1c2 a2a3 c2c5 a3b2 c5f2 b2c1 f2f1 c1d2
+<< info depth 6 multipv 1 score cp -1002 nodes 10819 nps 5409500 time 2 pv a1a2 c1c2 a2a3 c2c5 a3b2 c5f2 b2c1 f2f1 c1d2 f1g2 d2e1
+<< info depth 7 multipv 1 score cp -1196 nodes 18335 nps 4583750 time 4 pv a1a2 c1c2 a2a3 b8a8 a3b4 c2d2 h3c3 d2d4 b4b5 a8b8 b5c6 b8c8 c6b5
+<< info depth 8 multipv 1 score cp -1015 nodes 110549 nps 4421960 time 25 pv a1a2 c1c2 a2a3 c2c5 a3b2 c5f2 b2c1 b8c8 b3c3 f2g1 c1d2 c8d8 d2e2 g1g2 e2e1
+<< info depth 9 multipv 1 score cp -1133 nodes 247881 nps 4131350 time 60 pv a1a2 c1c2 a2a3 b8a8 a3b4 c2d2 b3c3 d2b2 b4c4 a8c8 c4d4 b2b4 d4d5 c8c3 h3c3
+<< info depth 10 multipv 1 score cp -1200 nodes 522575 nps 4214314 time 124 pv a1a2 c1c2 a2a3 b8a8 a3b4 c2d2 h3c3 d2d4 b4b5 a8b8 b5c6 b8b3 c3b3 d4c4 c6d6 c4b3
+<< info depth 11 multipv 1 score cp -1204 nodes 1772068 nps 4270043 time 415 pv a1a2 c1c2 a2a3 b8a8 a3b4 c2d2 h3c3 d2d4 b4b5 a8b8 b5c6 b8b3 c3b3 d4c4 c6d7 c4b3 g5h6
+<< info string [Unchessed] mode=DEFEND opponent~2277 (±318) eval -1204 cp: maximum resistance
+<< bestmove a1a2
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6 f4g3 f8b4 e2e3 f6e4 a2a3 b4c3 b2c3 e4c3 d1d3 c3e4 c2c4 c7c5 e1c1 b8d7 f1e2 e8g8 f3d2 e4g3 h2g3 b7b5 c4d5 c5c4 d3c3 e6d5 e3e4 a6a5 d1e1 b5b4 a3b4 a5b4 c3b4 d7f6 b4c3 d5e4 e2c4 c8e6 d2b3 f6d5 c4d5 d8d5 e1e3 f8b8 c3b2 d5g5 d4d5 e6d5 c1b1 g5f5 g3g4 f5e6 h1h3 e6a6 g4g5 d5b3 e3b3 a6f1 b2c1 a8a1 b1a1 f1c1 a1a2 c1c2
+>> go wtime 45832 btime 292895 winc 0 binc 0
+<< info string [Unchessed] opponent move c1c2 cp-loss 0 -> estimate ~2322 (±313), erratic (sandbagging?)
+<< info depth 1 multipv 1 score cp -808 nodes 60 nps 60000 time 0 pv a2a3
+<< info depth 2 multipv 1 score cp -808 nodes 239 nps 239000 time 0 pv a2a3 b8b3 h3b3
+<< info depth 3 multipv 1 score cp -868 nodes 695 nps 695000 time 0 pv a2a3 c2c5 a3b2 c5f2 b2c1
+<< info depth 4 multipv 1 score cp -1002 nodes 2099 nps 2099000 time 0 pv a2a3 c2c5 a3b2 c5f2 b2c1 f2g1 c1d2
+<< info depth 5 multipv 1 score cp -1002 nodes 4972 nps 4972000 time 1 pv a2a3 c2c5 a3b2 c5f2 b2c1 f2g1 c1d2 g1g2 d2e1
+<< info depth 6 multipv 1 score cp -1196 nodes 8282 nps 8282000 time 1 pv a2a3 b8a8 a3b4 c2d2 h3c3 d2d4 b4b5 a8b8 b5c6 b8c8 c6b5
+<< info depth 7 multipv 1 score cp -1196 nodes 11726 nps 5863000 time 2 pv a2a3 b8a8 a3b4 c2d2 h3c3 d2d4 b4b5 a8b8 b5c6 b8c8 c6b5 c8c3
+<< info depth 8 multipv 1 score cp -1133 nodes 28752 nps 4792000 time 6 pv a2a3 b8a8 a3b4 c2d2 b3c3 d2b2 b4c4 a8c8 c4d5 c8c3 h3c3 b2c3
+<< info depth 9 multipv 1 score cp -1202 nodes 50174 nps 4561272 time 11 pv a2a3 b8a8 a3b4 c2d2 h3c3 d2d4 b4b5 a8b8 b5c6 b8b3 c3b3 d4c4 c6d7 c4e6 d7c7
+<< info depth 10 multipv 1 score cp -1204 nodes 130067 nps 4335566 time 30 pv a2a3 b8a8 a3b4 c2d2 h3c3 d2d4 b4b5 a8b8 b5c6 b8b3 c3b3 d4c4 c6d7 c4b3 g5h6
+<< info depth 11 multipv 1 score cp -1309 nodes 1328388 nps 3288089 time 404 pv a2a3 b8a8 a3b4 c2f2 h3e3 f2d2 b3c3 d2d6 b4c4 d6c6 c4b3 c6b5 b3c2 a8a2 c2d1 b5f1 e3e1 a2a1 d1d2
+<< info string [Unchessed] mode=DEFEND opponent~2322 (±313) eval -1309 cp: maximum resistance
+<< bestmove a2a3
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6 f4g3 f8b4 e2e3 f6e4 a2a3 b4c3 b2c3 e4c3 d1d3 c3e4 c2c4 c7c5 e1c1 b8d7 f1e2 e8g8 f3d2 e4g3 h2g3 b7b5 c4d5 c5c4 d3c3 e6d5 e3e4 a6a5 d1e1 b5b4 a3b4 a5b4 c3b4 d7f6 b4c3 d5e4 e2c4 c8e6 d2b3 f6d5 c4d5 d8d5 e1e3 f8b8 c3b2 d5g5 d4d5 e6d5 c1b1 g5f5 g3g4 f5e6 h1h3 e6a6 g4g5 d5b3 e3b3 a6f1 b2c1 a8a1 b1a1 f1c1 a1a2 c1c2 a2a3 b8a8
+>> go wtime 44645 btime 292895 winc 0 binc 0
+<< info string [Unchessed] opponent move b8a8 cp-loss 63 -> estimate ~2283 (±305), erratic (sandbagging?)
+<< info depth 1 multipv 1 score cp -790 nodes 8 nps 8000 time 0 pv a3b4
+<< info depth 2 multipv 1 score cp -790 nodes 101 nps 101000 time 0 pv a3b4 c2f2
+<< info depth 3 multipv 1 score cp -831 nodes 361 nps 361000 time 0 pv a3b4 h6g5 b3g3
+<< info depth 4 multipv 1 score cp -897 nodes 1059 nps 1059000 time 0 pv a3b4 h6g5 h3c3 c2f2
+<< info string [Unchessed] mode=DEFEND opponent~2283 (±305) eval -897 cp: maximum resistance
+<< bestmove a3b4
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6 f4g3 f8b4 e2e3 f6e4 a2a3 b4c3 b2c3 e4c3 d1d3 c3e4 c2c4 c7c5 e1c1 b8d7 f1e2 e8g8 f3d2 e4g3 h2g3 b7b5 c4d5 c5c4 d3c3 e6d5 e3e4 a6a5 d1e1 b5b4 a3b4 a5b4 c3b4 d7f6 b4c3 d5e4 e2c4 c8e6 d2b3 f6d5 c4d5 d8d5 e1e3 f8b8 c3b2 d5g5 d4d5 e6d5 c1b1 g5f5 g3g4 f5e6 h1h3 e6a6 g4g5 d5b3 e3b3 a6f1 b2c1 a8a1 b1a1 f1c1 a1a2 c1c2 a2a3 b8a8 a3b4 c2c6
+>> go wtime 44530 btime 292894 winc 0 binc 0
+<< info string [Unchessed] opponent move c2c6 cp-loss 0 -> estimate ~2328 (±301), erratic (sandbagging?)
+<< info depth 1 multipv 1 score cp -628 nodes 65 nps 65000 time 0 pv g5h6
+<< info depth 2 multipv 1 score cp -759 nodes 625 nps 625000 time 0 pv b3c3 c6b6 b4c4
+<< info depth 3 multipv 1 score mate -2 nodes 1786 nps 1786000 time 0 pv b3g3 a8b8 b4a5 c6b5
+<< info depth 4 multipv 1 score mate -2 nodes 4605 nps 4605000 time 1 pv b3g3 a8b8 b4a5 c6b5
+<< info depth 5 multipv 1 score mate -2 nodes 17067 nps 5689000 time 3 pv b3g3 a8b8 b4a5 c6b5
+<< info depth 6 multipv 1 score mate -2 nodes 66301 nps 4420066 time 15 pv b3g3 a8b8 b4a5 c6b5
+<< info depth 7 multipv 1 score mate -2 nodes 278618 nps 4221484 time 66 pv b3g3 a8b8 b4a5 c6b5
+<< info depth 8 multipv 1 score mate -2 nodes 1101441 nps 4302503 time 256 pv b3g3 a8b8 b4a5 c6b5
+<< info depth 9 multipv 1 score mate -2 nodes 4399731 nps 4275734 time 1029 pv b3g3 a8b8 b4a5 c6b5
+<< info depth 10 multipv 1 score mate -2 nodes 16273882 nps 4254609 time 3825 pv b3g3 a8b8 b4a5 c6b5
+<< info string [Unchessed] mode=DEFEND opponent~2328 (±301) eval -29996 cp: maximum resistance
+<< bestmove b3g3
+>> position startpos moves d2d4 g8f6 c1g5 d7d5 b1c3 h7h6 g5f4 a7a6 g1f3 e7e6 f4g3 f8b4 e2e3 f6e4 a2a3 b4c3 b2c3 e4c3 d1d3 c3e4 c2c4 c7c5 e1c1 b8d7 f1e2 e8g8 f3d2 e4g3 h2g3 b7b5 c4d5 c5c4 d3c3 e6d5 e3e4 a6a5 d1e1 b5b4 a3b4 a5b4 c3b4 d7f6 b4c3 d5e4 e2c4 c8e6 d2b3 f6d5 c4d5 d8d5 e1e3 f8b8 c3b2 d5g5 d4d5 e6d5 c1b1 g5f5 g3g4 f5e6 h1h3 e6a6 g4g5 d5b3 e3b3 a6f1 b2c1 a8a1 b1a1 f1c1 a1a2 c1c2 a2a3 b8a8 a3b4 c2c6 b3g3 a8b8
+>> go wtime 35470 btime 292894 winc 0 binc 0
+<< info string [Unchessed] opponent move a8b8 cp-loss 0 -> estimate ~2362 (±295), instant strong replies — engine suspected
+<< info depth 1 multipv 1 score cp -690 nodes 9 nps 9000 time 0 pv b4a5
+<< info depth 2 multipv 1 score mate -1 nodes 59 nps 59000 time 0 pv b4a5 c6b5
+<< info depth 3 multipv 1 score mate -1 nodes 242 nps 242000 time 0 pv b4a5 c6b5
+<< info depth 4 multipv 1 score mate -1 nodes 579 nps 579000 time 0 pv b4a5 c6b5
+<< info depth 5 multipv 1 score mate -1 nodes 1358 nps 1358000 time 0 pv b4a5 c6b5
+<< info depth 6 multipv 1 score mate -1 nodes 3825 nps 3825000 time 0 pv b4a5 c6b5
+<< info depth 7 multipv 1 score mate -1 nodes 10794 nps 5397000 time 2 pv b4a5 c6b5
+<< info depth 8 multipv 1 score mate -1 nodes 37386 nps 4673250 time 8 pv b4a5 c6b5
+<< info depth 9 multipv 1 score mate -1 nodes 197665 nps 3953300 time 50 pv b4a5 c6b5
+<< info depth 10 multipv 1 score mate -1 nodes 2692131 nps 4000194 time 673 pv b4a5 c6b5
+<< info depth 11 multipv 1 score mate -1 nodes 12008119 nps 4065036 time 2954 pv b4a5 c6b5
+<< info string [Unchessed] persona DEFEND -> FULL (eval -29998 cp, opponent ~2362)
+<< info string [Unchessed] mode=FULL opponent~2362 (±295) eval -29998 cp: best move (full strength)
+<< bestmove b4a5
+>> quit

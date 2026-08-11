@@ -1,0 +1,66 @@
+Indexing opening suite...
+Started game 1 of 16 (Adapter2400 vs Stockfish)
+Started game 2 of 16 (Stockfish vs Adapter2400)
+Started game 3 of 16 (Adapter2400 vs Stockfish)
+Started game 4 of 16 (Stockfish vs Adapter2400)
+Finished game 2 (Stockfish vs Adapter2400): 1-0 {White wins by adjudication}
+Score of Adapter2400 vs Stockfish: 0 - 1 - 0  [0.000] 1
+Started game 5 of 16 (Adapter2400 vs Stockfish)
+Finished game 4 (Stockfish vs Adapter2400): 1-0 {White mates}
+Score of Adapter2400 vs Stockfish: 0 - 2 - 0  [0.000] 2
+Started game 6 of 16 (Stockfish vs Adapter2400)
+Finished game 1 (Adapter2400 vs Stockfish): 0-1 {Black wins by adjudication}
+Score of Adapter2400 vs Stockfish: 0 - 3 - 0  [0.000] 3
+Started game 7 of 16 (Adapter2400 vs Stockfish)
+Finished game 3 (Adapter2400 vs Stockfish): 0-1 {Black wins by adjudication}
+Score of Adapter2400 vs Stockfish: 0 - 4 - 0  [0.000] 4
+Started game 8 of 16 (Stockfish vs Adapter2400)
+Finished game 5 (Adapter2400 vs Stockfish): 0-1 {Black wins by adjudication}
+Score of Adapter2400 vs Stockfish: 0 - 5 - 0  [0.000] 5
+Started game 9 of 16 (Adapter2400 vs Stockfish)
+Finished game 6 (Stockfish vs Adapter2400): 1-0 {White wins by adjudication}
+Score of Adapter2400 vs Stockfish: 0 - 6 - 0  [0.000] 6
+Started game 10 of 16 (Stockfish vs Adapter2400)
+Finished game 7 (Adapter2400 vs Stockfish): 0-1 {Black wins by adjudication}
+Score of Adapter2400 vs Stockfish: 0 - 7 - 0  [0.000] 7
+Started game 11 of 16 (Adapter2400 vs Stockfish)
+Finished game 9 (Adapter2400 vs Stockfish): 0-1 {Black mates}
+Score of Adapter2400 vs Stockfish: 0 - 8 - 0  [0.000] 8
+Started game 12 of 16 (Stockfish vs Adapter2400)
+Finished game 8 (Stockfish vs Adapter2400): 1-0 {White wins by adjudication}
+Score of Adapter2400 vs Stockfish: 0 - 9 - 0  [0.000] 9
+Started game 13 of 16 (Adapter2400 vs Stockfish)
+Finished game 10 (Stockfish vs Adapter2400): 1-0 {White wins by adjudication}
+Score of Adapter2400 vs Stockfish: 0 - 10 - 0  [0.000] 10
+Started game 14 of 16 (Stockfish vs Adapter2400)
+Finished game 11 (Adapter2400 vs Stockfish): 0-1 {Black wins by adjudication}
+Score of Adapter2400 vs Stockfish: 0 - 11 - 0  [0.000] 11
+Started game 15 of 16 (Adapter2400 vs Stockfish)
+Finished game 12 (Stockfish vs Adapter2400): 1-0 {White wins by adjudication}
+Score of Adapter2400 vs Stockfish: 0 - 12 - 0  [0.000] 12
+Started game 16 of 16 (Stockfish vs Adapter2400)
+Finished game 13 (Adapter2400 vs Stockfish): 0-1 {Black wins by adjudication}
+Score of Adapter2400 vs Stockfish: 0 - 13 - 0  [0.000] 13
+Finished game 14 (Stockfish vs Adapter2400): 1-0 {White wins by adjudication}
+Score of Adapter2400 vs Stockfish: 0 - 14 - 0  [0.000] 14
+Finished game 15 (Adapter2400 vs Stockfish): 0-1 {Black wins by adjudication}
+Score of Adapter2400 vs Stockfish: 0 - 15 - 0  [0.000] 15
+Finished game 16 (Stockfish vs Adapter2400): 1-0 {White wins by adjudication}
+Score of Adapter2400 vs Stockfish: 0 - 16 - 0  [0.000] 16
+...      Adapter2400 playing White: 0 - 8 - 0  [0.000] 8
+...      Adapter2400 playing Black: 0 - 8 - 0  [0.000] 8
+...      White vs Black: 8 - 8 - 0  [0.500] 16
+Elo difference: -inf +/- nan, LOS: 0.0 %, DrawRatio: 0.0 %
+SPRT: llr 0 (0.0%), lbound -inf, ubound inf
+
+Player: Adapter2400
+   "Loss: Black mates": 1
+   "Loss: Black wins by adjudication": 7
+   "Loss: White mates": 1
+   "Loss: White wins by adjudication": 7
+Player: Stockfish
+   "Win: Black mates": 1
+   "Win: Black wins by adjudication": 7
+   "Win: White mates": 1
+   "Win: White wins by adjudication": 7
+Finished match

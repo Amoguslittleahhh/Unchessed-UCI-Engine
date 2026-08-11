@@ -1,0 +1,23 @@
+[Event "?"]
+[Site "?"]
+[Date "2026.07.31"]
+[Round "1"]
+[White "Adapter500"]
+[Black "Stockfish"]
+[Result "1-0"]
+[ECO "C23"]
+[GameDuration "00:00:02"]
+[GameEndTime "2026-07-31T22:17:11.724 +08"]
+[GameStartTime "2026-07-31T22:17:09.271 +08"]
+[Opening "Bishop's Opening"]
+[PlyCount "22"]
+[Termination "abandoned"]
+[TimeControl "5+0.05"]
+
+1. e4 {book} e5 {book} 2. Bc4 {book} d6 {book} 3. Nf3 {book} Bg4 {book}
+4. d3 {book} c6 {book} 5. h3 {book} Bxf3 {book} 6. Qxf3 {+0.49/12 0.080s}
+Qf6 {-1.05/20 0.70s} 7. a4 {+0.67/12 0.19s} Qxf3 {-0.59/13 0.055s}
+8. gxf3 {+0.61/12 0.049s} Nf6 {-0.61/16 0.052s} 9. Nc3 {+0.59/12 0.095s}
+Nh5 {-0.57/16 0.098s} 10. O-O {+0.67/11 0.33s} a5 {-0.40/19 0.59s}
+11. Ne2 {+0.62/11 0.097s} g5 {-0.29/15 0.045s, Black disconnects} 1-0
+

@@ -1,0 +1,58 @@
+Indexing opening suite...
+Started game 5 of 12 (Plus vs Minus)
+Started game 3 of 12 (Plus vs Minus)
+Started game 4 of 12 (Minus vs Plus)
+Started game 10 of 12 (Minus vs Plus)
+Started game 7 of 12 (Plus vs Minus)
+Started game 8 of 12 (Minus vs Plus)
+Started game 2 of 12 (Minus vs Plus)
+Started game 6 of 12 (Minus vs Plus)
+Started game 1 of 12 (Plus vs Minus)
+Started game 9 of 12 (Plus vs Minus)
+Started game 11 of 12 (Plus vs Minus)
+Started game 12 of 12 (Minus vs Plus)
+Finished game 4 (Minus vs Plus): 0-1 {Black wins by adjudication}
+Score of Plus vs Minus: 1 - 0 - 0  [1.000] 1
+Finished game 7 (Plus vs Minus): 1-0 {White wins by adjudication}
+Score of Plus vs Minus: 2 - 0 - 0  [1.000] 2
+Finished game 10 (Minus vs Plus): 1-0 {White wins by adjudication}
+Score of Plus vs Minus: 2 - 1 - 0  [0.667] 3
+Finished game 9 (Plus vs Minus): 1-0 {White wins by adjudication}
+Score of Plus vs Minus: 3 - 1 - 0  [0.750] 4
+Finished game 1 (Plus vs Minus): 1-0 {White wins by adjudication}
+Score of Plus vs Minus: 4 - 1 - 0  [0.800] 5
+Finished game 5 (Plus vs Minus): 1-0 {White wins by adjudication}
+Score of Plus vs Minus: 5 - 1 - 0  [0.833] 6
+Finished game 2 (Minus vs Plus): 1-0 {White wins by adjudication}
+Score of Plus vs Minus: 5 - 2 - 0  [0.714] 7
+Finished game 3 (Plus vs Minus): 0-1 {Black wins by adjudication}
+Score of Plus vs Minus: 5 - 3 - 0  [0.625] 8
+Finished game 8 (Minus vs Plus): 0-1 {Black wins by adjudication}
+Score of Plus vs Minus: 6 - 3 - 0  [0.667] 9
+Finished game 12 (Minus vs Plus): 1-0 {White wins by adjudication}
+Score of Plus vs Minus: 6 - 4 - 0  [0.600] 10
+Finished game 11 (Plus vs Minus): 1/2-1/2 {Draw by fifty moves rule}
+Score of Plus vs Minus: 6 - 4 - 1  [0.591] 11
+Finished game 6 (Minus vs Plus): 1-0 {White mates}
+Score of Plus vs Minus: 6 - 5 - 1  [0.542] 12
+...      Plus playing White: 4 - 1 - 1  [0.750] 6
+...      Plus playing Black: 2 - 4 - 0  [0.333] 6
+...      White vs Black: 8 - 3 - 1  [0.708] 12
+Elo difference: 29.0 +/- 212.0, LOS: 61.8 %, DrawRatio: 8.3 %
+SPRT: llr 0 (0.0%), lbound -inf, ubound inf
+
+Player: Plus
+   "Draw by fifty moves rule": 1
+   "Loss: Black wins by adjudication": 1
+   "Loss: White mates": 1
+   "Loss: White wins by adjudication": 3
+   "Win: Black wins by adjudication": 2
+   "Win: White wins by adjudication": 4
+Player: Minus
+   "Draw by fifty moves rule": 1
+   "Loss: Black wins by adjudication": 2
+   "Loss: White wins by adjudication": 4
+   "Win: Black wins by adjudication": 1
+   "Win: White mates": 1
+   "Win: White wins by adjudication": 3
+Finished match

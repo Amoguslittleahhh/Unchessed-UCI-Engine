@@ -1,0 +1,2 @@
+e2e4 e7e6 d2d4 d7d5 b1c3 f8b4 e4e5 c7c5 a2a3 b4c3 b2c3 g8e7 d1g4 h8g8 f1d3 e8f8 d3h7 d8a5 c1d2 g8h8 h7d3 a5a4 h2h4 c5c4 d3e2 a4c2 h4h5 c8d7 a1c1 c2h7 g1h3 h7g8 e2d1 b8c6 g4f4 c6a5 h3g5 b7b6 d1c2 f8e8 g2g4 a5b3 c1b1 b3d2 e1d2 a8d8 h5h6 h8h6 h1h6 g7h6 g5h7 g8g7 h7f6 e8f8 b1h1 e7g6 f4e3 f8e7 h1h6 g6f8 e3f4 d7c8 f4h2 f8d7 h2h4 g7h6 h4h6 b6b5 h6h4 d7f6 e5f6 e7d6 h4h7 d8d7 h7g8 d6c7 g4g5 b5b4 a3b4 c7b8 g5g6 f7g6 c2g6 b8c7 g6e8 e6e5 f6f7 d7f7 g8f7 c7b8 e8c6 a7a5 b4a5 c8a6 f7e8 b8c7 e8d7 c7b8 d7d8 a6c8 d8b6 c8b7 b6b7
+result: 1-0

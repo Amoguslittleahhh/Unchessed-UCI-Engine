@@ -1,0 +1,42 @@
+Indexing opening suite...
+Started game 1 of 30 (Adapter500 vs SF1800)
+Finished game 1 (Adapter500 vs SF1800): 1-0 {White mates}
+Score of Adapter500 vs SF1800: 1 - 0 - 0  [1.000] 1
+Started game 2 of 30 (SF1800 vs Adapter500)
+Finished game 2 (SF1800 vs Adapter500): 0-1 {Black wins by adjudication}
+Score of Adapter500 vs SF1800: 2 - 0 - 0  [1.000] 2
+Started game 3 of 30 (Adapter500 vs SF1800)
+Finished game 3 (Adapter500 vs SF1800): 0-1 {Black wins by adjudication}
+Score of Adapter500 vs SF1800: 2 - 1 - 0  [0.667] 3
+Started game 4 of 30 (SF1800 vs Adapter500)
+Finished game 4 (SF1800 vs Adapter500): 1-0 {White wins by adjudication}
+Score of Adapter500 vs SF1800: 2 - 2 - 0  [0.500] 4
+Started game 5 of 30 (Adapter500 vs SF1800)
+Finished game 5 (Adapter500 vs SF1800): 1-0 {White mates}
+Score of Adapter500 vs SF1800: 3 - 2 - 0  [0.600] 5
+Started game 6 of 30 (SF1800 vs Adapter500)
+Finished game 6 (SF1800 vs Adapter500): 1-0 {White wins by adjudication}
+Score of Adapter500 vs SF1800: 3 - 3 - 0  [0.500] 6
+Started game 7 of 30 (Adapter500 vs SF1800)
+Terminating process of engine SF1800(1)
+...      Adapter500 playing White: 3 - 1 - 0  [0.750] 4
+...      Adapter500 playing Black: 1 - 2 - 0  [0.333] 3
+...      White vs Black: 5 - 2 - 0  [0.714] 7
+Elo difference: 50.0 +/- 352.8, LOS: 64.7 %, DrawRatio: 0.0 %
+SPRT: llr 0 (0.0%), lbound -inf, ubound inf
+
+Player: Adapter500
+   "Loss: Black wins by adjudication": 1
+   "Loss: White wins by adjudication": 2
+   "Win: Black disconnects": 1
+   "Win: Black wins by adjudication": 1
+   "Win: White mates": 2
+Player: SF1800
+   "Loss: Black disconnects": 1
+   "Loss: Black wins by adjudication": 1
+   "Loss: White mates": 2
+   "Win: Black wins by adjudication": 1
+   "Win: White wins by adjudication": 2
+Finished match
+Finished game 7 (Adapter500 vs SF1800): 1-0 {Black disconnects}
+Score of Adapter500 vs SF1800: 4 - 3 - 0  [0.571] 7

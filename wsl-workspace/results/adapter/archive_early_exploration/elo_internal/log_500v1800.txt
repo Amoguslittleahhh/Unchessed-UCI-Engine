@@ -1,0 +1,148 @@
+Indexing opening suite...
+Started game 3 of 40 (A500 vs A1800)
+Started game 2 of 40 (A1800 vs A500)
+Started game 4 of 40 (A1800 vs A500)
+Started game 1 of 40 (A500 vs A1800)
+Finished game 3 (A500 vs A1800): 1/2-1/2 {Draw by adjudication}
+Score of A500 vs A1800: 0 - 0 - 1  [0.500] 1
+Started game 5 of 40 (A500 vs A1800)
+Finished game 1 (A500 vs A1800): 0-1 {Black wins by adjudication}
+Score of A500 vs A1800: 0 - 1 - 1  [0.250] 2
+Started game 6 of 40 (A1800 vs A500)
+Finished game 4 (A1800 vs A500): 1-0 {White wins by adjudication}
+Score of A500 vs A1800: 0 - 2 - 1  [0.167] 3
+Started game 7 of 40 (A500 vs A1800)
+Finished game 2 (A1800 vs A500): 1-0 {White wins by adjudication}
+Score of A500 vs A1800: 0 - 3 - 1  [0.125] 4
+Started game 8 of 40 (A1800 vs A500)
+Finished game 5 (A500 vs A1800): 0-1 {Black wins by adjudication}
+Score of A500 vs A1800: 0 - 4 - 1  [0.100] 5
+Started game 9 of 40 (A500 vs A1800)
+Finished game 7 (A500 vs A1800): 0-1 {Black mates}
+Score of A500 vs A1800: 0 - 5 - 1  [0.083] 6
+Started game 10 of 40 (A1800 vs A500)
+Finished game 8 (A1800 vs A500): 1-0 {White wins by adjudication}
+Score of A500 vs A1800: 0 - 6 - 1  [0.071] 7
+Started game 11 of 40 (A500 vs A1800)
+Finished game 9 (A500 vs A1800): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A1800: 0 - 6 - 2  [0.125] 8
+Started game 12 of 40 (A1800 vs A500)
+Finished game 6 (A1800 vs A500): 1/2-1/2 {Draw by insufficient mating material}
+Score of A500 vs A1800: 0 - 6 - 3  [0.167] 9
+Started game 13 of 40 (A500 vs A1800)
+Finished game 10 (A1800 vs A500): 1-0 {White wins by adjudication}
+Score of A500 vs A1800: 0 - 7 - 3  [0.150] 10
+Started game 14 of 40 (A1800 vs A500)
+Finished game 12 (A1800 vs A500): 1-0 {White wins by adjudication}
+Score of A500 vs A1800: 0 - 8 - 3  [0.136] 11
+Started game 15 of 40 (A500 vs A1800)
+Finished game 11 (A500 vs A1800): 1-0 {White wins by adjudication}
+Score of A500 vs A1800: 1 - 8 - 3  [0.208] 12
+Started game 16 of 40 (A1800 vs A500)
+Finished game 14 (A1800 vs A500): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A1800: 1 - 8 - 4  [0.231] 13
+Started game 17 of 40 (A500 vs A1800)
+Finished game 13 (A500 vs A1800): 1/2-1/2 {Draw by insufficient mating material}
+Score of A500 vs A1800: 1 - 8 - 5  [0.250] 14
+Started game 18 of 40 (A1800 vs A500)
+Finished game 16 (A1800 vs A500): 1-0 {White wins by adjudication}
+Score of A500 vs A1800: 1 - 9 - 5  [0.233] 15
+Started game 19 of 40 (A500 vs A1800)
+Finished game 15 (A500 vs A1800): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A1800: 1 - 9 - 6  [0.250] 16
+Started game 20 of 40 (A1800 vs A500)
+Finished game 18 (A1800 vs A500): 1-0 {White wins by adjudication}
+Score of A500 vs A1800: 1 - 10 - 6  [0.235] 17
+Started game 21 of 40 (A500 vs A1800)
+Finished game 17 (A500 vs A1800): 1-0 {White wins by adjudication}
+Score of A500 vs A1800: 2 - 10 - 6  [0.278] 18
+Started game 22 of 40 (A1800 vs A500)
+Finished game 19 (A500 vs A1800): 1-0 {White wins by adjudication}
+Score of A500 vs A1800: 3 - 10 - 6  [0.316] 19
+Started game 23 of 40 (A500 vs A1800)
+Finished game 21 (A500 vs A1800): 0-1 {Black wins by adjudication}
+Score of A500 vs A1800: 3 - 11 - 6  [0.300] 20
+Started game 24 of 40 (A1800 vs A500)
+Finished game 20 (A1800 vs A500): 1-0 {White wins by adjudication}
+Score of A500 vs A1800: 3 - 12 - 6  [0.286] 21
+Started game 25 of 40 (A500 vs A1800)
+Finished game 23 (A500 vs A1800): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A1800: 3 - 12 - 7  [0.295] 22
+Started game 26 of 40 (A1800 vs A500)
+Finished game 22 (A1800 vs A500): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A1800: 3 - 12 - 8  [0.304] 23
+Started game 27 of 40 (A500 vs A1800)
+Finished game 24 (A1800 vs A500): 0-1 {Black wins by adjudication}
+Score of A500 vs A1800: 4 - 12 - 8  [0.333] 24
+Started game 28 of 40 (A1800 vs A500)
+Finished game 25 (A500 vs A1800): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A1800: 4 - 12 - 9  [0.340] 25
+Started game 29 of 40 (A500 vs A1800)
+Finished game 26 (A1800 vs A500): 1-0 {White wins by adjudication}
+Score of A500 vs A1800: 4 - 13 - 9  [0.327] 26
+Started game 30 of 40 (A1800 vs A500)
+Finished game 27 (A500 vs A1800): 0-1 {Black wins by adjudication}
+Score of A500 vs A1800: 4 - 14 - 9  [0.315] 27
+Started game 31 of 40 (A500 vs A1800)
+Finished game 28 (A1800 vs A500): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A1800: 4 - 14 - 10  [0.321] 28
+Started game 32 of 40 (A1800 vs A500)
+Finished game 29 (A500 vs A1800): 1-0 {White wins by adjudication}
+Score of A500 vs A1800: 5 - 14 - 10  [0.345] 29
+Started game 33 of 40 (A500 vs A1800)
+Finished game 30 (A1800 vs A500): 1-0 {White wins by adjudication}
+Score of A500 vs A1800: 5 - 15 - 10  [0.333] 30
+Started game 34 of 40 (A1800 vs A500)
+Finished game 31 (A500 vs A1800): 0-1 {Black wins by adjudication}
+Score of A500 vs A1800: 5 - 16 - 10  [0.323] 31
+Started game 35 of 40 (A500 vs A1800)
+Finished game 32 (A1800 vs A500): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A1800: 5 - 16 - 11  [0.328] 32
+Started game 36 of 40 (A1800 vs A500)
+Finished game 33 (A500 vs A1800): 1/2-1/2 {Draw by adjudication}
+Score of A500 vs A1800: 5 - 16 - 12  [0.333] 33
+Started game 37 of 40 (A500 vs A1800)
+Finished game 36 (A1800 vs A500): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A1800: 5 - 16 - 13  [0.338] 34
+Started game 38 of 40 (A1800 vs A500)
+Finished game 34 (A1800 vs A500): 1-0 {White wins by adjudication}
+Score of A500 vs A1800: 5 - 17 - 13  [0.329] 35
+Started game 39 of 40 (A500 vs A1800)
+Finished game 35 (A500 vs A1800): 1-0 {White wins by adjudication}
+Score of A500 vs A1800: 6 - 17 - 13  [0.347] 36
+Started game 40 of 40 (A1800 vs A500)
+Finished game 40 (A1800 vs A500): 1-0 {White mates}
+Score of A500 vs A1800: 6 - 18 - 13  [0.338] 37
+Finished game 37 (A500 vs A1800): 1-0 {White wins by adjudication}
+Score of A500 vs A1800: 7 - 18 - 13  [0.355] 38
+Finished game 38 (A1800 vs A500): 1-0 {White wins by adjudication}
+Score of A500 vs A1800: 7 - 19 - 13  [0.346] 39
+Finished game 39 (A500 vs A1800): 0-1 {Black mates}
+Score of A500 vs A1800: 7 - 20 - 13  [0.338] 40
+...      A500 playing White: 6 - 7 - 7  [0.475] 20
+...      A500 playing Black: 1 - 13 - 6  [0.200] 20
+...      White vs Black: 19 - 8 - 13  [0.637] 40
+Elo difference: -117.2 +/- 93.6, LOS: 0.6 %, DrawRatio: 32.5 %
+SPRT: llr 0 (0.0%), lbound -inf, ubound inf
+
+Player: A500
+   "Draw by 3-fold repetition": 9
+   "Draw by adjudication": 2
+   "Draw by insufficient mating material": 2
+   "Loss: Black mates": 2
+   "Loss: Black wins by adjudication": 5
+   "Loss: White mates": 1
+   "Loss: White wins by adjudication": 12
+   "Win: Black wins by adjudication": 1
+   "Win: White wins by adjudication": 6
+Player: A1800
+   "Draw by 3-fold repetition": 9
+   "Draw by adjudication": 2
+   "Draw by insufficient mating material": 2
+   "Loss: Black wins by adjudication": 1
+   "Loss: White wins by adjudication": 6
+   "Win: Black mates": 2
+   "Win: Black wins by adjudication": 5
+   "Win: White mates": 1
+   "Win: White wins by adjudication": 12
+Finished match

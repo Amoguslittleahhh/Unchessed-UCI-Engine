@@ -1,0 +1,48 @@
+Indexing opening suite...
+Started game 6 of 16 (SF1400 vs AdaptVsWeak)
+Started game 7 of 16 (AdaptVsWeak vs SF1400)
+Started game 5 of 16 (AdaptVsWeak vs SF1400)
+Started game 8 of 16 (SF1400 vs AdaptVsWeak)
+Started game 1 of 16 (AdaptVsWeak vs SF1400)
+Started game 3 of 16 (AdaptVsWeak vs SF1400)
+Started game 4 of 16 (SF1400 vs AdaptVsWeak)
+Started game 2 of 16 (SF1400 vs AdaptVsWeak)
+Terminating process of engine SF1400(6)
+Terminating process of engine SF1400(5)
+Terminating process of engine SF1400(10)
+Terminating process of engine SF1400(9)
+Terminating process of engine SF1400(14)
+Finished game 4 (SF1400 vs AdaptVsWeak): 0-1 {White disconnects}
+Score of AdaptVsWeak vs SF1400: 1 - 0 - 0  [1.000] 1
+Finished game 5 (AdaptVsWeak vs SF1400): 1-0 {Black disconnects}
+Score of AdaptVsWeak vs SF1400: 2 - 0 - 0  [1.000] 2
+Finished game 3 (AdaptVsWeak vs SF1400): 1-0 {Black disconnects}
+Score of AdaptVsWeak vs SF1400: 3 - 0 - 0  [1.000] 3
+Terminating process of engine SF1400(2)
+Terminating process of engine SF1400(13)
+Finished game 8 (SF1400 vs AdaptVsWeak): 0-1 {White disconnects}
+Score of AdaptVsWeak vs SF1400: 4 - 0 - 0  [1.000] 4
+Terminating process of engine SF1400(1)
+Finished game 7 (AdaptVsWeak vs SF1400): * {No result}
+Score of AdaptVsWeak vs SF1400: 4 - 0 - 0  [1.000] 4
+Finished game 2 (SF1400 vs AdaptVsWeak): * {No result}
+Score of AdaptVsWeak vs SF1400: 4 - 0 - 0  [1.000] 4
+Finished game 1 (AdaptVsWeak vs SF1400): * {No result}
+Score of AdaptVsWeak vs SF1400: 4 - 0 - 0  [1.000] 4
+Finished game 6 (SF1400 vs AdaptVsWeak): 0-1 {White disconnects}
+Score of AdaptVsWeak vs SF1400: 5 - 0 - 0  [1.000] 5
+...      AdaptVsWeak playing White: 2 - 0 - 0  [1.000] 2
+...      AdaptVsWeak playing Black: 3 - 0 - 0  [1.000] 3
+...      White vs Black: 2 - 3 - 0  [0.400] 5
+Elo difference: inf +/- nan, LOS: 98.7 %, DrawRatio: 0.0 %
+SPRT: llr 0 (0.0%), lbound -inf, ubound inf
+
+Player: AdaptVsWeak
+   "No result": 3
+   "Win: Black disconnects": 2
+   "Win: White disconnects": 3
+Player: SF1400
+   "Loss: Black disconnects": 2
+   "Loss: White disconnects": 3
+   "No result": 3
+Finished match

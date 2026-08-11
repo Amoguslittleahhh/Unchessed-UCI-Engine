@@ -1,0 +1,29 @@
+Indexing opening suite...
+Started game 2 of 16 (Stockfish vs Adapter500)
+Started game 3 of 16 (Adapter500 vs Stockfish)
+Started game 1 of 16 (Adapter500 vs Stockfish)
+Started game 4 of 16 (Stockfish vs Adapter500)
+Terminating process of engine Stockfish(1)
+Finished game 1 (Adapter500 vs Stockfish): 1-0 {Black disconnects}
+Score of Adapter500 vs Stockfish: 1 - 0 - 0  [1.000] 1
+Terminating process of engine Stockfish(2)
+Terminating process of engine Stockfish(6)
+Finished game 2 (Stockfish vs Adapter500): * {No result}
+Score of Adapter500 vs Stockfish: 1 - 0 - 0  [1.000] 1
+Finished game 4 (Stockfish vs Adapter500): * {No result}
+Score of Adapter500 vs Stockfish: 1 - 0 - 0  [1.000] 1
+Terminating process of engine Stockfish(5)
+Finished game 3 (Adapter500 vs Stockfish): * {No result}
+Score of Adapter500 vs Stockfish: 1 - 0 - 0  [1.000] 1
+...      Adapter500 playing White: 1 - 0 - 0  [1.000] 1
+...      White vs Black: 1 - 0 - 0  [1.000] 1
+Elo difference: inf +/- nan, LOS: 84.1 %, DrawRatio: 0.0 %
+SPRT: llr 0 (0.0%), lbound -inf, ubound inf
+
+Player: Adapter500
+   "No result": 3
+   "Win: Black disconnects": 1
+Player: Stockfish
+   "Loss: Black disconnects": 1
+   "No result": 3
+Finished match

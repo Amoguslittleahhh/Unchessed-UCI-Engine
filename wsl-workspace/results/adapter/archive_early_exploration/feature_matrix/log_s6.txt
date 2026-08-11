@@ -1,0 +1,66 @@
+Indexing opening suite...
+Started game 2 of 16 (SF1400c vs HighContempt)
+Started game 6 of 16 (SF1400c vs HighContempt)
+Started game 5 of 16 (HighContempt vs SF1400c)
+Started game 8 of 16 (SF1400c vs HighContempt)
+Started game 1 of 16 (HighContempt vs SF1400c)
+Started game 3 of 16 (HighContempt vs SF1400c)
+Started game 4 of 16 (SF1400c vs HighContempt)
+Started game 7 of 16 (HighContempt vs SF1400c)
+Finished game 6 (SF1400c vs HighContempt): 0-1 {Black wins by adjudication}
+Score of HighContempt vs SF1400c: 1 - 0 - 0  [1.000] 1
+Started game 9 of 16 (HighContempt vs SF1400c)
+Finished game 8 (SF1400c vs HighContempt): 0-1 {Black mates}
+Score of HighContempt vs SF1400c: 2 - 0 - 0  [1.000] 2
+Started game 10 of 16 (SF1400c vs HighContempt)
+Finished game 7 (HighContempt vs SF1400c): 1-0 {White mates}
+Score of HighContempt vs SF1400c: 3 - 0 - 0  [1.000] 3
+Started game 11 of 16 (HighContempt vs SF1400c)
+Finished game 5 (HighContempt vs SF1400c): 1-0 {White mates}
+Score of HighContempt vs SF1400c: 4 - 0 - 0  [1.000] 4
+Started game 12 of 16 (SF1400c vs HighContempt)
+Finished game 2 (SF1400c vs HighContempt): 0-1 {Black wins by adjudication}
+Score of HighContempt vs SF1400c: 5 - 0 - 0  [1.000] 5
+Started game 13 of 16 (HighContempt vs SF1400c)
+Finished game 1 (HighContempt vs SF1400c): 1-0 {White mates}
+Score of HighContempt vs SF1400c: 6 - 0 - 0  [1.000] 6
+Started game 14 of 16 (SF1400c vs HighContempt)
+Finished game 3 (HighContempt vs SF1400c): 1-0 {White wins by adjudication}
+Score of HighContempt vs SF1400c: 7 - 0 - 0  [1.000] 7
+Started game 15 of 16 (HighContempt vs SF1400c)
+Finished game 4 (SF1400c vs HighContempt): 0-1 {Black mates}
+Score of HighContempt vs SF1400c: 8 - 0 - 0  [1.000] 8
+Started game 16 of 16 (SF1400c vs HighContempt)
+Finished game 10 (SF1400c vs HighContempt): 0-1 {Black mates}
+Score of HighContempt vs SF1400c: 9 - 0 - 0  [1.000] 9
+Finished game 9 (HighContempt vs SF1400c): 1-0 {White wins by adjudication}
+Score of HighContempt vs SF1400c: 10 - 0 - 0  [1.000] 10
+Finished game 12 (SF1400c vs HighContempt): 0-1 {Black mates}
+Score of HighContempt vs SF1400c: 11 - 0 - 0  [1.000] 11
+Finished game 14 (SF1400c vs HighContempt): 0-1 {Black mates}
+Score of HighContempt vs SF1400c: 12 - 0 - 0  [1.000] 12
+Finished game 13 (HighContempt vs SF1400c): 1-0 {White mates}
+Score of HighContempt vs SF1400c: 13 - 0 - 0  [1.000] 13
+Finished game 11 (HighContempt vs SF1400c): 1-0 {White wins by adjudication}
+Score of HighContempt vs SF1400c: 14 - 0 - 0  [1.000] 14
+Finished game 16 (SF1400c vs HighContempt): 0-1 {Black mates}
+Score of HighContempt vs SF1400c: 15 - 0 - 0  [1.000] 15
+Finished game 15 (HighContempt vs SF1400c): 1-0 {White wins by adjudication}
+Score of HighContempt vs SF1400c: 16 - 0 - 0  [1.000] 16
+...      HighContempt playing White: 8 - 0 - 0  [1.000] 8
+...      HighContempt playing Black: 8 - 0 - 0  [1.000] 8
+...      White vs Black: 8 - 8 - 0  [0.500] 16
+Elo difference: inf +/- nan, LOS: 100.0 %, DrawRatio: 0.0 %
+SPRT: llr 0 (0.0%), lbound -inf, ubound inf
+
+Player: HighContempt
+   "Win: Black mates": 6
+   "Win: Black wins by adjudication": 2
+   "Win: White mates": 4
+   "Win: White wins by adjudication": 4
+Player: SF1400c
+   "Loss: Black mates": 6
+   "Loss: Black wins by adjudication": 2
+   "Loss: White mates": 4
+   "Loss: White wins by adjudication": 4
+Finished match

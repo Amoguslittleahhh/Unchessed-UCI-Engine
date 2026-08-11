@@ -1,0 +1,76 @@
+Indexing opening suite...
+Started game 1 of 20 (Adapter1200 vs Stockfish)
+Finished game 1 (Adapter1200 vs Stockfish): 0-1 {Black wins by adjudication}
+Score of Adapter1200 vs Stockfish: 0 - 1 - 0  [0.000] 1
+Started game 2 of 20 (Stockfish vs Adapter1200)
+Finished game 2 (Stockfish vs Adapter1200): 1-0 {White mates}
+Score of Adapter1200 vs Stockfish: 0 - 2 - 0  [0.000] 2
+Started game 3 of 20 (Adapter1200 vs Stockfish)
+Finished game 3 (Adapter1200 vs Stockfish): 0-1 {Black wins by adjudication}
+Score of Adapter1200 vs Stockfish: 0 - 3 - 0  [0.000] 3
+Started game 4 of 20 (Stockfish vs Adapter1200)
+Finished game 4 (Stockfish vs Adapter1200): 1-0 {White wins by adjudication}
+Score of Adapter1200 vs Stockfish: 0 - 4 - 0  [0.000] 4
+Started game 5 of 20 (Adapter1200 vs Stockfish)
+Finished game 5 (Adapter1200 vs Stockfish): 0-1 {Black wins by adjudication}
+Score of Adapter1200 vs Stockfish: 0 - 5 - 0  [0.000] 5
+Started game 6 of 20 (Stockfish vs Adapter1200)
+Finished game 6 (Stockfish vs Adapter1200): 1-0 {White wins by adjudication}
+Score of Adapter1200 vs Stockfish: 0 - 6 - 0  [0.000] 6
+Started game 7 of 20 (Adapter1200 vs Stockfish)
+Finished game 7 (Adapter1200 vs Stockfish): 0-1 {Black wins by adjudication}
+Score of Adapter1200 vs Stockfish: 0 - 7 - 0  [0.000] 7
+Started game 8 of 20 (Stockfish vs Adapter1200)
+Finished game 8 (Stockfish vs Adapter1200): 1-0 {White wins by adjudication}
+Score of Adapter1200 vs Stockfish: 0 - 8 - 0  [0.000] 8
+Started game 9 of 20 (Adapter1200 vs Stockfish)
+Finished game 9 (Adapter1200 vs Stockfish): 0-1 {Black wins by adjudication}
+Score of Adapter1200 vs Stockfish: 0 - 9 - 0  [0.000] 9
+Started game 10 of 20 (Stockfish vs Adapter1200)
+Finished game 10 (Stockfish vs Adapter1200): 1-0 {White wins by adjudication}
+Score of Adapter1200 vs Stockfish: 0 - 10 - 0  [0.000] 10
+Started game 11 of 20 (Adapter1200 vs Stockfish)
+Finished game 11 (Adapter1200 vs Stockfish): 0-1 {Black wins by adjudication}
+Score of Adapter1200 vs Stockfish: 0 - 11 - 0  [0.000] 11
+Started game 12 of 20 (Stockfish vs Adapter1200)
+Finished game 12 (Stockfish vs Adapter1200): 1-0 {White wins by adjudication}
+Score of Adapter1200 vs Stockfish: 0 - 12 - 0  [0.000] 12
+Started game 13 of 20 (Adapter1200 vs Stockfish)
+Finished game 13 (Adapter1200 vs Stockfish): 0-1 {Black wins by adjudication}
+Score of Adapter1200 vs Stockfish: 0 - 13 - 0  [0.000] 13
+Started game 14 of 20 (Stockfish vs Adapter1200)
+Finished game 14 (Stockfish vs Adapter1200): 1-0 {White wins by adjudication}
+Score of Adapter1200 vs Stockfish: 0 - 14 - 0  [0.000] 14
+Started game 15 of 20 (Adapter1200 vs Stockfish)
+Finished game 15 (Adapter1200 vs Stockfish): 0-1 {Black wins by adjudication}
+Score of Adapter1200 vs Stockfish: 0 - 15 - 0  [0.000] 15
+Started game 16 of 20 (Stockfish vs Adapter1200)
+Finished game 16 (Stockfish vs Adapter1200): 1-0 {White wins by adjudication}
+Score of Adapter1200 vs Stockfish: 0 - 16 - 0  [0.000] 16
+Started game 17 of 20 (Adapter1200 vs Stockfish)
+Finished game 17 (Adapter1200 vs Stockfish): 0-1 {Black wins by adjudication}
+Score of Adapter1200 vs Stockfish: 0 - 17 - 0  [0.000] 17
+Started game 18 of 20 (Stockfish vs Adapter1200)
+Finished game 18 (Stockfish vs Adapter1200): 1-0 {White wins by adjudication}
+Score of Adapter1200 vs Stockfish: 0 - 18 - 0  [0.000] 18
+Started game 19 of 20 (Adapter1200 vs Stockfish)
+Finished game 19 (Adapter1200 vs Stockfish): 0-1 {Black wins by adjudication}
+Score of Adapter1200 vs Stockfish: 0 - 19 - 0  [0.000] 19
+Started game 20 of 20 (Stockfish vs Adapter1200)
+Finished game 20 (Stockfish vs Adapter1200): 1-0 {White mates}
+Score of Adapter1200 vs Stockfish: 0 - 20 - 0  [0.000] 20
+...      Adapter1200 playing White: 0 - 10 - 0  [0.000] 10
+...      Adapter1200 playing Black: 0 - 10 - 0  [0.000] 10
+...      White vs Black: 10 - 10 - 0  [0.500] 20
+Elo difference: -inf +/- nan, LOS: 0.0 %, DrawRatio: 0.0 %
+SPRT: llr 0 (0.0%), lbound -inf, ubound inf
+
+Player: Adapter1200
+   "Loss: Black wins by adjudication": 10
+   "Loss: White mates": 2
+   "Loss: White wins by adjudication": 8
+Player: Stockfish
+   "Win: Black wins by adjudication": 10
+   "Win: White mates": 2
+   "Win: White wins by adjudication": 8
+Finished match

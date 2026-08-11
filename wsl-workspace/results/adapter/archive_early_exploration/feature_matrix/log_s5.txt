@@ -1,0 +1,70 @@
+Indexing opening suite...
+Started game 5 of 16 (AdaptCapped1200 vs SF2000)
+Started game 6 of 16 (SF2000 vs AdaptCapped1200)
+Started game 7 of 16 (AdaptCapped1200 vs SF2000)
+Started game 4 of 16 (SF2000 vs AdaptCapped1200)
+Started game 1 of 16 (AdaptCapped1200 vs SF2000)
+Started game 3 of 16 (AdaptCapped1200 vs SF2000)
+Started game 2 of 16 (SF2000 vs AdaptCapped1200)
+Started game 8 of 16 (SF2000 vs AdaptCapped1200)
+Finished game 7 (AdaptCapped1200 vs SF2000): 0-1 {Black wins by adjudication}
+Score of AdaptCapped1200 vs SF2000: 0 - 1 - 0  [0.000] 1
+Started game 9 of 16 (AdaptCapped1200 vs SF2000)
+Finished game 2 (SF2000 vs AdaptCapped1200): 1-0 {White wins by adjudication}
+Score of AdaptCapped1200 vs SF2000: 0 - 2 - 0  [0.000] 2
+Started game 10 of 16 (SF2000 vs AdaptCapped1200)
+Finished game 1 (AdaptCapped1200 vs SF2000): 1/2-1/2 {Draw by insufficient mating material}
+Score of AdaptCapped1200 vs SF2000: 0 - 2 - 1  [0.167] 3
+Started game 11 of 16 (AdaptCapped1200 vs SF2000)
+Finished game 4 (SF2000 vs AdaptCapped1200): 0-1 {Black wins by adjudication}
+Score of AdaptCapped1200 vs SF2000: 1 - 2 - 1  [0.375] 4
+Started game 12 of 16 (SF2000 vs AdaptCapped1200)
+Finished game 8 (SF2000 vs AdaptCapped1200): 1-0 {White wins by adjudication}
+Score of AdaptCapped1200 vs SF2000: 1 - 3 - 1  [0.300] 5
+Started game 13 of 16 (AdaptCapped1200 vs SF2000)
+Finished game 5 (AdaptCapped1200 vs SF2000): 0-1 {Black wins by adjudication}
+Score of AdaptCapped1200 vs SF2000: 1 - 4 - 1  [0.250] 6
+Started game 14 of 16 (SF2000 vs AdaptCapped1200)
+Finished game 6 (SF2000 vs AdaptCapped1200): 1-0 {White wins by adjudication}
+Score of AdaptCapped1200 vs SF2000: 1 - 5 - 1  [0.214] 7
+Started game 15 of 16 (AdaptCapped1200 vs SF2000)
+Finished game 3 (AdaptCapped1200 vs SF2000): 0-1 {Black wins by adjudication}
+Score of AdaptCapped1200 vs SF2000: 1 - 6 - 1  [0.188] 8
+Started game 16 of 16 (SF2000 vs AdaptCapped1200)
+Finished game 9 (AdaptCapped1200 vs SF2000): 1-0 {White wins by adjudication}
+Score of AdaptCapped1200 vs SF2000: 2 - 6 - 1  [0.278] 9
+Finished game 13 (AdaptCapped1200 vs SF2000): 0-1 {Black wins by adjudication}
+Score of AdaptCapped1200 vs SF2000: 2 - 7 - 1  [0.250] 10
+Finished game 14 (SF2000 vs AdaptCapped1200): 0-1 {Black mates}
+Score of AdaptCapped1200 vs SF2000: 3 - 7 - 1  [0.318] 11
+Finished game 12 (SF2000 vs AdaptCapped1200): 1-0 {White wins by adjudication}
+Score of AdaptCapped1200 vs SF2000: 3 - 8 - 1  [0.292] 12
+Finished game 15 (AdaptCapped1200 vs SF2000): 0-1 {Black wins by adjudication}
+Score of AdaptCapped1200 vs SF2000: 3 - 9 - 1  [0.269] 13
+Finished game 16 (SF2000 vs AdaptCapped1200): 1-0 {White wins by adjudication}
+Score of AdaptCapped1200 vs SF2000: 3 - 10 - 1  [0.250] 14
+Finished game 11 (AdaptCapped1200 vs SF2000): 0-1 {Black wins by adjudication}
+Score of AdaptCapped1200 vs SF2000: 3 - 11 - 1  [0.233] 15
+Finished game 10 (SF2000 vs AdaptCapped1200): 1/2-1/2 {Draw by insufficient mating material}
+Score of AdaptCapped1200 vs SF2000: 3 - 11 - 2  [0.250] 16
+...      AdaptCapped1200 playing White: 1 - 6 - 1  [0.188] 8
+...      AdaptCapped1200 playing Black: 2 - 5 - 1  [0.313] 8
+...      White vs Black: 6 - 8 - 2  [0.438] 16
+Elo difference: -190.8 +/- 224.6, LOS: 1.6 %, DrawRatio: 12.5 %
+SPRT: llr 0 (0.0%), lbound -inf, ubound inf
+
+Player: AdaptCapped1200
+   "Draw by insufficient mating material": 2
+   "Loss: Black wins by adjudication": 6
+   "Loss: White wins by adjudication": 5
+   "Win: Black mates": 1
+   "Win: Black wins by adjudication": 1
+   "Win: White wins by adjudication": 1
+Player: SF2000
+   "Draw by insufficient mating material": 2
+   "Loss: Black mates": 1
+   "Loss: Black wins by adjudication": 1
+   "Loss: White wins by adjudication": 1
+   "Win: Black wins by adjudication": 6
+   "Win: White wins by adjudication": 5
+Finished match

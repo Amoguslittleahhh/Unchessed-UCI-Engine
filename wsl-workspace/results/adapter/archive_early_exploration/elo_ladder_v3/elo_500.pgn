@@ -1,0 +1,25 @@
+[Event "?"]
+[Site "?"]
+[Date "2026.07.31"]
+[Round "1"]
+[White "Adapter500"]
+[Black "Stockfish"]
+[Result "1-0"]
+[ECO "C67"]
+[GameDuration "00:00:02"]
+[GameEndTime "2026-07-31T21:33:15.828 +08"]
+[GameStartTime "2026-07-31T21:33:13.361 +08"]
+[Opening "Ruy Lopez"]
+[PlyCount "25"]
+[Termination "abandoned"]
+[TimeControl "5+0.05"]
+[Variation "Berlin defense, Open variation"]
+
+1. e4 {book} e5 {book} 2. Nf3 {book} Nc6 {book} 3. Bb5 {book} Nf6 {book}
+4. O-O {book} Nxe4 {book} 5. Re1 {book} d5 {book} 6. d3 {+2.03/11 0.070s}
+Nxf2 {-2.79/19 0.42s} 7. Nxe5 {+2.01/11 0.087s} Nxd1 {-2.55/17 0.17s}
+8. Nxc6+ {+1.96/13 0.077s} Be7 {-2.60/16 0.12s} 9. Nxd8+ {+1.91/13 0.049s}
+Kxd8 {-2.60/12 0.086s} 10. Rxd1 {+1.88/13 0.096s} c6 {-2.65/15 0.099s}
+11. Ba4 {+1.88/13 0.052s} Bg4 {-2.64/19 0.25s} 12. Re1 {+1.86/12 0.20s}
+Re8 {-2.67/17 0.058s} 13. d4 {+1.92/12 0.15s, Black disconnects} 1-0
+

@@ -1,0 +1,394 @@
+Indexing opening suite...
+Started game 2 of 120 (A3000 vs A1800)
+Started game 9 of 120 (A1800 vs A3000)
+Started game 3 of 120 (A1800 vs A3000)
+Started game 4 of 120 (A3000 vs A1800)
+Started game 1 of 120 (A1800 vs A3000)
+Started game 8 of 120 (A3000 vs A1800)
+Started game 12 of 120 (A3000 vs A1800)
+Started game 7 of 120 (A1800 vs A3000)
+Started game 10 of 120 (A3000 vs A1800)
+Started game 11 of 120 (A1800 vs A3000)
+Started game 5 of 120 (A1800 vs A3000)
+Started game 6 of 120 (A3000 vs A1800)
+Started game 13 of 120 (A1800 vs A3000)
+Finished game 2 (A3000 vs A1800): 1-0 {White wins by adjudication}
+Score of A1800 vs A3000: 0 - 1 - 0  [0.000] 1
+Started game 14 of 120 (A3000 vs A1800)
+Finished game 3 (A1800 vs A3000): 1/2-1/2 {Draw by insufficient mating material}
+Score of A1800 vs A3000: 0 - 1 - 1  [0.250] 2
+Started game 15 of 120 (A1800 vs A3000)
+Finished game 13 (A1800 vs A3000): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 0 - 2 - 1  [0.167] 3
+Started game 16 of 120 (A3000 vs A1800)
+Finished game 10 (A3000 vs A1800): 1-0 {White wins by adjudication}
+Score of A1800 vs A3000: 0 - 3 - 1  [0.125] 4
+Started game 17 of 120 (A1800 vs A3000)
+Finished game 12 (A3000 vs A1800): 1/2-1/2 {Draw by adjudication}
+Score of A1800 vs A3000: 0 - 3 - 2  [0.200] 5
+Started game 18 of 120 (A3000 vs A1800)
+Finished game 11 (A1800 vs A3000): 1-0 {White wins by adjudication}
+Score of A1800 vs A3000: 1 - 3 - 2  [0.333] 6
+Started game 19 of 120 (A1800 vs A3000)
+Finished game 6 (A3000 vs A1800): 1/2-1/2 {Draw by insufficient mating material}
+Score of A1800 vs A3000: 1 - 3 - 3  [0.357] 7
+Started game 20 of 120 (A3000 vs A1800)
+Finished game 5 (A1800 vs A3000): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 1 - 4 - 3  [0.313] 8
+Started game 21 of 120 (A1800 vs A3000)
+Finished game 7 (A1800 vs A3000): 1-0 {White wins by adjudication}
+Score of A1800 vs A3000: 2 - 4 - 3  [0.389] 9
+Started game 22 of 120 (A3000 vs A1800)
+Finished game 1 (A1800 vs A3000): 1/2-1/2 {Draw by adjudication}
+Score of A1800 vs A3000: 2 - 4 - 4  [0.400] 10
+Started game 23 of 120 (A1800 vs A3000)
+Finished game 8 (A3000 vs A1800): 1-0 {White wins by adjudication}
+Score of A1800 vs A3000: 2 - 5 - 4  [0.364] 11
+Started game 24 of 120 (A3000 vs A1800)
+Finished game 4 (A3000 vs A1800): 1/2-1/2 {Draw by adjudication}
+Score of A1800 vs A3000: 2 - 5 - 5  [0.375] 12
+Started game 25 of 120 (A1800 vs A3000)
+Finished game 9 (A1800 vs A3000): 0-1 {Black mates}
+Score of A1800 vs A3000: 2 - 6 - 5  [0.346] 13
+Started game 26 of 120 (A3000 vs A1800)
+Finished game 17 (A1800 vs A3000): 1-0 {White wins by adjudication}
+Score of A1800 vs A3000: 3 - 6 - 5  [0.393] 14
+Started game 27 of 120 (A1800 vs A3000)
+Finished game 14 (A3000 vs A1800): 1-0 {White wins by adjudication}
+Score of A1800 vs A3000: 3 - 7 - 5  [0.367] 15
+Started game 28 of 120 (A3000 vs A1800)
+Finished game 19 (A1800 vs A3000): 1/2-1/2 {Draw by adjudication}
+Score of A1800 vs A3000: 3 - 7 - 6  [0.375] 16
+Started game 29 of 120 (A1800 vs A3000)
+Finished game 23 (A1800 vs A3000): 1-0 {White mates}
+Score of A1800 vs A3000: 4 - 7 - 6  [0.412] 17
+Started game 30 of 120 (A3000 vs A1800)
+Finished game 20 (A3000 vs A1800): 1-0 {White wins by adjudication}
+Score of A1800 vs A3000: 4 - 8 - 6  [0.389] 18
+Started game 31 of 120 (A1800 vs A3000)
+Finished game 15 (A1800 vs A3000): 1/2-1/2 {Draw by insufficient mating material}
+Score of A1800 vs A3000: 4 - 8 - 7  [0.395] 19
+Started game 32 of 120 (A3000 vs A1800)
+Finished game 18 (A3000 vs A1800): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 5 - 8 - 7  [0.425] 20
+Started game 33 of 120 (A1800 vs A3000)
+Finished game 21 (A1800 vs A3000): 1-0 {White wins by adjudication}
+Score of A1800 vs A3000: 6 - 8 - 7  [0.452] 21
+Started game 34 of 120 (A3000 vs A1800)
+Finished game 22 (A3000 vs A1800): 1/2-1/2 {Draw by insufficient mating material}
+Score of A1800 vs A3000: 6 - 8 - 8  [0.455] 22
+Started game 35 of 120 (A1800 vs A3000)
+Finished game 16 (A3000 vs A1800): 1/2-1/2 {Draw by fifty moves rule}
+Score of A1800 vs A3000: 6 - 8 - 9  [0.457] 23
+Started game 36 of 120 (A3000 vs A1800)
+Finished game 26 (A3000 vs A1800): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A1800 vs A3000: 6 - 8 - 10  [0.458] 24
+Started game 37 of 120 (A1800 vs A3000)
+Finished game 24 (A3000 vs A1800): 1-0 {White wins by adjudication}
+Score of A1800 vs A3000: 6 - 9 - 10  [0.440] 25
+Started game 38 of 120 (A3000 vs A1800)
+Finished game 25 (A1800 vs A3000): 1/2-1/2 {Draw by insufficient mating material}
+Score of A1800 vs A3000: 6 - 9 - 11  [0.442] 26
+Started game 39 of 120 (A1800 vs A3000)
+Finished game 31 (A1800 vs A3000): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A1800 vs A3000: 6 - 9 - 12  [0.444] 27
+Started game 40 of 120 (A3000 vs A1800)
+Finished game 34 (A3000 vs A1800): 1/2-1/2 {Draw by adjudication}
+Score of A1800 vs A3000: 6 - 9 - 13  [0.446] 28
+Started game 41 of 120 (A1800 vs A3000)
+Finished game 29 (A1800 vs A3000): 1-0 {White wins by adjudication}
+Score of A1800 vs A3000: 7 - 9 - 13  [0.466] 29
+Started game 42 of 120 (A3000 vs A1800)
+Finished game 27 (A1800 vs A3000): 1/2-1/2 {Draw by insufficient mating material}
+Score of A1800 vs A3000: 7 - 9 - 14  [0.467] 30
+Started game 43 of 120 (A1800 vs A3000)
+Finished game 28 (A3000 vs A1800): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 8 - 9 - 14  [0.484] 31
+Started game 44 of 120 (A3000 vs A1800)
+Finished game 32 (A3000 vs A1800): 1/2-1/2 {Draw by adjudication}
+Score of A1800 vs A3000: 8 - 9 - 15  [0.484] 32
+Started game 45 of 120 (A1800 vs A3000)
+Finished game 30 (A3000 vs A1800): 1/2-1/2 {Draw by adjudication}
+Score of A1800 vs A3000: 8 - 9 - 16  [0.485] 33
+Started game 46 of 120 (A3000 vs A1800)
+Finished game 35 (A1800 vs A3000): 1-0 {White wins by adjudication}
+Score of A1800 vs A3000: 9 - 9 - 16  [0.500] 34
+Started game 47 of 120 (A1800 vs A3000)
+Finished game 33 (A1800 vs A3000): 1-0 {White wins by adjudication}
+Score of A1800 vs A3000: 10 - 9 - 16  [0.514] 35
+Started game 48 of 120 (A3000 vs A1800)
+Finished game 36 (A3000 vs A1800): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A1800 vs A3000: 10 - 9 - 17  [0.514] 36
+Started game 49 of 120 (A1800 vs A3000)
+Finished game 38 (A3000 vs A1800): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 11 - 9 - 17  [0.527] 37
+Started game 50 of 120 (A3000 vs A1800)
+Finished game 37 (A1800 vs A3000): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 11 - 10 - 17  [0.513] 38
+Started game 51 of 120 (A1800 vs A3000)
+Finished game 39 (A1800 vs A3000): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 11 - 11 - 17  [0.500] 39
+Started game 52 of 120 (A3000 vs A1800)
+Finished game 48 (A3000 vs A1800): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A1800 vs A3000: 11 - 11 - 18  [0.500] 40
+Started game 53 of 120 (A1800 vs A3000)
+Finished game 44 (A3000 vs A1800): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 12 - 11 - 18  [0.512] 41
+Started game 54 of 120 (A3000 vs A1800)
+Finished game 43 (A1800 vs A3000): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 12 - 12 - 18  [0.500] 42
+Started game 55 of 120 (A1800 vs A3000)
+Finished game 45 (A1800 vs A3000): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 12 - 13 - 18  [0.488] 43
+Started game 56 of 120 (A3000 vs A1800)
+Finished game 42 (A3000 vs A1800): 1/2-1/2 {Draw by adjudication}
+Score of A1800 vs A3000: 12 - 13 - 19  [0.489] 44
+Started game 57 of 120 (A1800 vs A3000)
+Finished game 41 (A1800 vs A3000): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 12 - 14 - 19  [0.478] 45
+Started game 58 of 120 (A3000 vs A1800)
+Finished game 46 (A3000 vs A1800): 1-0 {White wins by adjudication}
+Score of A1800 vs A3000: 12 - 15 - 19  [0.467] 46
+Started game 59 of 120 (A1800 vs A3000)
+Finished game 40 (A3000 vs A1800): 1/2-1/2 {Draw by adjudication}
+Score of A1800 vs A3000: 12 - 15 - 20  [0.468] 47
+Started game 60 of 120 (A3000 vs A1800)
+Finished game 52 (A3000 vs A1800): 1-0 {White wins by adjudication}
+Score of A1800 vs A3000: 12 - 16 - 20  [0.458] 48
+Started game 61 of 120 (A1800 vs A3000)
+Finished game 51 (A1800 vs A3000): 1-0 {White wins by adjudication}
+Score of A1800 vs A3000: 13 - 16 - 20  [0.469] 49
+Started game 62 of 120 (A3000 vs A1800)
+Finished game 49 (A1800 vs A3000): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 13 - 17 - 20  [0.460] 50
+Started game 63 of 120 (A1800 vs A3000)
+Finished game 47 (A1800 vs A3000): 1/2-1/2 {Draw by adjudication}
+Score of A1800 vs A3000: 13 - 17 - 21  [0.461] 51
+Started game 64 of 120 (A3000 vs A1800)
+Finished game 58 (A3000 vs A1800): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A1800 vs A3000: 13 - 17 - 22  [0.462] 52
+Started game 65 of 120 (A1800 vs A3000)
+Finished game 54 (A3000 vs A1800): 1-0 {White wins by adjudication}
+Score of A1800 vs A3000: 13 - 18 - 22  [0.453] 53
+Started game 66 of 120 (A3000 vs A1800)
+Finished game 50 (A3000 vs A1800): 0-1 {Black mates}
+Score of A1800 vs A3000: 14 - 18 - 22  [0.463] 54
+Started game 67 of 120 (A1800 vs A3000)
+Finished game 53 (A1800 vs A3000): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 14 - 19 - 22  [0.455] 55
+Started game 68 of 120 (A3000 vs A1800)
+Finished game 55 (A1800 vs A3000): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 14 - 20 - 22  [0.446] 56
+Started game 69 of 120 (A1800 vs A3000)
+Finished game 56 (A3000 vs A1800): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 15 - 20 - 22  [0.456] 57
+Started game 70 of 120 (A3000 vs A1800)
+Finished game 57 (A1800 vs A3000): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 15 - 21 - 22  [0.448] 58
+Started game 71 of 120 (A1800 vs A3000)
+Finished game 60 (A3000 vs A1800): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A1800 vs A3000: 15 - 21 - 23  [0.449] 59
+Started game 72 of 120 (A3000 vs A1800)
+Finished game 65 (A1800 vs A3000): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A1800 vs A3000: 15 - 21 - 24  [0.450] 60
+Started game 73 of 120 (A1800 vs A3000)
+Finished game 66 (A3000 vs A1800): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A1800 vs A3000: 15 - 21 - 25  [0.451] 61
+Started game 74 of 120 (A3000 vs A1800)
+Finished game 61 (A1800 vs A3000): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A1800 vs A3000: 15 - 21 - 26  [0.452] 62
+Started game 75 of 120 (A1800 vs A3000)
+Finished game 59 (A1800 vs A3000): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 15 - 22 - 26  [0.444] 63
+Started game 76 of 120 (A3000 vs A1800)
+Finished game 63 (A1800 vs A3000): 1-0 {White wins by adjudication}
+Score of A1800 vs A3000: 16 - 22 - 26  [0.453] 64
+Started game 77 of 120 (A1800 vs A3000)
+Finished game 64 (A3000 vs A1800): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A1800 vs A3000: 16 - 22 - 27  [0.454] 65
+Started game 78 of 120 (A3000 vs A1800)
+Finished game 67 (A1800 vs A3000): 1/2-1/2 {Draw by insufficient mating material}
+Score of A1800 vs A3000: 16 - 22 - 28  [0.455] 66
+Started game 79 of 120 (A1800 vs A3000)
+Finished game 69 (A1800 vs A3000): 1-0 {White wins by adjudication}
+Score of A1800 vs A3000: 17 - 22 - 28  [0.463] 67
+Started game 80 of 120 (A3000 vs A1800)
+Finished game 72 (A3000 vs A1800): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A1800 vs A3000: 17 - 22 - 29  [0.463] 68
+Started game 81 of 120 (A1800 vs A3000)
+Finished game 75 (A1800 vs A3000): 1-0 {White wins by adjudication}
+Score of A1800 vs A3000: 18 - 22 - 29  [0.471] 69
+Started game 82 of 120 (A3000 vs A1800)
+Finished game 70 (A3000 vs A1800): 1-0 {White wins by adjudication}
+Score of A1800 vs A3000: 18 - 23 - 29  [0.464] 70
+Started game 83 of 120 (A1800 vs A3000)
+Finished game 71 (A1800 vs A3000): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 18 - 24 - 29  [0.458] 71
+Started game 84 of 120 (A3000 vs A1800)
+Finished game 62 (A3000 vs A1800): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 19 - 24 - 29  [0.465] 72
+Started game 85 of 120 (A1800 vs A3000)
+Finished game 68 (A3000 vs A1800): 1/2-1/2 {Draw by adjudication}
+Score of A1800 vs A3000: 19 - 24 - 30  [0.466] 73
+Started game 86 of 120 (A3000 vs A1800)
+Finished game 74 (A3000 vs A1800): 1-0 {White wins by adjudication}
+Score of A1800 vs A3000: 19 - 25 - 30  [0.459] 74
+Started game 87 of 120 (A1800 vs A3000)
+Finished game 73 (A1800 vs A3000): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 19 - 26 - 30  [0.453] 75
+Started game 88 of 120 (A3000 vs A1800)
+Finished game 76 (A3000 vs A1800): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 20 - 26 - 30  [0.461] 76
+Started game 89 of 120 (A1800 vs A3000)
+Finished game 77 (A1800 vs A3000): 1/2-1/2 {Draw by insufficient mating material}
+Score of A1800 vs A3000: 20 - 26 - 31  [0.461] 77
+Started game 90 of 120 (A3000 vs A1800)
+Finished game 83 (A1800 vs A3000): 1-0 {White wins by adjudication}
+Score of A1800 vs A3000: 21 - 26 - 31  [0.468] 78
+Started game 91 of 120 (A1800 vs A3000)
+Finished game 78 (A3000 vs A1800): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A1800 vs A3000: 21 - 26 - 32  [0.468] 79
+Started game 92 of 120 (A3000 vs A1800)
+Finished game 79 (A1800 vs A3000): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 21 - 27 - 32  [0.463] 80
+Started game 93 of 120 (A1800 vs A3000)
+Finished game 84 (A3000 vs A1800): 1-0 {White wins by adjudication}
+Score of A1800 vs A3000: 21 - 28 - 32  [0.457] 81
+Started game 94 of 120 (A3000 vs A1800)
+Finished game 85 (A1800 vs A3000): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A1800 vs A3000: 21 - 28 - 33  [0.457] 82
+Started game 95 of 120 (A1800 vs A3000)
+Finished game 82 (A3000 vs A1800): 1-0 {White wins by adjudication}
+Score of A1800 vs A3000: 21 - 29 - 33  [0.452] 83
+Started game 96 of 120 (A3000 vs A1800)
+Finished game 87 (A1800 vs A3000): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 21 - 30 - 33  [0.446] 84
+Started game 97 of 120 (A1800 vs A3000)
+Finished game 86 (A3000 vs A1800): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 22 - 30 - 33  [0.453] 85
+Started game 98 of 120 (A3000 vs A1800)
+Finished game 81 (A1800 vs A3000): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 22 - 31 - 33  [0.448] 86
+Started game 99 of 120 (A1800 vs A3000)
+Finished game 80 (A3000 vs A1800): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 23 - 31 - 33  [0.454] 87
+Started game 100 of 120 (A3000 vs A1800)
+Finished game 89 (A1800 vs A3000): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 23 - 32 - 33  [0.449] 88
+Started game 101 of 120 (A1800 vs A3000)
+Finished game 91 (A1800 vs A3000): 1-0 {White wins by adjudication}
+Score of A1800 vs A3000: 24 - 32 - 33  [0.455] 89
+Started game 102 of 120 (A3000 vs A1800)
+Finished game 90 (A3000 vs A1800): 1-0 {White wins by adjudication}
+Score of A1800 vs A3000: 24 - 33 - 33  [0.450] 90
+Started game 103 of 120 (A1800 vs A3000)
+Finished game 92 (A3000 vs A1800): 1-0 {White wins by adjudication}
+Score of A1800 vs A3000: 24 - 34 - 33  [0.445] 91
+Started game 104 of 120 (A3000 vs A1800)
+Finished game 95 (A1800 vs A3000): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 24 - 35 - 33  [0.440] 92
+Started game 105 of 120 (A1800 vs A3000)
+Finished game 94 (A3000 vs A1800): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 25 - 35 - 33  [0.446] 93
+Started game 106 of 120 (A3000 vs A1800)
+Finished game 99 (A1800 vs A3000): 1/2-1/2 {Draw by insufficient mating material}
+Score of A1800 vs A3000: 25 - 35 - 34  [0.447] 94
+Started game 107 of 120 (A1800 vs A3000)
+Finished game 98 (A3000 vs A1800): 1-0 {White wins by adjudication}
+Score of A1800 vs A3000: 25 - 36 - 34  [0.442] 95
+Started game 108 of 120 (A3000 vs A1800)
+Finished game 88 (A3000 vs A1800): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 26 - 36 - 34  [0.448] 96
+Started game 109 of 120 (A1800 vs A3000)
+Finished game 100 (A3000 vs A1800): 1-0 {White mates}
+Score of A1800 vs A3000: 26 - 37 - 34  [0.443] 97
+Started game 110 of 120 (A3000 vs A1800)
+Finished game 96 (A3000 vs A1800): 1/2-1/2 {Draw by insufficient mating material}
+Score of A1800 vs A3000: 26 - 37 - 35  [0.444] 98
+Started game 111 of 120 (A1800 vs A3000)
+Finished game 97 (A1800 vs A3000): 1-0 {White wins by adjudication}
+Score of A1800 vs A3000: 27 - 37 - 35  [0.449] 99
+Started game 112 of 120 (A3000 vs A1800)
+Finished game 102 (A3000 vs A1800): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A1800 vs A3000: 27 - 37 - 36  [0.450] 100
+Started game 113 of 120 (A1800 vs A3000)
+Finished game 93 (A1800 vs A3000): 1/2-1/2 {Draw by fifty moves rule}
+Score of A1800 vs A3000: 27 - 37 - 37  [0.450] 101
+Started game 114 of 120 (A3000 vs A1800)
+Finished game 104 (A3000 vs A1800): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 28 - 37 - 37  [0.456] 102
+Started game 115 of 120 (A1800 vs A3000)
+Finished game 112 (A3000 vs A1800): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A1800 vs A3000: 28 - 37 - 38  [0.456] 103
+Started game 116 of 120 (A3000 vs A1800)
+Finished game 103 (A1800 vs A3000): 1-0 {White wins by adjudication}
+Score of A1800 vs A3000: 29 - 37 - 38  [0.462] 104
+Started game 117 of 120 (A1800 vs A3000)
+Finished game 111 (A1800 vs A3000): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A1800 vs A3000: 29 - 37 - 39  [0.462] 105
+Started game 118 of 120 (A3000 vs A1800)
+Finished game 107 (A1800 vs A3000): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 29 - 38 - 39  [0.458] 106
+Started game 119 of 120 (A1800 vs A3000)
+Finished game 109 (A1800 vs A3000): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 29 - 39 - 39  [0.453] 107
+Started game 120 of 120 (A3000 vs A1800)
+Finished game 106 (A3000 vs A1800): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 30 - 39 - 39  [0.458] 108
+Finished game 108 (A3000 vs A1800): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 31 - 39 - 39  [0.463] 109
+Finished game 101 (A1800 vs A3000): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 31 - 40 - 39  [0.459] 110
+Finished game 105 (A1800 vs A3000): 1/2-1/2 {Draw by adjudication}
+Score of A1800 vs A3000: 31 - 40 - 40  [0.459] 111
+Finished game 110 (A3000 vs A1800): 1/2-1/2 {Draw by insufficient mating material}
+Score of A1800 vs A3000: 31 - 40 - 41  [0.460] 112
+Finished game 113 (A1800 vs A3000): 1/2-1/2 {Draw by adjudication}
+Score of A1800 vs A3000: 31 - 40 - 42  [0.460] 113
+Finished game 115 (A1800 vs A3000): 1-0 {White wins by adjudication}
+Score of A1800 vs A3000: 32 - 40 - 42  [0.465] 114
+Finished game 114 (A3000 vs A1800): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 33 - 40 - 42  [0.470] 115
+Finished game 117 (A1800 vs A3000): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A1800 vs A3000: 33 - 40 - 43  [0.470] 116
+Finished game 116 (A3000 vs A1800): 0-1 {Black wins by adjudication}
+Score of A1800 vs A3000: 34 - 40 - 43  [0.474] 117
+Finished game 119 (A1800 vs A3000): 1-0 {White wins by adjudication}
+Score of A1800 vs A3000: 35 - 40 - 43  [0.479] 118
+Finished game 118 (A3000 vs A1800): 1/2-1/2 {Draw by adjudication}
+Score of A1800 vs A3000: 35 - 40 - 44  [0.479] 119
+Finished game 120 (A3000 vs A1800): 1/2-1/2 {Draw by insufficient mating material}
+Score of A1800 vs A3000: 35 - 40 - 45  [0.479] 120
+...      A1800 playing White: 18 - 23 - 19  [0.458] 60
+...      A1800 playing Black: 17 - 17 - 26  [0.500] 60
+...      White vs Black: 35 - 40 - 45  [0.479] 120
+Elo difference: -14.5 +/- 49.4, LOS: 28.2 %, DrawRatio: 37.5 %
+SPRT: llr 0 (0.0%), lbound -inf, ubound inf
+
+Player: A1800
+   "Draw by 3-fold repetition": 17
+   "Draw by adjudication": 14
+   "Draw by fifty moves rule": 2
+   "Draw by insufficient mating material": 12
+   "Loss: Black mates": 1
+   "Loss: Black wins by adjudication": 22
+   "Loss: White mates": 1
+   "Loss: White wins by adjudication": 16
+   "Win: Black mates": 1
+   "Win: Black wins by adjudication": 16
+   "Win: White mates": 1
+   "Win: White wins by adjudication": 17
+Player: A3000
+   "Draw by 3-fold repetition": 17
+   "Draw by adjudication": 14
+   "Draw by fifty moves rule": 2
+   "Draw by insufficient mating material": 12
+   "Loss: Black mates": 1
+   "Loss: Black wins by adjudication": 16
+   "Loss: White mates": 1
+   "Loss: White wins by adjudication": 17
+   "Win: Black mates": 1
+   "Win: Black wins by adjudication": 22
+   "Win: White mates": 1
+   "Win: White wins by adjudication": 16
+Finished match

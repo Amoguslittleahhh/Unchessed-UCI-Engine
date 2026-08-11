@@ -1,0 +1,15 @@
+Indexing opening suite...
+Started game 1 of 30 (Adapter500 vs SF1800)
+Terminating process of engine SF1800(1)
+...      Adapter500 playing White: 1 - 0 - 0  [1.000] 1
+...      White vs Black: 1 - 0 - 0  [1.000] 1
+Elo difference: inf +/- nan, LOS: 84.1 %, DrawRatio: 0.0 %
+SPRT: llr 0 (0.0%), lbound -inf, ubound inf
+
+Player: Adapter500
+   "Win: Black disconnects": 1
+Player: SF1800
+   "Loss: Black disconnects": 1
+Finished match
+Finished game 1 (Adapter500 vs SF1800): 1-0 {Black disconnects}
+Score of Adapter500 vs SF1800: 1 - 0 - 0  [1.000] 1

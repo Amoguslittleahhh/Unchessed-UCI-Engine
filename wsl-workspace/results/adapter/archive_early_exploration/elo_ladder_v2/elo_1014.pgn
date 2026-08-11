@@ -1,0 +1,30 @@
+[Event "?"]
+[Site "?"]
+[Date "2026.07.31"]
+[Round "1"]
+[White "Adapter1014"]
+[Black "Stockfish"]
+[Result "0-1"]
+[ECO "A13"]
+[GameDuration "00:00:05"]
+[GameEndTime "2026-07-31T21:10:22.489 +08"]
+[GameStartTime "2026-07-31T21:10:17.423 +08"]
+[Opening "English Opening"]
+[PlyCount "43"]
+[Termination "adjudication"]
+[TimeControl "5+0.05"]
+
+1. c4 {book} e6 {book} 2. b3 {book} d5 {book} 3. Bb2 {book} c5 {book}
+4. cxd5 {book} exd5 {book} 5. Nc3 {book} Nf6 {book} 6. e3 {-0.07/11 0.20s}
+d4 {+0.07/16 0.81s} 7. exd4 {+0.36/11 0.10s} cxd4 {+0.77/13 0.057s}
+8. Nb5 {+0.33/11 0.17s} Nc6 {+1.24/14 0.14s} 9. Nf3 {+0.15/11 0.32s}
+d3 {+2.45/12 0.073s} 10. Bxd3 {+0.80/11 0.16s} Qxd3 {+3.46/14 0.052s}
+11. Nc7+ {0.00/11 0.081s} Kd8 {+3.40/13 0.18s} 12. Nxa8 {+0.07/11 0.13s}
+Bd6 {+3.45/12 0.080s} 13. Qb1 {-0.28/11 0.23s} Re8+ {+3.72/12 0.13s}
+14. Kd1 {-0.22/11 0.12s} Qe2+ {+3.77/13 0.077s} 15. Kc1 {-0.22/10 0.28s}
+Bg4 {+3.66/16 0.13s} 16. Bxf6+ {+0.12/10 0.26s} gxf6 {+4.16/14 0.061s}
+17. Qxh7 {-1.01/9 0.25s} Ba3+ {+M17/25 0.074s} 18. Kc2 {-2.68/10 0.15s}
+Nb4+ {+M13/29 0.062s} 19. Kc3 {-12.35/10 0.13s} Qb5 {+M11/30 0.075s}
+20. Nb6 {-M10/7 0.22s} axb6 {+M9/36 0.078s} 21. d4 {-M8/11 0.097s}
+Nd5+ {+M7/47 0.068s} 22. Kc2 {-M6/12 0.004s, Black wins by adjudication} 0-1
+

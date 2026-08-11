@@ -1,0 +1,28 @@
+[Event "?"]
+[Site "?"]
+[Date "2026.07.31"]
+[Round "1"]
+[White "Adapter1100"]
+[Black "Stockfish"]
+[Result "0-1"]
+[ECO "D00"]
+[GameDuration "00:00:03"]
+[GameEndTime "2026-07-31T19:36:28.399 +08"]
+[GameStartTime "2026-07-31T19:36:24.679 +08"]
+[Opening "Queen's pawn game"]
+[PlyCount "37"]
+[Termination "adjudication"]
+[TimeControl "5+0.05"]
+
+1. d4 {book} d5 {book} 2. e3 {book} Nf6 {book} 3. Nf3 {book} Nc6 {book}
+4. Bd3 {book} e6 {book} 5. c3 {book} Bd6 {book} 6. O-O {-0.05/11 0.13s}
+e5 {+0.21/16 0.33s} 7. Bb5 {0.00/12 0.20s} e4 {+1.12/13 0.083s}
+8. Ne5 {+0.01/12 0.046s} O-O {+1.05/15 0.093s} 9. Nxc6 {+0.35/12 0.048s}
+bxc6 {+1.78/15 0.13s} 10. Bxc6 {+0.24/12 0.071s} Bxh2+ {+4.67/17 0.14s}
+11. Kh1 {+0.29/13 0.086s} Ng4 {+5.13/12 0.10s} 12. g3 {-0.47/12 0.32s}
+Rb8 {+5.50/16 0.13s} 13. Kg2 {-1.67/12 0.30s} Rb6 {+5.87/17 0.53s}
+14. Ba4 {-0.37/10 0.13s} Qg5 {+6.70/15 0.072s} 15. Qe1 {-0.64/8 0.12s}
+Qh5 {+M11/26 0.14s} 16. Nd2 {-10.05/10 0.22s} Rh6 {+M9/28 0.054s}
+17. Nxe4 {-M8/12 0.074s} dxe4 {+M7/47 0.065s} 18. Qe2 {-M6/12 0.007s}
+Qh3+ {+M5/245 0.063s} 19. Kh1 {-M4/4 0s, Black wins by adjudication} 0-1
+
