@@ -15,8 +15,8 @@ numpy as u64.byteswap() + plane reorder [6..11, 0..5].
 Model: shared EmbeddingBag(768 -> 256, sum) feature transformer + bias,
 SCReLU (clamp(x,0,1)^2) on both accumulators, concat [stm, nstm] (512)
 -> Linear(512, 1). Raw output unit is cp/400: the Rust engine computes
-eval_cp = raw * 400. Training: MSE(sigmoid(raw), 0.7*sigmoid(cp/400)
-+ 0.3*(wdl/2)).
+eval_cp = raw * 400. Training loss: |sigmoid(raw) - target|^2.5 (not plain
+MSE), target = 0.7*sigmoid(cp/400) + 0.3*(wdl/2).
 
 Export: b"UNCHNNUE", u32 version=1, u32 ft_in=768, u32 acc=256,
 ft weights [768][256] f32, ft bias [256] f32, out weights [512] f32
@@ -63,6 +63,17 @@ PLANE_SWAP = np.array([6, 7, 8, 9, 10, 11, 0, 1, 2, 3, 4, 5])
 def screlu(x):
     v = x.clamp(0.0, 1.0)
     return v * v
+
+
+def wdl_loss(raw, target):
+    # |sigmoid(raw) - target|^2.5, not plain MSE (exponent 2) -- matches
+    # Stockfish's nnue-pytorch recipe, which weights positions near the
+    # 50%-win boundary (the most decision-relevant ones) more heavily than
+    # squared error alone does. Computed as diff^2 * sqrt(|diff|) rather
+    # than diff ** 2.5 directly, since the latter is NaN for negative diff
+    # under float exponentiation.
+    diff = torch.sigmoid(raw) - target
+    return (diff * diff * diff.abs().sqrt()).mean()
 
 
 class Nnue(nn.Module):
@@ -195,7 +206,7 @@ def train(shards, out_path, epochs):
         running = steps = 0
         for si, so, ni, no, target, _ in batches(data, train_idx, BATCH_SIZE):
             opt.zero_grad()
-            loss = ((torch.sigmoid(model(si, so, ni, no)) - target) ** 2).mean()
+            loss = wdl_loss(model(si, so, ni, no), target)
             loss.backward()
             opt.step()
             running += loss.item()
@@ -245,7 +256,7 @@ def selfcheck():
     for _ in range(3):
         si, so, ni, no, target, _ = make_batch(data[idx])
         opt.zero_grad()
-        loss = ((torch.sigmoid(model(si, so, ni, no)) - target) ** 2).mean()
+        loss = wdl_loss(model(si, so, ni, no), target)
         loss.backward()
         opt.step()
     print(f"selfcheck: 3 training steps done, last loss {loss.item():.6f}",
