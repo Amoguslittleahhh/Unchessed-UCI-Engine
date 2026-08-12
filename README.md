@@ -19,7 +19,7 @@ in the UCI options and default behavior their own `main.rs` exposes.
 |---|---|
 | Bitboard movegen | ✅ perft-verified (startpos d6 = 119,060,324; Kiwipete d5 = 193,690,690, exact) |
 | Search | ✅ iterative deepening alpha-beta, quiescence, TT, null-move, LMR, killers/history, MultiPV, time management |
-| Eval | ✅ tapered hand-crafted eval (material + PSTs + bishop pair); NNUE slots in later behind the `Eval` trait |
+| Eval | ✅ NNUE (768-input/256-accumulator/SCReLU), SPRT-validated +107.1 Elo over the hand-crafted eval, auto-loaded from `unchessed-nnue.bin`; HCE (material + PSTs + bishop pair + mobility/passed-pawns/rook/knight-outpost terms) remains as a fallback when the file is absent |
 | UCI protocol | ✅ full loop, worker-thread search, `stop` safe, 9/9 smoke tests |
 | Time management | ✅ clock-aware: deep searches on a full clock, urgency tiers as time drains (near-instant on the increment in panic mode), situation-scaled budgets (sharp/wide positions get more), easy-move early stop, score-drop extensions; verified flag-free in 10s+0.1s blitz |
 | Opening book | ✅ ~45 embedded main lines with ECO names + troll tier + external Polyglot `.bin` support (key computation verified against the format spec test vectors) |
@@ -167,11 +167,30 @@ python tools/train_policy.py samples unchessed-maia.bin 3 256 4000000
 Debug helper: type `policy 1200` (or any rating) into the engine's stdin to
 see the net's top human moves for the current position.
 
+## The NNUE evaluator
+
+`unchessed-nnue.bin` (auto-loaded next to the exe if present, `EvalFile` UCI
+option to point elsewhere, falls back to HCE if absent/unreadable) is trained
+on 108M HCE-labeled self-play positions via `tools/train_nnue.py` — a small
+768-input/256-accumulator/SCReLU net (~197K params), 15 epochs, WDL-space loss
+with exponent 2.5 matching Stockfish's nnue-pytorch recipe. SPRT-validated
++107.1 ± 27.0 Elo over the hand-crafted eval (532 games, LOS 100%) — the
+biggest single gain in this project's history, more than double the previous
+best (mobility, +52.3 Elo).
+
+```
+python tools/train_nnue.py selfcheck              # format/gradient sanity check
+python tools/train_nnue.py unchessed-nnue.bin 15 shard0.bin shard1.bin ...
+```
+
 ## Roadmap (next rounds)
 
 - **Reviewer**: full-strength UCI engine + PGN review CLI (move classification,
   accuracy %).
-- **NNUE** evaluation + trainer (the `Eval` trait seam is ready).
+- **NNUE**: quantization-aware training (int8/int16, ~5000x faster inference),
+  incremental accumulator updates, training on Lc0-distilled labels instead of
+  the current HCE-labeled data (shadow-streaming Lc0's training-data repository
+  directly, deliberately deferred pending this first result).
 - Deeper policy nets (conv/resnet) once GPU training is available; more data,
   more buckets.
 - Lazy SMP threads, pondering, tablebases, adaptation tuning.
