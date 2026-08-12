@@ -72,8 +72,21 @@ def wdl_loss(raw, target):
     # squared error alone does. Computed as diff^2 * sqrt(|diff|) rather
     # than diff ** 2.5 directly, since the latter is NaN for negative diff
     # under float exponentiation.
+    #
+    # The epsilon inside the sqrt is load-bearing, not cosmetic: sqrt(x)'s
+    # gradient is 1/(2*sqrt(x)), which is infinite at x=0. Autograd doesn't
+    # algebraically simplify diff^2 * sqrt(|diff|) before differentiating,
+    # so even though the TRUE combined derivative is a well-defined 0 as
+    # diff -> 0, the product rule evaluates as inf * 0 = NaN at exactly
+    # diff == 0 -- and across a large batch, at least one sample landing
+    # exactly (or numerically) at diff == 0 is close to inevitable. That
+    # single NaN then poisons the whole batch's gradient via .mean()'s
+    # backward, corrupting every weight after one optimizer step. Clamping
+    # the sqrt's argument away from exactly 0 keeps the gradient finite
+    # (bounded by 1/(2*sqrt(eps))) with a negligible accuracy cost, since
+    # diff^2 is also -> 0 in that same regime.
     diff = torch.sigmoid(raw) - target
-    return (diff * diff * diff.abs().sqrt()).mean()
+    return (diff * diff * (diff.abs() + 1e-8).sqrt()).mean()
 
 
 class Nnue(nn.Module):
@@ -166,24 +179,36 @@ def export_net(model, path):
 
 
 def train(shards, out_path, epochs):
-    parts = []
+    # Read shard sizes up front and allocate the full array once, then read
+    # each shard directly into its slice -- avoids ever holding both the
+    # per-shard arrays AND their concatenation in memory simultaneously
+    # (np.concatenate on a list of already-loaded parts doubles peak RSS
+    # for the whole run, since Python has no reason to free `parts` while
+    # it's still a live local variable -- at 100M+ records that's an extra
+    # ~11GB retained uselessly for the entire multi-hour training run).
+    counts = []
     for p in shards:
         size = os.path.getsize(p)
         if size % REC.itemsize != 0:
             print(f"warning: {p} size {size} not a multiple of {REC.itemsize}, "
                   f"trailing bytes ignored", flush=True)
-        part = np.fromfile(p, dtype=REC)
+        counts.append(size // REC.itemsize)
+    n = sum(counts)
+    if n < 1000:
+        raise SystemExit(f"ERROR: only {n} records total — refusing to train")
+    data = np.empty(n, dtype=REC)
+    offset = 0
+    for p, cnt in zip(shards, counts):
+        part = np.fromfile(p, dtype=REC, count=cnt)
         # guard against ingesting Maia-policy shards (same 104-byte size,
         # different fields): NNUE records have wdl<=2 and zero padding
         if len(part) and (part["wdl"].max() > 2 or (part["pad"] != 0).any()):
             raise SystemExit(f"ERROR: {p} does not look like an NNUE sample file "
                              f"(wdl>2 or nonzero padding) — wrong shard?")
         print(f"loaded {len(part)} records from {p}", flush=True)
-        parts.append(part)
-    data = np.concatenate(parts) if len(parts) > 1 else parts[0]
-    n = len(data)
-    if n < 1000:
-        raise SystemExit(f"ERROR: only {n} records total — refusing to train")
+        data[offset : offset + cnt] = part
+        offset += cnt
+    del part
     n_val = min(200_000, max(1, n // 50))  # 200k, or 2% if smaller
     rng = np.random.default_rng(42)
     perm = rng.permutation(n)
