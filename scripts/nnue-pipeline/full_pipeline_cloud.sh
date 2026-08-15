@@ -14,12 +14,26 @@
 #      months still downloading keep going in the background while already-
 #      ready months are being labeled on the CPU. Network-bound and CPU-bound
 #      work overlap instead of happening in two fully separate phases.
-#   2. `trap ... EXIT` shuts the instance down the moment the script ends,
-#      on ANY exit path (success, training failure, or an early abort) --
-#      by far the single biggest cost lever, since an idle rented GPU box
-#      left running overnight costs far more than the run itself. Remove
-#      the trap line below if you want the box to stay up afterward (e.g.
-#      to run SPRT/inference tests before deciding to tear it down).
+#   2. `trap ... EXIT` DELETES the instance via the Verda CLI the moment the
+#      script ends, on ANY exit path (success, training failure, or an early
+#      abort). This is NOT a plain OS shutdown -- Verda's own docs
+#      (docs.verda.com/cpu-and-gpu-instances/shutdown-hibernate-and-delete)
+#      say explicitly "Shutdown instances continue to charge your account."
+#      Only `verda vm delete` (or `hibernate`) actually stops compute
+#      billing; `shutdown -h now` from inside the OS does not, on this
+#      provider. Requires VERDA_CLIENT_ID/VERDA_CLIENT_SECRET (Verda's
+#      documented env vars for CLI auth) and VERDA_INSTANCE_ID exported
+#      before running this script -- see the instructions printed below if
+#      they're missing. Remove the trap line if you want the box to stay up
+#      afterward (e.g. to run SPRT/inference tests before tearing it down).
+#   CAVEAT, not fully resolved: Verda's docs also say deleting an instance
+#   does NOT delete its attached storage by default ("By default, no
+#   storage is selected for deletion. All storage not marked for deletion
+#   will continue to charge your account.") -- the CLI's exact flag for
+#   also deleting the boot volume wasn't confirmed from the docs page
+#   fetched during this session. After a run, verify via the Verda
+#   dashboard that no orphaned volume is still billing, and delete it
+#   manually there if so.
 #
 # Adjust BIN/FRESH/NNUE_DIR/VENV/TRAIN_SRC below to match the actual paths
 # on the provisioned box before running. Deliberately NOT using `set -e` --
@@ -34,12 +48,25 @@ LICHESS_BASE="https://database.lichess.org/standard"
 
 log() { echo "[$(date '+%H:%M:%S')] $1"; }
 
-# Stops billing the instant this script finishes, no matter how it exits.
-# `sudo shutdown -h now` assumes passwordless sudo, which is the default on
-# most cloud provider Ubuntu images -- verify this works on the actual box
-# (or swap in the provider's own halt/terminate CLI call) before relying on
-# it unattended.
-trap 'log "Pipeline finished (exit $?) -- shutting down instance to stop billing."; sudo shutdown -h now' EXIT
+# Stops billing the instant this script finishes, no matter how it exits --
+# see the CAVEAT above about attached storage possibly surviving the delete.
+teardown() {
+  local exit_code=$?
+  log "Pipeline finished (exit $exit_code)."
+  if [ -z "${VERDA_INSTANCE_ID:-}" ] || ! command -v verda > /dev/null 2>&1; then
+    log "!!! COULD NOT AUTO-DELETE: VERDA_INSTANCE_ID not set or 'verda' CLI not installed."
+    log "!!! Plain OS shutdown does NOT stop billing on Verda (confirmed via their docs)."
+    log "!!! YOU MUST MANUALLY DELETE THIS INSTANCE from the Verda dashboard/CLI now, or it keeps charging."
+    return
+  fi
+  log "Deleting instance $VERDA_INSTANCE_ID via Verda CLI to stop billing..."
+  if verda vm delete "$VERDA_INSTANCE_ID" --yes; then
+    log "Instance delete requested. Verify in the Verda dashboard that no orphaned storage volume is still billing (see CAVEAT above)."
+  else
+    log "!!! 'verda vm delete' FAILED. YOU MUST MANUALLY DELETE THIS INSTANCE from the Verda dashboard now, or it keeps charging."
+  fi
+}
+trap teardown EXIT
 
 mkdir -p "$FRESH" "$NNUE_DIR"
 
