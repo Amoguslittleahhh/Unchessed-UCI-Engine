@@ -192,25 +192,48 @@ def halfka_indices(bits):
     return feat.to(torch.int64), offsets
 
 
-def make_batch(sel):
-    n = len(sel)
-    bb_np = np.ascontiguousarray(sel["bb"]).view(np.int64)  # bit-reinterpret only
-    bb = torch.from_numpy(bb_np).to(DEVICE, non_blocking=True)
+def _features_and_target(bb, score, wdl):
+    """bb: [n, 12] int64 tensor on DEVICE (raw bitboard bits, reinterpreted
+    from uint64). score: [n] int-ish tensor on DEVICE. wdl: [n] int-ish
+    tensor on DEVICE. Shared by both the host-resident (make_batch) and
+    GPU-resident (make_batch_resident) data paths below."""
     bits = unpack_planes(bb)
     stm_bits, nstm_bits = both_perspectives(bits)
     stm_idx, stm_off = halfka_indices(stm_bits)
     nstm_idx, nstm_off = halfka_indices(nstm_bits)
+    score_f = score.to(torch.float32)
+    target = 0.7 * torch.sigmoid(score_f / 400.0) + 0.3 * (wdl.to(torch.float32) / 2.0)
+    return stm_idx, stm_off, nstm_idx, nstm_off, target, score_f
 
+
+def make_batch(sel):
+    """Host-resident path: sel is a structured-array slice living in host
+    RAM (numpy). Ships just this batch's raw bytes to DEVICE."""
+    bb_np = np.ascontiguousarray(sel["bb"]).view(np.int64)  # bit-reinterpret only
+    bb = torch.from_numpy(bb_np).to(DEVICE, non_blocking=True)
     score = torch.from_numpy(np.ascontiguousarray(sel["score"])).to(
         DEVICE, non_blocking=True
     )
     wdl = torch.from_numpy(np.ascontiguousarray(sel["wdl"])).to(
         DEVICE, non_blocking=True
     )
-    score_f = score.to(torch.float32)
-    target = 0.7 * torch.sigmoid(score_f / 400.0) + 0.3 * (wdl.to(torch.float32) / 2.0)
+    return _features_and_target(bb, score, wdl)
 
-    return stm_idx, stm_off, nstm_idx, nstm_off, target, score_f
+
+def make_batch_resident(bb_all, score_all, wdl_all, idx_t):
+    """GPU-resident path: bb_all/score_all/wdl_all are the FULL dataset,
+    already living on DEVICE as tensors; idx_t is an index tensor also on
+    DEVICE. No host<->device transfer and no CPU-side numpy fancy-indexing
+    happen here at all -- both the gather and the feature extraction run as
+    DEVICE tensor ops. Used when the whole dataset fits comfortably in GPU
+    memory (raw records are only 104 bytes each, so even 500M+ records is a
+    two-digit-GB footprint -- cheap relative to a modern training GPU's
+    VRAM), to avoid the repeated per-epoch host RAM traffic and numpy
+    indexing cost of re-touching the same host array 15+ times."""
+    bb = bb_all.index_select(0, idx_t)
+    score = score_all.index_select(0, idx_t)
+    wdl = wdl_all.index_select(0, idx_t)
+    return _features_and_target(bb, score, wdl)
 
 
 def batches(data, idx, bs):
@@ -218,11 +241,17 @@ def batches(data, idx, bs):
         yield make_batch(data[idx[s : s + bs]])
 
 
-def evaluate(model, data, idx, bs=BATCH_SIZE):
-    """(val MSE loss, val MAE in centipawns)."""
+def batches_resident(bb_all, score_all, wdl_all, idx_t, bs):
+    for s in range(0, len(idx_t), bs):
+        yield make_batch_resident(bb_all, score_all, wdl_all, idx_t[s : s + bs])
+
+
+def evaluate_iter(model, batch_iter):
+    """(val MSE loss, val MAE in centipawns), given any iterable of batches
+    (either batches() or batches_resident())."""
     se = ae = n = 0.0
     with torch.no_grad():
-        for si, so, ni, no, target, score in batches(data, idx, bs):
+        for si, so, ni, no, target, score in batch_iter:
             raw = model(si, so, ni, no)
             se += ((torch.sigmoid(raw) - target) ** 2).sum().item()
             ae += (raw * 400.0 - score).abs().sum().item()
@@ -279,11 +308,32 @@ def train(shards, out_path, epochs):
     n_val = min(200_000, max(1, n // 50))  # 200k, or 2% if smaller
     rng = np.random.default_rng(42)
     perm = rng.permutation(n)
-    val_idx, train_idx = perm[:n_val], perm[n_val:]
-    print(f"total {n} records: {len(train_idx)} train / {n_val} val", flush=True)
+    val_idx_np, train_idx_np = perm[:n_val], perm[n_val:]
+    print(f"total {n} records: {len(train_idx_np)} train / {n_val} val", flush=True)
     print(f"device: {DEVICE}"
           + (f" ({torch.cuda.get_device_name(DEVICE)})" if DEVICE.type == "cuda" else "")
           + f", batch size: {BATCH_SIZE}, ft_in: {FT_IN}", flush=True)
+
+    # GPU-resident mode: on CUDA, ship the WHOLE dataset to DEVICE once (raw
+    # records are only 104 bytes each, so even several hundred million
+    # records is a two-digit-GB footprint -- cheap relative to a training
+    # GPU's VRAM) and free the host copy. Every epoch's shuffle/gather then
+    # runs as a DEVICE tensor op instead of repeated host<->device transfer
+    # plus CPU-bound numpy fancy-indexing of the same array 15+ times. On
+    # CPU there's no separate memory pool to move into, so this is skipped
+    # and the original host-resident path (data[idx] numpy slicing) is used.
+    gpu_resident = DEVICE.type == "cuda"
+    if gpu_resident:
+        print(f"GPU-resident mode: transferring full dataset "
+              f"({data.nbytes / 1e9:.1f} GB) to {DEVICE}...", flush=True)
+        bb_all = torch.from_numpy(np.ascontiguousarray(data["bb"]).view(np.int64)).to(DEVICE)
+        score_all = torch.from_numpy(np.ascontiguousarray(data["score"])).to(DEVICE)
+        wdl_all = torch.from_numpy(np.ascontiguousarray(data["wdl"])).to(DEVICE)
+        del data
+        train_idx = torch.from_numpy(train_idx_np).to(DEVICE)
+        val_idx = torch.from_numpy(val_idx_np).to(DEVICE)
+    else:
+        train_idx, val_idx = train_idx_np, val_idx_np
 
     model = Nnue().to(DEVICE)
     opt = torch.optim.Adam(model.parameters(), lr=1e-3)
@@ -293,10 +343,15 @@ def train(shards, out_path, epochs):
         lr = 1e-3 * 0.3 ** ((ep >= drop1) + (ep >= drop2))
         for g in opt.param_groups:
             g["lr"] = lr
-        train_idx = rng.permutation(train_idx)
+        if gpu_resident:
+            train_idx = train_idx[torch.randperm(len(train_idx), device=DEVICE)]
+            train_iter = batches_resident(bb_all, score_all, wdl_all, train_idx, BATCH_SIZE)
+        else:
+            train_idx = rng.permutation(train_idx)
+            train_iter = batches(data, train_idx, BATCH_SIZE)
         t0 = time.time()
         running = steps = 0
-        for si, so, ni, no, target, _ in batches(data, train_idx, BATCH_SIZE):
+        for si, so, ni, no, target, _ in train_iter:
             opt.zero_grad()
             loss = wdl_loss(model(si, so, ni, no), target)
             loss.backward()
@@ -304,7 +359,11 @@ def train(shards, out_path, epochs):
             running += loss.item()
             steps += 1
         t_train = time.time() - t0
-        val_loss, val_mae = evaluate(model, data, val_idx)
+        if gpu_resident:
+            val_iter = batches_resident(bb_all, score_all, wdl_all, val_idx, BATCH_SIZE)
+        else:
+            val_iter = batches(data, val_idx, BATCH_SIZE)
+        val_loss, val_mae = evaluate_iter(model, val_iter)
         print(
             f"epoch {ep + 1}/{epochs}: lr {lr:.1e} "
             f"train-loss {running / max(steps, 1):.6f} "
