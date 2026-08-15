@@ -221,9 +221,48 @@ TRAIN_EXIT=$?
 
 if [ "$TRAIN_EXIT" -eq 0 ]; then
   log "Training finished successfully. Output: $OUT"
+
+  # Commit as a NEW file, NOT overwriting the currently-deployed
+  # unchessed-nnue.bin -- this project's standing rule is nothing gets
+  # promoted to the default eval without passing an SPRT gate first (v1 was
+  # gated before becoming default; this run hasn't been). Requires push
+  # access to the repo (SSH deploy key or an HTTPS remote with a configured
+  # credential helper) already set up on this box -- if push fails, the
+  # commit still exists locally in $TRAIN_SRC and the raw weights are still
+  # at $OUT, so nothing is silently lost, but it won't be on GitHub.
+  log "Committing trained weights to git as a new file (not promoted to default eval -- needs an SPRT gate first)..."
+  cd "$TRAIN_SRC"
+  cp "$OUT" ./unchessed-nnue-v3.bin
+  git add -f unchessed-nnue-v3.bin
+  if git commit -m "$(cat <<COMMITMSG
+Add NNUE v3 weights (HalfKA features, cloud-trained, $TOTAL_RECORDS records)
+
+Trained unattended on a rented Verda A100 80GB instance. NOT yet
+SPRT-validated and NOT promoted to the default eval -- unchessed-nnue.bin
+(v1) remains the SPRT-validated default. Run the standard SPRT gate against
+it before switching uci.rs's default eval to this file.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+COMMITMSG
+)"; then
+    if git push; then
+      log "Pushed trained v3 weights to git."
+    else
+      log "!!! git push FAILED -- check remote credentials on this box. The commit exists locally in $TRAIN_SRC but was NOT pushed."
+    fi
+  else
+    log "!!! git commit FAILED -- trained weights are still at $OUT and $TRAIN_SRC/unchessed-nnue-v3.bin, just not committed."
+  fi
 else
-  log "Training FAILED (exit code $TRAIN_EXIT). Check $LOG for the error -- nothing was overwritten."
+  log "Training FAILED (exit code $TRAIN_EXIT). Check $LOG for the error -- nothing was committed."
 fi
 tail -20 "$LOG"
 
-log "Pipeline done. Instance will shut down now (see trap above) -- copy $OUT off the box before it stops if you haven't already synced it elsewhere."
+# Free disk before teardown. Scoped to generated DATA only (downloads,
+# decompressed PGNs, labeled shards, training logs) -- deliberately does
+# NOT rm -rf the git repo itself, so a just-made commit that failed to push
+# above still has a chance to be inspected/pushed manually if needed before
+# the instance actually goes away.
+log "Cleaning up generated data before teardown..."
+rm -rf "$FRESH" "$NNUE_DIR" ~/unchessed-ai/results/nnue_training
+log "Pipeline done. Instance will be deleted now (see teardown trap above)."
