@@ -14,18 +14,19 @@
 #      months still downloading keep going in the background while already-
 #      ready months are being labeled on the CPU. Network-bound and CPU-bound
 #      work overlap instead of happening in two fully separate phases.
-#   2. `trap ... EXIT` DELETES the instance via the Verda CLI the moment the
-#      script ends, on ANY exit path (success, training failure, or an early
-#      abort). This is NOT a plain OS shutdown -- Verda's own docs
-#      (docs.verda.com/cpu-and-gpu-instances/shutdown-hibernate-and-delete)
-#      say explicitly "Shutdown instances continue to charge your account."
-#      Only `verda vm delete` (or `hibernate`) actually stops compute
-#      billing; `shutdown -h now` from inside the OS does not, on this
-#      provider. Requires VERDA_CLIENT_ID/VERDA_CLIENT_SECRET (Verda's
-#      documented env vars for CLI auth) and VERDA_INSTANCE_ID exported
-#      before running this script -- see the instructions printed below if
-#      they're missing. Remove the trap line if you want the box to stay up
-#      afterward (e.g. to run SPRT/inference tests before tearing it down).
+#   2. Deletion is MANUAL, by design. The script sends a push notification
+#      (via ntfy.sh, see NOTIFY_TOPIC below) when the run finishes or fails,
+#      with the exact `verda vm delete ...` command to run yourself -- it
+#      does NOT auto-delete the instance, so you keep full control over
+#      when the box actually goes away (e.g. to copy weights off first, or
+#      run SPRT/inference tests before tearing it down). This means an idle
+#      instance keeps billing until you act on the notification -- that's
+#      the deliberate tradeoff for not risking data loss while you're away.
+#      Reminder either way: per Verda's own docs
+#      (docs.verda.com/cpu-and-gpu-instances/shutdown-hibernate-and-delete),
+#      "Shutdown instances continue to charge your account" -- only
+#      `verda vm delete` (or `hibernate`) actually stops compute billing;
+#      `shutdown -h now` from inside the OS does not, on this provider.
 #   CAVEAT, not fully resolved: Verda's docs also say deleting an instance
 #   does NOT delete its attached storage by default ("By default, no
 #   storage is selected for deletion. All storage not marked for deletion
@@ -46,27 +47,32 @@ VENV=~/unchessed-ai/data/maia-venv
 TRAIN_SRC=~/unchessed-kingsafety-src
 LICHESS_BASE="https://database.lichess.org/standard"
 
+# Push notification so you know the run is done even if you're away from
+# the terminal -- ntfy.sh needs no account/API key, just a private topic
+# name only you know (pick something long/random, e.g. a UUID) and
+# subscribe to it beforehand via the ntfy app or https://ntfy.sh/<topic> in
+# a browser. Set NOTIFY_TOPIC before running this script; if unset,
+# notifications are silently skipped (logged, not fatal).
+NOTIFY_TOPIC="${NOTIFY_TOPIC:-}"
+
 log() { echo "[$(date '+%H:%M:%S')] $1"; }
 
-# Stops billing the instant this script finishes, no matter how it exits --
-# see the CAVEAT above about attached storage possibly surviving the delete.
-teardown() {
-  local exit_code=$?
-  log "Pipeline finished (exit $exit_code)."
-  if [ -z "${VERDA_INSTANCE_ID:-}" ] || ! command -v verda > /dev/null 2>&1; then
-    log "!!! COULD NOT AUTO-DELETE: VERDA_INSTANCE_ID not set or 'verda' CLI not installed."
-    log "!!! Plain OS shutdown does NOT stop billing on Verda (confirmed via their docs)."
-    log "!!! YOU MUST MANUALLY DELETE THIS INSTANCE from the Verda dashboard/CLI now, or it keeps charging."
+notify() {
+  local msg="$1"
+  if [ -z "$NOTIFY_TOPIC" ]; then
+    log "notify (skipped, NOTIFY_TOPIC not set): $msg"
     return
   fi
-  log "Deleting instance $VERDA_INSTANCE_ID via Verda CLI to stop billing..."
-  if verda vm delete "$VERDA_INSTANCE_ID" --yes; then
-    log "Instance delete requested. Verify in the Verda dashboard that no orphaned storage volume is still billing (see CAVEAT above)."
-  else
-    log "!!! 'verda vm delete' FAILED. YOU MUST MANUALLY DELETE THIS INSTANCE from the Verda dashboard now, or it keeps charging."
-  fi
+  curl -fsS -d "$msg" "https://ntfy.sh/$NOTIFY_TOPIC" > /dev/null 2>&1 \
+    || log "notify: curl to ntfy.sh failed (no internet, or ntfy.sh down?) -- message was: $msg"
 }
-trap teardown EXIT
+
+# No auto-delete. Instance deletion is manual by design -- this script only
+# notifies you and prints the exact command to run yourself when ready.
+# Remember: per Verda's own docs, a plain OS `shutdown` does NOT stop
+# billing on this provider -- only `verda vm delete` (or `hibernate`) does,
+# and even that leaves attached storage billing separately unless you also
+# choose to delete it (see CAVEAT above).
 
 mkdir -p "$FRESH" "$NNUE_DIR"
 
@@ -219,14 +225,19 @@ env DEVICE=cuda BATCH_SIZE=131072 \
   > "$LOG" 2>&1
 TRAIN_EXIT=$?
 
+DELETE_CMD="verda vm delete ${VERDA_INSTANCE_ID:-<instance-id>} --yes"
 if [ "$TRAIN_EXIT" -eq 0 ]; then
   log "Training finished successfully. Output: $OUT"
+  notify "NNUE training finished OK. Instance is still running -- copy $OUT off, then delete it yourself: $DELETE_CMD"
 else
   log "Training FAILED (exit code $TRAIN_EXIT). Check $LOG for the error."
+  notify "NNUE training FAILED (exit $TRAIN_EXIT). Instance is still running -- inspect $LOG, then delete it yourself: $DELETE_CMD"
 fi
 tail -20 "$LOG"
 
-# No auto git-commit and no auto cleanup here by design -- both left for
-# manual handling. $FRESH ($NNUE_DIR's raw shards) and the trained weights
-# in $OUT are all left on disk as-is.
-log "Pipeline done. Data and weights left on disk ($FRESH, $NNUE_DIR, $OUT) -- copy $OUT off the box, then clean up manually. Instance will be deleted now regardless (see teardown trap above) -- if you need more time before that happens, Ctrl-C this script before it reaches this point next run, or comment out the trap line."
+# No auto git-commit, no auto cleanup, no auto-delete -- all left for
+# manual handling. The instance keeps running (and billing) until you
+# delete it yourself.
+log "Data and weights left on disk ($FRESH, $NNUE_DIR, $OUT) for manual retrieval/cleanup."
+log "Instance is NOT auto-deleted. When you're done, delete it yourself: $DELETE_CMD"
+log "Reminder: a plain OS 'shutdown' does NOT stop billing on Verda -- only 'verda vm delete' (or hibernate) does, and attached storage may keep billing separately unless also deleted (see CAVEAT above)."
