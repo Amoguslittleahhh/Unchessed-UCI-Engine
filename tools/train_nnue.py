@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Train the first NNUE eval net for Unchessed AI (CPU, PyTorch).
+"""Train the NNUE eval net for Unchessed AI (v3: HalfKA king-relative
+features, GPU-resident pipeline). PyTorch, CPU or CUDA.
 
 Input: shard .bin files of 104-byte records, side-to-move normalized:
   12 x u64 LE bitboards (planes 0-5 = mover P,N,B,R,Q,K; 6-11 = opponent;
@@ -8,19 +9,39 @@ Input: shard .bin files of 104-byte records, side-to-move normalized:
   + i16 LE search score in centipawns (stm pov)
   + u8 wdl (2 = mover won, 1 = draw, 0 = lost) + 5 pad bytes.
 
-Features: STM perspective index = plane*64 + sq (768). NSTM perspective =
-swap plane groups (own<->opp) AND flip squares vertically (sq^56), done in
-numpy as u64.byteswap() + plane reorder [6..11, 0..5].
+Features (v3, HalfKA-style, king-relative, no mirroring/bucketing yet):
+  feature = king_sq*704 + piece_idx*64 + sq, where king_sq is the OWN king's
+  square (the anchor, never itself an active feature), and piece_idx enum-
+  erates the 11 non-own-king planes in order [ownP,N,B,R,Q, oppP,N,B,R,Q,K].
+  FT_IN = 64 * 11 * 64 = 45056. STM perspective computed directly from the
+  mover-perspective planes; NSTM perspective derived from the same unpacked
+  bit-planes via a plane-group swap + rank flip (sq -> sq^56), entirely in
+  torch so it can run on DEVICE (see unpack_planes/both_perspectives below)
+  instead of numpy -- this is the "GPU-resident pipeline" change: the only
+  CPU-bound step left is reading shard bytes off disk into the preloaded
+  in-RAM array; everything from raw bb bytes onward (bit unpacking, feature-
+  index construction, target computation) runs as tensor ops on DEVICE.
 
-Model: shared EmbeddingBag(768 -> 256, sum) feature transformer + bias,
-SCReLU (clamp(x,0,1)^2) on both accumulators, concat [stm, nstm] (512)
--> Linear(512, 1). Raw output unit is cp/400: the Rust engine computes
+Model: shared EmbeddingBag(45056 -> 256, sum) feature transformer + bias.
+Output head concatenates BOTH SCReLU (clamp(x,0,1)^2) and plain ClippedReLU
+(clamp(x,0,1)) of each perspective's accumulator (SFNNv5 trick) -> 4*256 =
+1024 -> Linear(1024, 1). Raw output unit is cp/400: the Rust engine computes
 eval_cp = raw * 400. Training loss: |sigmoid(raw) - target|^2.5 (not plain
 MSE), target = 0.7*sigmoid(cp/400) + 0.3*(wdl/2).
 
-Export: b"UNCHNNUE", u32 version=1, u32 ft_in=768, u32 acc=256,
-ft weights [768][256] f32, ft bias [256] f32, out weights [512] f32
-(STM half first, matching the concat order), out bias [1] f32. All LE.
+Export: b"UNCHNNUE", u32 version=2, u32 ft_in=45056, u32 acc=256,
+ft weights [45056][256] f32, ft bias [256] f32, out weights [1024] f32
+(order: STM SCReLU, STM ClippedReLU, NSTM SCReLU, NSTM ClippedReLU), out
+bias [1] f32. All LE.
+
+NOTE: this is a breaking format change from v1 (flat-768 features, 512-wide
+out layer, version=1). The Rust engine's NNUE loader/inference code
+(unchessed-core) MUST be updated to match this feature scheme (king-relative
+indexing, not flat plane*64+sq) AND the new version/out-layer size before a
+net trained with this script can be loaded and played -- this script alone
+does not make that pairing automatic. Existing v1 unchessed-nnue.bin stays
+loadable/playable until that Rust-side update lands; don't overwrite it with
+a v2 export until the loader is ready.
 
 Usage: train_nnue.py selfcheck
        train_nnue.py <out.bin> <epochs> <shard1.bin> [shard2.bin ...]
@@ -51,18 +72,32 @@ REC = np.dtype(
         ("pad", "u1", 5),
     ]
 )
-FT_IN = 768
+VERSION = 2
+N_KING_SQ = 64
+KEEP_PLANES = np.array([0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11])  # exclude own king (plane 5)
+N_PLANES_KEPT = len(KEEP_PLANES)  # 11
+N_PIECE_SQ = N_PLANES_KEPT * 64  # 704
+FT_IN = N_KING_SQ * N_PIECE_SQ  # 45056
 ACC = 256
 MAGIC = b"UNCHNNUE"
 HEADER_SIZE = 8 + 3 * 4
-PAYLOAD_FLOATS = FT_IN * ACC + ACC + 2 * ACC + 1
+PAYLOAD_FLOATS = FT_IN * ACC + ACC + 4 * ACC + 1
 # NSTM perspective: use opponent planes as "own" and vice versa.
 PLANE_SWAP = np.array([6, 7, 8, 9, 10, 11, 0, 1, 2, 3, 4, 5])
+
+# Constant tensors for the torch-native (DEVICE-resident) feature pipeline.
+_BIT_SHIFTS = torch.arange(64, dtype=torch.int64, device=DEVICE)
+_PLANE_SWAP_T = torch.tensor(PLANE_SWAP, dtype=torch.int64, device=DEVICE)
+_KEEP_PLANES_T = torch.tensor(KEEP_PLANES, dtype=torch.int64, device=DEVICE)
 
 
 def screlu(x):
     v = x.clamp(0.0, 1.0)
     return v * v
+
+
+def crelu(x):
+    return x.clamp(0.0, 1.0)
 
 
 def wdl_loss(raw, target):
@@ -95,55 +130,87 @@ class Nnue(nn.Module):
         # include_last_offset=True: offsets has n+1 entries, last = total nnz.
         self.ft = nn.EmbeddingBag(FT_IN, ACC, mode="sum", include_last_offset=True)
         self.ft_bias = nn.Parameter(torch.zeros(ACC))
-        self.out = nn.Linear(2 * ACC, 1, bias=True)
-        # Default EmbeddingBag init is N(0,1); with ~30 active features the
+        self.out = nn.Linear(4 * ACC, 1, bias=True)
+        # Default EmbeddingBag init is N(0,1); with ~28 active features the
         # sum would saturate SCReLU immediately. Small uniform init instead.
         nn.init.uniform_(self.ft.weight, -0.05, 0.05)
 
     def forward(self, stm_idx, stm_off, nstm_idx, nstm_off):
         acc_stm = self.ft(stm_idx, stm_off) + self.ft_bias
         acc_nstm = self.ft(nstm_idx, nstm_off) + self.ft_bias
-        h = torch.cat([screlu(acc_stm), screlu(acc_nstm)], dim=1)
+        # SFNNv5 trick: concat plain ClippedReLU alongside SCReLU so the
+        # output layer sees both the squared and linear activation shape.
+        h = torch.cat(
+            [screlu(acc_stm), crelu(acc_stm), screlu(acc_nstm), crelu(acc_nstm)],
+            dim=1,
+        )
         return self.out(h).squeeze(1)  # raw output ~ cp/400
 
 
-def perspective_bits(sel):
-    """(stm_bits, nstm_bits), each uint8 [n, 768], bit p*64+s set iff active."""
-    n = len(sel)
-    bb = np.ascontiguousarray(sel["bb"])
-    stm = np.unpackbits(bb.view(np.uint8).reshape(n, 96), axis=1, bitorder="little")
-    # byteswap of a u64 == vertical flip of a bitboard (sq -> sq^56)
-    flipped = np.ascontiguousarray(bb.byteswap()[:, PLANE_SWAP])
-    nstm = np.unpackbits(
-        flipped.view(np.uint8).reshape(n, 96), axis=1, bitorder="little"
+def unpack_planes(bb):
+    """bb: [n, 12] int64 tensor on DEVICE (raw bitboard bits, reinterpreted
+    from uint64 -- sign is irrelevant, only used for bitwise ops below).
+    Returns [n, 12, 64] uint8 one-hot per plane/square, bit i -> square i
+    (a1=0..h8=63). Runs entirely as tensor ops so it executes on DEVICE
+    (GPU) when available instead of CPU-bound numpy unpackbits."""
+    shifted = bb.unsqueeze(-1) >> _BIT_SHIFTS  # [n, 12, 64]
+    return (shifted & 1).to(torch.uint8)
+
+
+def both_perspectives(bits):
+    """bits: [n, 12, 64] mover-perspective one-hot planes (0-5 own P..K,
+    6-11 opp same). Returns (stm_bits, nstm_bits). NSTM is derived from the
+    already-unpacked STM bits via a plane-group swap + rank flip (sq ->
+    sq^56 == reversing the 8-square rank groups), which is algebraically
+    equivalent to byte-swapping the raw u64 before unpacking but stays in
+    tensor-land so it can run on DEVICE."""
+    n = bits.shape[0]
+    nstm = (
+        bits[:, _PLANE_SWAP_T, :]
+        .reshape(n, 12, 8, 8)
+        .flip(dims=(2,))
+        .reshape(n, 12, 64)
     )
-    return stm, nstm
+    return bits, nstm
 
 
-def flat_indices(bits):
-    """Variable-length exact bags: flat feature indices + offsets [n+1]."""
-    rows, cols = np.nonzero(bits)  # row-major -> cols grouped per sample
-    offsets = np.zeros(len(bits) + 1, dtype=np.int64)
-    np.cumsum(bits.sum(axis=1, dtype=np.int64), out=offsets[1:])
-    return torch.from_numpy(cols.astype(np.int64)), torch.from_numpy(offsets)
+def halfka_indices(bits):
+    """bits: [n, 12, 64] one-hot planes, one perspective (own king = plane
+    5). HalfKA feature index = king_sq*704 + piece_idx*64 + sq over the 11
+    non-own-king planes. Returns flat feature indices + offsets [n+1]
+    (int64 tensors on DEVICE) for EmbeddingBag's variable-length bags."""
+    n = bits.shape[0]
+    king_sq = bits[:, 5, :].argmax(dim=1)  # [n], exactly one bit set
+    non_king = bits[:, _KEEP_PLANES_T, :]  # [n, 11, 64]
+    flat = non_king.reshape(n, -1)  # [n, 704]
+    nz = flat.nonzero(as_tuple=False)  # [nnz, 2] -> (row, col)
+    rows, cols = nz[:, 0], nz[:, 1]
+    feat = king_sq[rows] * N_PIECE_SQ + cols
+    counts = flat.sum(dim=1)
+    offsets = torch.zeros(n + 1, dtype=torch.int64, device=bits.device)
+    torch.cumsum(counts, dim=0, out=offsets[1:])
+    return feat.to(torch.int64), offsets
 
 
 def make_batch(sel):
-    stm_bits, nstm_bits = perspective_bits(sel)
-    stm_idx, stm_off = flat_indices(stm_bits)
-    nstm_idx, nstm_off = flat_indices(nstm_bits)
-    score = sel["score"].astype(np.float32)
-    target = 0.7 / (1.0 + np.exp(-score / 400.0)) + 0.3 * (
-        sel["wdl"].astype(np.float32) / 2.0
+    n = len(sel)
+    bb_np = np.ascontiguousarray(sel["bb"]).view(np.int64)  # bit-reinterpret only
+    bb = torch.from_numpy(bb_np).to(DEVICE, non_blocking=True)
+    bits = unpack_planes(bb)
+    stm_bits, nstm_bits = both_perspectives(bits)
+    stm_idx, stm_off = halfka_indices(stm_bits)
+    nstm_idx, nstm_off = halfka_indices(nstm_bits)
+
+    score = torch.from_numpy(np.ascontiguousarray(sel["score"])).to(
+        DEVICE, non_blocking=True
     )
-    return (
-        stm_idx.to(DEVICE, non_blocking=True),
-        stm_off.to(DEVICE, non_blocking=True),
-        nstm_idx.to(DEVICE, non_blocking=True),
-        nstm_off.to(DEVICE, non_blocking=True),
-        torch.from_numpy(target.astype(np.float32)).to(DEVICE, non_blocking=True),
-        torch.from_numpy(score).to(DEVICE, non_blocking=True),
+    wdl = torch.from_numpy(np.ascontiguousarray(sel["wdl"])).to(
+        DEVICE, non_blocking=True
     )
+    score_f = score.to(torch.float32)
+    target = 0.7 * torch.sigmoid(score_f / 400.0) + 0.3 * (wdl.to(torch.float32) / 2.0)
+
+    return stm_idx, stm_off, nstm_idx, nstm_off, target, score_f
 
 
 def batches(data, idx, bs):
@@ -166,12 +233,12 @@ def evaluate(model, data, idx, bs=BATCH_SIZE):
 def export_net(model, path):
     with open(path, "wb") as f:
         f.write(MAGIC)
-        f.write(struct.pack("<III", 1, FT_IN, ACC))
-        # EmbeddingBag.weight is [768][256] = one row per feature: write as-is.
+        f.write(struct.pack("<III", VERSION, FT_IN, ACC))
+        # EmbeddingBag.weight is [45056][256] = one row per feature: write as-is.
         f.write(model.ft.weight.detach().cpu().numpy().astype("<f4").tobytes())
         f.write(model.ft_bias.detach().cpu().numpy().astype("<f4").tobytes())
-        # out.weight is [1, 512]; [:256] = STM half, [256:] = NSTM half,
-        # exactly the concat order in forward().
+        # out.weight is [1, 1024]; order matches forward()'s concat:
+        # [STM SCReLU, STM ClippedReLU, NSTM SCReLU, NSTM ClippedReLU].
         f.write(
             model.out.weight.detach().cpu().numpy().astype("<f4").reshape(-1).tobytes()
         )
@@ -216,7 +283,7 @@ def train(shards, out_path, epochs):
     print(f"total {n} records: {len(train_idx)} train / {n_val} val", flush=True)
     print(f"device: {DEVICE}"
           + (f" ({torch.cuda.get_device_name(DEVICE)})" if DEVICE.type == "cuda" else "")
-          + f", batch size: {BATCH_SIZE}", flush=True)
+          + f", batch size: {BATCH_SIZE}, ft_in: {FT_IN}", flush=True)
 
     model = Nnue().to(DEVICE)
     opt = torch.optim.Adam(model.parameters(), lr=1e-3)
@@ -269,6 +336,42 @@ def synth_records(n, rng):
     return recs
 
 
+def _manual_bits(bb_row):
+    """bb_row: [12] uint64 array. Plain-Python independent bit-unpack, used
+    only by selfcheck's cross-verification below -- deliberately NOT
+    sharing code with unpack_planes/halfka_indices, so a shared bug in the
+    fast torch training-path implementation wouldn't hide from the check."""
+    bits = np.zeros((12, 64), dtype=np.uint8)
+    for p in range(12):
+        v = int(bb_row[p])
+        for s in range(64):
+            if (v >> s) & 1:
+                bits[p, s] = 1
+    return bits
+
+
+def _manual_nstm_bits(bits):
+    nstm = np.zeros((12, 64), dtype=np.uint8)
+    for p in range(12):
+        for s in range(64):
+            nstm[p, s] = bits[PLANE_SWAP[p], s ^ 56]
+    return nstm
+
+
+def _manual_halfka(bits):
+    king_sq = int(np.nonzero(bits[5])[0][0])
+    feats = []
+    piece_idx = 0
+    for p in range(12):
+        if p == 5:
+            continue
+        for s in range(64):
+            if bits[p, s]:
+                feats.append(king_sq * N_PIECE_SQ + piece_idx * 64 + s)
+        piece_idx += 1
+    return feats
+
+
 def selfcheck():
     rng = np.random.default_rng(1337)
     torch.manual_seed(1337)
@@ -306,30 +409,42 @@ def selfcheck():
         check(f"file size {len(blob)} == {expected}", len(blob) == expected)
         check("magic UNCHNNUE", blob[:8] == MAGIC)
         version, ft_in, acc = struct.unpack("<III", blob[8:HEADER_SIZE])
-        check("version == 1", version == 1)
-        check("ft_in == 768", ft_in == FT_IN)
-        check("acc == 256", acc == ACC)
+        check(f"version == {VERSION}", version == VERSION)
+        check(f"ft_in == {FT_IN}", ft_in == FT_IN)
+        check(f"acc == {ACC}", acc == ACC)
 
         off = HEADER_SIZE
         ftw = np.frombuffer(blob, "<f4", FT_IN * ACC, off).reshape(FT_IN, ACC)
         off += FT_IN * ACC * 4
         ftb = np.frombuffer(blob, "<f4", ACC, off)
         off += ACC * 4
-        outw = np.frombuffer(blob, "<f4", 2 * ACC, off)
-        off += 2 * ACC * 4
+        outw = np.frombuffer(blob, "<f4", 4 * ACC, off)
+        off += 4 * ACC * 4
         outb = np.frombuffer(blob, "<f4", 1, off)
 
-        # Manual numpy forward from the exported arrays vs model().
+        def screlu_np(x):
+            v = np.clip(x, 0, 1)
+            return v * v
+
+        def crelu_np(x):
+            return np.clip(x, 0, 1)
+
+        # Manual numpy forward from the exported arrays vs model(), using
+        # the independent _manual_* HalfKA reimplementation above.
         max_diff = 0.0
         model.eval()
         with torch.no_grad():
             for i in range(10):
                 sel = data[i : i + 1]
-                stm_bits, nstm_bits = perspective_bits(sel)
-                a = ftw[np.nonzero(stm_bits[0])[0]].sum(axis=0) + ftb
-                b = ftw[np.nonzero(nstm_bits[0])[0]].sum(axis=0) + ftb
-                va, vb = np.clip(a, 0, 1), np.clip(b, 0, 1)
-                h = np.concatenate([va * va, vb * vb])
+                bits = _manual_bits(sel["bb"][0])
+                nstm_bits = _manual_nstm_bits(bits)
+                stm_feats = _manual_halfka(bits)
+                nstm_feats = _manual_halfka(nstm_bits)
+                a = ftw[stm_feats].sum(axis=0) + ftb
+                b = ftw[nstm_feats].sum(axis=0) + ftb
+                h = np.concatenate(
+                    [screlu_np(a), crelu_np(a), screlu_np(b), crelu_np(b)]
+                )
                 manual = float(h @ outw + outb[0])
                 si, so, ni, no, _, _ = make_batch(sel)
                 got = float(model(si, so, ni, no)[0])
