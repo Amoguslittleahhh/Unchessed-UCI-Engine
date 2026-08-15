@@ -5,20 +5,43 @@
 # original: download -> per-month integrity-check -> decompress -> label ->
 # delete the decompressed PGN and worker outputs before moving to the next
 # month, so uncompressed Lichess data (which is 5-10x the compressed size)
-# is NEVER all resident on disk at once. This is what makes "get data from
-# online and train on it directly" safe without needing to permanently store
-# the full multi-hundred-GB uncompressed corpus -- the discard-per-month
-# pattern already does that; nothing here needs to change for that part.
+# is NEVER all resident on disk at once.
 #
-# Adjust BIN/FRESH/NNUE_DIR/VENV below to match the actual paths on the
-# provisioned box before running. Deliberately NOT using `set -e` -- this
-# runs unattended, and a single bad month (e.g. a truncated download) must
-# not abort the whole pipeline. Every risky step checks its own exit code.
+# Speed/cost changes vs. the original (billing is per-hour, so wall-clock
+# time IS money here):
+#   1. Downloads ALL months in parallel (not serially), and labeling for a
+#      month starts as soon as THAT month's download+verify finishes --
+#      months still downloading keep going in the background while already-
+#      ready months are being labeled on the CPU. Network-bound and CPU-bound
+#      work overlap instead of happening in two fully separate phases.
+#   2. `trap ... EXIT` shuts the instance down the moment the script ends,
+#      on ANY exit path (success, training failure, or an early abort) --
+#      by far the single biggest cost lever, since an idle rented GPU box
+#      left running overnight costs far more than the run itself. Remove
+#      the trap line below if you want the box to stay up afterward (e.g.
+#      to run SPRT/inference tests before deciding to tear it down).
+#
+# Adjust BIN/FRESH/NNUE_DIR/VENV/TRAIN_SRC below to match the actual paths
+# on the provisioned box before running. Deliberately NOT using `set -e` --
+# a single bad month (e.g. a truncated download) must not abort the whole
+# pipeline. Every risky step checks its own exit code instead.
 BIN=~/unchessed-kingsafety-src/target/release/unchessed-datagen
 FRESH=~/unchessed-ai/data/maia-data/fresh
 NNUE_DIR=~/unchessed-ai/data/maia-data/nnue
 VENV=~/unchessed-ai/data/maia-venv
 TRAIN_SRC=~/unchessed-kingsafety-src
+LICHESS_BASE="https://database.lichess.org/standard"
+
+log() { echo "[$(date '+%H:%M:%S')] $1"; }
+
+# Stops billing the instant this script finishes, no matter how it exits.
+# `sudo shutdown -h now` assumes passwordless sudo, which is the default on
+# most cloud provider Ubuntu images -- verify this works on the actual box
+# (or swap in the provider's own halt/terminate CLI call) before relying on
+# it unattended.
+trap 'log "Pipeline finished (exit $?) -- shutting down instance to stop billing."; sudo shutdown -h now' EXIT
+
+mkdir -p "$FRESH" "$NNUE_DIR"
 
 # 2x-core oversubscription (44 workers / 22 cores) matched the fastest
 # config found in the local worker_bench.sh sweep (28 workers / 14 cores,
@@ -44,35 +67,50 @@ SAFE_MAX_RECORDS=500000000
 MONTHS="2026-07 2026-06 2026-05 2026-04 2026-03"
 SUCCEEDED=0
 
-log() { echo "[$(date '+%H:%M:%S')] $1"; }
-
-# --- Step 1: wait for all downloads to finish ---
-log "Waiting for downloads to finish..."
-while pgrep -f "curl.*lichess_db_standard_rated_2026" > /dev/null; do
-  sleep 30
+# --- Step 1: start every month's download in parallel immediately ---
+declare -A DL_PID
+log "Starting all $(echo $MONTHS | wc -w) downloads in parallel..."
+for M in $MONTHS; do
+  ZST="$FRESH/lichess_db_standard_rated_${M}.pgn.zst"
+  if [ -f "$ZST" ]; then
+    log "$M: $ZST already present, skipping fetch."
+    continue
+  fi
+  curl -fsSL "$LICHESS_BASE/lichess_db_standard_rated_${M}.pgn.zst" -o "$ZST" \
+    > "$FRESH/curl_${M}.log" 2>&1 &
+  DL_PID[$M]=$!
+  log "Started download for $M (pid ${DL_PID[$M]})"
 done
-log "All curl processes exited."
-ls -la "$FRESH"
 
-# --- Step 2: for each month, verify integrity -> decompress -> label -> clean up ---
+# --- Step 2: for each month, wait for ITS OWN download, then verify ->
+#     decompress -> label -> clean up, while the other months' downloads
+#     keep running in the background. ---
 for M in $MONTHS; do
   ZST="$FRESH/lichess_db_standard_rated_${M}.pgn.zst"
   PGN="$FRESH/lichess_db_standard_rated_${M}.pgn"
   OUTDIR="$FRESH/labeled_${M}"
 
+  if [ -n "${DL_PID[$M]:-}" ]; then
+    log "Waiting for $M's download (pid ${DL_PID[$M]}) -- other months keep downloading in the background..."
+    if ! wait "${DL_PID[$M]}"; then
+      log "SKIP $M: download failed. See $FRESH/curl_${M}.log."
+      continue
+    fi
+  fi
+
   if [ ! -f "$ZST" ]; then
-    log "SKIP $M: $ZST not found (download never started?)"
+    log "SKIP $M: $ZST not found after download attempt."
     continue
   fi
 
-  # A curl process exiting is NOT proof the download completed -- a dropped
-  # connection looks identical (the process just exits early). -t verifies
-  # the compressed stream's checksums without writing output; a truncated/
-  # corrupt file fails this cleanly instead of silently producing a
-  # truncated .pgn (or crashing the whole script via set -e).
+  # A curl exiting 0 is a good sign but not airtight proof of a complete
+  # file (e.g. a connection reset mid-transfer that curl still reports as
+  # success in some edge cases) -- -t verifies the compressed stream's
+  # checksums without writing output; a truncated/corrupt file fails this
+  # cleanly instead of silently producing a truncated .pgn.
   log "Verifying integrity of $M ..."
   if ! pzstd -t "$ZST" > "$FRESH/verify_${M}.log" 2>&1; then
-    log "SKIP $M: integrity check FAILED (likely an incomplete download). See $FRESH/verify_${M}.log. Leaving $ZST in place for a manual retry."
+    log "SKIP $M: integrity check FAILED. See $FRESH/verify_${M}.log. Leaving $ZST in place for a manual retry."
     continue
   fi
   log "$M integrity OK."
@@ -120,7 +158,7 @@ for M in $MONTHS; do
   rm -f "$ZST"
 done
 
-log "Month processing done: $SUCCEEDED/5 months succeeded."
+log "Month processing done: $SUCCEEDED/$(echo $MONTHS | wc -w) months succeeded."
 log "Shards now in $NNUE_DIR:"
 ls -la "$NNUE_DIR"/*.bin
 
@@ -135,7 +173,7 @@ TOTAL_BYTES=$(cat $SHARDS | wc -c)
 TOTAL_RECORDS=$((TOTAL_BYTES / 104))
 log "Combined dataset: $TOTAL_RECORDS records ($TOTAL_BYTES bytes) across $(echo $SHARDS | wc -w) shard files."
 if [ "$TOTAL_RECORDS" -gt "$SAFE_MAX_RECORDS" ]; then
-  log "ABORT: $TOTAL_RECORDS records exceeds the $SAFE_MAX_RECORDS safety ceiling -- training on this would risk OOM/swap-thrashing with nobody around to intervene. Not starting training. The labeled shards are still on disk in $NNUE_DIR; re-run just the training step manually with a subset of shards, or after re-tuning this ceiling against the box's actual RAM."
+  log "ABORT: $TOTAL_RECORDS records exceeds the $SAFE_MAX_RECORDS safety ceiling. Not starting training. The labeled shards are still on disk in $NNUE_DIR."
   exit 1
 fi
 
@@ -160,3 +198,5 @@ else
   log "Training FAILED (exit code $TRAIN_EXIT). Check $LOG for the error -- nothing was overwritten."
 fi
 tail -20 "$LOG"
+
+log "Pipeline done. Instance will shut down now (see trap above) -- copy $OUT off the box before it stops if you haven't already synced it elsewhere."
