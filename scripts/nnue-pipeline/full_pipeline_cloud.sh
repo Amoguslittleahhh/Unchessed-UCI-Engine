@@ -226,12 +226,7 @@ else
 fi
 tail -20 "$LOG"
 
-# No auto git-commit here by design -- left for manual review/commit
-# instead. Free disk of the consumed INPUT data only (downloads,
-# decompressed PGNs, labeled shards) -- deliberately leaves
-# ~/unchessed-ai/results/nnue_training (the trained weights + log) alone,
-# since that's the one thing worth keeping around to inspect/copy off
-# before the instance auto-deletes below.
-log "Cleaning up consumed input data before teardown (trained weights in $OUT are left in place)..."
-rm -rf "$FRESH" "$NNUE_DIR"
-log "Pipeline done. Instance will be deleted now (see teardown trap above) -- copy $OUT off the box first if you haven't already."
+# No auto git-commit and no auto cleanup here by design -- both left for
+# manual handling. $FRESH ($NNUE_DIR's raw shards) and the trained weights
+# in $OUT are all left on disk as-is.
+log "Pipeline done. Data and weights left on disk ($FRESH, $NNUE_DIR, $OUT) -- copy $OUT off the box, then clean up manually. Instance will be deleted now regardless (see teardown trap above) -- if you need more time before that happens, Ctrl-C this script before it reaches this point next run, or comment out the trap line."
