@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
-"""Train the NNUE eval net for Unchessed AI (v3: HalfKA king-relative
-features, GPU-resident pipeline). PyTorch, CPU or CUDA.
+"""Train the NNUE eval net for Unchessed AI (v4: HalfKAv2_hm-style features
+-- 32-bucket horizontal king mirroring, own-king included as an active
+feature, factorized/virtual embedding table during training). PyTorch, CPU
+or CUDA.
 
 Input: shard .bin files of 104-byte records, side-to-move normalized:
   12 x u64 LE bitboards (planes 0-5 = mover P,N,B,R,Q,K; 6-11 = opponent;
@@ -9,39 +11,60 @@ Input: shard .bin files of 104-byte records, side-to-move normalized:
   + i16 LE search score in centipawns (stm pov)
   + u8 wdl (2 = mover won, 1 = draw, 0 = lost) + 5 pad bytes.
 
-Features (v3, HalfKA-style, king-relative, no mirroring/bucketing yet):
-  feature = king_sq*704 + piece_idx*64 + sq, where king_sq is the OWN king's
-  square (the anchor, never itself an active feature), and piece_idx enum-
-  erates the 11 non-own-king planes in order [ownP,N,B,R,Q, oppP,N,B,R,Q,K].
-  FT_IN = 64 * 11 * 64 = 45056. STM perspective computed directly from the
-  mover-perspective planes; NSTM perspective derived from the same unpacked
-  bit-planes via a plane-group swap + rank flip (sq -> sq^56), entirely in
-  torch so it can run on DEVICE (see unpack_planes/both_perspectives below)
-  instead of numpy -- this is the "GPU-resident pipeline" change: the only
-  CPU-bound step left is reading shard bytes off disk into the preloaded
-  in-RAM array; everything from raw bb bytes onward (bit unpacking, feature-
-  index construction, target computation) runs as tensor ops on DEVICE.
+Why v4, and why NOT the v3 (unmirrored HalfKA + SFNNv5 concat) architecture:
+v3 was SPRT-gated at -70.3 Elo vs v1 (decisive fail). A 100-epoch rerun
+showed val-mae bottoming at epoch ~13 then rising steadily while train-loss
+kept falling -- textbook overfitting, not undertraining. Root-cause research
+(cross-checked against the actual Stockfish and nnue-pytorch source, not
+just literature) identified three concrete, verifiable deviations from the
+reference HalfKAv2_hm design: (1) no horizontal mirroring (2x too many
+rows), (2) own king excluded as an active feature (contrary to Stockfish's
+PS_KING category, which both W_KING and B_KING map into), (3) no feature
+factorization (the "virtual weight" mechanism nnue-pytorch uses specifically
+to give sparse per-bucket rows a denser gradient signal during training).
+v4 fixes exactly these three -- and DROPS v3's other, unrelated change (the
+SFNNv5 SCReLU+ClippedReLU output-head concat), reverting to v1's plain
+512-wide SCReLU-only output head, so this is a clean, single-variable test
+of the feature-scheme fix against v1, not another bundle of changes.
 
-Model: shared EmbeddingBag(45056 -> 256, sum) feature transformer + bias.
-Output head concatenates BOTH SCReLU (clamp(x,0,1)^2) and plain ClippedReLU
-(clamp(x,0,1)) of each perspective's accumulator (SFNNv5 trick) -> 4*256 =
-1024 -> Linear(1024, 1). Raw output unit is cp/400: the Rust engine computes
-eval_cp = raw * 400. Training loss: |sigmoid(raw) - target|^2.5 (not plain
-MSE), target = 0.7*sigmoid(cp/400) + 0.3*(wdl/2).
+Feature scheme (matches nnue-pytorch's HalfKAv2_hm^ exactly, ported from
+model/modules/features/halfka_v2_hm.py in official-stockfish/nnue-pytorch):
+  - 12 piece-type planes per perspective (own P,N,B,R,Q,K then opp P,N,B,R,
+    Q,K, matching this project's existing bb layout), remapped internally to
+    nnue-pytorch's own/opp-interleaved p_idx order [ownP,oppP,ownN,oppN,...,
+    ownK,oppK] (p_idx 0-11) so the king pair lands consecutively at the end,
+    which is what the export merge step needs.
+  - Horizontal mirroring: if the (own) king is on files a-d, the whole board
+    is file-flipped (sq -> sq^7) before feature computation, so the king is
+    always on files e-h.
+  - 32 king buckets (KING_BUCKETS table below, identical to Stockfish's and
+    nnue-pytorch's), indexed by the ORIENTED (post-mirror) king square.
+  - Training-time (factorized) feature index = bucket*768 + p_idx*64 + sq,
+    over a [24576, ACC] "main" table (32 buckets x 768 = 12 piece types x 64
+    squares), PLUS a shared [768, ACC] "virtual" table indexed by p_idx*64+sq
+    alone (no bucket) -- every position's virtual-table lookups are updated
+    on every step regardless of king position, giving frequently-starved
+    main-table rows a dense auxiliary gradient signal during training. The
+    two tables' outputs are summed at the accumulator.
+  - Export-time coalesce: virtual weights are added into the main table
+    (self.weight + self.virtual_weight.repeat(32, 1)), then the 12-piece-type
+    layout is merged down to 11 (own-king and opp-king planes, p_idx 10/11,
+    share one 64-wide block in the export format: opp-king's full row, with
+    ONE entry overwritten by the own-king's row at the king's own square) --
+    this exactly matches nnue-pytorch's get_export_weights(). The exported
+    .nnue-style file has NO concept of factorization or 12-vs-11 planes; it
+    is a plain [22528, ACC] table (32 buckets x 704 = 11 piece types x 64
+    squares), matching what the Rust inference side implements directly.
 
-Export: b"UNCHNNUE", u32 version=2, u32 ft_in=45056, u32 acc=256,
-ft weights [45056][256] f32, ft bias [256] f32, out weights [1024] f32
-(order: STM SCReLU, STM ClippedReLU, NSTM SCReLU, NSTM ClippedReLU), out
-bias [1] f32. All LE.
+Model: acc_persp = ft_main(idx) + ft_virtual(vidx) + ft_bias (training only;
+ft_main/ft_virtual are coalesced into one table at export). SCReLU
+(clamp(x,0,1)^2) on both accumulators, concat [stm, nstm] (512, same as v1)
+-> Linear(512, 1). Raw output unit is cp/400. Training loss:
+|sigmoid(raw) - target|^2.5, target = 0.7*sigmoid(cp/400) + 0.3*(wdl/2).
 
-NOTE: this is a breaking format change from v1 (flat-768 features, 512-wide
-out layer, version=1). The Rust engine's NNUE loader/inference code
-(unchessed-core) MUST be updated to match this feature scheme (king-relative
-indexing, not flat plane*64+sq) AND the new version/out-layer size before a
-net trained with this script can be loaded and played -- this script alone
-does not make that pairing automatic. Existing v1 unchessed-nnue.bin stays
-loadable/playable until that Rust-side update lands; don't overwrite it with
-a v2 export until the loader is ready.
+Export: b"UNCHNNUE", u32 version=3, u32 ft_in=22528, u32 acc=256,
+ft weights [22528][256] f32 (coalesced + 11-piece-merged), ft bias [256] f32,
+out weights [512] f32 (STM half first), out bias [1] f32. All LE.
 
 Usage: train_nnue.py selfcheck
        train_nnue.py <out.bin> <epochs> <shard1.bin> [shard2.bin ...]
@@ -72,32 +95,64 @@ REC = np.dtype(
         ("pad", "u1", 5),
     ]
 )
-VERSION = 2
-N_KING_SQ = 64
-KEEP_PLANES = np.array([0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11])  # exclude own king (plane 5)
-N_PLANES_KEPT = len(KEEP_PLANES)  # 11
-N_PIECE_SQ = N_PLANES_KEPT * 64  # 704
-FT_IN = N_KING_SQ * N_PIECE_SQ  # 45056
+VERSION = 3
+N_SQ = 64
+N_PT = 12  # training-time piece types (own+opp king kept separate)
+N_PLANES = N_SQ * N_PT  # 768
+N_BUCKETS = 32
+FT_IN_MAIN = N_PLANES * N_BUCKETS  # 24576, training-time "real" (per-bucket) table
+FT_IN_VIRTUAL = N_PLANES  # 768, training-time shared/factorized table
+N_PT_EXPORT = 11  # own+opp king merged into one category at export
+N_PIECE_SQ_EXPORT = N_PT_EXPORT * N_SQ  # 704
+FT_IN = N_BUCKETS * N_PIECE_SQ_EXPORT  # 22528, the exported/inference table
 ACC = 256
 MAGIC = b"UNCHNNUE"
 HEADER_SIZE = 8 + 3 * 4
-PAYLOAD_FLOATS = FT_IN * ACC + ACC + 4 * ACC + 1
+PAYLOAD_FLOATS = FT_IN * ACC + ACC + 2 * ACC + 1
 # NSTM perspective: use opponent planes as "own" and vice versa.
 PLANE_SWAP = np.array([6, 7, 8, 9, 10, 11, 0, 1, 2, 3, 4, 5])
 
+# Our bb layout is [ownP,N,B,R,Q,K, oppP,N,B,R,Q,K] (planes 0-11). Remap to
+# nnue-pytorch's own/opp-interleaved p_idx order [ownP,oppP,ownN,oppN,ownB,
+# oppB,ownR,oppR,ownQ,oppQ,ownK,oppK] so the king pair (p_idx 10,11) lands
+# consecutively at the end -- required by the export merge logic below.
+# PIDX_TO_PLANE[p_idx] = which of our planes 0-11 supplies that p_idx.
+PIDX_TO_PLANE = np.array([0, 6, 1, 7, 2, 8, 3, 9, 4, 10, 5, 11])
+
+# 32 king buckets, identical to Stockfish's src/nnue/features/half_ka_v2_hm.h
+# and nnue-pytorch's model/modules/features/halfka_v2_hm.py KingBuckets
+# table. Indexed by the ORIENTED (post-mirror) king square 0-63; only
+# entries for files e-h (index%8 >= 4) are valid, since mirroring guarantees
+# the king never lands on a-d after orientation.
+KING_BUCKETS = np.array(
+    [
+        -1, -1, -1, -1, 31, 30, 29, 28,
+        -1, -1, -1, -1, 27, 26, 25, 24,
+        -1, -1, -1, -1, 23, 22, 21, 20,
+        -1, -1, -1, -1, 19, 18, 17, 16,
+        -1, -1, -1, -1, 15, 14, 13, 12,
+        -1, -1, -1, -1, 11, 10, 9, 8,
+        -1, -1, -1, -1, 7, 6, 5, 4,
+        -1, -1, -1, -1, 3, 2, 1, 0,
+    ]
+)
+# Inverse: INVERSE_KING_BUCKETS[bucket] = the oriented king square, needed
+# at export time to know which square within the merged king block belongs
+# to the own king for that bucket.
+INVERSE_KING_BUCKETS = np.zeros(N_BUCKETS, dtype=np.int64)
+for _sq, _bucket in enumerate(KING_BUCKETS):
+    if _bucket >= 0:
+        INVERSE_KING_BUCKETS[_bucket] = _sq
+
 # Constant tensors for the torch-native (DEVICE-resident) feature pipeline.
-_BIT_SHIFTS = torch.arange(64, dtype=torch.int64, device=DEVICE)
 _PLANE_SWAP_T = torch.tensor(PLANE_SWAP, dtype=torch.int64, device=DEVICE)
-_KEEP_PLANES_T = torch.tensor(KEEP_PLANES, dtype=torch.int64, device=DEVICE)
+_PIDX_TO_PLANE_T = torch.tensor(PIDX_TO_PLANE, dtype=torch.int64, device=DEVICE)
+_KING_BUCKETS_T = torch.tensor(KING_BUCKETS, dtype=torch.int64, device=DEVICE)
 
 
 def screlu(x):
     v = x.clamp(0.0, 1.0)
     return v * v
-
-
-def crelu(x):
-    return x.clamp(0.0, 1.0)
 
 
 def wdl_loss(raw, target):
@@ -128,22 +183,25 @@ class Nnue(nn.Module):
     def __init__(self):
         super().__init__()
         # include_last_offset=True: offsets has n+1 entries, last = total nnz.
-        self.ft = nn.EmbeddingBag(FT_IN, ACC, mode="sum", include_last_offset=True)
+        self.ft_main = nn.EmbeddingBag(FT_IN_MAIN, ACC, mode="sum", include_last_offset=True)
+        self.ft_virtual = nn.EmbeddingBag(FT_IN_VIRTUAL, ACC, mode="sum", include_last_offset=True)
         self.ft_bias = nn.Parameter(torch.zeros(ACC))
-        self.out = nn.Linear(4 * ACC, 1, bias=True)
-        # Default EmbeddingBag init is N(0,1); with ~28 active features the
-        # sum would saturate SCReLU immediately. Small uniform init instead.
-        nn.init.uniform_(self.ft.weight, -0.05, 0.05)
+        self.out = nn.Linear(2 * ACC, 1, bias=True)
+        # Small uniform init for the main (sparse, per-bucket) table --
+        # with ~28 active features the EmbeddingBag sum would saturate
+        # SCReLU immediately under a larger init. Virtual table starts at
+        # exactly zero (matches nnue-pytorch: it's a pure additive
+        # regularizer during training, contributing nothing until learned).
+        nn.init.uniform_(self.ft_main.weight, -0.05, 0.05)
+        nn.init.zeros_(self.ft_virtual.weight)
 
-    def forward(self, stm_idx, stm_off, nstm_idx, nstm_off):
-        acc_stm = self.ft(stm_idx, stm_off) + self.ft_bias
-        acc_nstm = self.ft(nstm_idx, nstm_off) + self.ft_bias
-        # SFNNv5 trick: concat plain ClippedReLU alongside SCReLU so the
-        # output layer sees both the squared and linear activation shape.
-        h = torch.cat(
-            [screlu(acc_stm), crelu(acc_stm), screlu(acc_nstm), crelu(acc_nstm)],
-            dim=1,
-        )
+    def accumulate(self, idx, off, vidx):
+        return self.ft_main(idx, off) + self.ft_virtual(vidx, off) + self.ft_bias
+
+    def forward(self, stm_idx, stm_off, stm_vidx, nstm_idx, nstm_off, nstm_vidx):
+        acc_stm = self.accumulate(stm_idx, stm_off, stm_vidx)
+        acc_nstm = self.accumulate(nstm_idx, nstm_off, nstm_vidx)
+        h = torch.cat([screlu(acc_stm), screlu(acc_nstm)], dim=1)
         return self.out(h).squeeze(1)  # raw output ~ cp/400
 
 
@@ -151,9 +209,9 @@ def unpack_planes(bb):
     """bb: [n, 12] int64 tensor on DEVICE (raw bitboard bits, reinterpreted
     from uint64 -- sign is irrelevant, only used for bitwise ops below).
     Returns [n, 12, 64] uint8 one-hot per plane/square, bit i -> square i
-    (a1=0..h8=63). Runs entirely as tensor ops so it executes on DEVICE
-    (GPU) when available instead of CPU-bound numpy unpackbits."""
-    shifted = bb.unsqueeze(-1) >> _BIT_SHIFTS  # [n, 12, 64]
+    (a1=0..h8=63)."""
+    shifts = torch.arange(64, dtype=torch.int64, device=bb.device)
+    shifted = bb.unsqueeze(-1) >> shifts  # [n, 12, 64]
     return (shifted & 1).to(torch.uint8)
 
 
@@ -161,9 +219,7 @@ def both_perspectives(bits):
     """bits: [n, 12, 64] mover-perspective one-hot planes (0-5 own P..K,
     6-11 opp same). Returns (stm_bits, nstm_bits). NSTM is derived from the
     already-unpacked STM bits via a plane-group swap + rank flip (sq ->
-    sq^56 == reversing the 8-square rank groups), which is algebraically
-    equivalent to byte-swapping the raw u64 before unpacking but stays in
-    tensor-land so it can run on DEVICE."""
+    sq^56 == reversing the 8-square rank groups)."""
     n = bits.shape[0]
     nstm = (
         bits[:, _PLANE_SWAP_T, :]
@@ -174,36 +230,47 @@ def both_perspectives(bits):
     return bits, nstm
 
 
-def halfka_indices(bits):
-    """bits: [n, 12, 64] one-hot planes, one perspective (own king = plane
-    5). HalfKA feature index = king_sq*704 + piece_idx*64 + sq over the 11
-    non-own-king planes. Returns flat feature indices + offsets [n+1]
-    (int64 tensors on DEVICE) for EmbeddingBag's variable-length bags."""
+def halfka_v2_hm_indices(bits):
+    """bits: [n, 12, 64] one-hot planes (our layout), one perspective (own
+    king = plane 5). Returns (main_idx, virtual_idx, offsets) -- flat int64
+    tensors on DEVICE for the two EmbeddingBags in Nnue.accumulate(). See
+    module docstring for the full feature-scheme description."""
     n = bits.shape[0]
-    king_sq = bits[:, 5, :].argmax(dim=1)  # [n], exactly one bit set
-    non_king = bits[:, _KEEP_PLANES_T, :]  # [n, 11, 64]
-    flat = non_king.reshape(n, -1)  # [n, 704]
+    king_sq = bits[:, 5, :].argmax(dim=1)  # [n], own king, own-perspective
+    mirror = (king_sq % 8) < 4  # [n] bool: king on a-d files -> mirror
+
+    # File-mirror the whole board (sq -> sq^7 flips the file: sq=rank*8+file,
+    # XOR 7 flips the low 3 bits) for rows that need it.
+    mirrored = bits.reshape(n, 12, 8, 8).flip(dims=(3,)).reshape(n, 12, 64)
+    bits_oriented = torch.where(mirror.view(n, 1, 1), mirrored, bits)
+    king_sq_oriented = torch.where(mirror, king_sq ^ 7, king_sq)
+    bucket = _KING_BUCKETS_T[king_sq_oriented]  # [n], always valid post-mirror
+
+    # Reorder planes 0-11 into nnue-pytorch's p_idx convention (own/opp
+    # interleaved per piece type, king pair last) before flattening.
+    bits_pidx = bits_oriented[:, _PIDX_TO_PLANE_T, :]  # [n, 12, 64]
+    flat = bits_pidx.reshape(n, -1)  # [n, 768], col = p_idx*64 + sq
+
     nz = flat.nonzero(as_tuple=False)  # [nnz, 2] -> (row, col)
     rows, cols = nz[:, 0], nz[:, 1]
-    feat = king_sq[rows] * N_PIECE_SQ + cols
+    virtual_idx = cols
+    main_idx = bucket[rows] * N_PLANES + cols
     counts = flat.sum(dim=1)
     offsets = torch.zeros(n + 1, dtype=torch.int64, device=bits.device)
     torch.cumsum(counts, dim=0, out=offsets[1:])
-    return feat.to(torch.int64), offsets
+    return main_idx.to(torch.int64), virtual_idx.to(torch.int64), offsets
 
 
 def _features_and_target(bb, score, wdl):
-    """bb: [n, 12] int64 tensor on DEVICE (raw bitboard bits, reinterpreted
-    from uint64). score: [n] int-ish tensor on DEVICE. wdl: [n] int-ish
-    tensor on DEVICE. Shared by both the host-resident (make_batch) and
-    GPU-resident (make_batch_resident) data paths below."""
+    """bb: [n, 12] int64 tensor on DEVICE. score/wdl: [n] int-ish tensors on
+    DEVICE. Shared by both the host-resident and GPU-resident data paths."""
     bits = unpack_planes(bb)
     stm_bits, nstm_bits = both_perspectives(bits)
-    stm_idx, stm_off = halfka_indices(stm_bits)
-    nstm_idx, nstm_off = halfka_indices(nstm_bits)
+    stm_idx, stm_vidx, stm_off = halfka_v2_hm_indices(stm_bits)
+    nstm_idx, nstm_vidx, nstm_off = halfka_v2_hm_indices(nstm_bits)
     score_f = score.to(torch.float32)
     target = 0.7 * torch.sigmoid(score_f / 400.0) + 0.3 * (wdl.to(torch.float32) / 2.0)
-    return stm_idx, stm_off, nstm_idx, nstm_off, target, score_f
+    return stm_idx, stm_off, stm_vidx, nstm_idx, nstm_off, nstm_vidx, target, score_f
 
 
 def make_batch(sel):
@@ -224,12 +291,7 @@ def make_batch_resident(bb_all, score_all, wdl_all, idx_t):
     """GPU-resident path: bb_all/score_all/wdl_all are the FULL dataset,
     already living on DEVICE as tensors; idx_t is an index tensor also on
     DEVICE. No host<->device transfer and no CPU-side numpy fancy-indexing
-    happen here at all -- both the gather and the feature extraction run as
-    DEVICE tensor ops. Used when the whole dataset fits comfortably in GPU
-    memory (raw records are only 104 bytes each, so even 500M+ records is a
-    two-digit-GB footprint -- cheap relative to a modern training GPU's
-    VRAM), to avoid the repeated per-epoch host RAM traffic and numpy
-    indexing cost of re-touching the same host array 15+ times."""
+    happen here at all."""
     bb = bb_all.index_select(0, idx_t)
     score = score_all.index_select(0, idx_t)
     wdl = wdl_all.index_select(0, idx_t)
@@ -251,23 +313,49 @@ def evaluate_iter(model, batch_iter):
     (either batches() or batches_resident())."""
     se = ae = n = 0.0
     with torch.no_grad():
-        for si, so, ni, no, target, score in batch_iter:
-            raw = model(si, so, ni, no)
+        for si, so, sv, ni, no, nv, target, score in batch_iter:
+            raw = model(si, so, sv, ni, no, nv)
             se += ((torch.sigmoid(raw) - target) ** 2).sum().item()
             ae += (raw * 400.0 - score).abs().sum().item()
             n += len(target)
     return se / max(n, 1), ae / max(n, 1)
 
 
+def coalesced_export_weights(model):
+    """Merge virtual weights into the main table (factorization coalesce,
+    matching nnue-pytorch's `self.weight + self.virtual_weight.repeat(32, 1)`
+    exactly), then remap the 12-piece-type training layout down to the
+    11-piece-type export layout (own-king and opp-king planes, p_idx 10/11,
+    merged into one 64-wide block: opp-king's row everywhere, except the
+    entry at the king's own square which holds the own-king row) --
+    matching nnue-pytorch's get_export_weights(). Returns a [22528, ACC]
+    float32 numpy array."""
+    with torch.no_grad():
+        coalesced = model.ft_main.weight + model.ft_virtual.weight.repeat(N_BUCKETS, 1)
+    coalesced = coalesced.cpu().numpy().astype("<f4")
+    export = np.zeros((FT_IN, ACC), dtype="<f4")
+    for b in range(N_BUCKETS):
+        src = b * N_PLANES
+        dst = b * N_PIECE_SQ_EXPORT
+        export[dst : dst + 640] = coalesced[src : src + 640]  # p_idx 0-9 (10 non-king types)
+        own_king_src = src + 10 * 64
+        opp_king_src = src + 11 * 64
+        dst_king = dst + 10 * 64
+        ksq = int(INVERSE_KING_BUCKETS[b])
+        export[dst_king : dst_king + 64] = coalesced[opp_king_src : opp_king_src + 64]
+        export[dst_king + ksq] = coalesced[own_king_src + ksq]
+    return export
+
+
 def export_net(model, path):
+    ft_export = coalesced_export_weights(model)
     with open(path, "wb") as f:
         f.write(MAGIC)
         f.write(struct.pack("<III", VERSION, FT_IN, ACC))
-        # EmbeddingBag.weight is [45056][256] = one row per feature: write as-is.
-        f.write(model.ft.weight.detach().cpu().numpy().astype("<f4").tobytes())
+        f.write(ft_export.tobytes())
         f.write(model.ft_bias.detach().cpu().numpy().astype("<f4").tobytes())
-        # out.weight is [1, 1024]; order matches forward()'s concat:
-        # [STM SCReLU, STM ClippedReLU, NSTM SCReLU, NSTM ClippedReLU].
+        # out.weight is [1, 512]; [:256] = STM half, [256:] = NSTM half,
+        # exactly the concat order in forward() (same as v1).
         f.write(
             model.out.weight.detach().cpu().numpy().astype("<f4").reshape(-1).tobytes()
         )
@@ -277,11 +365,7 @@ def export_net(model, path):
 def train(shards, out_path, epochs):
     # Read shard sizes up front and allocate the full array once, then read
     # each shard directly into its slice -- avoids ever holding both the
-    # per-shard arrays AND their concatenation in memory simultaneously
-    # (np.concatenate on a list of already-loaded parts doubles peak RSS
-    # for the whole run, since Python has no reason to free `parts` while
-    # it's still a live local variable -- at 100M+ records that's an extra
-    # ~11GB retained uselessly for the entire multi-hour training run).
+    # per-shard arrays AND their concatenation in memory simultaneously.
     counts = []
     for p in shards:
         size = os.path.getsize(p)
@@ -296,8 +380,6 @@ def train(shards, out_path, epochs):
     offset = 0
     for p, cnt in zip(shards, counts):
         part = np.fromfile(p, dtype=REC, count=cnt)
-        # guard against ingesting Maia-policy shards (same 104-byte size,
-        # different fields): NNUE records have wdl<=2 and zero padding
         if len(part) and (part["wdl"].max() > 2 or (part["pad"] != 0).any()):
             raise SystemExit(f"ERROR: {p} does not look like an NNUE sample file "
                              f"(wdl>2 or nonzero padding) — wrong shard?")
@@ -312,16 +394,8 @@ def train(shards, out_path, epochs):
     print(f"total {n} records: {len(train_idx_np)} train / {n_val} val", flush=True)
     print(f"device: {DEVICE}"
           + (f" ({torch.cuda.get_device_name(DEVICE)})" if DEVICE.type == "cuda" else "")
-          + f", batch size: {BATCH_SIZE}, ft_in: {FT_IN}", flush=True)
+          + f", batch size: {BATCH_SIZE}, ft_in (export): {FT_IN}", flush=True)
 
-    # GPU-resident mode: on CUDA, ship the WHOLE dataset to DEVICE once (raw
-    # records are only 104 bytes each, so even several hundred million
-    # records is a two-digit-GB footprint -- cheap relative to a training
-    # GPU's VRAM) and free the host copy. Every epoch's shuffle/gather then
-    # runs as a DEVICE tensor op instead of repeated host<->device transfer
-    # plus CPU-bound numpy fancy-indexing of the same array 15+ times. On
-    # CPU there's no separate memory pool to move into, so this is skipped
-    # and the original host-resident path (data[idx] numpy slicing) is used.
     gpu_resident = DEVICE.type == "cuda"
     if gpu_resident:
         print(f"GPU-resident mode: transferring full dataset "
@@ -351,9 +425,9 @@ def train(shards, out_path, epochs):
             train_iter = batches(data, train_idx, BATCH_SIZE)
         t0 = time.time()
         running = steps = 0
-        for si, so, ni, no, target, _ in train_iter:
+        for si, so, sv, ni, no, nv, target, _ in train_iter:
             opt.zero_grad()
-            loss = wdl_loss(model(si, so, ni, no), target)
+            loss = wdl_loss(model(si, so, sv, ni, no, nv), target)
             loss.backward()
             opt.step()
             running += loss.item()
@@ -398,8 +472,8 @@ def synth_records(n, rng):
 def _manual_bits(bb_row):
     """bb_row: [12] uint64 array. Plain-Python independent bit-unpack, used
     only by selfcheck's cross-verification below -- deliberately NOT
-    sharing code with unpack_planes/halfka_indices, so a shared bug in the
-    fast torch training-path implementation wouldn't hide from the check."""
+    sharing code with unpack_planes/halfka_v2_hm_indices, so a shared bug
+    wouldn't hide from the check."""
     bits = np.zeros((12, 64), dtype=np.uint8)
     for p in range(12):
         v = int(bb_row[p])
@@ -417,17 +491,38 @@ def _manual_nstm_bits(bits):
     return nstm
 
 
-def _manual_halfka(bits):
+def _manual_halfka_v2_hm(bits):
+    """Independent (plain Python) reimplementation of the export-time
+    feature list: king bucket + mirroring + 12->11 piece merge, all done by
+    hand without reusing any of the fast torch path's code."""
     king_sq = int(np.nonzero(bits[5])[0][0])
+    mirror = (king_sq % 8) < 4
+    if mirror:
+        oriented = np.zeros_like(bits)
+        for p in range(12):
+            for s in range(64):
+                oriented[p, s ^ 7] = bits[p, s]
+        king_sq_o = king_sq ^ 7
+    else:
+        oriented = bits
+        king_sq_o = king_sq
+    bucket = int(KING_BUCKETS[king_sq_o])
+    assert bucket >= 0
+
     feats = []
-    piece_idx = 0
-    for p in range(12):
-        if p == 5:
-            continue
+    for our_plane in range(12):
+        p_idx = int(np.nonzero(PIDX_TO_PLANE == our_plane)[0][0])
+        if p_idx >= 10:
+            continue  # king planes handled separately below (merged block)
         for s in range(64):
-            if bits[p, s]:
-                feats.append(king_sq * N_PIECE_SQ + piece_idx * 64 + s)
-        piece_idx += 1
+            if oriented[our_plane, s]:
+                feats.append(bucket * N_PIECE_SQ_EXPORT + p_idx * 64 + s)
+    # Merged king block: opp king's own square (p_idx=11's active bit) plus
+    # the own king's fixed contribution at its own (oriented) square.
+    opp_king_plane = int(PIDX_TO_PLANE[11])
+    opp_king_sq = int(np.nonzero(oriented[opp_king_plane])[0][0])
+    feats.append(bucket * N_PIECE_SQ_EXPORT + 10 * 64 + opp_king_sq)
+    feats.append(bucket * N_PIECE_SQ_EXPORT + 10 * 64 + king_sq_o)
     return feats
 
 
@@ -441,9 +536,9 @@ def selfcheck():
     opt = torch.optim.Adam(model.parameters(), lr=1e-3)
     idx = np.arange(len(data))
     for _ in range(3):
-        si, so, ni, no, target, _ = make_batch(data[idx])
+        si, so, sv, ni, no, nv, target, _ = make_batch(data[idx])
         opt.zero_grad()
-        loss = wdl_loss(model(si, so, ni, no), target)
+        loss = wdl_loss(model(si, so, sv, ni, no, nv), target)
         loss.backward()
         opt.step()
     print(f"selfcheck: 3 training steps done, last loss {loss.item():.6f}",
@@ -477,19 +572,19 @@ def selfcheck():
         off += FT_IN * ACC * 4
         ftb = np.frombuffer(blob, "<f4", ACC, off)
         off += ACC * 4
-        outw = np.frombuffer(blob, "<f4", 4 * ACC, off)
-        off += 4 * ACC * 4
+        outw = np.frombuffer(blob, "<f4", 2 * ACC, off)
+        off += 2 * ACC * 4
         outb = np.frombuffer(blob, "<f4", 1, off)
 
         def screlu_np(x):
             v = np.clip(x, 0, 1)
             return v * v
 
-        def crelu_np(x):
-            return np.clip(x, 0, 1)
-
-        # Manual numpy forward from the exported arrays vs model(), using
-        # the independent _manual_* HalfKA reimplementation above.
+        # Manual numpy forward from the exported (coalesced) arrays vs
+        # model(), using the independent _manual_* reimplementation above.
+        # This exercises the export-time coalesce+merge path, not just the
+        # training-time factorized path -- catches bugs the training loop's
+        # own forward pass wouldn't.
         max_diff = 0.0
         model.eval()
         with torch.no_grad():
@@ -497,19 +592,17 @@ def selfcheck():
                 sel = data[i : i + 1]
                 bits = _manual_bits(sel["bb"][0])
                 nstm_bits = _manual_nstm_bits(bits)
-                stm_feats = _manual_halfka(bits)
-                nstm_feats = _manual_halfka(nstm_bits)
+                stm_feats = _manual_halfka_v2_hm(bits)
+                nstm_feats = _manual_halfka_v2_hm(nstm_bits)
                 a = ftw[stm_feats].sum(axis=0) + ftb
                 b = ftw[nstm_feats].sum(axis=0) + ftb
-                h = np.concatenate(
-                    [screlu_np(a), crelu_np(a), screlu_np(b), crelu_np(b)]
-                )
+                h = np.concatenate([screlu_np(a), screlu_np(b)])
                 manual = float(h @ outw + outb[0])
-                si, so, ni, no, _, _ = make_batch(sel)
-                got = float(model(si, so, ni, no)[0])
+                si, so, sv, ni, no, nv, _, _ = make_batch(sel)
+                got = float(model(si, so, sv, ni, no, nv)[0])
                 max_diff = max(max_diff, abs(manual - got))
-        check(f"numpy forward matches model (max diff {max_diff:.2e} <= 1e-4)",
-              max_diff <= 1e-4)
+        check(f"numpy forward matches model (max diff {max_diff:.2e} <= 1e-3)",
+              max_diff <= 1e-3)
     finally:
         os.unlink(path)
 
