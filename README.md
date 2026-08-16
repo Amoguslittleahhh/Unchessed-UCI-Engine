@@ -19,7 +19,7 @@ in the UCI options and default behavior their own `main.rs` exposes.
 |---|---|
 | Bitboard movegen | ✅ perft-verified (startpos d6 = 119,060,324; Kiwipete d5 = 193,690,690, exact) |
 | Search | ✅ iterative deepening alpha-beta, quiescence, TT, null-move, LMR, killers/history, MultiPV, time management |
-| Eval | ✅ NNUE (768-input/256-accumulator/SCReLU), SPRT-validated +107.1 Elo over the hand-crafted eval, auto-loaded from `unchessed-nnue.bin`; HCE (material + PSTs + bishop pair + mobility/passed-pawns/rook/knight-outpost terms) remains as a fallback when the file is absent |
+| Eval | ✅ NNUE v4 (HalfKAv2_hm: 22528-input king-relative/mirrored/factorized-trained, 256-accumulator/SCReLU), SPRT-validated +26.1 Elo over v1 (which was itself +107.1 Elo over the hand-crafted eval), auto-loaded from `unchessed-nnue.bin`; HCE (material + PSTs + bishop pair + mobility/passed-pawns/rook/knight-outpost terms) remains as a fallback when the file is absent |
 | UCI protocol | ✅ full loop, worker-thread search, `stop` safe, 9/9 smoke tests |
 | Time management | ✅ clock-aware: deep searches on a full clock, urgency tiers as time drains (near-instant on the increment in panic mode), situation-scaled budgets (sharp/wide positions get more), easy-move early stop, score-drop extensions; verified flag-free in 10s+0.1s blitz |
 | Opening book | ✅ ~45 embedded main lines with ECO names + troll tier + external Polyglot `.bin` support (key computation verified against the format spec test vectors) |
