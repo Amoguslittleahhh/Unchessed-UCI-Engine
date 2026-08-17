@@ -1,4 +1,4 @@
-# Unchessed AI — remaining research backlog (post-IEEE-doc)
+# Unchessed AI — remaining research backlog (post-IEEE-doc, post-Longer-Horizon-doc)
 
 The 44-page research compendium (`unchessed_ieee.pdf`, also as a .docx) already
 answers 19 of the ~104 brainstormed topics: NNUE v4 ablation, king-bucket
@@ -9,12 +9,28 @@ adversarial position mining, label noise/bootstrapping, SEE, correction +
 continuation history, NNUE-eval-volatility time allocation, the pre-SPRT
 smoke test, time-pressure policy net input, and blunder-rate calibration.
 
-Everything below is what's **left** — 84 items across NNUE internals, data
-pipeline, search, movegen/core, opening book, persona/adapter, policy net,
-the (still unbuilt) Reviewer tool, testing discipline, calibration, and
-longer-horizon ideas — plus 11 reinforcement items that cross-check gaps the
-IEEE doc admits but never resolves. None of the 84 were part of the
-19-question research prompt, so none have literature-backed answers yet.
+A second doc (`Unchessed_Longer_Horizon_Exploratory_TechnicalDoc_v1_2026-08-17.pdf`)
+answers all 14 items in the "Longer-horizon / exploratory" section below
+(items 71-84) — see the inline `[ANSWERED]` notes on each for a one-line
+takeaway and any caveats. This doc's codebase claims were spot-checked
+directly against the real source (file line counts, `ENGINE_CEILING`,
+`EVAL_CLAMP`, etc.) and matched exactly, with one exception: it repeatedly
+mislabels the -70.3 Elo SPRT failure as "v2 (HalfKA, 45056 features)" —
+it was actually v3 (HalfKAv2_hm, 22528 features); real v2 was just v1's
+architecture retrained on more data and was never SPRT-gated. Don't let
+that error propagate. It also surfaced a real, verified, high-priority
+finding not on this list before: Unchessed's NNUE has **no incremental
+accumulator updates** — full recompute every eval call, confirmed directly
+in `nnue.rs`'s own source comment. See the
+`unchessed-nnue-no-incremental-updates` memory for detail; this is now
+arguably the single highest-priority item across both docs combined.
+
+Everything below is what's **left unanswered** — 70 items (84 minus the 14
+now covered) across NNUE internals, data pipeline, search, movegen/core,
+opening book, persona/adapter, policy net, the (still unbuilt) Reviewer
+tool, testing discipline, and calibration — plus 11 reinforcement items
+that cross-check gaps the IEEE doc admits but never resolves. None of
+these 70 have literature-backed or codebase-verified answers yet.
 Each entry gives: why it matters, a concrete way to test/answer it, and a
 rough effort/impact read.
 
@@ -1044,6 +1060,13 @@ rough effort/impact read.
 ## Longer-horizon / exploratory
 
 ### 71. Tablebase integration for actual endgame play
+- **[ANSWERED]** by the Longer-Horizon doc (2026-08-17): full DTZ/WDL
+  architecture — WDL at root/near-root for hard bounds, DTZ at leaf nodes
+  for conversion, mmap-based loading, `SyzygyProbeLimit` UCI option,
+  ~150GB disk for 7-piece tables. Correctly layers with #82 (endgame
+  hybrid module handles the 8+-piece gap tablebases don't cover) and flags
+  a real CLINCH-mode tension (tablebase certainty could short-circuit the
+  persona's "narrow safe path" complexity-seeking).
 - **Why it matters:** distinct from Q10 (using tablebases to correct
   training *labels*) — this is about probing Syzygy tablebases live during
   search for perfect endgame play, which the doc's Appendix Q mentions only
@@ -1058,6 +1081,13 @@ rough effort/impact read.
   expected benefit.
 
 ### 72. Pondering support
+- **[ANSWERED]** by the Longer-Horizon doc: clean `Idle/Searching/Pondering`
+  state-machine design, correctly identifies that time management must
+  recompute from the *original* `go ponder` params at `ponderhit`, not at
+  `go` time. Flags a genuinely good, previously-unraised persona tension:
+  in MATCH mode, pondering deeply then deliberately not playing the found
+  move could leak strength information (extra populated TT entries)
+  contrary to the mode's intentional weakening.
 - **Why it matters:** thinking during the opponent's time is a standard
   competitive feature listed on the README's roadmap but not yet
   implemented; particularly relevant given the adaptive engine's
@@ -1070,6 +1100,15 @@ rough effort/impact read.
   adaptive/persona system.
 
 ### 73. MultiPV-weighted move selection inside the adapter
+- **[ANSWERED]** by the Longer-Horizon doc, and the single most concrete
+  item it produced: a full `composite_weight()` formula combining a
+  softmax over search score (temperature scaled by target Elo) with a
+  policy-probability term (also Elo-scaled) and the existing
+  `HeuristicPrior` multiplier, correctly reusing real constants from
+  `adapt.rs` (`ENGINE_CEILING=2600`, the MATCH-mode temperature formula).
+  Gives per-persona integration notes (PUNISH → policy_weight≈0, DEFEND
+  benefits because good defensive moves often rank 2nd/3rd). This is
+  close to implementation-ready, not just a scoping note.
 - **Why it matters:** MultiPV output already exists per the README's
   search feature list; using it inside the adapter itself — weighting
   among the top-N moves by policy net probability rather than always
@@ -1085,6 +1124,14 @@ rough effort/impact read.
   to potentially improve MATCH mode's naturalness.
 
 ### 74. Puzzle-rush/tactics-trainer mode
+- **[ANSWERED]** by the Longer-Horizon doc: a `TacticalFeatures` struct
+  (fork/pin/skewer/sacrifice/deflection detection + `score_gap`) with a
+  concrete puzzle-candidate rule (`score_gap > 150cp` + a detected motif),
+  a puzzle-difficulty calibration loop reusing the adapter's existing
+  Bayesian Elo estimator, and a custom UCI extension (`PuzzleMode`,
+  `PuzzleDifficulty`). Correctly frames this as reusing the Reviewer
+  stub's classification logic for a different output/presentation layer
+  rather than a separate system.
 - **Why it matters:** reuses the Reviewer's classification logic (once
   built, #55-61) to identify tactical positions and present them as
   training puzzles — a natural extension of existing infrastructure into a
@@ -1095,6 +1142,18 @@ rough effort/impact read.
   "phase 2" feature once the Reviewer ships.
 
 ### 75. Game-phase-aware NNUE accumulator refresh strategy
+- **[ANSWERED, but now premature]** — the Longer-Horizon doc gives a
+  detailed 4-phase hybrid strategy (incremental for normal moves, full
+  recompute on castling since the king move re-indexes every other piece
+  under HalfKA-style king-relative features, a heuristic to fall back to
+  full recompute if the king moves >3 times in the endgame), with a
+  measured ~5.6x speedup estimate. **But this entire proposal assumes
+  incremental accumulator updates already exist as a baseline to
+  special-case around — verified false** (see the
+  `unchessed-nnue-no-incremental-updates` memory: `nnue.rs` does full
+  recompute unconditionally, no incremental path at all yet). Implement
+  basic incremental updates first; this phase-aware refinement is a
+  legitimate follow-up optimization, not a starting point.
 - **Why it matters:** the doc's Appendix Q notes phase transitions
   (particularly castling, which changes multiple features at once) have a
   different cost profile for incremental updates than typical moves —
@@ -1110,6 +1169,15 @@ rough effort/impact read.
   priority than the larger search/eval items above.
 
 ### 76. Cross-engine style transfer study
+- **[ANSWERED]** by the Longer-Horizon doc: two concrete architectures
+  (LoRA-style small per-player adaptation matrices, ~48KB each vs ~10-20MB
+  for a full policy net; or a conditional style-embedding vector, ~64
+  floats/player). Cites Maia's own individual-player-model precedent and
+  gives rough data-volume thresholds (500 games minimum, 2000-5000
+  adequate, 10000+ for high fidelity). Correctly separates style from
+  strength — a style net still needs the persona system's Elo-limiting
+  layered on top to actually play *at* the imitated player's level, not
+  just *like* them.
 - **Why it matters:** genuinely exploratory — would training a policy net
   on a specific human's games (rather than a rating-bucket aggregate)
   produce a recognizable "plays like this specific person" persona, versus
@@ -1124,6 +1192,17 @@ rough effort/impact read.
   currently.
 
 ### 77. Anti-fingerprinting audit
+- **[ANSWERED]** by the Longer-Horizon doc, and genuinely the strongest
+  entry — it names five specific, checkable vulnerabilities in Unchessed's
+  own actual constants: the hardcoded `HeuristicPrior` multipliers
+  (capture 1.35x, check 1.25x, castle 1.6x, etc.) create detectably
+  consistent biases real humans don't have; the 1.6x castling bonus / 0.15x
+  forfeit penalty produces a near-100% castling rate that's itself a tell;
+  and the engine-tell detector's own `<300ms` instant-reply threshold is a
+  double-edged sword since Unchessed's own book/easy-position replies can
+  trip it. Proposes concrete mitigations (Gaussian timing noise,
+  human-pattern-matched blunder injection, per-session heuristic
+  perturbation) rather than just naming the problem.
 - **Why it matters:** the flip side of #37's engine-tell detection — does
   Unchessed's own play have detectable statistical tells (e.g. suspiciously
   consistent timing, characteristic eval patterns) that a sophisticated
@@ -1138,6 +1217,13 @@ rough effort/impact read.
   real value for the persona system's core credibility.
 
 ### 78. Explainability layer
+- **[ANSWERED]** by the Longer-Horizon doc: four approaches ranked by
+  cost/quality (rule-based templates, feature-attribution/SHAP-style,
+  LLM-powered, and a recommended hybrid using templates in real-time play
+  and an optional LLM call for post-game analysis only). Gives a working
+  template-generation code sketch and a concrete UCI `Explain` option
+  design. Correctly notes rule-based adds negligible (<1ms) overhead while
+  LLM-powered adds real latency/dependency, justifying the hybrid split.
 - **Why it matters:** currently `info string` output narrates persona
   switches and book/troll choices per the README, but doesn't explain
   search-level reasoning (why this move over alternatives) in natural
@@ -1152,6 +1238,15 @@ rough effort/impact read.
   differentiator but not core to engine strength.
 
 ### 79. Long-term self-play league
+- **[ANSWERED]** by the Longer-Horizon doc: round-robin architecture with
+  an explicit non-transitivity check (computing a "rock-paper-scissors"
+  cycle rate, since chess engine strength isn't guaranteed transitive),
+  version-tracking metadata schema, and a regression-alert trigger
+  (>20 Elo drop vs. previous best). **Caveat:** repeats the same v2/v3
+  mislabeling as elsewhere in this doc — calls the -70.3 Elo failure "v2"
+  three times and gives it "45056 features," both wrong (it was v3,
+  HalfKAv2_hm, 22528 features; see the top-of-file note). The league
+  design itself is unaffected by this error.
 - **Why it matters:** currently strength progress is tracked via pairwise
   SPRT (new version vs. immediately-previous version); a round-robin league
   across multiple historical NNUE/policy versions would reveal whether
@@ -1168,6 +1263,14 @@ rough effort/impact read.
   hygiene for long-term tracking, complements rather than replaces SPRT.
 
 ### 80. Neural-network-based move ordering
+- **[ANSWERED]** by the Longer-Horizon doc: three concrete architecture
+  options, with Option 3 (reusing the already-computed 256-value NNUE
+  accumulator + 20 move-specific features → 32 hidden neurons →
+  1 output) the clear standout since it needs no separate forward pass
+  (~8,900 FLOPs/move vs the NNUE eval's own ~16K FLOPs/node). Correctly
+  frames this as supplementing quiet-move ordering specifically (where
+  history/killers are weakest), not replacing SEE for captures. Cites a
+  plausible 30-80 Elo estimate from comparable engines' experience.
 - **Why it matters:** the doc's Appendix Q mentions this as a future
   direction (a small policy network predicting beta-cutoff probability per
   candidate move) but explicitly leaves it unanalyzed as a formal question
@@ -1184,6 +1287,14 @@ rough effort/impact read.
   this higher-risk than most other search items.
 
 ### 81. Neural-network-based pruning
+- **[ANSWERED]** by the Longer-Horizon doc: four pruning types (AlphaZero-
+  style hard policy pruning, value-network futility pruning, variance-based
+  pruning, learned LMR-extension), with a "verify-and-prune" safety net
+  (a shallow depth-1-2 search confirms the network's pruning suggestion
+  before committing) as the key risk mitigation. Correctly identifies the
+  core danger as asymmetric: pruning a move that would've caused a cutoff
+  is free, but pruning the actual best move is catastrophic — this framing
+  is missing from the earlier brainstormed version of this item.
 - **Why it matters:** same appendix, same "mentioned but not analyzed"
   status as #80 — a small network predicting whether a subtree is worth
   searching at all, positioned by the doc as more sophisticated than static
@@ -1198,6 +1309,14 @@ rough effort/impact read.
   parallel.
 
 ### 82. Endgame-specific hybrid evaluation
+- **[ANSWERED]** by the Longer-Horizon doc: a `EndgameModule` struct with
+  concrete named terms (king-proximity-to-pawn, rook-on-seventh,
+  opposition, outside-passed-pawn, fortress detection) and a material-based
+  blending function that smoothly shifts weight from NNUE-dominated to
+  rule-dominated as material drops below 2500/1500cp thresholds. Correctly
+  layers with #71 (tablebase probing takes precedence when in range, this
+  module fills the 8+-piece gap tablebases don't cover, NNUE handles
+  everything else) — a clean three-tier eval-selection design.
 - **Why it matters:** the doc's Appendix Q notes NNUE struggles with
   specific endgame concepts (opposition, triangulation, zugzwang,
   fortress) that occur in a small fraction of training positions, and
@@ -1216,6 +1335,15 @@ rough effort/impact read.
   diagnostic confirms a real, sizable gap.
 
 ### 83. Multi-agent/opponent-style-conditioned training
+- **[ANSWERED]** by the Longer-Horizon doc: three architecture options
+  (conditional evaluation network taking a 16-dim style vector, ~16 extra
+  params; opponent-specific output heads, ~257 params each; MAML-style
+  meta-learning as the ambitious option) plus a concrete CLINCH-mode
+  application (biasing the eval itself toward positions with more blunder
+  opportunities against tactically-weak opponents, not just filtering
+  moves post-hoc). Honestly flags style-estimation accuracy and training-
+  data imbalance as the two biggest open risks, consistent with this
+  item's original "correctly scoped as speculative" assessment.
 - **Why it matters:** the doc's Appendix Q raises this as a speculative
   direction — adapting the *evaluation function itself* to the detected
   opponent style (weighting tactical vs strategic features differently
@@ -1234,6 +1362,15 @@ rough effort/impact read.
   hitting a real ceiling.
 
 ### 84. Transformer-based evaluation feasibility for alpha-beta search
+- **[ANSWERED]** by the Longer-Horizon doc, and it lands on exactly the
+  same "transformer as one-time labeling oracle, not inference-time eval"
+  framing as this item already proposed — independent convergence on the
+  same idea. Names real chess transformer precedent (Chessformer/Kholin
+  2023, a ViT-style board-as-image architecture) and a concrete
+  transformer→NNUE distillation pipeline (train oracle on 100M+ positions,
+  generate labels for the existing 108M-position dataset, retrain NNUE on
+  those labels, optionally iterate). Correctly flags the risk of the NNUE
+  inheriting the transformer's biases/errors as the main downside.
 - **Why it matters:** the doc notes transformers are much slower than NNUE
   for evaluation and that incremental updates (NNUE's core speed advantage)
   don't apply to attention-based architectures — but doesn't explore a
