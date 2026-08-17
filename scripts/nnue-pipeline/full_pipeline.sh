@@ -135,3 +135,30 @@ else
   log "Training FAILED (exit code $TRAIN_EXIT). Check $LOG for the error -- the old unchessed-nnue.bin is untouched, nothing was overwritten."
 fi
 tail -20 "$LOG"
+
+# --- Step 4: pre-SPRT smoke test ---
+# 100 games @ 1+0.1s against the currently-deployed network, reject if score
+# < 40%. This is the cheap reject-only filter added after v3's -70.3 Elo
+# regression took ~756 full-SPRT games to catch -- see
+# scripts/research/remaining_research_topics.md item #92 for the detection-
+# floor validation (it correctly failed v3 at 28.5% in the same 100 games).
+# A PASS here does not mean "good," only "not obviously terrible" -- still
+# run a full SPRT (scripts/sprt-history/sprt_nnue_v4.sh is the pattern) to
+# confirm any real Elo gain before promoting.
+if [ "$TRAIN_EXIT" -eq 0 ]; then
+  log "Running pre-SPRT smoke test on $OUT ..."
+  SMOKE_SCRIPT=/home/amogusontheterminal/unchessed-ai/scripts/nnue-pipeline/smoke_test_nnue.sh
+  if [ -x "$SMOKE_SCRIPT" ]; then
+    "$SMOKE_SCRIPT" "$OUT" "" "v2"
+    SMOKE_EXIT=$?
+    if [ "$SMOKE_EXIT" -eq 0 ]; then
+      log "Smoke test PASSED -- $OUT is not obviously bad. Proceed to a full SPRT gate manually if you want to promote it."
+    else
+      log "Smoke test FAILED -- $OUT looks like a regression. Do NOT spend a full SPRT run on this without investigating first."
+    fi
+  else
+    log "Smoke test script not found or not executable at $SMOKE_SCRIPT -- skipping. Run it manually before any SPRT gate."
+  fi
+else
+  log "Skipping smoke test since training failed."
+fi

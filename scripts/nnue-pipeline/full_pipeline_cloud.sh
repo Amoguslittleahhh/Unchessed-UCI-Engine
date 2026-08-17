@@ -235,6 +235,37 @@ else
 fi
 tail -20 "$LOG"
 
+# --- Step 4: pre-SPRT smoke test ---
+# 100 games @ 1+0.1s against the currently-deployed network, reject if score
+# < 40%. This is the cheap reject-only filter added after v3's -70.3 Elo
+# regression took ~756 full-SPRT games to catch -- see
+# scripts/research/remaining_research_topics.md item #92 for the detection-
+# floor validation (it correctly failed v3 at 28.5% in the same 100 games).
+# A PASS here does not mean "good," only "not obviously terrible" -- still
+# run a full SPRT (scripts/sprt-history/sprt_nnue_v4.sh is the pattern) to
+# confirm any real Elo gain before promoting. Requires cutechess-cli to be
+# present on this box; if this pipeline is run on a fresh rental without it
+# set up yet, the smoke test is skipped rather than failing the whole run.
+if [ "$TRAIN_EXIT" -eq 0 ]; then
+  log "Running pre-SPRT smoke test on $OUT ..."
+  SMOKE_SCRIPT="$TRAIN_SRC/scripts/nnue-pipeline/smoke_test_nnue.sh"
+  if [ -x "$SMOKE_SCRIPT" ]; then
+    "$SMOKE_SCRIPT" "$OUT" "" "v3_cloud"
+    SMOKE_EXIT=$?
+    if [ "$SMOKE_EXIT" -eq 0 ]; then
+      log "Smoke test PASSED -- $OUT is not obviously bad."
+      notify "Smoke test PASSED for $OUT. Not obviously bad -- run a full SPRT before promoting."
+    else
+      log "Smoke test FAILED -- $OUT looks like a regression. Do NOT run a full SPRT on this without investigating first."
+      notify "Smoke test FAILED for $OUT -- looks like a regression, investigate before running SPRT."
+    fi
+  else
+    log "Smoke test script not found or not executable at $SMOKE_SCRIPT (cutechess-cli/book may not be set up on this box yet) -- skipping. Run it manually before any SPRT gate."
+  fi
+else
+  log "Skipping smoke test since training failed."
+fi
+
 # No auto git-commit, no auto cleanup, no auto-delete -- all left for
 # manual handling. The instance keeps running (and billing) until you
 # delete it yourself.
