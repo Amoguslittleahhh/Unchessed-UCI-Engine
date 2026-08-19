@@ -14,8 +14,13 @@
 //!       SFNNv5 output-head change was deliberately dropped for v3 so this
 //!       is a clean, single-variable test of the feature-scheme fix against
 //!       v1, not another bundle of changes).
-//! Inference is f32 with a full accumulator recompute per eval (no
-//! incremental updates yet, any version).
+//! Inference is f32. v1 and v3 (the deployed default) update their
+//! accumulators incrementally on each move via `Eval::update_state`
+//! (add/remove only the feature rows a move actually changed; a full
+//! rebuild is used only when a perspective's own king moves, since every
+//! v3 feature is indexed relative to the king's bucket). v2 always takes
+//! the full-recompute path -- it's kept loadable for reference only and
+//! isn't worth the complexity for a scheme nothing ships as the default.
 //!
 //! Weights file format "UNCHNNUE" (little-endian):
 //!   magic "UNCHNNUE" (8 bytes)
@@ -58,7 +63,7 @@
 //! two distinct rows since two kings can never occupy the same square.
 
 use crate::board::*;
-use crate::eval::Eval;
+use crate::eval::{Eval, EvalState, NnueEvalState};
 
 pub const ACC: usize = 256;
 const FT_IN_V1: usize = 768;
@@ -135,6 +140,26 @@ fn add_row(acc: &mut [f32], ft_w: &[f32], idx: usize) {
     for (a, w) in acc.iter_mut().zip(row) {
         *a += *w;
     }
+}
+
+#[inline]
+fn sub_row(acc: &mut [f32], ft_w: &[f32], idx: usize) {
+    let row = &ft_w[idx * ACC..(idx + 1) * ACC];
+    for (a, w) in acc.iter_mut().zip(row) {
+        *a -= *w;
+    }
+}
+
+/// Per-perspective context needed to compute a single piece's feature-row
+/// index incrementally, without re-deriving it from scratch each time.
+/// Valid only as long as this perspective's OWN king hasn't moved since it
+/// was computed -- callers must full-rebuild instead when it has.
+/// v3 (HalfKAv2_hm) only -- v2 (HalfKa) always takes the full-recompute
+/// path in `update_state` instead of using this.
+#[derive(Clone, Copy)]
+struct KingFrame {
+    bucket: usize,
+    mirror: bool,
 }
 
 impl Nnue {
@@ -269,6 +294,103 @@ impl Nnue {
         }
         acc
     }
+
+    /// King-relative context for perspective `persp`, read from `pos`. Only
+    /// meaningful for schemes whose feature index depends on the king
+    /// square (v2, v3) -- callers of `feature_row` for v1 ignore it.
+    fn king_frame(&self, pos: &Position, persp: Color) -> KingFrame {
+        let white_persp = matches!(persp, Color::White);
+        let king_raw = pos.bb[persp.idx()][KING].trailing_zeros() as usize;
+        let king_oriented = if white_persp { king_raw } else { king_raw ^ 56 };
+        let mirror = (king_oriented % 8) < 4;
+        let king_final = if mirror { king_oriented ^ 7 } else { king_oriented };
+        KingFrame {
+            bucket: KING_BUCKETS[king_final] as usize,
+            mirror,
+        }
+    }
+
+    /// Feature-row index for one (color, piece-type, square) contribution
+    /// from perspective `persp`, given `persp`'s current (unmoved-king)
+    /// `frame`. Mirrors `accumulate`'s per-scheme formulas exactly -- this
+    /// and `accumulate` must never be allowed to drift apart, since that
+    /// would silently desync incremental updates from a full recompute
+    /// without either one crashing. Only called for Flat768/HalfKAv2_hm;
+    /// v2 always takes the full-recompute path in `update_state` instead.
+    fn feature_row(&self, persp: Color, frame: KingFrame, c: usize, p: usize, sq: usize) -> usize {
+        let white_persp = matches!(persp, Color::White);
+        let own = c == persp.idx();
+        match self.scheme {
+            Scheme::Flat768 => {
+                let own_flag = if own { 0 } else { 1 };
+                let s = if white_persp { sq } else { sq ^ 56 };
+                own_flag * 384 + p * 64 + s
+            }
+            Scheme::HalfKav2Hm => {
+                let s0 = if white_persp { sq } else { sq ^ 56 };
+                let s = if frame.mirror { s0 ^ 7 } else { s0 };
+                if p == KING {
+                    // Both kings share the same merged block, keyed only by
+                    // their own oriented/mirrored square -- see
+                    // `accumulate`'s HalfKAv2_hm branch.
+                    frame.bucket * N_PIECE_SQ_V3 + 640 + s
+                } else {
+                    let p_idx = p * 2 + usize::from(!own);
+                    frame.bucket * N_PIECE_SQ_V3 + p_idx * 64 + s
+                }
+            }
+            Scheme::HalfKa => unreachable!("v2 uses full recompute, not incremental feature_row"),
+        }
+    }
+
+    /// Update `acc` in place for perspective `persp`, given the piece
+    /// bitboards changed from `before` to `after`. Diffing the bitboards
+    /// (rather than threading move-kind metadata through) means captures,
+    /// en passant, castling, and promotion all fall out correctly for
+    /// free: whatever squares actually gained or lost a piece get exactly
+    /// one row added or removed, regardless of why.
+    fn apply_diff(&self, before: &Position, after: &Position, persp: Color, acc: &mut [f32; ACC]) {
+        let frame = self.king_frame(after, persp);
+        for c in 0..2 {
+            for p in 0..6 {
+                let removed = before.bb[c][p] & !after.bb[c][p];
+                let added = after.bb[c][p] & !before.bb[c][p];
+                let mut bb = removed;
+                while bb != 0 {
+                    let sq = bb.trailing_zeros() as usize;
+                    bb &= bb - 1;
+                    sub_row(acc, &self.ft_w, self.feature_row(persp, frame, c, p, sq));
+                }
+                let mut bb = added;
+                while bb != 0 {
+                    let sq = bb.trailing_zeros() as usize;
+                    bb &= bb - 1;
+                    add_row(acc, &self.ft_w, self.feature_row(persp, frame, c, p, sq));
+                }
+            }
+        }
+    }
+
+    fn combine(&self, acc_stm: &[f32], acc_nstm: &[f32]) -> i32 {
+        let mut out = self.out_b;
+        match self.scheme {
+            Scheme::Flat768 | Scheme::HalfKav2Hm => {
+                for i in 0..ACC {
+                    out += screlu(acc_stm[i]) * self.out_w[i];
+                    out += screlu(acc_nstm[i]) * self.out_w[ACC + i];
+                }
+            }
+            Scheme::HalfKa => {
+                for i in 0..ACC {
+                    out += screlu(acc_stm[i]) * self.out_w[i];
+                    out += crelu(acc_stm[i]) * self.out_w[ACC + i];
+                    out += screlu(acc_nstm[i]) * self.out_w[2 * ACC + i];
+                    out += crelu(acc_nstm[i]) * self.out_w[3 * ACC + i];
+                }
+            }
+        }
+        ((out * SCALE) as i32).clamp(-EVAL_CLAMP, EVAL_CLAMP)
+    }
 }
 
 /// SCReLU: clamp to [0, 1] then square.
@@ -290,24 +412,55 @@ impl Eval for Nnue {
     fn eval(&self, pos: &Position) -> i32 {
         let acc_stm = self.accumulate(pos, pos.side);
         let acc_nstm = self.accumulate(pos, pos.side.flip());
-        let mut out = self.out_b;
-        match self.scheme {
-            Scheme::Flat768 | Scheme::HalfKav2Hm => {
-                for i in 0..ACC {
-                    out += screlu(acc_stm[i]) * self.out_w[i];
-                    out += screlu(acc_nstm[i]) * self.out_w[ACC + i];
-                }
-            }
-            Scheme::HalfKa => {
-                for i in 0..ACC {
-                    out += screlu(acc_stm[i]) * self.out_w[i];
-                    out += crelu(acc_stm[i]) * self.out_w[ACC + i];
-                    out += screlu(acc_nstm[i]) * self.out_w[2 * ACC + i];
-                    out += crelu(acc_nstm[i]) * self.out_w[3 * ACC + i];
-                }
-            }
+        self.combine(&acc_stm, &acc_nstm)
+    }
+
+    fn initial_state(&self, pos: &Position) -> EvalState {
+        let mut acc = [[0.0f32; ACC]; 2];
+        acc[Color::White.idx()].copy_from_slice(&self.accumulate(pos, Color::White));
+        acc[Color::Black.idx()].copy_from_slice(&self.accumulate(pos, Color::Black));
+        EvalState {
+            nnue: NnueEvalState { acc },
         }
-        ((out * SCALE) as i32).clamp(-EVAL_CLAMP, EVAL_CLAMP)
+    }
+
+    fn update_state(
+        &self,
+        before: &Position,
+        after: &Position,
+        _mv: Move,
+        state: &EvalState,
+    ) -> EvalState {
+        if matches!(self.scheme, Scheme::HalfKa) {
+            // v2 (HalfKA, SPRT-failed, kept loadable for reference only)
+            // isn't worth incremental-update complexity for a scheme
+            // nothing ships as the default -- full recompute is correct
+            // and this path is never hot in practice.
+            return self.initial_state(after);
+        }
+        let mut acc = state.nnue.acc;
+        for &persp in &[Color::White, Color::Black] {
+            let idx = persp.idx();
+            let own_king_moved = before.bb[persp.idx()][KING] != after.bb[persp.idx()][KING];
+            if matches!(self.scheme, Scheme::HalfKav2Hm) && own_king_moved {
+                // Every one of this perspective's active features is
+                // indexed relative to its own king's bucket, which just
+                // changed -- only a full rebuild is correct here.
+                acc[idx] = [0.0; ACC];
+                acc[idx].copy_from_slice(&self.accumulate(after, persp));
+                continue;
+            }
+            self.apply_diff(before, after, persp, &mut acc[idx]);
+        }
+        EvalState {
+            nnue: NnueEvalState { acc },
+        }
+    }
+
+    fn eval_with_state(&self, pos: &Position, state: &EvalState) -> i32 {
+        let acc_stm = &state.nnue.acc[pos.side.idx()];
+        let acc_nstm = &state.nnue.acc[pos.side.flip().idx()];
+        self.combine(acc_stm, acc_nstm)
     }
 }
 
@@ -534,5 +687,129 @@ mod tests {
         buf.extend_from_slice(&(FT_IN_V1 as u32).to_le_bytes());
         buf.extend_from_slice(&(ACC as u32).to_le_bytes());
         assert!(Nnue::from_bytes(&buf).is_err());
+    }
+
+    /// Asserts two states agree to within float-summation-order noise --
+    /// not bit-exact, since incremental add/remove and a from-scratch sum
+    /// aren't required to hit IEEE-754 float addition in the same order.
+    fn assert_states_close(a: &EvalState, b: &EvalState, tol: f32, ctx: &str) {
+        for persp in 0..2 {
+            for i in 0..ACC {
+                let (x, y) = (a.nnue.acc[persp][i], b.nnue.acc[persp][i]);
+                assert!(
+                    (x - y).abs() <= tol,
+                    "{}: perspective {} accumulator[{}] diverged: incremental {} vs full-refresh {}",
+                    ctx,
+                    persp,
+                    i,
+                    x,
+                    y
+                );
+            }
+        }
+    }
+
+    /// One (fen, uci move) pair, applied via update_state and compared
+    /// against a from-scratch initial_state on the resulting position.
+    fn check_incremental_step(net: &Nnue, fen: &str, uci: &str, ctx: &str) {
+        let before = fen::parse(fen).unwrap();
+        let mv = crate::movegen::parse_uci_move(&before, uci)
+            .unwrap_or_else(|| panic!("{}: '{}' illegal in '{}'", ctx, uci, fen));
+        let after = before.make(mv);
+        let before_state = net.initial_state(&before);
+        let incremental = net.update_state(&before, &after, mv, &before_state);
+        let full_refresh = net.initial_state(&after);
+        assert_states_close(&incremental, &full_refresh, 0.01, ctx);
+    }
+
+    /// CRITICAL correctness property: an incrementally-updated accumulator
+    /// must match a full recompute on the resulting position, for every
+    /// move-type special case (each of which changes feature rows for
+    /// different, easy-to-get-wrong reasons -- a capture removes an extra
+    /// row nowhere near the mover's destination, en passant removes a row
+    /// at neither the origin nor the destination, promotion changes which
+    /// piece-type row gets added, and castling moves two pieces at once
+    /// while also (for the mover's own perspective) invalidating the
+    /// entire king-bucket frame).
+    #[test]
+    fn incremental_accumulators_match_full_refresh_for_special_moves() {
+        let cases: &[(&str, &str, &str)] = &[
+            ("quiet move", fen::START_FEN, "e2e4"),
+            (
+                "capture",
+                "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3",
+                "f3e5",
+            ),
+            (
+                "en passant",
+                "rnbqkbnr/ppp1pppp/8/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 3",
+                "e5d6",
+            ),
+            (
+                "kingside castling",
+                "rnbqk2r/pppp1ppp/5n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+                "e1g1",
+            ),
+            (
+                "queenside castling",
+                "r3k2r/pppqbppp/2np1n2/4p3/4P3/2NPBN2/PPPQ1PPP/R3K2R w KQkq - 6 7",
+                "e1c1",
+            ),
+            ("promotion (quiet)", "8/4P1k1/8/8/8/8/6K1/8 w - - 0 1", "e7e8q"),
+            (
+                "promotion + capture",
+                "4r2k/3P4/8/8/8/8/6K1/8 w - - 0 1",
+                "d7e8q",
+            ),
+            (
+                "king move (non-castling)",
+                "8/8/8/4k3/8/4K3/8/8 w - - 0 1",
+                "e3d3",
+            ),
+        ];
+        for (tag, bytes) in [
+            ("v1", dummy_net_bytes_v1()),
+            ("v3", dummy_net_bytes_v3()),
+        ] {
+            let net = Nnue::from_bytes(&bytes).unwrap();
+            for &(name, fen_str, uci) in cases {
+                check_incremental_step(&net, fen_str, uci, &format!("[{}] {}", tag, name));
+            }
+        }
+    }
+
+    /// The same property, but over a longer, non-trivial move sequence
+    /// (opening theory including a capture and castling both sides), state
+    /// carried incrementally the whole way rather than rebuilt each step
+    /// -- catches drift that a single-move test can't (e.g. an off-by-one
+    /// in which frame a later move should be diffed against).
+    #[test]
+    fn incremental_accumulators_match_full_refresh_over_move_tree() {
+        let moves = [
+            "e2e4", "e7e5", "g1f3", "b8c6", "f1b5", "a7a6", "b5a4", "g8f6", "e1g1", "f8e7",
+            "f1e1", "b7b5", "a4b3", "d7d6", "c2c3", "e8g8", "h2h3", "c6a5", "b3c2", "c7c5",
+        ];
+        for (tag, bytes) in [
+            ("v1", dummy_net_bytes_v1()),
+            ("v3", dummy_net_bytes_v3()),
+        ] {
+            let net = Nnue::from_bytes(&bytes).unwrap();
+            let mut pos = fen::startpos();
+            let mut state = net.initial_state(&pos);
+            for (i, uci) in moves.iter().enumerate() {
+                let mv = crate::movegen::parse_uci_move(&pos, uci)
+                    .unwrap_or_else(|| panic!("[{}] ply {}: '{}' illegal", tag, i, uci));
+                let next = pos.make(mv);
+                state = net.update_state(&pos, &next, mv, &state);
+                let full_refresh = net.initial_state(&next);
+                assert_states_close(
+                    &state,
+                    &full_refresh,
+                    0.01,
+                    &format!("[{}] after ply {} ({})", tag, i + 1, uci),
+                );
+                pos = next;
+            }
+        }
     }
 }

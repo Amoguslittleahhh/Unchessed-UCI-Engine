@@ -9,9 +9,63 @@ use crate::movegen::{
     attacked, bishop_att, queen_att, rook_att, FILE_A, KING_ATT, KNIGHT_ATT, PAWN_ATT, RANK_1,
 };
 
+/// NNUE's own incremental state: one accumulator per absolute perspective
+/// (White, Black), indexed by `Color::idx()`. Opaque to everyone except the
+/// `Eval` impl that produced it -- the search only ever passes it back to
+/// the same evaluator it came from.
+#[derive(Clone, Copy)]
+pub struct NnueEvalState {
+    pub acc: [[f32; crate::nnue::ACC]; 2],
+}
+
+/// Ply-indexed evaluator state threaded through the search so NNUE can
+/// update its accumulators incrementally (add/remove the handful of
+/// feature rows a move actually changed) instead of a full recompute on
+/// every node. HCE is stateless and never looks at this.
+#[derive(Clone, Copy)]
+pub struct EvalState {
+    pub nnue: NnueEvalState,
+}
+
+impl EvalState {
+    pub const fn stateless() -> EvalState {
+        EvalState {
+            nnue: NnueEvalState {
+                acc: [[0.0; crate::nnue::ACC]; 2],
+            },
+        }
+    }
+}
+
 pub trait Eval: Send + Sync {
     /// Score in centipawns from the side-to-move's perspective.
     fn eval(&self, pos: &Position) -> i32;
+
+    /// Build the state for a fresh search root. Default: no state needed
+    /// (stateless evaluators like HCE never override this).
+    fn initial_state(&self, _pos: &Position) -> EvalState {
+        EvalState::stateless()
+    }
+
+    /// Derive the state after `mv` (which turns `before` into `after`) from
+    /// the state `before` already had. Default: recompute from scratch --
+    /// correct but defeats the purpose of incremental updates, so only an
+    /// evaluator that can actually do better (NNUE) overrides this.
+    fn update_state(
+        &self,
+        _before: &Position,
+        after: &Position,
+        _mv: Move,
+        _state: &EvalState,
+    ) -> EvalState {
+        self.initial_state(after)
+    }
+
+    /// Evaluate `pos` using an already-computed state instead of rebuilding
+    /// it. Default: ignore the state and fall back to plain `eval`.
+    fn eval_with_state(&self, pos: &Position, _state: &EvalState) -> i32 {
+        self.eval(pos)
+    }
 }
 
 /// Tunable eval constants, exposed as UCI options so they can be SPSA-tuned

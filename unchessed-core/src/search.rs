@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 
 use crate::board::*;
-use crate::eval::{Eval, MG_VALUE};
+use crate::eval::{Eval, EvalState, MG_VALUE};
 use crate::movegen::{generate, in_check, king_safe_after, legal, MoveList};
 use crate::see::see;
 use crate::tt::{BOUND_EXACT, BOUND_LOWER, BOUND_UPPER, TT};
@@ -236,6 +236,13 @@ struct Searcher<'a> {
     path: Vec<u64>,
     pv_table: [[Move; MAX_PLY]; MAX_PLY],
     pv_len: [usize; MAX_PLY],
+    /// Ply-indexed evaluator state (NNUE's incremental accumulators; empty
+    /// for HCE). `eval_states[ply]` is always the state for whatever
+    /// position was passed as `pos` to the negamax/qsearch call running at
+    /// that ply -- the parent computes and writes `eval_states[ply + 1]`
+    /// via `Eval::update_state` right before recursing, so no unmake is
+    /// needed even though `Position` is copy-make with no explicit pop.
+    eval_states: Vec<EvalState>,
 }
 
 impl<'a> Searcher<'a> {
@@ -324,7 +331,7 @@ impl<'a> Searcher<'a> {
             return 0;
         }
         if ply >= MAX_PLY {
-            return self.eval.eval(pos);
+            return self.eval.eval_with_state(pos, &self.eval_states[ply]);
         }
         let in_chk = in_check(pos);
         let us = pos.side;
@@ -336,7 +343,7 @@ impl<'a> Searcher<'a> {
             best = -MATE + ply as i32;
             generate(pos, false, &mut ml);
         } else {
-            best = self.eval.eval(pos);
+            best = self.eval.eval_with_state(pos, &self.eval_states[ply]);
             if best >= beta {
                 return best;
             }
@@ -396,6 +403,8 @@ impl<'a> Searcher<'a> {
                 continue;
             }
             any_legal = true;
+            let child_state = self.eval.update_state(pos, &next, m, &self.eval_states[ply]);
+            self.eval_states[ply + 1] = child_state;
             let sc = -self.qsearch(&next, -beta, -alpha, ply + 1);
             if self.abort {
                 return 0;
@@ -437,7 +446,7 @@ impl<'a> Searcher<'a> {
             return 0;
         }
         if ply >= MAX_PLY {
-            return self.eval.eval(pos);
+            return self.eval.eval_with_state(pos, &self.eval_states[ply]);
         }
 
         // draws
@@ -470,7 +479,7 @@ impl<'a> Searcher<'a> {
             }
         }
 
-        let static_eval = self.eval.eval(pos);
+        let static_eval = self.eval.eval_with_state(pos, &self.eval_states[ply]);
 
         // reverse futility pruning
         if !is_pv
@@ -493,6 +502,11 @@ impl<'a> Searcher<'a> {
         {
             let r = self.params.nm_base + depth / self.params.nm_divisor;
             self.path.push(pos.hash);
+            // A null move changes no piece positions (only side-to-move and
+            // en-passant state), so the evaluator's accumulators are
+            // unaffected -- carry the state forward unchanged instead of
+            // running it through update_state for no reason.
+            self.eval_states[ply + 1] = self.eval_states[ply];
             let sc = -self.negamax(
                 &pos.make_null(),
                 depth - 1 - r,
@@ -547,6 +561,8 @@ impl<'a> Searcher<'a> {
                     if !king_safe_after(&next, pos.side) {
                         continue;
                     }
+                    let child_state = self.eval.update_state(pos, &next, m, &self.eval_states[ply]);
+                    self.eval_states[ply + 1] = child_state;
                     let sc = -self.negamax(
                         &next,
                         rdepth - 1,
@@ -604,6 +620,8 @@ impl<'a> Searcher<'a> {
                 continue;
             }
             legal_count += 1;
+            let child_state = self.eval.update_state(pos, &next, m, &self.eval_states[ply]);
+            self.eval_states[ply + 1] = child_state;
 
             let gives_check = in_check(&next);
             let is_cap = m.kind() == MK_EP || pos.board[m.to() as usize] != NO_PIECE;
@@ -796,6 +814,10 @@ pub fn go(
         path: history.to_vec(),
         pv_table: [[Move::NONE; MAX_PLY]; MAX_PLY],
         pv_len: [0; MAX_PLY],
+        // eval_states[ply + 1] can be written for ply up to MAX_PLY - 1
+        // (the negamax/qsearch ply>=MAX_PLY guard bails before indexing
+        // further), so this needs MAX_PLY + 1 slots, not MAX_PLY.
+        eval_states: vec![eval.initial_state(pos); MAX_PLY + 1],
     };
 
     let mut completed: Vec<Line> = Vec::new();
@@ -843,6 +865,8 @@ pub fn go(
                     }
                     let next = pos.make(m);
                     searched += 1;
+                    let child_state = s.eval.update_state(pos, &next, m, &s.eval_states[0]);
+                    s.eval_states[1] = child_state;
                     let mut sc;
                     if searched == 1 {
                         sc = -s.negamax(&next, depth - 1, -beta, -alpha, 1, true, true);

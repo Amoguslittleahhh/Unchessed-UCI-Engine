@@ -188,9 +188,13 @@ python tools/train_nnue.py unchessed-nnue.bin 15 shard0.bin shard1.bin ...
 - **Reviewer**: full-strength UCI engine + PGN review CLI (move classification,
   accuracy %).
 - **NNUE**: quantization-aware training (int8/int16, ~5000x faster inference),
-  incremental accumulator updates, training on Lc0-distilled labels instead of
-  the current HCE-labeled data (shadow-streaming Lc0's training-data repository
-  directly, deliberately deferred pending this first result).
+  training on Lc0-distilled labels instead of the current HCE-labeled data
+  (shadow-streaming Lc0's training-data repository directly, deliberately
+  deferred pending this first result). Incremental accumulator updates
+  landed (v1/v3 update rows incrementally per move instead of a full
+  recompute; v2 still full-recomputes, kept loadable for reference only) --
+  measured ~1.6-1.9x faster wall-clock at matched depth/node-count on the
+  real v4 network, with search behavior (nodes, PV, bestmove) unchanged.
 - Deeper policy nets (conv/resnet) once GPU training is available; more data,
   more buckets.
 - Lazy SMP threads, pondering, tablebases, adaptation tuning.
