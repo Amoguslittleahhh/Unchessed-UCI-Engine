@@ -19,7 +19,7 @@ in the UCI options and default behavior their own `main.rs` exposes.
 |---|---|
 | Bitboard movegen | ✅ perft-verified (startpos d6 = 119,060,324; Kiwipete d5 = 193,690,690, exact) |
 | Search | ✅ iterative deepening alpha-beta, quiescence, TT, null-move, LMR, killers/history, MultiPV, time management |
-| Eval | ✅ NNUE v4 (HalfKAv2_hm: 22528-input king-relative/mirrored/factorized-trained, 256-accumulator/SCReLU), SPRT-validated +26.1 Elo over v1 (which was itself +107.1 Elo over the hand-crafted eval), auto-loaded from `unchessed-nnue.bin`; HCE (material + PSTs + bishop pair + mobility/passed-pawns/rook/knight-outpost terms) remains as a fallback when the file is absent |
+| Eval | ✅ NNUE v4 (HalfKAv2_hm: 22528-input king-relative/mirrored/factorized-trained, 256-accumulator/SCReLU), SPRT-validated +26.1 Elo over v1 (which was itself +107.1 Elo over the hand-crafted eval), auto-loaded from `unchessed-nnue.bin`; incremental accumulator updates (v1/v3, add/remove only the feature rows a move changed instead of a full recompute) SPRT-validated **+68.6 ± 21.0 Elo** (657 games, LOS 100%) at real game time controls from reaching deeper search in the same clock; HCE (material + PSTs + bishop pair + mobility/passed-pawns/rook/knight-outpost terms) remains as a fallback when the file is absent |
 | UCI protocol | ✅ full loop, worker-thread search, `stop` safe, 9/9 smoke tests |
 | Time management | ✅ clock-aware: deep searches on a full clock, urgency tiers as time drains (near-instant on the increment in panic mode), situation-scaled budgets (sharp/wide positions get more), easy-move early stop, score-drop extensions; verified flag-free in 10s+0.1s blitz |
 | Opening book | ✅ ~45 embedded main lines with ECO names + troll tier + external Polyglot `.bin` support (key computation verified against the format spec test vectors) |
@@ -194,7 +194,9 @@ python tools/train_nnue.py unchessed-nnue.bin 15 shard0.bin shard1.bin ...
   landed (v1/v3 update rows incrementally per move instead of a full
   recompute; v2 still full-recomputes, kept loadable for reference only) --
   measured ~1.6-1.9x faster wall-clock at matched depth/node-count on the
-  real v4 network, with search behavior (nodes, PV, bestmove) unchanged.
+  real v4 network with search behavior (nodes, PV, bestmove) unchanged, and
+  SPRT-validated at +68.6 ± 21.0 Elo (657 games, LOS 100%) at real game
+  time controls, where the speedup converts into real extra depth.
 - Deeper policy nets (conv/resnet) once GPU training is available; more data,
   more buckets.
 - Lazy SMP threads, pondering, tablebases, adaptation tuning.
