@@ -236,10 +236,13 @@ python tools/train_nnue.py unchessed-nnue.bin 15 shard0.bin shard1.bin ...
 - `python tools/timing_classifier_validation.py validate --config config/timing_validation.json --records data/timing-validation/records.jsonl --manifest data/timing-validation/source-manifest.json --json data/timing-validation/report.json --markdown data/timing-validation/result.md --check` — reproduce the account-disjoint timing-signal validation and verify the committed negative result.
 - `python tools/service_timing_bench.py ...` — aggregate real Lichess, Chess.com, and FICS timing exports without writing usernames, game IDs, or moves.
 - `python tools/uci_epd_suite.py --engine <reviewer> --epd <licensed-suite.epd> --movetime 10000 --json result.json` — run public or user-licensed coordinate-move EPD suites with pinned UCI settings and checksums.
+- `python tools/train_nnue_xt_a100.py selfcheck` / `python tools/train_chessformer_a100.py selfcheck --no-compile` — validate the A100-optimized XT-NNUE and Chessformer training candidates before long jobs.
 - `python tools/summarize_engine_gauntlet.py --candidate Unchessed --provenance benchmarks/real-engines/provenance.json --pgn benchmarks/real-engines/games/*.pgn --json benchmarks/real-engines/report.json --markdown benchmarks/real-engines/result.md --check` — verify the committed 48-game Ethereal/Berserk/Stockfish gauntlet.
 - `python tools/package_release.py --target-dir target/release --output release [--require-policy]` — bundle binaries/models with SHA-256 manifest and optional policy hard requirement.
 - `docs/opponent-detection-and-balanced-data.md` — opponent identity/type/strength architecture, safe behavior policy, balanced-data design, and rollout gates.
 - `docs/timing-classifier-validation.md` — CC0 source provenance, pseudonymous extraction, account-level statistics, failed gates, and safe production decision.
 - `docs/commercial-and-service-validation.md` — measured service coverage, unavailable commercial APIs, and lawful proprietary-suite workflow.
 - `docs/real-engine-testing.md` — controlled real-engine match conditions, results, provenance rules, and current-asset limitations.
+- `docs/nnue-xt-chessformer-hybrid.md` — compact SFNNv10-inspired threat-residual NNUE and persona-routed Chessformer/alpha-beta design, implementation contract, microbenchmark, and gates.
+- `docs/a100-training-guide.md` — BF16/TF32 A100 setup, data contracts, checkpointing, memory tuning, holdouts, and promotion gates.
 - `docs/opening-book-coverage.md` — historical source, tier safety, coverage, weighting, and external-corpus guidance.
