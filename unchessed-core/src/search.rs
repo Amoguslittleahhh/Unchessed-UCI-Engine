@@ -1,11 +1,12 @@
 //! Iterative-deepening alpha-beta search with quiescence, transposition table,
 //! null-move pruning, LMR, killers/history ordering, MultiPV and time management.
 
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::Arc;
 use std::time::Instant;
 
 use crate::board::*;
-use crate::eval::{Eval, MG_VALUE};
+use crate::eval::{Eval, EvalState, MG_VALUE};
 use crate::movegen::{generate, in_check, king_safe_after, legal, MoveList};
 use crate::see::see;
 use crate::tt::{BOUND_EXACT, BOUND_LOWER, BOUND_UPPER, TT};
@@ -13,6 +14,17 @@ use crate::tt::{BOUND_EXACT, BOUND_LOWER, BOUND_UPPER, TT};
 pub const MATE: i32 = 30_000;
 pub const MATE_IN_MAX: i32 = MATE - 512;
 pub const MAX_PLY: usize = 96;
+
+#[inline]
+fn tt_key(pos: &Position) -> u64 {
+    if pos.halfmove == 0 {
+        return pos.hash;
+    }
+    let mut value = (pos.halfmove.min(100) as u64).wrapping_add(0x9E37_79B9_7F4A_7C15);
+    value = (value ^ (value >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+    value = (value ^ (value >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+    pos.hash ^ value ^ (value >> 31)
+}
 
 /// Tunable search constants, exposed as UCI options so they can be adjusted
 /// without a rebuild (and eventually driven by automated tuning, e.g. SPSA).
@@ -50,6 +62,13 @@ pub struct SearchParams {
     pub futility_margin: i32,
     /// plain futility pruning only applies at or below this depth
     pub futility_max_depth: i32,
+    /// Experimental search features from the research audit. They default off
+    /// so the production baseline remains unchanged until game-match gates.
+    pub iir: bool,
+    pub history_gravity: bool,
+    pub countermoves: bool,
+    pub razoring: bool,
+    pub lmp: bool,
 }
 
 impl Default for SearchParams {
@@ -68,6 +87,11 @@ impl Default for SearchParams {
             probcut_min_depth: 5,
             futility_margin: 150,
             futility_max_depth: 8,
+            iir: false,
+            history_gravity: false,
+            countermoves: false,
+            razoring: false,
+            lmp: false,
         }
     }
 }
@@ -83,6 +107,11 @@ pub struct Limits {
     pub movestogo: Option<u64>,
     pub nodes: Option<u64>,
     pub infinite: bool,
+    pub ponder: bool,
+    pub mate: Option<u64>,
+    pub searchmoves: Vec<String>,
+    #[doc(hidden)]
+    pub shared_nodes: Option<Arc<AtomicU64>>,
 }
 
 impl Limits {
@@ -112,6 +141,21 @@ impl Limits {
                 || self.nodes.is_some())
     }
 
+    /// Charge preprocessing/model/book time to the same move deadline used by
+    /// the main search.
+    pub fn account_elapsed(&mut self, side: Color, elapsed_ms: u64) {
+        if let Some(movetime) = self.movetime.as_mut() {
+            *movetime = movetime.saturating_sub(elapsed_ms).max(1);
+        }
+        let clock = match side {
+            Color::White => &mut self.wtime,
+            Color::Black => &mut self.btime,
+        };
+        if let Some(remaining) = clock.as_mut() {
+            *remaining = remaining.saturating_sub(elapsed_ms);
+        }
+    }
+
     /// Remaining clock time for `side`, if this is a clock game.
     pub fn my_time(&self, side: Color) -> Option<u64> {
         match side {
@@ -127,7 +171,7 @@ impl Limits {
     /// faster than linearly, and in real time trouble it moves near-
     /// instantly on the increment.
     fn budget(&self, side: Color) -> (Option<u64>, Option<u64>) {
-        if self.infinite {
+        if self.infinite || self.ponder {
             return (None, None);
         }
         if let Some(mt) = self.movetime {
@@ -179,6 +223,7 @@ pub struct InfoEvent<'a> {
     pub score: i32,
     pub nodes: u64,
     pub time_ms: u64,
+    pub hashfull: u16,
     pub pv: &'a [Move],
 }
 
@@ -227,21 +272,59 @@ struct Searcher<'a> {
     hard_ms: Option<u64>,
     node_limit: Option<u64>,
     nodes: u64,
+    shared_nodes: Option<&'a AtomicU64>,
     abort: bool,
     /// score of a drawn line from the ROOT side's perspective (contempt)
     root_draw: i32,
     killers: [[Move; 2]; MAX_PLY],
     history: [[[i32; 64]; 64]; 2],
-    /// hashes of game positions + current search path (ancestors of the node)
+    counter_moves: [[[Move; 64]; 64]; 2],
+    previous_move: [Move; MAX_PLY],
+    /// Ply-indexed evaluator state. NNUE uses incremental accumulators; HCE is
+    /// stateless. One heap allocation per search replaces two per eval node.
+    eval_states: Vec<EvalState>,
+    /// Hashes of real game positions followed by current search ancestors.
     path: Vec<u64>,
+    /// Boundary between real game history and search-local ancestors.
+    root_path_len: usize,
     pv_table: [[Move; MAX_PLY]; MAX_PLY],
     pv_len: [usize; MAX_PLY],
 }
 
 impl<'a> Searcher<'a> {
     #[inline]
+    fn count_node(&mut self) {
+        self.nodes += 1;
+        if let Some(counter) = self.shared_nodes {
+            counter.fetch_add(1, Ordering::Relaxed);
+        }
+    }
+
+    #[inline]
+    fn uncount_node(&mut self) {
+        self.nodes -= 1;
+        if let Some(counter) = self.shared_nodes {
+            counter.fetch_sub(1, Ordering::Relaxed);
+        }
+    }
+
+    #[inline]
+    fn total_nodes(&self) -> u64 {
+        self.shared_nodes
+            .map(|counter| counter.load(Ordering::Relaxed))
+            .unwrap_or(self.nodes)
+    }
+
+    #[inline]
     fn check_limits(&mut self) {
-        if self.nodes & 2047 == 0 {
+        let total_nodes = self.total_nodes();
+        if let Some(limit) = self.node_limit {
+            if total_nodes >= limit {
+                self.abort = true;
+                return;
+            }
+        }
+        if total_nodes & 2047 == 0 {
             if self.stop.load(Ordering::Relaxed) {
                 self.abort = true;
                 return;
@@ -249,20 +332,30 @@ impl<'a> Searcher<'a> {
             if let Some(h) = self.hard_ms {
                 if self.start.elapsed().as_millis() as u64 >= h {
                     self.abort = true;
-                    return;
-                }
-            }
-            if let Some(n) = self.node_limit {
-                if self.nodes >= n {
-                    self.abort = true;
                 }
             }
         }
     }
 
     #[inline]
-    fn is_repetition(&self, hash: u64) -> bool {
-        self.path.iter().rev().any(|&h| h == hash)
+    fn is_repetition(&self, hash: u64, halfmove: u16) -> bool {
+        let start = self.path.len().saturating_sub(halfmove as usize);
+        let mut game_occurrences = 0usize;
+        for (index, &ancestor) in self.path.iter().enumerate().skip(start).rev() {
+            if ancestor != hash {
+                continue;
+            }
+            if index >= self.root_path_len {
+                // A search-local cycle can be cut on its first recurrence.
+                return true;
+            }
+            game_occurrences += 1;
+            if game_occurrences >= 2 {
+                // Current node plus two real historical occurrences = threefold.
+                return true;
+            }
+        }
+        false
     }
 
     /// Draw value from the perspective of the side to move at `ply`.
@@ -314,11 +407,34 @@ impl<'a> Searcher<'a> {
         if m == self.killers[ply][1] {
             return 790_000;
         }
+        if self.params.countermoves && ply > 0 {
+            let previous = self.previous_move[ply];
+            if previous != Move::NONE
+                && m == self.counter_moves[pos.side.idx()][previous.from() as usize]
+                    [previous.to() as usize]
+            {
+                return 780_000;
+            }
+        }
         self.history[pos.side.idx()][m.from() as usize][m.to() as usize]
     }
 
+    fn update_history(&mut self, side: Color, mv: Move, bonus: i32) {
+        let entry = &mut self.history[side.idx()][mv.from() as usize][mv.to() as usize];
+        if self.params.history_gravity {
+            const HISTORY_MAX: i32 = 16_384;
+            let bounded = bonus.clamp(-HISTORY_MAX, HISTORY_MAX);
+            *entry += bounded - *entry * bounded.abs() / HISTORY_MAX;
+        } else if bonus > 0 {
+            *entry += bonus;
+            if *entry > 1 << 20 {
+                *entry /= 2;
+            }
+        }
+    }
+
     fn qsearch(&mut self, pos: &Position, mut alpha: i32, beta: i32, ply: usize) -> i32 {
-        self.nodes += 1;
+        self.count_node();
         self.check_limits();
         if self.abort {
             return 0;
@@ -327,6 +443,12 @@ impl<'a> Searcher<'a> {
             return self.eval.eval(pos);
         }
         let in_chk = in_check(pos);
+        if pos.halfmove >= 100 || self.is_repetition(pos.hash, pos.halfmove) {
+            if in_chk && legal(pos).len == 0 {
+                return -MATE + ply as i32;
+            }
+            return self.draw(ply);
+        }
         let us = pos.side;
 
         let mut best;
@@ -336,7 +458,7 @@ impl<'a> Searcher<'a> {
             best = -MATE + ply as i32;
             generate(pos, false, &mut ml);
         } else {
-            best = self.eval.eval(pos);
+            best = self.eval.eval_with_state(pos, &self.eval_states[ply]);
             if best >= beta {
                 return best;
             }
@@ -396,7 +518,15 @@ impl<'a> Searcher<'a> {
                 continue;
             }
             any_legal = true;
+            if ply + 1 < MAX_PLY {
+                self.previous_move[ply + 1] = m;
+                self.eval_states[ply + 1] =
+                    self.eval
+                        .update_state(pos, &next, m, &self.eval_states[ply]);
+            }
+            self.path.push(pos.hash);
             let sc = -self.qsearch(&next, -beta, -alpha, ply + 1);
+            self.path.pop();
             if self.abort {
                 return 0;
             }
@@ -431,7 +561,7 @@ impl<'a> Searcher<'a> {
         if ply < MAX_PLY {
             self.pv_len[ply] = 0;
         }
-        self.nodes += 1;
+        self.count_node();
         self.check_limits();
         if self.abort {
             return 0;
@@ -440,24 +570,25 @@ impl<'a> Searcher<'a> {
             return self.eval.eval(pos);
         }
 
-        // draws
-        if pos.halfmove >= 100 {
-            return self.draw(ply);
-        }
-        if self.is_repetition(pos.hash) {
+        let in_chk = in_check(pos);
+        // Checkmate terminates the game before a draw claim. Rule checks are
+        // rare, so verifying legal evasions here is cheap and exact.
+        if pos.halfmove >= 100 || self.is_repetition(pos.hash, pos.halfmove) {
+            if in_chk && legal(pos).len == 0 {
+                return -MATE + ply as i32;
+            }
             return self.draw(ply);
         }
 
-        let in_chk = in_check(pos);
-        let depth = if in_chk { depth.max(1) } else { depth };
+        let mut depth = if in_chk { depth.max(1) } else { depth };
         if depth <= 0 {
-            self.nodes -= 1; // qsearch counts it
+            self.uncount_node(); // qsearch counts it
             return self.qsearch(pos, alpha, beta, ply);
         }
 
         // TT probe
         let mut tt_mv = Move::NONE;
-        if let Some(e) = self.tt.probe(pos.hash) {
+        if let Some(e) = self.tt.probe(tt_key(pos)) {
             tt_mv = Move(e.mv);
             if !is_pv && e.depth as i32 >= depth {
                 let sc = from_tt(e.score as i32, ply);
@@ -470,7 +601,25 @@ impl<'a> Searcher<'a> {
             }
         }
 
-        let static_eval = self.eval.eval(pos);
+        if self.params.iir && depth > 5 && tt_mv == Move::NONE {
+            depth -= 1;
+        }
+
+        let static_eval = self.eval.eval_with_state(pos, &self.eval_states[ply]);
+
+        if self.params.razoring
+            && !is_pv
+            && !in_chk
+            && depth <= 3
+            && alpha.abs() < MATE_IN_MAX
+            && static_eval + 300 + 250 * depth * depth < alpha
+        {
+            self.uncount_node(); // qsearch counts the current node
+            let razor = self.qsearch(pos, alpha, beta, ply);
+            if razor <= alpha || self.abort {
+                return razor;
+            }
+        }
 
         // reverse futility pruning
         if !is_pv
@@ -493,8 +642,13 @@ impl<'a> Searcher<'a> {
         {
             let r = self.params.nm_base + depth / self.params.nm_divisor;
             self.path.push(pos.hash);
+            let null_position = pos.make_null();
+            if ply + 1 < MAX_PLY {
+                self.previous_move[ply + 1] = Move::NONE;
+                self.eval_states[ply + 1] = self.eval_states[ply];
+            }
             let sc = -self.negamax(
-                &pos.make_null(),
+                &null_position,
                 depth - 1 - r,
                 -beta,
                 -beta + 1,
@@ -516,11 +670,7 @@ impl<'a> Searcher<'a> {
         // past beta at reduced depth; if so, trust it and cut. A known-risky
         // (not fully sound) pruning technique — the margin trades a little
         // tactical accuracy for speed, same tradeoff class as null-move.
-        if !is_pv
-            && !in_chk
-            && depth >= self.params.probcut_min_depth
-            && beta.abs() < MATE_IN_MAX
-        {
+        if !is_pv && !in_chk && depth >= self.params.probcut_min_depth && beta.abs() < MATE_IN_MAX {
             let beta_cut = beta + self.params.probcut_margin;
             let rdepth = depth - self.params.probcut_reduction;
             if rdepth >= 1 {
@@ -546,6 +696,12 @@ impl<'a> Searcher<'a> {
                     let next = pos.make(m);
                     if !king_safe_after(&next, pos.side) {
                         continue;
+                    }
+                    if ply + 1 < MAX_PLY {
+                        self.previous_move[ply + 1] = m;
+                        self.eval_states[ply + 1] =
+                            self.eval
+                                .update_state(pos, &next, m, &self.eval_states[ply]);
                     }
                     let sc = -self.negamax(
                         &next,
@@ -586,6 +742,8 @@ impl<'a> Searcher<'a> {
         let mut best_mv = Move::NONE;
         let mut bound = BOUND_UPPER;
         let mut legal_count = 0;
+        let mut quiets_searched = [Move::NONE; 256];
+        let mut quiet_count = 0usize;
 
         self.path.push(pos.hash);
         for i in 0..ml.len {
@@ -609,6 +767,21 @@ impl<'a> Searcher<'a> {
             let is_cap = m.kind() == MK_EP || pos.board[m.to() as usize] != NO_PIECE;
             let ext = if gives_check { 1 } else { 0 };
             let nd = depth - 1 + ext;
+
+            // Late-move pruning: unlike LMR, skip sufficiently late quiets
+            // outright at shallow non-PV nodes. Default-off pending SPRT.
+            if self.params.lmp
+                && !is_pv
+                && !in_chk
+                && !gives_check
+                && !is_cap
+                && !m.is_promo()
+                && depth <= 4
+                && legal_count > 3 + depth * depth
+                && alpha.abs() < MATE_IN_MAX
+            {
+                continue;
+            }
 
             // plain futility pruning: unlike reverse futility pruning above
             // (a whole-node decision based on beta), this skips individual
@@ -641,6 +814,12 @@ impl<'a> Searcher<'a> {
                 continue;
             }
 
+            if ply + 1 < MAX_PLY {
+                self.previous_move[ply + 1] = m;
+                self.eval_states[ply + 1] =
+                    self.eval
+                        .update_state(pos, &next, m, &self.eval_states[ply]);
+            }
             let mut sc;
             if legal_count == 1 {
                 sc = -self.negamax(&next, nd, -beta, -alpha, ply + 1, is_pv, true);
@@ -654,9 +833,12 @@ impl<'a> Searcher<'a> {
                     && !in_chk
                     && !gives_check
                 {
-                    r = 1
-                        + if legal_count > self.params.lmr_big_movenum { 1 } else { 0 }
-                        + if !is_pv { 1 } else { 0 };
+                    r =
+                        1 + if legal_count > self.params.lmr_big_movenum {
+                            1
+                        } else {
+                            0
+                        } + if !is_pv { 1 } else { 0 };
                     r = r.min(nd - 1).max(0);
                 }
                 sc = -self.negamax(&next, nd - r, -(alpha + 1), -alpha, ply + 1, false, true);
@@ -688,15 +870,30 @@ impl<'a> Searcher<'a> {
                                 self.killers[ply][1] = self.killers[ply][0];
                                 self.killers[ply][0] = m;
                             }
-                            let h = &mut self.history[us.idx()][m.from() as usize][m.to() as usize];
-                            *h += depth * depth;
-                            if *h > 1 << 20 {
-                                *h /= 2;
+                            if self.params.history_gravity {
+                                let bonus = (300 * depth - 250).clamp(0, 16_384);
+                                self.update_history(us, m, bonus);
+                                for &quiet in &quiets_searched[..quiet_count] {
+                                    self.update_history(us, quiet, -bonus);
+                                }
+                            } else {
+                                self.update_history(us, m, depth * depth);
+                            }
+                            if self.params.countermoves && ply > 0 {
+                                let previous = self.previous_move[ply];
+                                if previous != Move::NONE {
+                                    self.counter_moves[us.idx()][previous.from() as usize]
+                                        [previous.to() as usize] = m;
+                                }
                             }
                         }
                         break;
                     }
                 }
+            }
+            if !is_cap && !m.is_promo() && quiet_count < quiets_searched.len() {
+                quiets_searched[quiet_count] = m;
+                quiet_count += 1;
             }
         }
         self.path.pop();
@@ -710,7 +907,7 @@ impl<'a> Searcher<'a> {
         }
 
         self.tt
-            .store(pos.hash, best_mv, to_tt(best, ply), depth, bound);
+            .store(tt_key(pos), best_mv, to_tt(best, ply), depth, bound);
         best
     }
 }
@@ -742,9 +939,25 @@ pub fn go(
 ) -> Vec<Line> {
     let start = Instant::now();
     let (base_soft, hard_ms) = limits.budget(pos.side);
-    let max_depth = limits.depth.unwrap_or(MAX_PLY as i32 - 1).clamp(1, MAX_PLY as i32 - 1);
+    let requested_depth = limits
+        .depth
+        .or_else(|| limits.mate.map(|moves| moves.saturating_mul(2) as i32));
+    let max_depth = requested_depth
+        .unwrap_or(MAX_PLY as i32 - 1)
+        .clamp(1, MAX_PLY as i32 - 1);
 
-    let root_moves_list = legal(pos);
+    let all_root_moves = legal(pos);
+    let mut root_moves_list = MoveList::new();
+    for &mv in all_root_moves.as_slice() {
+        if limits.searchmoves.is_empty()
+            || limits
+                .searchmoves
+                .iter()
+                .any(|allowed| allowed == &mv.uci())
+        {
+            root_moves_list.push(mv);
+        }
+    }
     if root_moves_list.len == 0 {
         return Vec::new();
     }
@@ -758,10 +971,8 @@ pub fn go(
         let sharp = if root_in_check { 1.25 } else { 1.0 };
         width * sharp
     };
-    let mut soft_ms = base_soft.map(|s| {
-        ((s as f64 * situation) as u64)
-            .clamp(3, hard_ms.unwrap_or(u64::MAX))
-    });
+    let mut soft_ms =
+        base_soft.map(|s| ((s as f64 * situation) as u64).clamp(3, hard_ms.unwrap_or(u64::MAX)));
 
     struct RootMove {
         mv: Move,
@@ -780,6 +991,8 @@ pub fn go(
         })
         .collect();
 
+    let mut eval_states = vec![EvalState::stateless(); MAX_PLY];
+    eval_states[0] = eval.initial_state(pos);
     let mut s = Searcher {
         tt,
         eval,
@@ -789,11 +1002,16 @@ pub fn go(
         hard_ms,
         node_limit: limits.nodes,
         nodes: 0,
+        shared_nodes: limits.shared_nodes.as_deref(),
         abort: false,
         root_draw: draw_score.clamp(-100, 100),
         killers: [[Move::NONE; 2]; MAX_PLY],
         history: [[[0; 64]; 64]; 2],
+        counter_moves: [[[Move::NONE; 64]; 64]; 2],
+        previous_move: [Move::NONE; MAX_PLY],
+        eval_states,
         path: history.to_vec(),
+        root_path_len: history.len(),
         pv_table: [[Move::NONE; MAX_PLY]; MAX_PLY],
         pv_len: [0; MAX_PLY],
     };
@@ -842,6 +1060,8 @@ pub fn go(
                         continue;
                     }
                     let next = pos.make(m);
+                    s.previous_move[1] = m;
+                    s.eval_states[1] = s.eval.update_state(pos, &next, m, &s.eval_states[0]);
                     searched += 1;
                     let mut sc;
                     if searched == 1 {
@@ -875,8 +1095,10 @@ pub fn go(
                 }
 
                 let result = best_idx.map(|bi| roots[bi].score);
-                let failed_low = window_lo > -MATE && result.map(|r| r <= window_lo).unwrap_or(true);
-                let failed_high = window_hi < MATE && result.map(|r| r >= window_hi).unwrap_or(false);
+                let failed_low =
+                    window_lo > -MATE && result.map(|r| r <= window_lo).unwrap_or(true);
+                let failed_high =
+                    window_hi < MATE && result.map(|r| r >= window_hi).unwrap_or(false);
                 if !failed_low && !failed_high {
                     break;
                 }
@@ -896,8 +1118,9 @@ pub fn go(
                     depth,
                     multipv: pv_idx + 1,
                     score: roots[bi].score,
-                    nodes: s.nodes,
+                    nodes: s.total_nodes(),
                     time_ms: elapsed,
+                    hashfull: s.tt.hashfull(),
                     pv: &roots[bi].pv,
                 });
             }
@@ -921,7 +1144,7 @@ pub fn go(
 
         // stop deepening on forced mate found (with a little margin)
         if let Some(first) = completed.first() {
-            if is_mate_score(first.score) && depth >= 12 {
+            if is_mate_score(first.score) && depth >= 12 && !limits.infinite && !limits.ponder {
                 break;
             }
         }
@@ -1012,6 +1235,21 @@ mod tests {
     }
 
     #[test]
+    fn transposition_key_includes_rule_fifty_context() {
+        let a = fen::parse("4k3/8/8/8/8/8/8/4K3 w - - 1 1").unwrap();
+        let b = fen::parse("4k3/8/8/8/8/8/8/4K3 w - - 99 1").unwrap();
+        assert_eq!(a.hash, b.hash, "repetition hash must ignore the clock");
+        assert_ne!(tt_key(&a), tt_key(&b), "TT key must include the clock");
+    }
+
+    #[test]
+    fn quiet_checkmate_overrides_fifty_move_threshold() {
+        let (mv, score) = best_move("6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 99 1", 4);
+        assert_eq!(mv, "a1a8");
+        assert!(is_mate_score(score), "mate was scored {}", score);
+    }
+
+    #[test]
     fn finds_mate_in_two() {
         // Classic: 1.Qh7+!? no — use a known M2: white Qg7#? Position:
         // k7/8/2K5/8/8/8/8/1Q6 w - - 0 1 : 1.Qb7# is mate in 1 actually.
@@ -1030,18 +1268,24 @@ mod tests {
     #[test]
     fn game_mode_detection() {
         assert!(Limits::movetime(500).is_game_mode());
-        assert!(Limits::depth(10).is_game_mode(), "fixed-depth matches are games");
+        assert!(
+            Limits::depth(10).is_game_mode(),
+            "fixed-depth matches are games"
+        );
         assert!(Limits {
             wtime: Some(60_000),
             btime: Some(60_000),
             ..Default::default()
         }
         .is_game_mode());
-        assert!(!Limits {
-            infinite: true,
-            ..Default::default()
-        }
-        .is_game_mode(), "go infinite is analysis");
+        assert!(
+            !Limits {
+                infinite: true,
+                ..Default::default()
+            }
+            .is_game_mode(),
+            "go infinite is analysis"
+        );
         assert!(!Limits::default().is_game_mode());
     }
 
@@ -1061,8 +1305,14 @@ mod tests {
         let mid = soft_for(20_000);
         let low = soft_for(5_000);
         let panic = soft_for(1_000);
-        assert!(full > mid && mid > low && low >= panic,
-            "budgets must shrink: {} {} {} {}", full, mid, low, panic);
+        assert!(
+            full > mid && mid > low && low >= panic,
+            "budgets must shrink: {} {} {} {}",
+            full,
+            mid,
+            low,
+            panic
+        );
         // low clock spends a much smaller *fraction* of remaining time too
         assert!((low as f64) / 5_000.0 < (full as f64) / 180_000.0 * 0.8);
         // panic mode is near-instant
@@ -1110,6 +1360,112 @@ mod tests {
             "forced move took {} ms",
             t0.elapsed().as_millis()
         );
+    }
+
+    #[test]
+    fn single_game_history_recurrence_is_not_threefold() {
+        let pos = fen::parse("6qk/8/8/8/8/8/8/7K w - - 20 30").unwrap();
+        let legal_moves = legal(&pos);
+        assert_eq!(legal_moves.len, 1, "test needs one forced quiet move");
+        let child = pos.make(legal_moves.moves[0]);
+        assert!(child.halfmove > 0);
+        let stop = AtomicBool::new(false);
+
+        let search_with_history = |history: &[u64]| {
+            let tt = TT::new(4);
+            go(
+                &pos,
+                &Hce::default(),
+                &Limits::depth(6),
+                1,
+                &tt,
+                &stop,
+                history,
+                0,
+                SearchParams::default(),
+                1,
+                &mut |_| {},
+            )[0]
+            .score
+        };
+
+        let second_occurrence = search_with_history(&[child.hash]);
+        assert!(
+            second_occurrence < -300,
+            "one historical occurrence was incorrectly scored draw: {}",
+            second_occurrence
+        );
+        let third_occurrence = search_with_history(&[child.hash, child.hash]);
+        assert_eq!(third_occurrence, 0, "true threefold must be a draw");
+    }
+
+    #[test]
+    fn experimental_search_features_default_off() {
+        let params = SearchParams::default();
+        assert!(!params.iir);
+        assert!(!params.history_gravity);
+        assert!(!params.countermoves);
+        assert!(!params.razoring);
+        assert!(!params.lmp);
+    }
+
+    #[test]
+    fn experimental_search_features_complete_legal_searches() {
+        let pos = fen::startpos();
+        for feature in 0..5 {
+            let mut params = SearchParams::default();
+            match feature {
+                0 => params.iir = true,
+                1 => params.history_gravity = true,
+                2 => params.countermoves = true,
+                3 => params.razoring = true,
+                _ => params.lmp = true,
+            }
+            let tt = TT::new(4);
+            let stop = AtomicBool::new(false);
+            let lines = go(
+                &pos,
+                &Hce::default(),
+                &Limits::depth(6),
+                1,
+                &tt,
+                &stop,
+                &[],
+                0,
+                params,
+                1,
+                &mut |_| {},
+            );
+            assert_eq!(lines.len(), 1);
+            assert!(legal(&pos).as_slice().contains(&lines[0].mv));
+        }
+    }
+
+    #[test]
+    fn root_searchmoves_is_respected() {
+        let pos = fen::startpos();
+        let tt = TT::new(4);
+        let stop = AtomicBool::new(false);
+        let limits = Limits {
+            depth: Some(4),
+            searchmoves: vec!["a2a3".to_string()],
+            ..Default::default()
+        };
+        let lines = go(
+            &pos,
+            &Hce::default(),
+            &limits,
+            4,
+            &tt,
+            &stop,
+            &[],
+            0,
+            SearchParams::default(),
+            1,
+            &mut |_| {},
+        );
+        assert_eq!(lines.len(), 1);
+        assert_eq!(lines[0].mv.uci(), "a2a3");
     }
 
     #[test]

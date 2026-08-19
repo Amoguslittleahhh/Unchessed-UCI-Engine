@@ -37,11 +37,22 @@ impl Rng {
     pub fn f64(&mut self) -> f64 {
         (self.next() >> 11) as f64 / (1u64 << 53) as f64
     }
+
+    /// Standard normal via Box--Muller, deterministic for a fixed seed.
+    pub fn normal(&mut self) -> f64 {
+        let u1 = self.f64().clamp(f64::MIN_POSITIVE, 1.0 - f64::EPSILON);
+        let u2 = self.f64();
+        (-2.0 * u1.ln()).sqrt() * (std::f64::consts::TAU * u2).cos()
+    }
 }
 
 // ---------------------------------------------------------------------------
-// Known-engine table (seeds the model when UCI_Opponent identifies a computer)
+// Opponent identity, strength posterior, and live evidence
 // ---------------------------------------------------------------------------
+
+const MIN_TRACKED_ELO: i32 = 100;
+const MAX_TRACKED_ELO: i32 = 3650;
+const ELO_BUCKETS: usize = (MAX_TRACKED_ELO - MIN_TRACKED_ELO + 1) as usize;
 
 const KNOWN_ENGINES: &[(&str, i32)] = &[
     ("stockfish", 3600),
@@ -60,30 +71,232 @@ const KNOWN_ENGINES: &[(&str, i32)] = &[
     ("alexandria", 3350),
 ];
 
-// ---------------------------------------------------------------------------
-// Live opponent model
-// ---------------------------------------------------------------------------
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum DeclaredAgent {
+    Unknown,
+    Human,
+    Computer,
+}
+
+/// Persistent identity metadata supplied by the GUI. This is deliberately
+/// separate from per-game observations: `ucinewgame` resets evidence but must
+/// not erase who the opponent is.
+#[derive(Clone, Debug)]
+pub struct OpponentDescriptor {
+    pub title: Option<String>,
+    pub declared_elo: Option<i32>,
+    pub agent: DeclaredAgent,
+    pub name: Option<String>,
+    pub known_engine: Option<&'static str>,
+    pub known_engine_elo: Option<i32>,
+}
+
+impl Default for OpponentDescriptor {
+    fn default() -> Self {
+        OpponentDescriptor {
+            title: None,
+            declared_elo: None,
+            agent: DeclaredAgent::Unknown,
+            name: None,
+            known_engine: None,
+            known_engine_elo: None,
+        }
+    }
+}
+
+impl OpponentDescriptor {
+    /// Parse the UCI convention:
+    /// `<title> <elo> <computer|human> <name...>`.
+    pub fn parse(value: &str) -> OpponentDescriptor {
+        let mut toks = value.split_whitespace();
+        let title = toks.next().filter(|s| *s != "-").map(str::to_string);
+        let elo_tok = toks.next().unwrap_or("-");
+        let kind = toks.next().unwrap_or("unknown");
+        let name = toks.collect::<Vec<_>>().join(" ");
+        let name = (!name.is_empty()).then_some(name);
+        let declared_elo = elo_tok
+            .parse::<i32>()
+            .ok()
+            .filter(|e| *e > 0)
+            .map(|e| e.clamp(MIN_TRACKED_ELO, MAX_TRACKED_ELO));
+        let agent = if kind.eq_ignore_ascii_case("computer") {
+            DeclaredAgent::Computer
+        } else if kind.eq_ignore_ascii_case("human") {
+            DeclaredAgent::Human
+        } else {
+            DeclaredAgent::Unknown
+        };
+        let lower = name.as_deref().unwrap_or("").to_lowercase();
+        let known = KNOWN_ENGINES
+            .iter()
+            .find(|(key, _)| lower.contains(key))
+            .copied();
+        OpponentDescriptor {
+            title,
+            declared_elo,
+            agent,
+            name,
+            known_engine: known.map(|(key, _)| key),
+            known_engine_elo: known.map(|(_, elo)| elo),
+        }
+    }
+
+    /// Known/computer identity is an anti-troll fact, independent of whether
+    /// that engine is deliberately limited to a low playing strength.
+    pub fn anti_troll_lock(&self) -> bool {
+        self.agent == DeclaredAgent::Computer || self.known_engine.is_some()
+    }
+
+    fn initial_strength(&self) -> (f64, f64, f64) {
+        match self.agent {
+            DeclaredAgent::Computer => {
+                let mean = self.declared_elo.or(self.known_engine_elo).unwrap_or(2800) as f64;
+                (
+                    mean,
+                    6.0,
+                    if self.declared_elo.is_some() {
+                        220.0
+                    } else {
+                        350.0
+                    },
+                )
+            }
+            DeclaredAgent::Human => {
+                // A declared human rating is useful as a prior, not truth.
+                let mean = self
+                    .declared_elo
+                    .map(|e| (1500.0 + e as f64) * 0.5)
+                    .unwrap_or(1500.0);
+                (mean, 1.0, 650.0)
+            }
+            DeclaredAgent::Unknown => (1500.0, 1.0, 750.0),
+        }
+    }
+
+    pub fn describe(&self, seed: i32) -> String {
+        let name = self.name.as_deref().unwrap_or("unknown");
+        match self.agent {
+            DeclaredAgent::Computer => match self.known_engine {
+                Some(engine) => format!(
+                    "opponent: {} (computer, known engine '{}', playing-strength prior ~{}, anti-troll locked)",
+                    name, engine, seed
+                ),
+                None => format!(
+                    "opponent: {} (computer, playing-strength prior ~{}, anti-troll locked)",
+                    name, seed
+                ),
+            },
+            DeclaredAgent::Human => format!(
+                "opponent: {} (human metadata; strength/type will be verified from play)",
+                name
+            ),
+            DeclaredAgent::Unknown => {
+                "opponent: unknown type; using conservative no-troll classification".to_string()
+            }
+        }
+    }
+}
+
+#[derive(Clone)]
+struct RatingPosterior {
+    /// One bucket for every integer Elo from 100 through 3650 inclusive.
+    /// This is output granularity, not a claim of one-Elo statistical precision;
+    /// callers must use the credible interval for decisions.
+    probabilities: Vec<f64>,
+}
+
+impl RatingPosterior {
+    fn new(mean: f64, sigma: f64) -> RatingPosterior {
+        let mut probabilities = vec![0.0; ELO_BUCKETS];
+        for (i, probability) in probabilities.iter_mut().enumerate() {
+            let elo = MIN_TRACKED_ELO as f64 + i as f64;
+            let z = (elo - mean) / sigma.max(100.0);
+            *probability = (-0.5 * z * z).exp().max(1e-12);
+        }
+        let mut posterior = RatingPosterior { probabilities };
+        posterior.normalize();
+        posterior
+    }
+
+    fn normalize(&mut self) {
+        let sum: f64 = self.probabilities.iter().sum();
+        if sum > 0.0 && sum.is_finite() {
+            for probability in &mut self.probabilities {
+                *probability /= sum;
+            }
+        } else {
+            self.probabilities.fill(1.0 / ELO_BUCKETS as f64);
+        }
+    }
+
+    fn observe(&mut self, elo_sample: f64, evidence: f64) {
+        // Difficulty controls the likelihood width. Forced/book moves are
+        // intentionally broad and therefore barely move the posterior.
+        let sigma = (430.0 / evidence.max(0.05).sqrt()).clamp(180.0, 1600.0);
+        for (i, probability) in self.probabilities.iter_mut().enumerate() {
+            let elo = MIN_TRACKED_ELO as f64 + i as f64;
+            let z = (elo - elo_sample) / sigma;
+            let likelihood = (-0.5 * z * z).exp().max(1e-8);
+            // Tiny forgetting keeps the model able to track fatigue, a
+            // deliberately limited engine, or a changing opponent.
+            *probability = probability.powf(0.997) * likelihood;
+        }
+        self.normalize();
+    }
+
+    fn quantile(&self, q: f64) -> i32 {
+        let mut cumulative = 0.0;
+        for (i, probability) in self.probabilities.iter().enumerate() {
+            cumulative += probability;
+            if cumulative >= q {
+                return MIN_TRACKED_ELO + i as i32;
+            }
+        }
+        MAX_TRACKED_ELO
+    }
+
+    fn probabilities(&self) -> &[f64] {
+        &self.probabilities
+    }
+
+    fn mode(&self) -> i32 {
+        let index = self
+            .probabilities
+            .iter()
+            .enumerate()
+            .max_by(|a, b| a.1.total_cmp(b.1))
+            .map(|(index, _)| index)
+            .unwrap_or(0);
+        MIN_TRACKED_ELO + index as i32
+    }
+}
 
 #[derive(Clone)]
 pub struct OpponentModel {
-    /// running Elo estimate
+    descriptor: OpponentDescriptor,
+    /// Running Elo point estimate retained for compatibility with the
+    /// existing calibrated selector. The band posterior supplies uncertainty.
     mean: f64,
-    /// evidence weight (grows with samples; prior counts as 1)
     weight: f64,
+    posterior: RatingPosterior,
+    human_probability: f64,
+    engine_probability: f64,
     pub samples: u32,
     pub last_cp_loss: Option<i32>,
+    fresh_blunder: bool,
     pub opponent_name: Option<String>,
     pub is_computer: bool,
     pub declared_elo: Option<i32>,
-    /// depth into book before opponent's first deviation (a prep signal)
     pub book_depth_plies: u32,
-    prev_mean: f64,
-    /// exponentially-weighted variance of the per-move Elo samples: high =
-    /// erratic play (brilliancies mixed with blunders — sandbagger pattern)
-    var_accum: f64,
-    /// grows when the opponent replies near-instantly with strong moves in
-    /// non-trivial positions — the classic engine tell
-    suspicion: f64,
+    recent_sample_mean: Option<f64>,
+    recent_var: f64,
+    trend_ema: f64,
+    /// Retained informative per-move Elo samples; lower-tail skill and
+    /// upper-tail ceiling are read from this 32-move window.
+    strength_samples: Vec<f64>,
+    /// Log fractions of remaining clock consumed on informative moves.
+    time_log_fractions: Vec<f64>,
+    engine_latched: bool,
 }
 
 impl Default for OpponentModel {
@@ -94,180 +307,341 @@ impl Default for OpponentModel {
 
 impl OpponentModel {
     pub fn new() -> OpponentModel {
+        Self::from_descriptor(OpponentDescriptor::default())
+    }
+
+    pub fn from_descriptor(descriptor: OpponentDescriptor) -> OpponentModel {
+        let (mean, weight, sigma) = descriptor.initial_strength();
+        let (human_probability, engine_probability) = match descriptor.agent {
+            DeclaredAgent::Computer => (0.01, 0.99),
+            DeclaredAgent::Human => (0.90, 0.10),
+            DeclaredAgent::Unknown => (0.55, 0.45),
+        };
+        let is_computer = descriptor.agent == DeclaredAgent::Computer;
         OpponentModel {
-            mean: 1500.0,
-            weight: 1.0,
+            posterior: RatingPosterior::new(mean, sigma),
+            opponent_name: descriptor.name.clone(),
+            declared_elo: descriptor.declared_elo,
+            descriptor,
+            mean,
+            weight,
+            human_probability,
+            engine_probability,
             samples: 0,
             last_cp_loss: None,
-            opponent_name: None,
-            is_computer: false,
-            declared_elo: None,
+            fresh_blunder: false,
+            is_computer,
             book_depth_plies: 0,
-            prev_mean: 1500.0,
-            var_accum: 90_000.0, // start wide (~300 sd)
-            suspicion: 0.0,
+            recent_sample_mean: None,
+            recent_var: 0.0,
+            trend_ema: 0.0,
+            strength_samples: Vec::with_capacity(32),
+            time_log_fractions: Vec::with_capacity(32),
+            engine_latched: is_computer,
         }
     }
 
-    /// Parse "setoption name UCI_Opponent value <title> <elo> <computer|human> <name...>".
-    /// Returns a log line describing what was detected.
+    pub fn descriptor(&self) -> &OpponentDescriptor {
+        &self.descriptor
+    }
+
+    pub fn reset_for_new_game(&self) -> OpponentModel {
+        Self::from_descriptor(self.descriptor.clone())
+    }
+
+    /// Backwards-compatible setter used by tests and non-UCI callers.
     pub fn seed_from_uci_opponent(&mut self, value: &str) -> String {
-        let mut toks = value.split_whitespace();
-        let _title = toks.next().unwrap_or("-");
-        let elo_tok = toks.next().unwrap_or("-");
-        let kind = toks.next().unwrap_or("human");
-        let name: String = toks.collect::<Vec<_>>().join(" ");
-        self.opponent_name = if name.is_empty() { None } else { Some(name.clone()) };
-        self.is_computer = kind.eq_ignore_ascii_case("computer");
-        self.declared_elo = elo_tok.parse::<i32>().ok().filter(|e| *e > 0);
+        let descriptor = OpponentDescriptor::parse(value);
+        *self = Self::from_descriptor(descriptor);
+        self.descriptor.describe(self.estimate())
+    }
 
-        if self.is_computer {
-            let lower = name.to_lowercase();
-            let known = KNOWN_ENGINES
-                .iter()
-                .find(|(k, _)| lower.contains(k))
-                .map(|&(k, e)| (k, e));
-            let seed = self
-                .declared_elo
-                .or(known.map(|(_, e)| e))
-                .unwrap_or(2800);
-            self.mean = seed as f64;
-            self.weight = 6.0; // strong prior for engines
-            self.prev_mean = self.mean;
-            match known {
-                Some((k, e)) => format!(
-                    "opponent: {} (computer, known engine '{}', seeded ~{})",
-                    name, k, seed.max(e.min(seed))
-                ),
-                None => format!("opponent: {} (computer, seeded ~{})", name, seed),
-            }
+    fn elo_sample(cp_loss: f64) -> f64 {
+        (2950.0 - 850.0 * (1.0 + cp_loss.max(0.0) / 20.0).ln())
+            .clamp(MIN_TRACKED_ELO as f64, MAX_TRACKED_ELO as f64)
+    }
+
+    fn normalize_agent_probabilities(&mut self) {
+        let sum = self.human_probability + self.engine_probability;
+        if sum > 0.0 && sum.is_finite() {
+            self.human_probability /= sum;
+            self.engine_probability /= sum;
         } else {
-            // Humans: declared ratings are ignored as a source of truth; the
-            // live model judges pure skill from the moves. Declared Elo only
-            // nudges the starting prior slightly.
-            if let Some(e) = self.declared_elo {
-                self.mean = 1500.0 * 0.5 + e as f64 * 0.5;
-                self.prev_mean = self.mean;
-            }
-            format!(
-                "opponent: {} (human) — rating will be estimated live from move quality",
-                if name.is_empty() { "unknown" } else { &name }
-            )
+            self.human_probability = 0.5;
+            self.engine_probability = 0.5;
         }
     }
 
-    /// cp-loss → Elo sample curve. Calibration constants are a declared
-    /// tuning target for the training phase.
-    fn elo_sample(cp_loss: f64) -> f64 {
-        (2950.0 - 850.0 * (1.0 + cp_loss / 20.0).ln()).clamp(400.0, 3200.0)
+    fn update_agent_from_move(&mut self, cp_loss: i32, evidence: f64) {
+        if self.descriptor.agent == DeclaredAgent::Computer || evidence < 0.5 {
+            return;
+        }
+        // Accuracy by itself is weak type evidence; recognizably human errors
+        // are stronger evidence. A trained human-policy likelihood will replace
+        // these conservative factors in the next phase.
+        if cp_loss >= 180 {
+            self.human_probability *= 1.8;
+        } else if cp_loss >= 80 {
+            self.human_probability *= 1.25;
+        } else if cp_loss <= 10 {
+            self.engine_probability *= 1.03;
+        }
+        self.normalize_agent_probabilities();
     }
 
-    /// Update with one observed opponent move.
-    /// `difficulty_weight`: 1.0 normal, lower for forced/book/trivial moves.
+    fn strength_quantile(&self, q: f64) -> Option<f64> {
+        if self.strength_samples.is_empty() {
+            return None;
+        }
+        let mut samples = self.strength_samples.clone();
+        samples.sort_by(f64::total_cmp);
+        let index = ((samples.len() - 1) as f64 * q.clamp(0.0, 1.0)).round() as usize;
+        samples.get(index).copied()
+    }
+
+    pub fn timing_autocorrelation(&self) -> Option<f64> {
+        if self.time_log_fractions.len() < 6 {
+            return None;
+        }
+        let left = &self.time_log_fractions[..self.time_log_fractions.len() - 1];
+        let right = &self.time_log_fractions[1..];
+        let left_mean = left.iter().sum::<f64>() / left.len() as f64;
+        let right_mean = right.iter().sum::<f64>() / right.len() as f64;
+        let mut covariance = 0.0;
+        let mut left_var = 0.0;
+        let mut right_var = 0.0;
+        for (&a, &b) in left.iter().zip(right) {
+            let da = a - left_mean;
+            let db = b - right_mean;
+            covariance += da * db;
+            left_var += da * da;
+            right_var += db * db;
+        }
+        let denominator = (left_var * right_var).sqrt();
+        (denominator > 1e-12).then_some(covariance / denominator)
+    }
+
+    fn refresh_engine_latch(&mut self) {
+        let ceiling = self.strength_quantile(0.75).unwrap_or(self.mean);
+        let regular_timing = self.timing_autocorrelation().unwrap_or(-1.0) >= 0.45;
+        let enough_evidence = self.weight >= 10.0 || (regular_timing && self.weight >= 6.0);
+        let ceiling_signal = ceiling >= 2450.0 && enough_evidence && self.volatility() <= 500;
+        if self.is_computer || ceiling_signal {
+            // Timing can lower the evidence bar for an already ceiling-level
+            // opponent, but can never classify a weak player by itself.
+            self.engine_latched = true;
+        }
+    }
+
     pub fn observe(&mut self, cp_loss: i32, difficulty_weight: f64) {
-        self.prev_mean = self.mean;
-        self.last_cp_loss = Some(cp_loss);
+        self.last_cp_loss = Some(cp_loss.max(0));
+        self.fresh_blunder = cp_loss >= 180;
         let w = difficulty_weight.clamp(0.05, 2.0);
         let sample = Self::elo_sample(cp_loss as f64);
-        let dev = sample - self.mean;
-        self.var_accum = 0.88 * self.var_accum + 0.12 * dev * dev;
+
+        if let Some(recent) = self.recent_sample_mean {
+            let delta = sample - recent;
+            let updated = recent + 0.20 * delta;
+            let residual = sample - updated;
+            self.recent_var = 0.85 * self.recent_var + 0.15 * residual * residual;
+            self.trend_ema = 0.80 * self.trend_ema + 0.20 * delta;
+            self.recent_sample_mean = Some(updated);
+        } else {
+            self.recent_sample_mean = Some(sample);
+            self.recent_var = 0.0;
+            self.trend_ema = 0.0;
+        }
+
         self.mean = (self.mean * self.weight + sample * w) / (self.weight + w);
-        self.weight = (self.weight + w).min(14.0);
-        // slow decay keeps the model tracking (fatigue, sandbagging)
-        self.weight *= 0.985;
+        self.weight = ((self.weight + w).min(14.0) * 0.985).max(1.0);
+        if w >= 0.5 {
+            if self.strength_samples.len() == 32 {
+                self.strength_samples.remove(0);
+            }
+            self.strength_samples.push(sample);
+        }
+        self.posterior.observe(sample, w);
+        self.update_agent_from_move(cp_loss, w);
         self.samples += 1;
+        self.refresh_engine_latch();
     }
 
-    /// Feed the opponent's clock usage for their last move. Near-instant,
-    /// near-perfect replies in positions with real choice are an engine tell.
+    pub fn observe_time_fraction(
+        &mut self,
+        used_ms: u64,
+        remaining_ms: u64,
+        position_had_choice: bool,
+    ) {
+        if !position_had_choice || used_ms == 0 {
+            return;
+        }
+        let before_move = remaining_ms.saturating_add(used_ms).max(1);
+        let fraction = (used_ms as f64 / before_move as f64).clamp(1e-6, 1.0);
+        if self.time_log_fractions.len() == 32 {
+            self.time_log_fractions.remove(0);
+        }
+        self.time_log_fractions.push(fraction.ln());
+
+        // Regularity is only a weak type modulator. It never reaches an engine
+        // conclusion without independent ceiling-level move quality.
+        if self.timing_autocorrelation().unwrap_or(-1.0) >= 0.45
+            && matches!(self.last_cp_loss, Some(loss) if loss <= 60)
+        {
+            self.engine_probability *= 1.10;
+            self.normalize_agent_probabilities();
+        }
+        self.refresh_engine_latch();
+    }
+
+    /// Compatibility helper for tests/callers without remaining-clock data.
     pub fn observe_time(&mut self, used_ms: u64, position_had_choice: bool) {
-        let strong = matches!(self.last_cp_loss, Some(l) if l <= 60);
-        if used_ms < 300 && strong && position_had_choice {
-            self.suspicion += 1.0;
-        } else if used_ms > 1500 {
-            self.suspicion = (self.suspicion - 0.5).max(0.0);
-        }
+        self.observe_time_fraction(used_ms, used_ms.saturating_mul(20), position_had_choice);
     }
 
-    /// Engine detection without any GUI help, two signals:
-    ///  - clock tell: repeated instant-strong replies in real positions;
-    ///  - ceiling tell: our cp-loss yardstick (quick shallow analysis) cannot
-    ///    measure above ~2700, so an estimate *pinned* near that ceiling with
-    ///    low volatility over many moves is not a casual human. (And if it
-    ///    somehow is a 2500+ human, giving them full strength is correct too.)
-    ///
-    /// Gated on accumulated evidence WEIGHT, not raw move count: `samples`
-    /// increments once per move regardless of how forced/trivial it was,
-    /// but `weight` is discounted by `difficulty_weight()` for near-forced
-    /// positions. Threshold set high (close to weight's own 14.0 cap): a
-    /// real low-rated player can absolutely play a clean 6-8 move stretch,
-    /// since openings are the most memorized/intuitive part of chess even
-    /// for weak players -- that's normal human variance, not an engine
-    /// tell, and a short streak alone (whether gated by move count or by
-    /// lightly-discounted weight) isn't enough to tell them apart. Only a
-    /// genuinely long sustained run of low cp-loss should count. Calibrated
-    /// against real chess.com games (100-1500 rated): weight>=6.0 still
-    /// false-triggered on 3 of 7 real sub-1600 games by move 8-9; weight
-    /// >=10.0 was chosen to require most of a full game's worth of
-    /// evidence before concluding "too strong/consistent to be this
-    /// opponent's declared level," while still comfortably tripping for a
-    /// genuinely sustained 2500+ performance (own stress-test confirmed
-    /// this separately).
     pub fn engine_suspect(&self) -> bool {
-        if self.is_computer || self.suspicion >= 3.0 {
-            return true;
-        }
-        self.weight >= 10.0 && self.mean >= 2450.0
+        self.engine_latched
     }
 
-    /// Spread of recent per-move Elo samples.
+    /// Agent type and playing strength are independent. A known/declared weak
+    /// engine remains anti-troll locked but can still be matched at its current
+    /// strength; unrestricted or behaviorally detected engines get FULL.
+    pub fn requires_full_strength(&self) -> bool {
+        if self.descriptor.agent == DeclaredAgent::Computer {
+            let unrestricted_known = self.descriptor.declared_elo.is_none()
+                && self.descriptor.known_engine_elo.unwrap_or(0) >= 2600;
+            return unrestricted_known || self.upper_bound() >= 2400;
+        }
+        self.engine_latched
+    }
+
+    pub fn human_probability(&self) -> f64 {
+        self.human_probability
+    }
+
+    pub fn engine_probability(&self) -> f64 {
+        self.engine_probability
+    }
+
+    pub fn classification(&self) -> &'static str {
+        if self.descriptor.known_engine.is_some() {
+            "known engine"
+        } else if self.engine_latched || self.engine_probability >= 0.90 {
+            "engine"
+        } else if self.human_probability >= 0.90 {
+            "human"
+        } else {
+            "uncertain"
+        }
+    }
+
+    pub fn anti_troll_lock(&self) -> bool {
+        self.descriptor.anti_troll_lock() || self.engine_latched
+    }
+
+    pub fn auto_troll_allowed(&self) -> bool {
+        !self.anti_troll_lock() && self.samples >= 6 && self.human_probability >= 0.90
+    }
+
+    pub fn confident_human(&self) -> bool {
+        !self.anti_troll_lock()
+            && self.human_probability >= 0.90
+            && (self.descriptor.agent == DeclaredAgent::Human || self.samples >= 4)
+    }
+
     pub fn volatility(&self) -> i32 {
-        self.var_accum.sqrt().round() as i32
+        self.recent_var.sqrt().round() as i32
     }
 
     pub fn observe_book_move(&mut self, plies: u32) {
         self.book_depth_plies = self.book_depth_plies.max(plies);
-        // theory carries little signal, but deep prep nudges the estimate up
+        self.fresh_blunder = false;
         if plies >= 10 {
             self.observe(10, 0.25);
+            self.fresh_blunder = false;
         }
     }
 
-    pub fn estimate(&self) -> i32 {
-        self.mean.round() as i32
+    /// Clear one-move tactical events after persona selection. Historical
+    /// loss remains available for logs and statistics.
+    pub fn mark_decision_complete(&mut self) {
+        self.fresh_blunder = false;
     }
 
-    /// rough +- confidence band; erratic opponents stay uncertain
+    pub fn estimate(&self) -> i32 {
+        self.strength_quantile(0.20)
+            .unwrap_or(self.mean)
+            .round()
+            .clamp(MIN_TRACKED_ELO as f64, MAX_TRACKED_ELO as f64) as i32
+    }
+
+    pub fn lower_bound(&self) -> i32 {
+        self.posterior.quantile(0.10)
+    }
+
+    pub fn upper_bound(&self) -> i32 {
+        self.posterior.quantile(0.90)
+    }
+
+    /// Probability array indexed by `elo - 100`, one bucket per integer Elo
+    /// through 3650 inclusive.
+    pub fn rating_probabilities(&self) -> &[f64] {
+        self.posterior.probabilities()
+    }
+
+    pub fn rating_probability(&self, elo: i32) -> f64 {
+        if !(MIN_TRACKED_ELO..=MAX_TRACKED_ELO).contains(&elo) {
+            return 0.0;
+        }
+        self.posterior.probabilities[(elo - MIN_TRACKED_ELO) as usize]
+    }
+
+    pub fn most_likely_elo(&self) -> i32 {
+        self.posterior.mode()
+    }
+
+    pub fn match_offset(&self) -> i32 {
+        let amplitude = self.confidence().min(100);
+        match self.samples % 4 {
+            1 => amplitude,
+            3 => -amplitude,
+            _ => 0,
+        }
+    }
+
     pub fn confidence(&self) -> i32 {
-        let base = 600.0 / self.weight.sqrt();
-        let volatility_widening = (self.var_accum.sqrt() / 400.0).clamp(0.6, 2.0);
-        (base * volatility_widening).round() as i32
+        let posterior_half_width = (self.upper_bound() - self.lower_bound()) / 2;
+        // A single stationary-Elo posterior can become artificially narrow on
+        // alternating strong/blunder samples. Recent volatility explicitly
+        // widens the reported interval for sandbagging/changing profiles.
+        posterior_half_width
+            .max(self.volatility() / 2)
+            .clamp(50, 1200)
     }
 
     pub fn trend(&self) -> &'static str {
         if !self.is_computer && self.engine_suspect() {
-            return if self.suspicion >= 3.0 {
-                "instant strong replies — engine suspected"
+            return if self.timing_autocorrelation().unwrap_or(-1.0) >= 0.45 {
+                "ceiling play with regular clock allocation — engine suspected"
             } else {
-                "pinned at measurement ceiling — engine suspected"
+                "sustained ceiling-level play — engine suspected"
             };
         }
-        if self.volatility() > 380 && self.samples >= 6 {
+        if self.volatility() > 600 && self.samples >= 6 {
             return "erratic (sandbagging?)";
         }
-        let d = self.mean - self.prev_mean;
-        if d > 25.0 {
+        if self.trend_ema > 35.0 {
             "trending up"
-        } else if d < -25.0 {
+        } else if self.trend_ema < -35.0 {
             "trending down"
+        } else if self.volatility() > 380 && self.samples >= 6 {
+            "erratic (sandbagging?)"
         } else {
             "steady"
         }
     }
 
-    /// Did the last observed move look like a blunder?
     pub fn last_was_blunder(&self) -> bool {
-        matches!(self.last_cp_loss, Some(l) if l >= 180)
+        self.fresh_blunder
     }
 }
 
@@ -299,6 +673,61 @@ impl Mode {
             Mode::Defend => "DEFEND",
         }
     }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum GamePhase {
+    Opening,
+    Middlegame,
+    Endgame,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct PersonaContext {
+    pub eval_cp: i32,
+    pub previous_eval_cp: Option<i32>,
+    pub fullmove: u16,
+    pub in_check: bool,
+    pub legal_moves: usize,
+    pub phase: GamePhase,
+    pub both_queens: bool,
+}
+
+impl PersonaContext {
+    pub fn from_position(pos: &Position, eval_cp: i32, previous_eval_cp: Option<i32>) -> Self {
+        let non_pawn_non_king = (pos.occ
+            & !(pos.bb[0][PAWN] | pos.bb[1][PAWN] | pos.bb[0][KING] | pos.bb[1][KING]))
+            .count_ones();
+        let both_queens = pos.bb[0][QUEEN] != 0 && pos.bb[1][QUEEN] != 0;
+        let phase = if pos.fullmove <= 12 && non_pawn_non_king >= 12 {
+            GamePhase::Opening
+        } else if !both_queens || non_pawn_non_king <= 6 {
+            GamePhase::Endgame
+        } else {
+            GamePhase::Middlegame
+        };
+        PersonaContext {
+            eval_cp,
+            previous_eval_cp,
+            fullmove: pos.fullmove,
+            in_check: in_check(pos),
+            legal_moves: legal(pos).len,
+            phase,
+            both_queens,
+        }
+    }
+
+    pub fn eval_swing(self) -> i32 {
+        self.previous_eval_cp
+            .map(|previous| self.eval_cp - previous)
+            .unwrap_or(0)
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct PersonaDecision {
+    pub mode: Mode,
+    pub reason: &'static str,
 }
 
 #[derive(Clone)]
@@ -334,6 +763,118 @@ pub const ENGINE_CEILING: i32 = 2600;
 ///     converted (still > +200) or fizzled.
 ///   CLINCH enters in drawish late middlegames (contempt > 0), and holds
 ///     while the game stays within +-100 cp.
+pub fn decide_persona(
+    cfg: &AdaptConfig,
+    model: &OpponentModel,
+    context: PersonaContext,
+    prev: Mode,
+) -> PersonaDecision {
+    if cfg.limit_strength {
+        return PersonaDecision {
+            mode: Mode::Match,
+            reason: "fixed UCI_Elo has absolute precedence",
+        };
+    }
+    if !cfg.adaptive {
+        return PersonaDecision {
+            mode: Mode::Full,
+            reason: "adaptation disabled",
+        };
+    }
+
+    let eval = context.eval_cp;
+    let swing = context.eval_swing();
+    let defend =
+        eval < -180 || (prev == Mode::Defend && eval < -80) || (context.in_check && eval < -100);
+    if defend {
+        return PersonaDecision {
+            mode: Mode::Defend,
+            reason: if context.in_check {
+                "under pressure while in check"
+            } else if swing < -120 {
+                "position deteriorated sharply"
+            } else {
+                "clearly worse; maximize resistance"
+            },
+        };
+    }
+
+    // Opponent class determines strength, while the board situation can still
+    // choose DEFEND above. This avoids conflating an engine identity threshold
+    // with the tactical response required in the current position.
+    if model.requires_full_strength() {
+        return PersonaDecision {
+            mode: Mode::Full,
+            reason: "unrestricted or behaviorally detected engine",
+        };
+    }
+
+    let target = target_elo(cfg, model);
+    let found_mate = crate::search::is_mate_score(eval) && eval > 0;
+    let fresh_tactical_error = model.last_was_blunder() && eval > 60;
+    let live_eval_swing = swing >= 140 && eval > 40;
+    let large_skill_gap = target + 500 < ENGINE_CEILING && eval > 250;
+    let convert_endgame = context.phase == GamePhase::Endgame && eval > 180;
+    let punish_hold = prev == Mode::Punish && eval > 200 && swing > -120;
+    if found_mate
+        || fresh_tactical_error
+        || live_eval_swing
+        || large_skill_gap
+        || convert_endgame
+        || punish_hold
+    {
+        return PersonaDecision {
+            mode: Mode::Punish,
+            reason: if found_mate {
+                "forced mate available"
+            } else if fresh_tactical_error || live_eval_swing {
+                "opponent tactical error detected"
+            } else if convert_endgame {
+                "winning endgame; convert cleanly"
+            } else if punish_hold {
+                "conversion remains stable"
+            } else {
+                "large lead against a weaker opponent"
+            },
+        };
+    }
+
+    // Trap-seeking is useful against a confidently human opponent, but not
+    // against engines or an unresolved agent type. Queen-rich positions get
+    // the full CLINCH treatment; queenless late positions remain MATCH unless
+    // there is a concrete winning conversion above.
+    let human_opponent = model.confident_human() || model.classification() == "human";
+    let clinch_enter = human_opponent
+        && context.phase != GamePhase::Opening
+        && context.fullmove > 28
+        && context.both_queens
+        && eval.abs() < 60;
+    let clinch_hold = human_opponent
+        && prev == Mode::Clinch
+        && context.phase != GamePhase::Opening
+        && context.both_queens
+        && eval.abs() < 100
+        && swing > -100;
+    if cfg.contempt > 0 && (clinch_enter || clinch_hold) {
+        return PersonaDecision {
+            mode: Mode::Clinch,
+            reason: "late queen-rich human game; seek practical pressure",
+        };
+    }
+
+    PersonaDecision {
+        mode: Mode::Match,
+        reason: if model.classification() == "uncertain" {
+            "uncertain opponent; conservative strength match"
+        } else if context.phase == GamePhase::Opening {
+            "normal opening development"
+        } else {
+            "normal strength-matched play"
+        },
+    }
+}
+
+/// Compatibility wrapper for callers that do not have a full position.
 pub fn decide_mode(
     cfg: &AdaptConfig,
     model: &OpponentModel,
@@ -341,33 +882,28 @@ pub fn decide_mode(
     fullmove: u16,
     prev: Mode,
 ) -> Mode {
-    if !cfg.adaptive {
-        // UCI semantics: with UCI_LimitStrength the engine plays AT UCI_Elo
-        // even when adaptation is off.
-        return if cfg.limit_strength { Mode::Match } else { Mode::Full };
-    }
-    // a suspected engine gets our best chess, not a blended-down imitation
-    if model.engine_suspect() && !cfg.limit_strength {
-        return Mode::Full;
-    }
-
-    if our_eval_cp < -180 || (prev == Mode::Defend && our_eval_cp < -80) {
-        return Mode::Defend;
-    }
-
-    let target = target_elo(cfg, model);
-    let punish_trigger = (model.last_was_blunder() && our_eval_cp > 60)
-        || (target + 500 < ENGINE_CEILING.min(cfg_effective_cap(cfg)) && our_eval_cp > 250);
-    if punish_trigger || (prev == Mode::Punish && our_eval_cp > 200) {
-        return Mode::Punish;
-    }
-
-    let clinch_enter = fullmove > 28 && our_eval_cp.abs() < 60;
-    let clinch_hold = prev == Mode::Clinch && our_eval_cp.abs() < 100;
-    if cfg.contempt > 0 && (clinch_enter || clinch_hold) {
-        return Mode::Clinch;
-    }
-    Mode::Match
+    let phase = if fullmove <= 12 {
+        GamePhase::Opening
+    } else if fullmove > 40 {
+        GamePhase::Endgame
+    } else {
+        GamePhase::Middlegame
+    };
+    decide_persona(
+        cfg,
+        model,
+        PersonaContext {
+            eval_cp: our_eval_cp,
+            previous_eval_cp: None,
+            fullmove,
+            in_check: false,
+            legal_moves: 20,
+            phase,
+            both_queens: true,
+        },
+        prev,
+    )
+    .mode
 }
 
 fn cfg_effective_cap(cfg: &AdaptConfig) -> i32 {
@@ -380,23 +916,38 @@ fn cfg_effective_cap(cfg: &AdaptConfig) -> i32 {
 
 /// The strength we aim to play at in MATCH mode.
 pub fn target_elo(cfg: &AdaptConfig, model: &OpponentModel) -> i32 {
-    if cfg.limit_strength && !cfg.adaptive {
-        // pure fixed-strength play at the requested rating
-        return cfg.elo_cap.max(500);
+    if cfg.limit_strength {
+        return cfg.elo_cap.clamp(MIN_TRACKED_ELO, ENGINE_CEILING);
     }
-    // aim a touch above the estimate: competitive but beatable
-    let t = model.estimate() + 60;
-    t.min(cfg_effective_cap(cfg)).max(500)
+
+    // Unknown agent type is handled conservatively: use the upper credible
+    // strength bound until human evidence is strong enough. This avoids
+    // weakening against a GM/engine merely because the population prior is
+    // centered near 1500. Confident humans use the competitive +60 target.
+    let target = if model.confident_human() {
+        let live = model.estimate() + model.match_offset();
+        // A human declaration remains untrusted but protects titled/high-rated
+        // players from being grossly underplayed during the cold start.
+        model
+            .declared_elo
+            .map(|declared| live.max(declared - 200))
+            .unwrap_or(live)
+    } else {
+        model.upper_bound().max(model.estimate() + 60)
+    };
+    target
+        .min(cfg_effective_cap(cfg))
+        .clamp(MIN_TRACKED_ELO, MAX_TRACKED_ELO)
 }
 
 /// Draw score for the search (contempt wiring): when we are chasing a win a
 /// draw is mildly bad for us; when we are defending, a draw is a rescue and
 /// must not be repelled.
-pub fn draw_score_for(cfg: &AdaptConfig, prev: Mode) -> i32 {
-    if !cfg.adaptive || prev == Mode::Defend {
+pub fn draw_score_for(cfg: &AdaptConfig, mode: Mode) -> i32 {
+    if !cfg.adaptive || cfg.limit_strength || matches!(mode, Mode::Full | Mode::Defend) {
         return 0;
     }
-    match prev {
+    match mode {
         Mode::Clinch => -(cfg.contempt / 2).clamp(0, 50),
         _ => -(cfg.contempt / 3).clamp(0, 33),
     }
@@ -529,7 +1080,11 @@ impl HeuristicPrior {
         // 3.Kd2 get sampled as a "human blunder", forfeiting all castling
         // rights on move 3 for no tactical reason and losing the game.
         if piece == KING && mv.kind() != MK_CASTLE {
-            let own_castle = if let Color::White = us { WK | WQ } else { BK | BQ };
+            let own_castle = if let Color::White = us {
+                WK | WQ
+            } else {
+                BK | BQ
+            };
             if (pos.castling & own_castle) != 0 && (next.castling & own_castle) == 0 {
                 return blended * 0.15;
             }
@@ -547,9 +1102,14 @@ pub struct Selection {
     pub reason: String,
 }
 
-/// Max centipawns we are willing to give up vs. the best move at a target Elo.
-fn max_loss_for(target: i32) -> f64 {
-    ((ENGINE_CEILING - target).max(0) as f64 * 0.35).max(12.0)
+/// Human ACPL target fitted in the research audit. Targets at/above the
+/// engine ceiling receive full-strength selection rather than a fake rating.
+fn human_target_acpl(target: i32) -> f64 {
+    if target >= ENGINE_CEILING {
+        0.0
+    } else {
+        300.0 * (-(target as f64) / 900.0).exp()
+    }
 }
 
 /// Pick the move to play from MultiPV lines according to the persona.
@@ -599,10 +1159,18 @@ pub fn select_move(
                 }
                 let is_cap = pos.board[l.mv.to() as usize] != NO_PIECE || l.mv.kind() == MK_EP;
                 let gives_check = in_check(&pos.make(l.mv));
-                let preferred = if far_ahead { is_cap } else { is_cap || gives_check };
+                let preferred = if far_ahead {
+                    is_cap
+                } else {
+                    is_cap || gives_check
+                };
                 if preferred {
                     pick = l.mv;
-                    why = if is_cap { "forcing capture" } else { "forcing check" };
+                    why = if is_cap {
+                        "forcing capture"
+                    } else {
+                        "forcing check"
+                    };
                     break;
                 }
             }
@@ -616,8 +1184,7 @@ pub fn select_move(
             // opponent's best reply is far better than their second-best
             // (narrow path), while our eval stays acceptable.
             let budget_loss = 40;
-            let both_queens_now =
-                pos.bb[0][QUEEN] != 0 && pos.bb[1][QUEEN] != 0;
+            let both_queens_now = pos.bb[0][QUEEN] != 0 && pos.bb[1][QUEEN] != 0;
             let mut best_score = f64::MIN;
             let mut pick = best.mv;
             let mut picked_gap = 0;
@@ -628,10 +1195,13 @@ pub fn select_move(
                 }
                 let after = pos.make(l.mv);
                 let replies = probe(&after);
-                let gap = if replies.len() >= 2 {
-                    (replies[0].score - replies[1].score).max(0)
-                } else {
-                    0
+                let gap = match replies.len() {
+                    // A genuinely forced reply is stronger trap/forcing
+                    // evidence than any finite MultiPV gap. Keep it bounded
+                    // so the root safety/loss budget remains authoritative.
+                    1 => 300,
+                    n if n >= 2 => (replies[0].score - replies[1].score).max(0),
+                    _ => 0,
                 };
                 let mut s = -(loss as f64) + gap as f64 * 0.6;
                 // dirty chess wants pieces on the board: reward lines that
@@ -652,51 +1222,14 @@ pub fn select_move(
         }
         Mode::Match => {
             let target = target_elo(cfg, model);
-            let max_loss = max_loss_for(target);
-            let temp = (max_loss / 2.0).max(8.0);
+            let target_acpl = human_target_acpl(target);
 
-            // The accurate multipv `lines` are always included, but at low
-            // targets they are NOT the whole candidate pool: `lines` is only
-            // ever the engine's own top-K BEST moves (K = MultiPV, min 5),
-            // so a real weak human's characteristic errors (hung pieces,
-            // missed one-movers) are structurally never present in it,
-            // regardless of how low `target`/`max_loss` is set -- reweighting
-            // among only-good options can't produce weak play. Below 2200
-            // (HeuristicPrior's own weakening cutoff -- no point widening
-            // where nothing downstream uses it), score every other legal
-            // move too, via the same shallow `probe` search CLINCH uses
-            // (not a raw static eval): a naive 1-ply eval can't see that a
-            // move hangs a piece, since the material loss only shows up
-            // after the opponent's reply -- `probe`'s search (which bottoms
-            // out in quiescence) correctly resolves that capture sequence.
-            // Confirmed necessary via a 64-level Elo-ladder stress test
-            // (own play vs Stockfish at every UCI_Elo from 500-3200) that
-            // showed zero measurable correlation between the declared
-            // target and actual move quality before this fix.
-            let mut cand: Vec<(Move, i32)> = lines.iter().map(|l| (l.mv, l.score)).collect();
-            if target < 2200 {
-                let ml = legal(pos);
-                for &m in ml.as_slice() {
-                    if cand.iter().any(|&(cm, _)| cm == m) {
-                        continue;
-                    }
-                    let after = pos.make(m);
-                    let sc = match probe(&after).first() {
-                        Some(l) => -l.score,
-                        // no time budget for the probe right now -- skip
-                        // rather than trust an un-vetted candidate
-                        None => continue,
-                    };
-                    cand.push((m, sc));
-                }
-            }
-
-            // Never blend into a move that walks into mate, and never
-            // decline a mate we have found -- filter once, up front, so
-            // both the "normal" and "blunder" sampling below share it.
-            let viable: Vec<(Move, i32)> = cand
+            // The UCI layer supplies a target-dependent MultiPV root pool in
+            // one shared iterative-deepening search. Every loss below is
+            // therefore self-consistent and non-negative by construction.
+            let viable: Vec<(Move, i32)> = lines
                 .iter()
-                .copied()
+                .map(|line| (line.mv, line.score))
                 .filter(|&(_, score)| {
                     let walks_into_mate =
                         crate::search::is_mate_score(score) && score < 0 && best.score > score;
@@ -704,93 +1237,74 @@ pub fn select_move(
                         && !((best.score - score) > 0 && crate::search::is_mate_score(best.score))
                 })
                 .collect();
-            if viable.is_empty() {
+            if viable.is_empty() || target_acpl <= 0.0 {
                 return Selection {
                     mv: best.mv,
-                    reason: "best move (no viable alternatives)".to_string(),
+                    reason: if viable.is_empty() {
+                        "best move (no viable alternatives)".to_string()
+                    } else {
+                        "best move (at engine ceiling)".to_string()
+                    },
                 };
             }
-            let cand_moves: Vec<Move> = viable.iter().map(|&(m, _)| m).collect();
-            let priors = prior.priors(pos, &cand_moves, target);
 
-            // Real human error isn't "somewhat worse with some randomness"
-            // -- it's a genuinely different regime: usually fine, but with
-            // occasional QUALITATIVE blunders (hung pieces). A single
-            // smoothly-decaying softmax over a wide pool structurally can't
-            // reproduce that: the many "slightly worse" legal moves dilute
-            // any individual real blunder's selection probability down to
-            // near zero, even once it's included in the pool (confirmed
-            // empirically -- widening the pool alone, without this, showed
-            // ~0 correlation between target Elo and actual move quality
-            // across a 64-level ladder test). Model it as an explicit
-            // two-mode mixture instead: with `blunder_prob(target)`,
-            // deliberately sample from the WORSE end of the viable pool
-            // (weight grows with loss, not against it); otherwise sample
-            // among the better options as before. Rate calibrated loosely
-            // against real blunder-frequency-by-rating references (roughly
-            // 30-35% of moves at ~500 Elo, ~0% at 2200+, matching
-            // HeuristicPrior's own weakening cutoff).
-            let blunder_prob = ((2200 - target).max(0) as f64 / 1700.0).clamp(0.0, 1.0) * 0.35;
-            if blunder_prob > 0.0 && rng.f64() < blunder_prob {
-                let lo = max_loss * 0.25;
-                let mut weights: Vec<f64> = Vec::with_capacity(viable.len());
-                for (i, &(_, score)) in viable.iter().enumerate() {
-                    let loss = (best.score - score) as f64;
-                    if loss > max_loss || loss < lo {
-                        weights.push(0.0);
-                        continue;
-                    }
-                    weights.push(loss * priors.get(i).copied().unwrap_or(1.0).max(0.1));
-                }
-                let total: f64 = weights.iter().sum();
-                if total > 0.0 {
-                    let mut roll = rng.f64() * total;
-                    for (&(mv, score), w) in viable.iter().zip(&weights) {
-                        roll -= w;
-                        if roll <= 0.0 {
-                            let loss = best.score - score;
-                            return Selection {
-                                mv,
-                                reason: format!("human blunder at ~{} (loss {} cp)", target, loss),
-                            };
-                        }
-                    }
-                }
-                // nothing in the "genuinely bad" band this move (e.g. every
-                // legal option is close in value) -- fall through to normal
-            }
+            let candidate_moves: Vec<Move> = viable.iter().map(|&(mv, _)| mv).collect();
+            let priors = prior.priors(pos, &candidate_moves, target);
 
-            let mut weights: Vec<f64> = Vec::with_capacity(viable.len());
-            for (i, &(_, score)) in viable.iter().enumerate() {
-                let loss = (best.score - score) as f64;
-                if loss > max_loss {
-                    weights.push(0.0);
-                    continue;
-                }
-                let w = (-loss / temp).exp() * priors.get(i).copied().unwrap_or(1.0);
-                weights.push(w);
+            // Human errors are zero-inflated and heavy-tailed. Draw an intended
+            // loss from a lognormal with the fitted mean ACPL, then choose the
+            // legal move whose measured loss best matches it. Unlike the old
+            // [0.25*max,max] band, this always has a nearest candidate and can
+            // never silently fall through to stronger play.
+            const LOGNORMAL_SIGMA: f64 = 1.1;
+            let mu = target_acpl.ln() - LOGNORMAL_SIGMA * LOGNORMAL_SIGMA / 2.0;
+            let intended = (mu + LOGNORMAL_SIGMA * rng.normal()).exp();
+            let kernel_sigma = (target_acpl * 0.35).max(12.0);
+            let mut weights = Vec::with_capacity(viable.len());
+            for (index, &(_, score)) in viable.iter().enumerate() {
+                let loss = (best.score - score).max(0) as f64;
+                let distance = (loss - intended) / kernel_sigma;
+                let kernel = (-0.5 * distance * distance).exp();
+                weights.push(kernel * priors.get(index).copied().unwrap_or(1.0).max(0.005));
             }
             let total: f64 = weights.iter().sum();
-            if total <= 0.0 {
+            if total <= 0.0 || !total.is_finite() {
+                let (mv, score) = viable
+                    .iter()
+                    .min_by_key(|(_, score)| {
+                        ((best.score - *score).max(0) as f64 - intended).abs() as i64
+                    })
+                    .copied()
+                    .unwrap_or((best.mv, best.score));
                 return Selection {
-                    mv: best.mv,
-                    reason: "best move (no viable alternatives)".to_string(),
+                    mv,
+                    reason: format!(
+                        "human error target at ~{} (intended {:.0} cp, realised {} cp)",
+                        target,
+                        intended,
+                        (best.score - score).max(0)
+                    ),
                 };
             }
+
             let mut roll = rng.f64() * total;
-            for (&(mv, score), w) in viable.iter().zip(&weights) {
-                roll -= w;
+            for (&(mv, score), weight) in viable.iter().zip(&weights) {
+                roll -= weight;
                 if roll <= 0.0 {
-                    let loss = best.score - score;
                     return Selection {
                         mv,
-                        reason: format!("human-plausible at ~{} (loss {} cp)", target, loss),
+                        reason: format!(
+                            "human error target at ~{} (intended {:.0} cp, realised {} cp)",
+                            target,
+                            intended,
+                            (best.score - score).max(0)
+                        ),
                     };
                 }
             }
             Selection {
                 mv: best.mv,
-                reason: "best move".to_string(),
+                reason: "best move (sampling fallback)".to_string(),
             }
         }
     }
@@ -857,12 +1371,14 @@ mod tests {
         let mut m = OpponentModel::new();
         m.seed_from_uci_opponent("- 2800 human MagnusFan");
         assert!(m.estimate() < 2300, "human declared elo must not dominate");
+        assert_eq!(target_elo(&AdaptConfig::default(), &m), ENGINE_CEILING);
     }
 
     #[test]
     fn persona_hysteresis_latches() {
         let cfg = AdaptConfig::default();
-        let m = OpponentModel::new();
+        let mut m = OpponentModel::new();
+        m.seed_from_uci_opponent("- 1500 human TestPlayer");
         // -120 cp: not bad enough to ENTER defend...
         assert_ne!(decide_mode(&cfg, &m, -120, 20, Mode::Match), Mode::Defend);
         // ...but bad enough to STAY in defend once there
@@ -895,15 +1411,33 @@ mod tests {
     }
 
     #[test]
-    fn engine_suspicion_from_clock() {
-        let mut m = OpponentModel::new();
-        for _ in 0..3 {
-            m.observe(5, 1.0); // strong moves
-            m.observe_time(80, true); // played instantly with real choice
+    fn timing_regularities_only_modulate_ceiling_strength() {
+        let mut weak_regular = OpponentModel::new();
+        let mut strong_regular = OpponentModel::new();
+        let mut strong_irregular = OpponentModel::new();
+        for i in 0..7 {
+            let smooth = 800 + i * 120;
+            weak_regular.observe(220, 1.0);
+            weak_regular.observe_time_fraction(smooth, 60_000, true);
+            strong_regular.observe(5, 1.0);
+            strong_regular.observe_time_fraction(smooth, 60_000, true);
+            strong_irregular.observe(5, 1.0);
+            strong_irregular.observe_time_fraction(
+                if i % 2 == 0 { 80 } else { 5_000 },
+                60_000,
+                true,
+            );
         }
-        assert!(m.engine_suspect());
-        let cfg = AdaptConfig::default();
-        assert_eq!(decide_mode(&cfg, &m, 0, 10, Mode::Match), Mode::Full);
+        assert!(weak_regular.timing_autocorrelation().unwrap() >= 0.45);
+        assert!(
+            !weak_regular.engine_suspect(),
+            "timing cannot flag weak play"
+        );
+        assert!(strong_regular.engine_suspect());
+        assert!(
+            !strong_irregular.engine_suspect(),
+            "premoves alone are not engine evidence"
+        );
     }
 
     #[test]
@@ -936,8 +1470,18 @@ mod tests {
         let mvs: Vec<crate::board::Move> = ml.as_slice().to_vec();
         // candidate 1 is "getting mated" — must never be picked
         let lines = vec![
-            Line { mv: mvs[0], score: 20, depth: 8, pv: vec![mvs[0]] },
-            Line { mv: mvs[1], score: -(MATE - 6), depth: 8, pv: vec![mvs[1]] },
+            Line {
+                mv: mvs[0],
+                score: 20,
+                depth: 8,
+                pv: vec![mvs[0]],
+            },
+            Line {
+                mv: mvs[1],
+                score: -(MATE - 6),
+                depth: 8,
+                pv: vec![mvs[1]],
+            },
         ];
         let cfg = AdaptConfig::default();
         let mut m = OpponentModel::new();
@@ -948,7 +1492,13 @@ mod tests {
         let mut rng = Rng::new(1234);
         for _ in 0..200 {
             let sel = select_move(
-                &pos, &lines, Mode::Match, &cfg, &m, &prior, &mut rng,
+                &pos,
+                &lines,
+                Mode::Match,
+                &cfg,
+                &m,
+                &prior,
+                &mut rng,
                 &mut |_p| Vec::new(),
             );
             assert_eq!(sel.mv, mvs[0], "sampled a move that walks into mate");
@@ -988,5 +1538,496 @@ mod tests {
             w_king,
             w_knight
         );
+    }
+
+    #[test]
+    fn contextual_persona_responds_to_board_opponent_and_eval_trajectory() {
+        let cfg = AdaptConfig::default();
+        let mut human = OpponentModel::new();
+        human.seed_from_uci_opponent("GM 2400 human TestGM");
+        let base = PersonaContext {
+            eval_cp: 20,
+            previous_eval_cp: Some(10),
+            fullmove: 32,
+            in_check: false,
+            legal_moves: 25,
+            phase: GamePhase::Middlegame,
+            both_queens: true,
+        };
+        assert_eq!(
+            decide_persona(&cfg, &human, base, Mode::Match).mode,
+            Mode::Clinch
+        );
+        assert_eq!(
+            decide_persona(
+                &cfg,
+                &human,
+                PersonaContext {
+                    eval_cp: 180,
+                    previous_eval_cp: Some(0),
+                    ..base
+                },
+                Mode::Match,
+            )
+            .mode,
+            Mode::Punish
+        );
+        assert_eq!(
+            decide_persona(
+                &cfg,
+                &human,
+                PersonaContext {
+                    eval_cp: -220,
+                    in_check: true,
+                    ..base
+                },
+                Mode::Match,
+            )
+            .mode,
+            Mode::Defend
+        );
+        assert_eq!(
+            decide_persona(
+                &cfg,
+                &human,
+                PersonaContext {
+                    both_queens: false,
+                    ..base
+                },
+                Mode::Match,
+            )
+            .mode,
+            Mode::Match
+        );
+
+        let unknown = OpponentModel::new();
+        assert_eq!(
+            decide_persona(&cfg, &unknown, base, Mode::Match).mode,
+            Mode::Match
+        );
+    }
+
+    #[test]
+    fn contextual_engine_response_keeps_full_strength_but_defends_when_worse() {
+        let cfg = AdaptConfig::default();
+        let mut engine = OpponentModel::new();
+        engine.seed_from_uci_opponent("- - computer Stockfish");
+        let neutral = PersonaContext {
+            eval_cp: 0,
+            previous_eval_cp: Some(10),
+            fullmove: 20,
+            in_check: false,
+            legal_moves: 30,
+            phase: GamePhase::Middlegame,
+            both_queens: true,
+        };
+        assert_eq!(
+            decide_persona(&cfg, &engine, neutral, Mode::Match).mode,
+            Mode::Full
+        );
+        assert_eq!(
+            decide_persona(
+                &cfg,
+                &engine,
+                PersonaContext {
+                    eval_cp: -300,
+                    in_check: true,
+                    ..neutral
+                },
+                Mode::Full,
+            )
+            .mode,
+            Mode::Defend
+        );
+    }
+
+    #[test]
+    fn adaptive_match_offset_is_zero_mean_over_cycle() {
+        let mut model = OpponentModel::new();
+        let mut offsets = Vec::new();
+        for samples in 0..4 {
+            model.samples = samples;
+            offsets.push(model.match_offset());
+        }
+        assert_eq!(offsets.iter().sum::<i32>(), 0, "{:?}", offsets);
+        assert!(offsets.iter().any(|offset| *offset < 0));
+        assert!(offsets.iter().any(|offset| *offset > 0));
+    }
+
+    #[test]
+    fn human_acpl_curve_matches_research_reference() {
+        for (elo, expected) in [
+            (500, 172.1),
+            (800, 123.3),
+            (1200, 79.1),
+            (2000, 32.5),
+            (2400, 20.8),
+        ] {
+            assert!((human_target_acpl(elo) - expected).abs() < 0.2);
+        }
+        assert_eq!(human_target_acpl(ENGINE_CEILING), 0.0);
+        assert_eq!(human_target_acpl(3650), 0.0);
+        let above = AdaptConfig {
+            adaptive: false,
+            limit_strength: true,
+            elo_cap: 3650,
+            contempt: 0,
+        };
+        assert_eq!(target_elo(&above, &OpponentModel::new()), ENGINE_CEILING);
+    }
+
+    #[test]
+    fn lower_tail_estimator_reads_beginner_errors_and_recovers() {
+        let mut model = OpponentModel::new();
+        for _ in 0..7 {
+            model.observe(0, 1.0);
+        }
+        for _ in 0..3 {
+            model.observe(300, 1.0);
+        }
+        assert!(model.estimate() < 1000, "estimate {}", model.estimate());
+        for _ in 0..32 {
+            model.observe(5, 1.0);
+        }
+        assert!(
+            model.estimate() > 2400,
+            "recovered estimate {}",
+            model.estimate()
+        );
+    }
+
+    #[test]
+    fn match_error_magnitude_tracks_target_and_ceiling_is_best() {
+        let pos = crate::fen::startpos();
+        let moves = legal(&pos);
+        let lines: Vec<Line> = moves
+            .as_slice()
+            .iter()
+            .enumerate()
+            .map(|(index, &mv)| Line {
+                mv,
+                score: 500 - index as i32 * 30,
+                depth: 8,
+                pv: vec![mv],
+            })
+            .collect();
+        let model = OpponentModel::new();
+        let mut total_loss = 0i64;
+        for seed in 1..=2_000 {
+            let cfg = AdaptConfig {
+                adaptive: false,
+                limit_strength: true,
+                elo_cap: 800,
+                contempt: 0,
+            };
+            let mut rng = Rng::new(seed);
+            let selected = select_move(
+                &pos,
+                &lines,
+                Mode::Match,
+                &cfg,
+                &model,
+                &HeuristicPrior,
+                &mut rng,
+                &mut |_| Vec::new(),
+            );
+            let index = moves
+                .as_slice()
+                .iter()
+                .position(|&mv| mv == selected.mv)
+                .unwrap();
+            total_loss += (index as i64) * 30;
+        }
+        let realised = total_loss as f64 / 2_000.0;
+        assert!(
+            (realised - human_target_acpl(800)).abs() < 30.0,
+            "realised {}",
+            realised
+        );
+
+        let ceiling_cfg = AdaptConfig {
+            adaptive: false,
+            limit_strength: true,
+            elo_cap: ENGINE_CEILING,
+            contempt: 0,
+        };
+        for seed in 1..100 {
+            let mut rng = Rng::new(seed);
+            let selected = select_move(
+                &pos,
+                &lines,
+                Mode::Match,
+                &ceiling_cfg,
+                &model,
+                &HeuristicPrior,
+                &mut rng,
+                &mut |_| Vec::new(),
+            );
+            assert_eq!(selected.mv, lines[0].mv);
+        }
+    }
+
+    #[test]
+    fn fixed_strength_has_absolute_precedence_over_personas() {
+        let cfg = AdaptConfig {
+            adaptive: true,
+            limit_strength: true,
+            elo_cap: 2400,
+            contempt: 25,
+        };
+        let mut model = OpponentModel::new();
+        model.observe(250, 1.0); // fresh blunder would normally trigger PUNISH
+        assert_eq!(target_elo(&cfg, &model), 2400);
+        for (eval, move_no) in [(-900, 10), (0, 35), (900, 10)] {
+            assert_eq!(
+                decide_mode(&cfg, &model, eval, move_no, Mode::Clinch),
+                Mode::Match
+            );
+        }
+        assert_eq!(draw_score_for(&cfg, Mode::Clinch), 0);
+    }
+
+    #[test]
+    fn opponent_identity_survives_new_game_and_locks_auto_troll() {
+        let mut model = OpponentModel::new();
+        model.seed_from_uci_opponent("GM 1500 computer Stockfish 16");
+        assert_eq!(
+            model.estimate(),
+            1500,
+            "declared limited strength is distinct from identity"
+        );
+        assert_eq!(model.classification(), "known engine");
+        assert!(model.anti_troll_lock());
+        assert!(!model.auto_troll_allowed());
+        let reset = model.reset_for_new_game();
+        assert_eq!(reset.estimate(), 1500);
+        assert_eq!(reset.classification(), "known engine");
+        assert!(reset.engine_suspect());
+        assert!(!reset.requires_full_strength());
+        assert_eq!(
+            decide_mode(&AdaptConfig::default(), &reset, 0, 10, Mode::Match),
+            Mode::Match
+        );
+
+        let mut unrestricted = OpponentModel::new();
+        unrestricted.seed_from_uci_opponent("GM - computer Stockfish 16");
+        assert!(unrestricted.requires_full_strength());
+        assert_eq!(
+            decide_mode(&AdaptConfig::default(), &unrestricted, 0, 10, Mode::Match,),
+            Mode::Full
+        );
+    }
+
+    #[test]
+    fn reseeding_rebuilds_evidence_instead_of_leaking_old_opponent() {
+        let mut model = OpponentModel::new();
+        model.seed_from_uci_opponent("GM - computer Stockfish");
+        model.seed_from_uci_opponent("- - human Alice");
+        assert_eq!(model.estimate(), 1500);
+        assert!(!model.is_computer);
+        assert_eq!(model.samples, 0);
+        assert!(!model.engine_suspect());
+    }
+
+    #[test]
+    fn stable_play_is_not_misclassified_as_erratic() {
+        let mut model = OpponentModel::new();
+        for _ in 0..10 {
+            model.observe(10, 1.0);
+        }
+        assert!(model.volatility() < 50, "volatility {}", model.volatility());
+        assert!(
+            !model.trend().contains("erratic"),
+            "trend {}",
+            model.trend()
+        );
+    }
+
+    #[test]
+    fn changing_and_erratic_profiles_remain_distinct() {
+        let mut stable = OpponentModel::new();
+        let mut erratic = OpponentModel::new();
+        let mut improving = OpponentModel::new();
+        for i in 0..20 {
+            stable.observe(10, 1.0);
+            erratic.observe(if i % 2 == 0 { 0 } else { 300 }, 1.0);
+            improving.observe(300 - i * 15, 1.0);
+        }
+        assert!(erratic.trend().contains("erratic"), "{}", erratic.trend());
+        assert!(erratic.confidence() > stable.confidence());
+        assert_eq!(improving.trend(), "trending up");
+    }
+
+    #[test]
+    fn engine_classification_latches_for_the_game() {
+        let mut model = OpponentModel::new();
+        for _ in 0..10 {
+            model.observe(5, 1.0);
+        }
+        assert!(model.engine_suspect());
+        for _ in 0..12 {
+            model.observe(120, 1.0);
+        }
+        assert!(
+            model.engine_suspect(),
+            "classification must not flap within one game"
+        );
+        assert!(!model.reset_for_new_game().engine_suspect());
+    }
+
+    #[test]
+    fn blunder_freshness_can_be_consumed() {
+        let mut model = OpponentModel::new();
+        model.observe(220, 1.0);
+        assert!(model.last_was_blunder());
+        model.mark_decision_complete();
+        assert!(!model.last_was_blunder());
+        assert_eq!(model.last_cp_loss, Some(220));
+    }
+
+    #[test]
+    fn rating_posterior_is_normalized_and_bounded() {
+        let mut model = OpponentModel::new();
+        for _ in 0..8 {
+            model.observe(200, 1.0);
+        }
+        let sum: f64 = model.rating_probabilities().iter().sum();
+        assert_eq!(model.rating_probabilities().len(), 3_551);
+        assert!((sum - 1.0).abs() < 1e-9, "posterior sum {}", sum);
+        assert_eq!(model.rating_probability(99), 0.0);
+        assert_eq!(model.rating_probability(3651), 0.0);
+        assert!((100..=3650).contains(&model.most_likely_elo()));
+        assert!(model.lower_bound() <= model.estimate());
+        assert!(model.estimate() <= model.upper_bound());
+        assert!((100..=3650).contains(&model.lower_bound()));
+        assert!((100..=3650).contains(&model.upper_bound()));
+    }
+
+    #[test]
+    fn auto_troll_requires_positive_human_evidence() {
+        let mut model = OpponentModel::new();
+        assert!(!model.auto_troll_allowed());
+        for _ in 0..6 {
+            model.observe(240, 1.0);
+        }
+        assert!(model.human_probability() >= 0.90);
+        assert!(model.auto_troll_allowed());
+        assert!(target_elo(&AdaptConfig::default(), &model) < 1200);
+        assert_eq!(
+            decide_mode(&AdaptConfig::default(), &model, 300, 12, Mode::Match),
+            Mode::Punish
+        );
+    }
+
+    #[test]
+    fn full_strength_has_neutral_draw_score() {
+        let cfg = AdaptConfig::default();
+        assert_eq!(draw_score_for(&cfg, Mode::Full), 0);
+        assert_eq!(draw_score_for(&cfg, Mode::Defend), 0);
+    }
+
+    #[test]
+    fn clinch_recognizes_a_single_legal_reply_as_forcing() {
+        let pos = crate::fen::startpos();
+        let moves = legal(&pos);
+        let lines = vec![
+            Line {
+                mv: moves.moves[0],
+                score: 100,
+                depth: 8,
+                pv: vec![moves.moves[0]],
+            },
+            Line {
+                mv: moves.moves[1],
+                score: 95,
+                depth: 8,
+                pv: vec![moves.moves[1]],
+            },
+        ];
+        let mut calls = 0;
+        let mut probe = |after: &Position| {
+            calls += 1;
+            let replies = legal(after);
+            if calls == 2 {
+                vec![Line {
+                    mv: replies.moves[0],
+                    score: 100,
+                    depth: 4,
+                    pv: vec![],
+                }]
+            } else {
+                vec![
+                    Line {
+                        mv: replies.moves[0],
+                        score: 100,
+                        depth: 4,
+                        pv: vec![],
+                    },
+                    Line {
+                        mv: replies.moves[1],
+                        score: 100,
+                        depth: 4,
+                        pv: vec![],
+                    },
+                ]
+            }
+        };
+        let mut rng = Rng::new(7);
+        let selected = select_move(
+            &pos,
+            &lines,
+            Mode::Clinch,
+            &AdaptConfig::default(),
+            &OpponentModel::new(),
+            &HeuristicPrior,
+            &mut rng,
+            &mut probe,
+        );
+        assert_eq!(selected.mv, moves.moves[1]);
+        assert!(selected.reason.contains("300 cp"));
+    }
+
+    #[test]
+    fn match_uses_only_common_depth_root_pool() {
+        let pos = crate::fen::startpos();
+        let moves = legal(&pos);
+        let lines: Vec<Line> = moves
+            .as_slice()
+            .iter()
+            .take(5)
+            .enumerate()
+            .map(|(i, &mv)| Line {
+                mv,
+                score: 100 - i as i32 * 10,
+                depth: 8,
+                pv: vec![mv],
+            })
+            .collect();
+        let cfg = AdaptConfig {
+            adaptive: false,
+            limit_strength: true,
+            elo_cap: 800,
+            contempt: 0,
+        };
+        let mut probe_calls = 0;
+        for seed in 0..100 {
+            let mut rng = Rng::new(seed);
+            let mut probe = |_after: &Position| {
+                probe_calls += 1;
+                Vec::new()
+            };
+            let selected = select_move(
+                &pos,
+                &lines,
+                Mode::Match,
+                &cfg,
+                &OpponentModel::new(),
+                &HeuristicPrior,
+                &mut rng,
+                &mut probe,
+            );
+            assert!(!selected.reason.contains("loss -"), "{}", selected.reason);
+        }
+        assert_eq!(probe_calls, 0, "MATCH must not run mixed-depth side probes");
     }
 }

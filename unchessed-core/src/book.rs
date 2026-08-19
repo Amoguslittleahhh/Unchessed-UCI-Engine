@@ -1,18 +1,23 @@
-//! Opening book: embedded curated lines (main theory + troll repertoire)
-//! plus external Polyglot (.bin) book support.
+//! Opening book: complete CC0 named-opening history (all 500 ECO codes),
+//! curated main/troll overlays, offbeat historical variety, and optional
+//! external Polyglot (.bin) popularity data.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io::Read;
 
 use crate::board::*;
 use crate::fen;
 use crate::movegen::{legal, parse_uci_move, PAWN_ATT};
 use crate::polyglot_keys::POLYGLOT_RANDOM;
+use crate::san::parse_san;
 
 /// Troll risk grades: 1 = tricky-but-survivable, 2 = dubious-but-fun, 3 = pure meme.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Tier {
     Main,
+    /// Named but deliberately offbeat historical openings. These are eligible
+    /// for variety against weaker/confidently human opponents, not big games.
+    Random,
     Troll(u8),
 }
 
@@ -24,6 +29,18 @@ pub struct BookEntry {
     pub eco: &'static str,
     pub tier: Tier,
 }
+
+/// Complete named-opening corpus imported from lichess-org/chess-openings
+/// (CC0), pinned in books/lichess-openings/SOURCE.txt. It contains 3,810
+/// named lines spanning all 500 ECO codes. Curated lines below overlay weights
+/// and troll safety classifications on top of this historical corpus.
+const HISTORICAL_TSV: &[&str] = &[
+    include_str!("../../books/lichess-openings/a.tsv"),
+    include_str!("../../books/lichess-openings/b.tsv"),
+    include_str!("../../books/lichess-openings/c.tsv"),
+    include_str!("../../books/lichess-openings/d.tsv"),
+    include_str!("../../books/lichess-openings/e.tsv"),
+];
 
 /// Embedded repertoire. Format per line: `tag;weight;eco;name;uci moves...`
 /// tag = main | troll1 | troll2 | troll3.
@@ -95,60 +112,196 @@ const EMBEDDED_LINES: &[&str] = &[
 pub struct Book {
     embedded: HashMap<u64, Vec<BookEntry>>,
     poly: Option<PolyglotBook>,
+    historical_lines: usize,
+    eco_codes: usize,
+}
+
+fn historical_tier(first_move: &str) -> Tier {
+    match first_move {
+        // The broad, established first-move families remain serious theory.
+        "e2e4" | "d2d4" | "c2c4" | "g1f3" | "g2g3" | "b2b3" | "f2f4" | "b1c3" => Tier::Main,
+        // Named flank/novelty openings still belong in the historical book,
+        // but are offered only as variety rather than big-game mainlines.
+        _ => Tier::Random,
+    }
+}
+
+fn historical_tokens(pgn: &'static str) -> Vec<&'static str> {
+    pgn.split_whitespace()
+        .filter_map(|token| {
+            let san = token.trim_start_matches(|c: char| c.is_ascii_digit() || c == '.');
+            (!san.is_empty()).then_some(san)
+        })
+        .collect()
+}
+
+fn add_historical_line(
+    map: &mut HashMap<u64, Vec<BookEntry>>,
+    eco: &'static str,
+    name: &'static str,
+    pgn: &'static str,
+) -> Result<(), String> {
+    let tokens = historical_tokens(pgn);
+    let mut pos = fen::startpos();
+    let mut first_move = None;
+    for (index, san) in tokens.iter().enumerate() {
+        let mv = parse_san(&pos, san)
+            .ok_or_else(|| format!("illegal historical SAN '{}' in '{}': {}", san, name, pgn))?;
+        let first = first_move.get_or_insert_with(|| mv.uci());
+        let tier = historical_tier(first);
+        let is_named_position = index + 1 == tokens.len();
+        let entry_name = if is_named_position {
+            name
+        } else {
+            "Opening database"
+        };
+        let entries = map.entry(pos.hash).or_default();
+        if let Some(entry) = entries.iter_mut().find(|entry| entry.mv == mv) {
+            entry.weight = entry.weight.saturating_add(1);
+            if tier == Tier::Main && entry.tier == Tier::Random {
+                entry.tier = Tier::Main;
+            }
+            if is_named_position {
+                entry.name = name;
+                entry.eco = eco;
+            }
+        } else {
+            entries.push(BookEntry {
+                mv,
+                weight: 1,
+                name: entry_name,
+                eco,
+                tier,
+            });
+        }
+        pos = pos.make(mv);
+    }
+    Ok(())
+}
+
+fn parse_curated(
+    line: &'static str,
+) -> Result<(&'static str, u32, &'static str, &'static str, &'static str), String> {
+    let mut parts = line.splitn(5, ';');
+    let tag = parts.next().ok_or("missing tag")?;
+    let weight = parts
+        .next()
+        .and_then(|value| value.parse().ok())
+        .ok_or_else(|| format!("bad weight in: {}", line))?;
+    let eco = parts.next().ok_or("missing eco")?;
+    let name = parts.next().ok_or("missing name")?;
+    let moves = parts.next().ok_or("missing moves")?;
+    Ok((tag, weight, eco, name, moves))
 }
 
 impl Book {
-    /// Build the embedded book, validating every line replays legally.
+    /// Build the complete CC0 historical corpus, then overlay curated serious
+    /// weights and explicitly safety-graded troll lines.
     pub fn new() -> Result<Book, String> {
         let mut map: HashMap<u64, Vec<BookEntry>> = HashMap::new();
-        for line in EMBEDDED_LINES {
-            let mut parts = line.splitn(5, ';');
-            let tag = parts.next().ok_or("missing tag")?;
-            let weight: u32 = parts
-                .next()
-                .and_then(|w| w.parse().ok())
-                .ok_or_else(|| format!("bad weight in: {}", line))?;
-            let eco = parts.next().ok_or("missing eco")?;
-            let name = parts.next().ok_or("missing name")?;
-            let moves = parts.next().ok_or("missing moves")?;
-            let tier = match tag {
-                "main" => Tier::Main,
-                "troll1" => Tier::Troll(1),
-                "troll2" => Tier::Troll(2),
-                "troll3" => Tier::Troll(3),
-                other => return Err(format!("bad tag '{}' in: {}", other, line)),
-            };
+        let mut historical_lines = 0usize;
+        let mut eco_codes: HashSet<&'static str> = HashSet::new();
+        for tsv in HISTORICAL_TSV {
+            for row in tsv.lines().skip(1).filter(|line| !line.trim().is_empty()) {
+                let mut fields = row.splitn(3, '\t');
+                let eco = fields.next().ok_or("historical row missing ECO")?;
+                let name = fields.next().ok_or("historical row missing name")?;
+                let pgn = fields.next().ok_or("historical row missing PGN")?;
+                add_historical_line(&mut map, eco, name, pgn)?;
+                historical_lines += 1;
+                eco_codes.insert(eco);
+            }
+        }
 
+        // Serious curated paths establish protected mainline keys first.
+        let mut curated_main: HashSet<(u64, u16)> = HashSet::new();
+        for line in EMBEDDED_LINES {
+            let (tag, weight, eco, name, moves) = parse_curated(line)?;
+            if tag != "main" {
+                continue;
+            }
             let mut pos = fen::startpos();
-            for tok in moves.split_whitespace() {
-                let mv = parse_uci_move(&pos, tok).ok_or_else(|| {
-                    format!("illegal book move '{}' in line '{}'", tok, name)
-                })?;
+            for token in moves.split_whitespace() {
+                let mv = parse_uci_move(&pos, token)
+                    .ok_or_else(|| format!("illegal curated move '{}' in '{}'", token, name))?;
+                curated_main.insert((pos.hash, mv.0));
                 let entries = map.entry(pos.hash).or_default();
-                if let Some(e) = entries.iter_mut().find(|e| e.mv == mv) {
-                    // Main tier always wins over troll tags for shared prefixes.
-                    if tier == Tier::Main && e.tier != Tier::Main {
-                        e.tier = Tier::Main;
-                        e.name = name;
-                        e.eco = eco;
-                    }
-                    e.weight = e.weight.max(weight);
+                if let Some(entry) = entries.iter_mut().find(|entry| entry.mv == mv) {
+                    entry.tier = Tier::Main;
+                    entry.weight = entry.weight.max(weight);
+                    entry.name = name;
+                    entry.eco = eco;
                 } else {
                     entries.push(BookEntry {
                         mv,
                         weight,
                         name,
                         eco,
-                        tier,
+                        tier: Tier::Main,
                     });
                 }
                 pos = pos.make(mv);
             }
         }
+
+        // Troll overlays never downgrade a move protected by a curated mainline.
+        for line in EMBEDDED_LINES {
+            let (tag, weight, eco, name, moves) = parse_curated(line)?;
+            let risk = match tag {
+                "main" => continue,
+                "troll1" => 1,
+                "troll2" => 2,
+                "troll3" => 3,
+                other => return Err(format!("bad tag '{}' in: {}", other, line)),
+            };
+            let mut pos = fen::startpos();
+            for token in moves.split_whitespace() {
+                let mv = parse_uci_move(&pos, token)
+                    .ok_or_else(|| format!("illegal curated move '{}' in '{}'", token, name))?;
+                let protected = curated_main.contains(&(pos.hash, mv.0));
+                let entries = map.entry(pos.hash).or_default();
+                if let Some(entry) = entries.iter_mut().find(|entry| entry.mv == mv) {
+                    let replace_label =
+                        !matches!(entry.tier, Tier::Troll(_)) || weight > entry.weight;
+                    entry.weight = entry.weight.max(weight);
+                    if !protected {
+                        entry.tier = Tier::Troll(risk);
+                        if replace_label {
+                            entry.name = name;
+                            entry.eco = eco;
+                        }
+                    }
+                } else {
+                    entries.push(BookEntry {
+                        mv,
+                        weight,
+                        name,
+                        eco,
+                        tier: if protected {
+                            Tier::Main
+                        } else {
+                            Tier::Troll(risk)
+                        },
+                    });
+                }
+                pos = pos.make(mv);
+            }
+        }
+
         Ok(Book {
             embedded: map,
             poly: None,
+            historical_lines,
+            eco_codes: eco_codes.len(),
         })
+    }
+
+    pub fn historical_lines(&self) -> usize {
+        self.historical_lines
+    }
+
+    pub fn eco_codes(&self) -> usize {
+        self.eco_codes
     }
 
     pub fn load_polyglot(&mut self, path: &str) -> Result<usize, String> {
@@ -166,18 +319,13 @@ impl Book {
         self.poly.is_some()
     }
 
-    /// All book moves known for this position (embedded + Polyglot merged).
+    /// All historical/curated moves plus optional Polyglot popularity data.
     pub fn probe(&self, pos: &Position) -> Vec<BookEntry> {
-        let mut out: Vec<BookEntry> = self
-            .embedded
-            .get(&pos.hash)
-            .cloned()
-            .unwrap_or_default();
+        let mut out: Vec<BookEntry> = self.embedded.get(&pos.hash).cloned().unwrap_or_default();
         if let Some(pb) = &self.poly {
             for (mv, weight) in pb.probe(pos) {
-                if let Some(e) = out.iter_mut().find(|e| e.mv == mv) {
-                    // external popularity data dominates our hand weights
-                    e.weight = e.weight.max(weight as u32);
+                if let Some(entry) = out.iter_mut().find(|entry| entry.mv == mv) {
+                    entry.weight = entry.weight.max(weight as u32);
                 } else {
                     out.push(BookEntry {
                         mv,
@@ -189,7 +337,7 @@ impl Book {
                 }
             }
         }
-        out.sort_by_key(|e| std::cmp::Reverse(e.weight));
+        out.sort_by_key(|entry| std::cmp::Reverse(entry.weight));
         out
     }
 }
@@ -277,11 +425,9 @@ fn decode_poly_move(
             4 => QUEEN,
             _ => return None,
         };
-        return legal_moves
-            .as_slice()
-            .iter()
-            .copied()
-            .find(|m| m.is_promo() && m.from() == from && m.to() == to && m.promo_piece() == piece);
+        return legal_moves.as_slice().iter().copied().find(|m| {
+            m.is_promo() && m.from() == from && m.to() == to && m.promo_piece() == piece
+        });
     }
 
     legal_moves
@@ -336,14 +482,19 @@ mod tests {
     #[test]
     fn embedded_book_builds() {
         let book = Book::new().expect("embedded book must be fully legal");
+        assert_eq!(book.historical_lines(), 3_810);
+        assert_eq!(book.eco_codes(), 500);
         let start = fen::startpos();
         let entries = book.probe(&start);
         assert!(!entries.is_empty());
-        // e4 and d4 must both be known main moves
+        // e4 and d4 are protected main theory; Nh3 is available only as
+        // offbeat historical variety.
         for m in ["e2e4", "d2d4"] {
             let e = entries.iter().find(|e| e.mv.uci() == m).unwrap();
             assert_eq!(e.tier, Tier::Main, "{} must be Main tier", m);
         }
+        let nh3 = entries.iter().find(|e| e.mv.uci() == "g1h3").unwrap();
+        assert_eq!(nh3.tier, Tier::Random);
     }
 
     #[test]
@@ -354,7 +505,10 @@ mod tests {
             pos = pos.make(parse_uci_move(&pos, m).unwrap());
         }
         let entries = book.probe(&pos);
-        let ke2 = entries.iter().find(|e| e.mv.uci() == "e1e2").expect("Bongcloud in book");
+        let ke2 = entries
+            .iter()
+            .find(|e| e.mv.uci() == "e1e2")
+            .expect("Bongcloud in book");
         assert_eq!(ke2.tier, Tier::Troll(3));
         assert_eq!(ke2.name, "Bongcloud Attack");
         // ...and the serious mainline move must still be Main tier
@@ -371,7 +525,10 @@ mod tests {
             (&["e2e4", "d7d5"], 0x0756b94461c50fb0),
             (&["e2e4", "d7d5", "e4e5"], 0x662fafb965db29d4),
             (&["e2e4", "d7d5", "e4e5", "f7f5"], 0x22a48b5a8e47ff78),
-            (&["e2e4", "d7d5", "e4e5", "f7f5", "e1e2"], 0x652a607ca3f242c1),
+            (
+                &["e2e4", "d7d5", "e4e5", "f7f5", "e1e2"],
+                0x652a607ca3f242c1,
+            ),
             (
                 &["e2e4", "d7d5", "e4e5", "f7f5", "e1e2", "e8f7"],
                 0x00fdd303c946bdd9,

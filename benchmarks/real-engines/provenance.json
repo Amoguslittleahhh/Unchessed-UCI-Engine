@@ -1,0 +1,75 @@
+{
+  "generated_utc": "2026-08-19",
+  "host": {
+    "architecture": "x86_64",
+    "cpu": "Intel Xeon Processor @ 2.60GHz",
+    "logical_cpus": 2,
+    "physical_cores_available": 1,
+    "features_used": "AVX2/BMI2 where selected"
+  },
+  "settings": {
+    "nodes_per_move": 20000,
+    "threads": 1,
+    "hash_mb": 64,
+    "multipv": 1,
+    "concurrency": 1,
+    "opening_pairs": 8,
+    "opening_plies": 8,
+    "openings": "tools/classics.pgn",
+    "openings_sha256": "0d74fc193d3f18f52f294c24107ce6d41132fef1c27d16da87bcbe2fe0d98e73",
+    "resign_adjudication": "score 800cp for 3 moves",
+    "draw_adjudication": "after move 40, score within 20cp for 8 moves",
+    "maximum_moves": 180,
+    "tablebases": false,
+    "paired_colors": true
+  },
+  "harness": {
+    "name": "fastchess",
+    "version": "alpha 1.8.2 20260813-ccb8532",
+    "repository": "https://github.com/Disservin/fastchess",
+    "commit": "ccb85325b1db322658687b8be8cfe9f54c495840",
+    "binary_sha256": "5b90612de6fadddf6b8e6a3dc52bb7c363fc54160031b6743ac98a9c96c9acd7"
+  },
+  "candidate_build": {
+    "uci_name": "Unchessed Game Reviewer 0.2.3",
+    "source_base": "fde7fcec37f2d286385371b85d2964bdaa2f72c8 plus the current Arena patchset",
+    "rustc": "1.97.1 (8bab26f4f 2026-07-14)",
+    "rustflags": "-C target-cpu=native",
+    "binary_sha256": "e8823dde37c8640f64ab502e9e3fb642d94b13507dfb0a24ee2786c46d67a6d9",
+    "nnue_sha256": "38845a16d73a6fe0bd4ac95c86c017c65c97bc82c7ce2f6dce2f1b3fbe8577b5",
+    "adaptive": false,
+    "own_book": false
+  },
+  "opponent_builds": [
+    {
+      "display_name": "Ethereal14-HCE",
+      "uci_name": "Ethereal 14.00 (PEXT)",
+      "repository": "https://github.com/AndyGrant/Ethereal",
+      "tag": "v14.00",
+      "commit": "96cde8d2f82a3ab0536bf33572405fda96f6e236",
+      "license": "GPL-3.0",
+      "build": "make basic CC=gcc; source-default USE_NNUE=0; native PEXT/AVX2",
+      "binary_sha256": "240c6b59d64ba5f75166ed695ac9c76a543197500bf421fb8af107999538f02d"
+    },
+    {
+      "display_name": "Berserk4.7",
+      "uci_name": "Berserk 4.7.0",
+      "repository": "https://github.com/jhonnold/berserk",
+      "tag": "4.7.0",
+      "commit": "ca7d01ac71ed3f46a1fd8d4c2c7446f36f976b2c",
+      "license": "GPL-3.0",
+      "build": "make CC=gcc ARCH=avx2 build; HCE release before Berserk NNUE",
+      "binary_sha256": "7c0fe972a6a7cc9e191965510d8eb16ec62e1df1cb5ffde226891a2184394145"
+    },
+    {
+      "display_name": "Stockfish12-Classical",
+      "uci_name": "Stockfish 12",
+      "repository": "https://github.com/official-stockfish/Stockfish",
+      "tag": "sf_12",
+      "commit": "c306d838697011da0a960758dde3f7ede6849060",
+      "license": "GPL-3.0",
+      "build": "x86-64-avx2 with NNUE_EMBEDDING_OFF; UCI Use NNUE=false; Contempt=0",
+      "binary_sha256": "306f46bae2f0229b83408046955e20ae5108ff8c38e6b9ad50838ff9212a5839"
+    }
+  ]
+}

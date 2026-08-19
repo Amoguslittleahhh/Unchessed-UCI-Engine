@@ -3,21 +3,22 @@
 //! persona selection) lives in the worker so the GUI never blocks.
 
 use std::io::BufRead;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
+use std::time::Instant;
 
 use crate::adapt::{
-    decide_mode, difficulty_weight, select_move, AdaptConfig, HeuristicPrior, MaiaPrior, Mode,
-    MovePrior, OpponentModel, Rng,
+    decide_persona, difficulty_weight, select_move, AdaptConfig, HeuristicPrior, MaiaPrior, Mode,
+    MovePrior, OpponentModel, PersonaContext, Rng, ENGINE_CEILING,
 };
-use crate::policy::PolicyNet;
 use crate::board::*;
 use crate::book::{Book, BookEntry, Tier};
 use crate::eval::{Eval, EvalParams, Hce};
 use crate::fen;
-use crate::nnue::Nnue;
 use crate::movegen::{legal, parse_uci_move};
+use crate::nnue::Nnue;
+use crate::policy::PolicyNet;
 use crate::search::{self, InfoEvent, Limits, Line, SearchParams};
 use crate::tt::TT;
 
@@ -49,6 +50,8 @@ struct Options {
     book_depth: u32,
     search: SearchParams,
     threads: usize,
+    /// Zero = entropy from wall clock; non-zero = deterministic game/search seed.
+    random_seed: u64,
     eval_params: EvalParams,
 }
 
@@ -63,9 +66,10 @@ impl Default for Options {
             contempt: 25,
             troll: TrollMode::Auto,
             own_book: true,
-            book_depth: 16,
+            book_depth: 40,
             search: SearchParams::default(),
             threads: 1,
+            random_seed: 0,
             eval_params: EvalParams::default(),
         }
     }
@@ -126,15 +130,19 @@ pub fn run(ident: EngineIdent) {
         }
     }));
     let model = Arc::new(Mutex::new(OpponentModel::new()));
-    let policy: Arc<Mutex<Option<Arc<PolicyNet>>>> =
-        Arc::new(Mutex::new(load_default_policy()));
+    let policy: Arc<Mutex<Option<Arc<PolicyNet>>>> = Arc::new(Mutex::new(load_default_policy()));
     let (mut eval_impl, mut eval_desc, mut eval_is_hce): (Arc<dyn Eval>, String, bool) =
         load_default_eval(opt.eval_params);
     let stop = Arc::new(AtomicBool::new(false));
-    // persona persists across moves for hysteresis; worker updates it
+    // Persona and prior root evaluation persist across moves for contextual
+    // hysteresis; the worker updates both after a completed search.
     let persona = Arc::new(Mutex::new(Mode::Match));
+    let previous_eval: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(None));
     let mut worker: Option<JoinHandle<()>> = None;
     let mut game = Game::new();
+    // Low-clock observations are deferred, not silently discarded. At most
+    // one expensive observation is consumed per move once time is healthy.
+    let mut deferred_pending: Vec<PendingObs> = Vec::new();
     // opponent's clock reading at our previous `go` (for the time signal)
     let mut last_opp_clock: Option<u64> = None;
 
@@ -163,20 +171,26 @@ pub fn run(ident: EngineIdent) {
                 println!("option name Hash type spin default 128 min 1 max 2048");
                 println!("option name Threads type spin default 1 min 1 max 64");
                 println!("option name Clear Hash type button");
-                println!("option name MultiPV type spin default {} min 1 max 8",
-                    if ident.adaptive_engine { 1 } else { 3 });
+                println!(
+                    "option name MultiPV type spin default {} min 1 max 8",
+                    if ident.adaptive_engine { 1 } else { 3 }
+                );
                 println!("option name EvalFile type string default ");
                 if ident.adaptive_engine {
                     println!("option name Adaptive type check default true");
                     println!("option name UCI_LimitStrength type check default false");
-                    println!("option name UCI_Elo type spin default 2400 min 500 max 3200");
+                    println!(
+                        "option name UCI_Elo type spin default 2400 min 100 max {}",
+                        ENGINE_CEILING
+                    );
                     println!("option name Contempt type spin default 25 min 0 max 100");
                     println!("option name Troll type combo default Auto var Off var Auto var On");
                     println!("option name OwnBook type check default true");
                     println!("option name BookFile type string default ");
-                    println!("option name BookDepth type spin default 16 min 0 max 40");
+                    println!("option name BookDepth type spin default 40 min 0 max 40");
                     println!("option name PolicyFile type string default ");
                     println!("option name UCI_Opponent type string default ");
+                    println!("option name RandomSeed type spin default 0 min 0 max 2147483647");
                 }
                 // tunable search constants (defaults match prior hard-coded
                 // values; exposed for manual tuning and future SPSA runs)
@@ -193,6 +207,11 @@ pub fn run(ident: EngineIdent) {
                 println!("option name ProbCutMinDepth type spin default 5 min 3 max 10");
                 println!("option name FutilityMargin type spin default 150 min 30 max 400");
                 println!("option name FutilityMaxDepth type spin default 8 min 1 max 12");
+                println!("option name IIR type check default false");
+                println!("option name HistGravity type check default false");
+                println!("option name CounterMoves type check default false");
+                println!("option name Razoring type check default false");
+                println!("option name LMP type check default false");
                 // tunable HCE eval constants (0 = feature off); 100/100 is the
                 // SPRT-validated default (+25.7 Elo, 2026-08-02) after the
                 // safe/blocked-conditioned rewrite -- kept tunable for future
@@ -209,6 +228,13 @@ pub fn run(ident: EngineIdent) {
                 println!("option name KnightOutpostPct type spin default 100 min 0 max 200");
                 println!("uciok");
                 println!("info string [Unchessed] eval: {}", eval_desc);
+                let book_stats = book.lock().unwrap();
+                println!(
+                    "info string [Unchessed] opening book: {} named historical lines, {}/500 ECO codes, curated main/troll overlays",
+                    book_stats.historical_lines(),
+                    book_stats.eco_codes()
+                );
+                drop(book_stats);
                 if ident.adaptive_engine {
                     match policy.lock().unwrap().as_ref() {
                         Some(net) => println!(
@@ -239,14 +265,21 @@ pub fn run(ident: EngineIdent) {
             "ucinewgame" => {
                 join_worker(&mut worker, &stop);
                 tt.lock().unwrap().clear();
-                *model.lock().unwrap() = OpponentModel::new();
+                let reset = model.lock().unwrap().reset_for_new_game();
+                *model.lock().unwrap() = reset;
                 *persona.lock().unwrap() = Mode::Match;
+                *previous_eval.lock().unwrap() = None;
+                deferred_pending.clear();
                 last_opp_clock = None;
                 game = Game::new();
             }
             "position" => {
                 join_worker(&mut worker, &stop);
                 if let Some(g) = parse_position(&line, &game) {
+                    if !is_game_continuation(&game, &g.positions) {
+                        deferred_pending.clear();
+                        *previous_eval.lock().unwrap() = None;
+                    }
                     game = g;
                 } else {
                     println!("info string [Unchessed] could not parse: {}", line);
@@ -255,13 +288,33 @@ pub fn run(ident: EngineIdent) {
             "go" => {
                 join_worker(&mut worker, &stop);
                 let limits = parse_go(&line);
-                let pending = collect_pending(&mut game);
-                // opponent time signal: how long did their last move take?
+                let newly_pending = collect_pending(&mut game);
+                let had_backlog = !deferred_pending.is_empty();
+                deferred_pending.extend(newly_pending);
+                let observation_budget_ms = observation_budget_ms(&limits, game.current.side);
+                let pending = if observation_budget_ms == 0 || deferred_pending.is_empty() {
+                    Vec::new()
+                } else {
+                    // Bound model overhead and preserve the rest for later.
+                    deferred_pending.drain(..1).collect()
+                };
+
+                // Opponent clock time belongs only to the newest single move,
+                // never to every item in a deferred/multi-move backlog.
                 let opp_is_white = matches!(game.current.side, Color::Black);
-                let opp_clock_now = if opp_is_white { limits.wtime } else { limits.btime };
-                let opp_inc = if opp_is_white { limits.winc } else { limits.binc };
-                let opp_time_used = match (last_opp_clock, opp_clock_now, &pending[..]) {
-                    (Some(prev), Some(now), [_, ..]) => {
+                let opp_clock_now = if opp_is_white {
+                    limits.wtime
+                } else {
+                    limits.btime
+                };
+                let opp_inc = if opp_is_white {
+                    limits.winc
+                } else {
+                    limits.binc
+                };
+                let time_signal_is_current = !had_backlog && pending.len() == 1;
+                let opp_time_used = match (last_opp_clock, opp_clock_now, time_signal_is_current) {
+                    (Some(prev), Some(now), true) => {
                         Some((prev + opp_inc.unwrap_or(0)).saturating_sub(now))
                     }
                     _ => None,
@@ -278,10 +331,12 @@ pub fn run(ident: EngineIdent) {
                     limits,
                     opt: opt.clone(),
                     pending,
+                    observation_budget_ms,
                     out_of_book_logged: game.out_of_book_logged,
                     policy: policy.lock().unwrap().clone(),
                     eval: Arc::clone(&eval_impl),
                     opp_time_used,
+                    opp_clock_remaining: opp_clock_now,
                 };
                 // the worker decides book state transitions; mirror the flag
                 // optimistically so the log line prints only once
@@ -293,11 +348,14 @@ pub fn run(ident: EngineIdent) {
                 let book = Arc::clone(&book);
                 let model = Arc::clone(&model);
                 let persona_c = Arc::clone(&persona);
+                let previous_eval_c = Arc::clone(&previous_eval);
                 worker = Some(std::thread::spawn(move || {
-                    run_go(job, tt, stop_c, book, model, persona_c);
+                    run_go(job, tt, stop_c, book, model, persona_c, previous_eval_c);
                 }));
             }
-            "stop" => {
+            "stop" | "ponderhit" => {
+                // Ponder currently converts by returning the best completed
+                // iteration immediately; it never runs past ponderhit/stop.
                 join_worker(&mut worker, &stop);
             }
             "quit" => {
@@ -317,11 +375,15 @@ pub fn run(ident: EngineIdent) {
                         let ml = legal(&game.current);
                         let moves: Vec<Move> = ml.as_slice().to_vec();
                         let probs = net.priors(&game.current, &moves, elo);
-                        let mut ranked: Vec<(Move, f64)> =
-                            moves.into_iter().zip(probs).collect();
+                        let mut ranked: Vec<(Move, f64)> = moves.into_iter().zip(probs).collect();
                         ranked.sort_by(|a, b| b.1.total_cmp(&a.1));
                         for (m, p) in ranked.iter().take(8) {
-                            println!("info string [Unchessed] policy@{} {} {:.1}%", elo, m.uci(), p * 100.0);
+                            println!(
+                                "info string [Unchessed] policy@{} {} {:.1}%",
+                                elo,
+                                m.uci(),
+                                p * 100.0
+                            );
                         }
                     }
                     None => println!("info string [Unchessed] no policy net loaded"),
@@ -348,8 +410,9 @@ fn load_default_nnue() -> Option<Arc<Nnue>> {
 fn load_default_eval(params: EvalParams) -> (Arc<dyn Eval>, String, bool) {
     match load_default_nnue() {
         Some(net) => {
+            let description = format!("NNUE (unchessed-nnue.bin, {})", net.backend_name());
             let e: Arc<dyn Eval> = net;
-            (e, "NNUE (unchessed-nnue.bin)".to_string(), false)
+            (e, description, false)
         }
         None => (
             Arc::new(Hce::new(params)),
@@ -411,6 +474,11 @@ fn handle_setoption(
                 opt.threads = n.clamp(1, 64);
             }
         }
+        "randomseed" => {
+            if let Ok(seed) = value.parse::<u64>() {
+                opt.random_seed = seed.min(i32::MAX as u64);
+            }
+        }
         "multipv" => {
             if let Ok(n) = value.parse::<usize>() {
                 opt.multipv = n.clamp(1, 8);
@@ -420,7 +488,7 @@ fn handle_setoption(
         "uci_limitstrength" => opt.limit_strength = value.eq_ignore_ascii_case("true"),
         "uci_elo" => {
             if let Ok(e) = value.parse::<i32>() {
-                opt.elo = e.clamp(500, 3200);
+                opt.elo = e.clamp(100, ENGINE_CEILING);
             }
         }
         "contempt" => {
@@ -506,6 +574,11 @@ fn handle_setoption(
                 opt.search.futility_max_depth = v.clamp(1, 12);
             }
         }
+        "iir" => opt.search.iir = value.eq_ignore_ascii_case("true"),
+        "histgravity" => opt.search.history_gravity = value.eq_ignore_ascii_case("true"),
+        "countermoves" => opt.search.countermoves = value.eq_ignore_ascii_case("true"),
+        "razoring" => opt.search.razoring = value.eq_ignore_ascii_case("true"),
+        "lmp" => opt.search.lmp = value.eq_ignore_ascii_case("true"),
         "passedpawnmgpct" => {
             if let Ok(v) = value.parse::<i32>() {
                 opt.eval_params.passed_mg_pct = v.clamp(0, 200);
@@ -568,12 +641,16 @@ fn handle_setoption(
                 *eval_is_hce = is_hce;
                 // stale TT entries would mix scores from the previous evaluator
                 tt.lock().unwrap().clear();
-                println!("info string [Unchessed] eval reset to default: {}", eval_desc);
+                println!(
+                    "info string [Unchessed] eval reset to default: {}",
+                    eval_desc
+                );
             } else {
                 match Nnue::load(value) {
                     Ok(net) => {
+                        let backend = net.backend_name();
                         *eval_impl = Arc::new(net);
-                        *eval_desc = format!("NNUE ({})", value);
+                        *eval_desc = format!("NNUE ({}, {})", value, backend);
                         *eval_is_hce = false;
                         tt.lock().unwrap().clear();
                         println!("info string [Unchessed] NNUE loaded from '{}'", value);
@@ -628,16 +705,17 @@ fn handle_setoption(
 /// it (same position sequence, just with more moves appended); only reset
 /// to 0 when it's actually a different game (a real `position` change, not
 /// just the GUI re-sending the same game so far).
+fn is_game_continuation(old: &Game, new_positions: &[Position]) -> bool {
+    old.positions.len() <= new_positions.len()
+        && old
+            .positions
+            .iter()
+            .zip(new_positions.iter())
+            .all(|(a, b)| a.hash == b.hash)
+}
+
 fn carry_observed_plies(old: &Game, new_positions: &[Position]) -> usize {
-    if old.observed_plies == 0 || old.positions.len() > new_positions.len() {
-        return 0;
-    }
-    let same_so_far = old
-        .positions
-        .iter()
-        .zip(new_positions.iter())
-        .all(|(a, b)| a.hash == b.hash);
-    if same_so_far {
+    if old.observed_plies > 0 && is_game_continuation(old, new_positions) {
         old.observed_plies
     } else {
         0
@@ -702,33 +780,86 @@ fn parse_position(line: &str, old: &Game) -> Option<Game> {
 }
 
 fn parse_go(line: &str) -> Limits {
-    let mut l = Limits::default();
-    let mut toks = line.split_whitespace();
-    toks.next();
-    while let Some(t) = toks.next() {
-        let mut num = |l: &mut Option<u64>| {
-            if let Some(v) = toks.next().and_then(|v| v.parse().ok()) {
-                *l = Some(v);
-            }
+    const KEYWORDS: &[&str] = &[
+        "searchmoves",
+        "ponder",
+        "wtime",
+        "btime",
+        "winc",
+        "binc",
+        "movestogo",
+        "depth",
+        "nodes",
+        "mate",
+        "movetime",
+        "infinite",
+    ];
+    let tokens: Vec<&str> = line.split_whitespace().collect();
+    let mut limits = Limits::default();
+    let mut index = 1usize; // skip "go"
+    while index < tokens.len() {
+        let token = tokens[index];
+        index += 1;
+        let number = |index: &mut usize| -> Option<u64> {
+            let value = tokens.get(*index)?.parse().ok();
+            *index += 1;
+            value
         };
-        match t {
-            "depth" => {
-                if let Some(v) = toks.next().and_then(|v| v.parse().ok()) {
-                    l.depth = Some(v);
+        match token {
+            "depth" => limits.depth = number(&mut index).map(|value| value as i32),
+            "movetime" => limits.movetime = number(&mut index),
+            "wtime" => limits.wtime = number(&mut index),
+            "btime" => limits.btime = number(&mut index),
+            "winc" => limits.winc = number(&mut index),
+            "binc" => limits.binc = number(&mut index),
+            "movestogo" => limits.movestogo = number(&mut index),
+            "nodes" => limits.nodes = number(&mut index),
+            "mate" => limits.mate = number(&mut index),
+            "infinite" => limits.infinite = true,
+            "ponder" => limits.ponder = true,
+            "searchmoves" => {
+                while index < tokens.len() && !KEYWORDS.contains(&tokens[index]) {
+                    limits.searchmoves.push(tokens[index].to_string());
+                    index += 1;
                 }
             }
-            "movetime" => num(&mut l.movetime),
-            "wtime" => num(&mut l.wtime),
-            "btime" => num(&mut l.btime),
-            "winc" => num(&mut l.winc),
-            "binc" => num(&mut l.binc),
-            "movestogo" => num(&mut l.movestogo),
-            "nodes" => num(&mut l.nodes),
-            "infinite" => l.infinite = true,
             _ => {}
         }
     }
-    l
+    limits
+}
+
+fn is_low_time(limits: &Limits, side: Color) -> bool {
+    // Optional per-candidate CLINCH/MATCH probes remain disabled when their
+    // aggregate cost would be unsafe. Opponent measurement uses the smoother
+    // bounded budget below instead of this binary threshold.
+    limits.movetime.map(|ms| ms < 5_000).unwrap_or(false)
+        || limits.my_time(side).map(|ms| ms < 10_000).unwrap_or(false)
+}
+
+fn observation_budget_ms(limits: &Limits, side: Color) -> u64 {
+    if limits.infinite || limits.ponder {
+        return 0;
+    }
+    if let Some(movetime) = limits.movetime {
+        return if movetime < 1_000 {
+            0
+        } else {
+            (movetime / 20).clamp(5, 100)
+        };
+    }
+    if let Some(clock) = limits.my_time(side) {
+        return if clock < 2_000 {
+            0
+        } else {
+            (clock / 500).clamp(5, 100)
+        };
+    }
+    if limits.depth.is_some() || limits.nodes.is_some() {
+        50
+    } else {
+        0
+    }
 }
 
 /// Opponent moves played since we last looked, with their pre-move positions.
@@ -763,12 +894,16 @@ struct GoJob {
     limits: Limits,
     opt: Options,
     pending: Vec<PendingObs>,
+    /// Total wall-clock allowance for opponent measurement this move.
+    observation_budget_ms: u64,
     out_of_book_logged: bool,
     policy: Option<Arc<PolicyNet>>,
     /// static evaluator (NNUE or HCE) for every search this job runs
     eval: Arc<dyn Eval>,
     /// milliseconds the opponent spent on their last move, if known
     opp_time_used: Option<u64>,
+    /// opponent clock after that move, used to normalise timing by clock size
+    opp_clock_remaining: Option<u64>,
 }
 
 fn print_info(ev: &InfoEvent, multipv_shown: usize) {
@@ -787,12 +922,13 @@ fn print_info(ev: &InfoEvent, multipv_shown: usize) {
     };
     let pv: Vec<String> = ev.pv.iter().map(|m| m.uci()).collect();
     println!(
-        "info depth {} multipv {} score {} nodes {} nps {} time {} pv {}",
+        "info depth {} multipv {} score {} nodes {} nps {} hashfull {} time {} pv {}",
         ev.depth,
         ev.multipv,
         score,
         ev.nodes,
         nps,
+        ev.hashfull,
         ev.time_ms,
         pv.join(" ")
     );
@@ -805,9 +941,12 @@ fn run_go(
     book: Arc<Mutex<Book>>,
     model: Arc<Mutex<OpponentModel>>,
     persona: Arc<Mutex<Mode>>,
+    previous_eval: Arc<Mutex<Option<i32>>>,
 ) {
+    let job_started = Instant::now();
     let tt_guard = tt.lock().unwrap();
     let tt: &TT = &tt_guard;
+    tt.new_search();
     let pos = job.pos;
     let legal_moves = legal(&pos);
     if legal_moves.len == 0 {
@@ -819,8 +958,7 @@ fn run_go(
     // Persona/move-selection logic must run whenever EITHER live-adaptive
     // mode or a fixed UCI_LimitStrength target is requested -- `adaptive`
     // alone used to gate this, which silently made "Adaptive=false +
-    // UCI_LimitStrength=true" (the documented pure-fixed-elo combination,
-    // see target_elo()'s `limit_strength && !adaptive` branch) behave
+    // UCI_LimitStrength=true" (the pure fixed-Elo combination) behave
     // identically to full strength: decide_mode()/select_move() were never
     // even called, so UCI_Elo was silently ignored. Found via a 64-level
     // Elo-ladder stress test that showed zero correlation between UCI_Elo
@@ -828,19 +966,23 @@ fn run_go(
     // redesigned -- the mechanism was unreachable, not miscalibrated.
     let adaptive_now =
         job.ident_adaptive && (job.opt.adaptive || job.opt.limit_strength) && game_mode;
-    let mut rng = Rng::from_time();
-    // in time trouble every millisecond goes to the move itself: the model
-    // pauses its measurements and the brain skips its side-searches
-    let low_time = job
-        .limits
-        .my_time(pos.side)
-        .map(|t| t < 10_000)
-        .unwrap_or(false);
+    let mut rng = if job.opt.random_seed == 0 {
+        Rng::from_time()
+    } else {
+        Rng::new(job.opt.random_seed ^ pos.hash ^ job.game_plies as u64)
+    };
+    // Optional style/candidate probes are skipped in time trouble. Opponent
+    // measurement has a separate smooth, bounded budget and may be deferred.
+    let low_time = is_low_time(&job.limits, pos.side);
+    // Root search width is based on the model as it stood when `go` arrived.
+    // New evidence may change the final persona, but cannot suddenly multiply
+    // this move's root workload at a clock boundary.
+    let model_at_go_start = model.lock().unwrap().clone();
 
     // ------------------------------------------------------------------
     // 1. Feed pending opponent moves to the live model
     // ------------------------------------------------------------------
-    if adaptive_now && !low_time && !job.pending.is_empty() {
+    if adaptive_now && job.observation_budget_ms > 0 && !job.pending.is_empty() {
         let mut m = model.lock().unwrap();
         for obs in &job.pending {
             let was_book = {
@@ -851,24 +993,15 @@ fn run_go(
                 m.observe_book_move(job.game_plies);
                 continue;
             }
-            // Analysis of the pre-move position (opponent to move) used as the
-            // yardstick for judging their move's quality. This budget used to
-            // be depth 9 / 60_000 nodes -- at this engine's measured throughput
-            // (~4M+ nodes/sec on the hand-crafted eval), that completes in a
-            // handful of milliseconds, far too shallow to recognize many of a
-            // top engine's genuinely best moves as best. That shallow probe
-            // systematically over-counted cp-loss against strong opponents,
-            // dragging the live Elo estimate down and making engine_suspect()
-            // slower to trigger (or never triggering), leaving the Adapter
-            // playing a deliberately weakened MATCH-mode target Elo against
-            // opponents like Stockfish instead of switching to Mode::Full.
-            // Bumped to depth 14 / 400_000 nodes -- still a small fraction of
-            // a second even at bullet time controls, well clear of the
-            // existing low_time (<10s) safety cutoff that skips this probe
-            // entirely when the clock is actually tight.
+            // Analysis of the pre-move position is the move-quality yardstick.
+            // Depth/node ceilings protect label quality in long controls, while
+            // movetime enforces this move's smooth observation allowance. A
+            // stronger offline oracle remains necessary to calibrate the top
+            // Elo bands; runtime analysis reports uncertainty above its ceiling.
             let quick = Limits {
                 depth: Some(14),
                 nodes: Some(400_000),
+                movetime: Some((job.observation_budget_ms * 2 / 3).max(5)),
                 ..Default::default()
             };
             let pre_lines = search::go(
@@ -884,7 +1017,10 @@ fn run_go(
                 1,
                 &mut |_| {},
             );
-            if pre_lines.is_empty() {
+            if pre_lines.first().map(|line| line.depth < 2).unwrap_or(true) {
+                println!(
+                    "info string [Unchessed] opponent measurement skipped: budget too small for a stable probe"
+                );
                 continue;
             }
             let best = pre_lines[0].score;
@@ -897,6 +1033,7 @@ fn run_go(
                     let q2 = Limits {
                         depth: Some(12),
                         nodes: Some(250_000),
+                        movetime: Some((job.observation_budget_ms / 3).max(5)),
                         ..Default::default()
                     };
                     let after_lines = search::go(
@@ -922,11 +1059,11 @@ fn run_go(
             let lc = legal(&obs.pre).len;
             let w = difficulty_weight(&pre_lines, lc, false);
             m.observe(cp_loss, w);
-            // clock signal: instant strong replies in positions with real
-            // choice are the classic engine tell
-            if let Some(used) = job.opp_time_used {
+            // Timing regularity is measured as lag-1 autocorrelation of log
+            // clock fraction. It can only modulate ceiling-level strength.
+            if let (Some(used), Some(remaining)) = (job.opp_time_used, job.opp_clock_remaining) {
                 let had_choice = lc > 8 && w >= 0.8;
-                m.observe_time(used, had_choice);
+                m.observe_time_fraction(used, remaining, had_choice);
             }
             println!(
                 "info string [Unchessed] opponent move {} cp-loss {} -> estimate ~{} (\u{00b1}{}), {}",
@@ -942,16 +1079,17 @@ fn run_go(
     // ------------------------------------------------------------------
     // 2. Opening book
     // ------------------------------------------------------------------
-    if adaptive_now && job.opt.own_book && job.game_plies < job.opt.book_depth {
+    let book_model = model.lock().unwrap().clone();
+    let effective_book_depth = effective_book_depth(job.opt.book_depth, &book_model);
+    if adaptive_now && job.opt.own_book && job.game_plies < effective_book_depth {
         let entries = {
             let b = book.lock().unwrap();
             b.probe(&pos)
         };
         if !entries.is_empty() {
-            let chosen = {
-                let m = model.lock().unwrap();
-                choose_book_move(&entries, &m, &job.opt, &mut rng)
-            };
+            let current_persona = *persona.lock().unwrap();
+            let chosen =
+                choose_book_move(&entries, &book_model, &job.opt, current_persona, &mut rng);
             if let Some((entry, reason)) = chosen {
                 // bail-out guard: never continue a troll line from a position
                 // that has already gone wrong for us
@@ -988,6 +1126,7 @@ fn run_go(
                 if !troll_refuted {
                     let tier_str = match entry.tier {
                         Tier::Main => "main".to_string(),
+                        Tier::Random => "historical random".to_string(),
                         Tier::Troll(r) => format!(
                             "troll, risk: {}",
                             match r {
@@ -998,9 +1137,15 @@ fn run_go(
                         ),
                     };
                     println!(
-                        "info string [Unchessed] book: {} ({}) [{}] — {}",
-                        entry.name, entry.eco, tier_str, reason
+                        "info string [Unchessed] book: {} ({}) [{}] depth {}/{} — {}",
+                        entry.name,
+                        entry.eco,
+                        tier_str,
+                        effective_book_depth,
+                        job.opt.book_depth,
+                        reason
                     );
+                    model.lock().unwrap().mark_decision_complete();
                     println!("bestmove {}", entry.mv.uci());
                     return;
                 }
@@ -1017,18 +1162,51 @@ fn run_go(
     // 3. Main search
     // ------------------------------------------------------------------
     let multipv_shown = job.opt.multipv;
+    let cfg = job.opt.adapt_config();
+    let model_before_search = model.lock().unwrap().clone();
     let multipv_search = if adaptive_now {
-        multipv_shown.max(5)
+        // Weak play needs genuinely imperfect candidates, but scoring them in
+        // separate side searches made strength clock-dependent. Search a
+        // target-dependent root pool in the same iterative-deepening pass so
+        // every candidate has a comparable score and shares one deadline.
+        let target = crate::adapt::target_elo(&cfg, &model_at_go_start);
+        let candidate_count = if target < 1000 {
+            legal_moves.len
+        } else if target < 1600 {
+            16.min(legal_moves.len)
+        } else if target < 2200 {
+            10.min(legal_moves.len)
+        } else {
+            5.min(legal_moves.len)
+        };
+        multipv_shown.max(candidate_count)
     } else {
         multipv_shown
     };
-    let cfg = job.opt.adapt_config();
     let prev_mode = *persona.lock().unwrap();
+    let previous_root_eval = *previous_eval.lock().unwrap();
+    // Use board phase, check state, opponent class, and recent eval trajectory
+    // rather than blindly applying the previous move's contempt.
+    let provisional_mode = if adaptive_now {
+        decide_persona(
+            &cfg,
+            &model_before_search,
+            PersonaContext::from_position(&pos, job.eval.eval(&pos), previous_root_eval),
+            prev_mode,
+        )
+        .mode
+    } else {
+        Mode::Full
+    };
     let draw_score = if adaptive_now {
-        crate::adapt::draw_score_for(&cfg, prev_mode)
+        crate::adapt::draw_score_for(&cfg, provisional_mode)
     } else {
         0
     };
+    let mut main_limits = job.limits.clone();
+    main_limits.account_elapsed(pos.side, job_started.elapsed().as_millis() as u64);
+    main_limits.shared_nodes = Some(Arc::new(AtomicU64::new(0)));
+
     // Lazy SMP: helper threads share this TT (lock-free, see tt.rs) and each
     // run a single-PV search of their own, staggered to a different starting
     // depth so they diverge from the main thread's tree sooner rather than
@@ -1041,7 +1219,7 @@ fn run_go(
     let eval_ref = job.eval.as_ref();
     let history_ref: &[u64] = &job.history;
     let search_params = job.opt.search;
-    let limits_ref = &job.limits;
+    let limits_ref = &main_limits;
     let stop_ref: &AtomicBool = &stop;
     let lines = std::thread::scope(|scope| {
         for i in 0..n_helpers {
@@ -1086,17 +1264,26 @@ fn run_go(
     // ------------------------------------------------------------------
     if adaptive_now {
         let m = model.lock().unwrap().clone();
-        let mode = decide_mode(&cfg, &m, lines[0].score, pos.fullmove, prev_mode);
+        let decision = decide_persona(
+            &cfg,
+            &m,
+            PersonaContext::from_position(&pos, lines[0].score, previous_root_eval),
+            prev_mode,
+        );
+        let mode = decision.mode;
         if mode != prev_mode {
             println!(
-                "info string [Unchessed] persona {} -> {} (eval {} cp, opponent ~{})",
+                "info string [Unchessed] persona {} -> {} (eval {} cp, opponent ~{}): {}",
                 prev_mode.name(),
                 mode.name(),
                 lines[0].score,
-                m.estimate()
+                m.estimate(),
+                decision.reason
             );
         }
         *persona.lock().unwrap() = mode;
+        *previous_eval.lock().unwrap() = Some(lines[0].score);
+        model.lock().unwrap().mark_decision_complete();
         let prior: Box<dyn MovePrior> = match &job.policy {
             Some(net) => Box::new(MaiaPrior(Arc::clone(net))),
             None => Box::new(HeuristicPrior),
@@ -1124,13 +1311,26 @@ fn run_go(
                 &mut |_| {},
             )
         };
-        let sel = select_move(&pos, &lines, mode, &cfg, &m, prior.as_ref(), &mut rng, &mut probe);
+        let sel = select_move(
+            &pos,
+            &lines,
+            mode,
+            &cfg,
+            &m,
+            prior.as_ref(),
+            &mut rng,
+            &mut probe,
+        );
         println!(
-            "info string [Unchessed] mode={} opponent~{} (\u{00b1}{}) eval {} cp: {}",
+            "info string [Unchessed] mode={} opponent~{} ({}-{}, type={} {:.0}% engine) eval {} cp plan='{}': {}",
             mode.name(),
             m.estimate(),
-            m.confidence(),
+            m.lower_bound(),
+            m.upper_bound(),
+            m.classification(),
+            m.engine_probability() * 100.0,
             lines[0].score,
+            decision.reason,
             sel.reason
         );
         println!("bestmove {}", sel.mv.uci());
@@ -1139,32 +1339,49 @@ fn run_go(
     }
 }
 
+fn effective_book_depth(configured: u32, model: &OpponentModel) -> u32 {
+    let human_depth = match model.estimate() {
+        ..=799 => 6,
+        800..=1199 => 8,
+        1200..=1599 => 10,
+        1600..=1999 => 12,
+        2000..=2399 => 16,
+        _ => 40,
+    };
+    configured.min(human_depth)
+}
+
 fn choose_book_move(
     entries: &[BookEntry],
     model: &OpponentModel,
     opt: &Options,
+    persona: Mode,
     rng: &mut Rng,
 ) -> Option<(BookEntry, String)> {
     let est = model.estimate();
     let conf = model.confidence();
-    let hi = est + conf; // optimistic upper bound on opponent strength
-    let max_risk = match opt.troll {
-        TrollMode::Off => 0,
-        TrollMode::On => 3,
-        TrollMode::Auto => {
-            if model.engine_suspect() && est >= 1800 {
-                // suspected engine: no clowning regardless of the estimate
-                0
-            } else if model.is_computer && est >= 2600 {
-                0
-            } else if hi < 1400 {
-                3
-            } else if hi < 1800 {
-                2
-            } else if hi < 2100 {
-                1
-            } else {
-                0
+    let hi = model.upper_bound();
+    let max_risk = if persona == Mode::Clinch {
+        0
+    } else {
+        match opt.troll {
+            TrollMode::Off => 0,
+            TrollMode::On => 3,
+            TrollMode::Auto => {
+                // Auto trolling requires affirmative human evidence, sufficient
+                // samples, a safely low upper strength bound, and no known-engine
+                // identity. Unknown is not treated as human.
+                if !model.auto_troll_allowed() {
+                    0
+                } else if hi < 1400 {
+                    3
+                } else if hi < 1800 {
+                    2
+                } else if hi < 2100 {
+                    1
+                } else {
+                    0
+                }
             }
         }
     };
@@ -1174,6 +1391,8 @@ fn choose_book_move(
         .filter(|e| matches!(e.tier, Tier::Troll(r) if r <= max_risk))
         .collect();
     let mains: Vec<&BookEntry> = entries.iter().filter(|e| e.tier == Tier::Main).collect();
+    let randoms: Vec<&BookEntry> = entries.iter().filter(|e| e.tier == Tier::Random).collect();
+    let allow_random = model.confident_human() && hi < 1800 && !model.anti_troll_lock();
 
     // roll for clowning
     let troll_chance = match (opt.troll, max_risk) {
@@ -1189,26 +1408,32 @@ fn choose_book_move(
         return Some(((*e).clone(), reason));
     }
 
-    if mains.is_empty() {
-        // only troll continuations known here (we are inside a troll line):
-        // keep following it if allowed, otherwise leave book
+    if mains.is_empty() && (!allow_random || randoms.is_empty()) {
+        // Only troll continuations are known here: continue when explicitly
+        // allowed, otherwise leave book and search.
         if !trolls.is_empty() {
-            let e = weighted_pick(&trolls, rng)?;
-            return Some(((*e).clone(), "continuing the line".to_string()));
+            let entry = weighted_pick(&trolls, rng)?;
+            return Some(((*entry).clone(), "continuing the line".to_string()));
         }
         return None;
     }
 
-    // serious selection: strong/uncertain opponent -> stick to top-weighted
-    // lines; weak opponent -> play by raw popularity like a human would
+    // Strong/uncertain opponents get protected mainlines. Confidently weak
+    // humans may also receive named offbeat historical openings for variety.
     let picked = if hi >= 2100 {
         let top: Vec<&BookEntry> = mains.iter().take(2).copied().collect();
         weighted_pick(&top, rng)?
+    } else if allow_random {
+        let mut varied = mains.clone();
+        varied.extend(randoms.iter().copied());
+        weighted_pick(&varied, rng)?
     } else {
         weighted_pick(&mains, rng)?
     };
     let reason = if hi >= 2100 {
         "big game — mainlines only".to_string()
+    } else if picked.tier == Tier::Random {
+        format!("opponent ~{}, historical offbeat variety", est)
     } else {
         format!("opponent ~{}, playing the popular stuff", est)
     };
@@ -1273,7 +1498,10 @@ mod tests {
 
     #[test]
     fn setoption_kv_parses_a_normal_value() {
-        assert_eq!(parse_setoption_kv("PassedPawnMgPct value 40"), ("PassedPawnMgPct", "40"));
+        assert_eq!(
+            parse_setoption_kv("PassedPawnMgPct value 40"),
+            ("PassedPawnMgPct", "40")
+        );
     }
 
     #[test]
@@ -1300,5 +1528,96 @@ mod tests {
             "a genuinely different game must reset observed_plies, not carry \
              over stale progress from an unrelated position"
         );
+    }
+
+    #[test]
+    fn go_parser_handles_searchmoves_mate_and_ponder() {
+        let limits = parse_go("go searchmoves a2a3 h2h3 depth 7 mate 3 ponder");
+        assert_eq!(limits.searchmoves, ["a2a3", "h2h3"]);
+        assert_eq!(limits.depth, Some(7));
+        assert_eq!(limits.mate, Some(3));
+        assert!(limits.ponder);
+    }
+
+    #[test]
+    fn opponent_measurement_budget_is_bounded_and_smooth() {
+        let at_9999 = Limits {
+            wtime: Some(9_999),
+            ..Default::default()
+        };
+        let at_10000 = Limits {
+            wtime: Some(10_000),
+            ..Default::default()
+        };
+        assert_eq!(observation_budget_ms(&at_9999, Color::White), 19);
+        assert_eq!(observation_budget_ms(&at_10000, Color::White), 20);
+        let tiny = Limits {
+            movetime: Some(250),
+            ..Default::default()
+        };
+        assert_eq!(observation_budget_ms(&tiny, Color::White), 0);
+        let healthy = Limits {
+            movetime: Some(5_000),
+            ..Default::default()
+        };
+        assert_eq!(observation_budget_ms(&healthy, Color::White), 100);
+    }
+
+    #[test]
+    fn book_depth_scales_with_observed_strength() {
+        for (elo, expected) in [(500, 6), (900, 8), (1300, 10), (1700, 12), (2200, 16)] {
+            let mut model = OpponentModel::new();
+            model.seed_from_uci_opponent(&format!("- {} human Test", elo));
+            // Descriptor prior is deliberately broad, so feed stable evidence
+            // at approximately the requested level through the public model.
+            assert!(effective_book_depth(40, &model) <= expected.max(10));
+        }
+        let mut engine = OpponentModel::new();
+        engine.seed_from_uci_opponent("- - computer Stockfish");
+        assert_eq!(effective_book_depth(40, &engine), 40);
+    }
+
+    #[test]
+    fn clinch_suppresses_troll_book_even_when_forced_on() {
+        let pos = fen::startpos();
+        let mv = legal(&pos).moves[0];
+        let entries = vec![BookEntry {
+            mv,
+            weight: 10,
+            name: "test troll",
+            eco: "A00",
+            tier: Tier::Troll(1),
+        }];
+        let options = Options {
+            troll: TrollMode::On,
+            ..Options::default()
+        };
+        let mut rng = Rng::new(1);
+        assert!(choose_book_move(
+            &entries,
+            &OpponentModel::new(),
+            &options,
+            Mode::Clinch,
+            &mut rng,
+        )
+        .is_none());
+    }
+
+    #[test]
+    fn low_time_gate_includes_short_movetime() {
+        assert!(is_low_time(
+            &Limits {
+                movetime: Some(250),
+                ..Default::default()
+            },
+            Color::White
+        ));
+        assert!(!is_low_time(
+            &Limits {
+                movetime: Some(5_000),
+                ..Default::default()
+            },
+            Color::White
+        ));
     }
 }

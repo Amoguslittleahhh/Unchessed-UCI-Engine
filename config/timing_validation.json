@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "seed": 20260819,
+  "window_size": 32,
+  "skip_initial_player_moves": 1,
+  "production_threshold": 0.45,
+  "bootstrap_iterations": 5000,
+  "permutation_iterations": 10000,
+  "matching": {
+    "elo_bin_width": 200,
+    "max_records_per_account": 8,
+    "max_records_per_account_cell": 3
+  },
+  "gates": {
+    "minimum_source_bot_accounts": 30,
+    "minimum_matched_bot_accounts": 25,
+    "minimum_account_auc_lower_95": 0.55,
+    "maximum_threshold_fpr_upper_95": 0.10
+  }
+}

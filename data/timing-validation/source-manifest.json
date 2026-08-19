@@ -1,0 +1,78 @@
+{
+  "derived_outputs": {
+    "extraction-summary.json": {
+      "bytes": 382,
+      "sha256": "3f724bd2ec2e1ffae9fa4330cdd01c59a1595c979e80f9e0b70cba906539f430"
+    },
+    "records.jsonl": {
+      "bytes": 1193273,
+      "sha256": "f6d577dd847a9d8fd7addfb3681d4d9822373e1b101b88d8d6628cb775c072d5"
+    }
+  },
+  "filters": {
+    "bot_corpus_perspectives": "Title=BOT only",
+    "clock_required": true,
+    "minimum_positive_samples": 6,
+    "official_lichess_site_required": true,
+    "rated_only": true,
+    "skip_initial_player_moves": 1,
+    "standard_chess_only": true,
+    "unmarked_corpus_perspectives": "Title!=BOT only",
+    "window_size": 32
+  },
+  "generated_utc": "2026-08-19",
+  "license_and_primary_source": {
+    "label_note": "BOT titles affirm Bot API accounts; missing BOT titles are only an unmarked human proxy.",
+    "license": "CC0-1.0",
+    "source": "Lichess open database rated standard games",
+    "url": "https://database.lichess.org/"
+  },
+  "schema": 1,
+  "transport_snapshots": [
+    {
+      "commit": "094cb375007ebf8884579127b810d78af8a93da0",
+      "file_count": 84,
+      "path_glob": "lichess/game_records/*.pgn",
+      "raw_bytes": 1403052,
+      "repository": "https://github.com/pssnyder/c0br4-chess-engine",
+      "role": "affirmative_bot",
+      "sha256_of_sorted_content_sha256s": "af34ba2967628e94c29b0d66e0dea0db0e7a2f97c46082fd025472b37f96dff8"
+    },
+    {
+      "commit": "633bfb13d58fa56d93c0b84438cf1282e22fb723",
+      "file_count": 8,
+      "path_glob": "chess/candidating/*.pgn",
+      "raw_bytes": 2488154,
+      "repository": "https://github.com/kyotakuboki/go-chess-strength-estimation",
+      "role": "separate_unmarked_rated_game_sample",
+      "sha256_of_sorted_content_sha256s": "de1419c9b9b8cefa9d66e193580fde96da7bd230fe790a471d9ca7a09245ce39"
+    },
+    {
+      "commit": "2c8e75dd26e50bdf5a4ad49dc24ba830ce45790c",
+      "file_count": 1,
+      "path_glob": "lichess_db_1000.pgn",
+      "raw_bytes": 117733,
+      "repository": "https://github.com/eguneys/parse-pgn-fire-db",
+      "role": "additional_unmarked_rated_game_sample",
+      "sha256_of_sorted_content_sha256s": "cd6a7be3811e785007de24bc4580f47812147429c44bbf1ab261b96130cc846a"
+    },
+    {
+      "commit": "9b4cfb2e26a77bd9dc52491e738d0aba12ad313a",
+      "file_count": 1,
+      "path_glob": "test/data/lichess/lichess_medium.pgn",
+      "raw_bytes": 111576,
+      "repository": "https://github.com/calvinpelletier/aic",
+      "role": "additional_unmarked_rated_game_sample",
+      "sha256_of_sorted_content_sha256s": "167d6faa0a34f67b92020c0b09ce0a0afa00deb50616c013160fccfb9bacdf81"
+    },
+    {
+      "commit": "1878cfc626e4f41f0fea33ffe87840aacf2b7a4b",
+      "file_count": 1,
+      "path_glob": "Chess_elo_prediction/games_3000.pgn",
+      "raw_bytes": 108232,
+      "repository": "https://github.com/MelihSenol/Chess_elo_prediction",
+      "role": "additional_unmarked_rated_game_sample",
+      "sha256_of_sorted_content_sha256s": "dde231dc40cdcb5b2581592b33021bcd101733a7cea474ea6d0ed457c1d911f8"
+    }
+  ]
+}

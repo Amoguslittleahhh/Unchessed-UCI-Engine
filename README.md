@@ -13,18 +13,25 @@ Both binaries share the same `unchessed-core` crate (eval, search, movegen)
 and are always rebuilt/redeployed together after any change; they differ only
 in the UCI options and default behavior their own `main.rs` exposes.
 
+## Research paper
+
+The complete IEEE-LaTeX-styled engineering and research guide is available as
+[`papers/ieee-research-guide/unchessed-research-guide.pdf`](papers/ieee-research-guide/unchessed-research-guide.pdf),
+with its LaTeX source, renamed IEEEtran derivative, build script, evidence
+hashes, and SHA-256 manifest in the same directory.
+
 ## Status: barebones milestone (this build)
 
 | Component | State |
 |---|---|
 | Bitboard movegen | ✅ perft-verified (startpos d6 = 119,060,324; Kiwipete d5 = 193,690,690, exact) |
-| Search | ✅ iterative deepening alpha-beta, quiescence, TT, null-move, LMR, killers/history, MultiPV, time management |
-| Eval | ✅ NNUE v4 (HalfKAv2_hm: 22528-input king-relative/mirrored/factorized-trained, 256-accumulator/SCReLU), SPRT-validated +26.1 Elo over v1 (which was itself +107.1 Elo over the hand-crafted eval), auto-loaded from `unchessed-nnue.bin`; HCE (material + PSTs + bishop pair + mobility/passed-pawns/rook/knight-outpost terms) remains as a fallback when the file is absent |
-| UCI protocol | ✅ full loop, worker-thread search, `stop` safe, 9/9 smoke tests |
+| Search | ✅ iterative deepening alpha-beta, quiescence, TT, null-move, LMR, killers/history, MultiPV, time management; research options for IIR, history gravity, countermoves, razoring, and LMP are implemented default-off pending match gates |
+| Eval | ✅ NNUE v4 (HalfKAv2_hm: 22,528 inputs, 256 accumulator, 5,767,937 parameters), SPRT-validated +26.1 Elo over v1; f32 files load as int16 with AVX-512BW/AVX2/scalar dispatch and ply-indexed incremental accumulators; HCE remains the fallback/explanation layer |
+| UCI protocol | ✅ worker-thread loop with strict FEN/state validation, exact shared node limits, `searchmoves`, `mate`, `go infinite`, `ponder`/`ponderhit`, deadline charging, and adversarial smoke coverage |
 | Time management | ✅ clock-aware: deep searches on a full clock, urgency tiers as time drains (near-instant on the increment in panic mode), situation-scaled budgets (sharp/wide positions get more), easy-move early stop, score-drop extensions; verified flag-free in 10s+0.1s blitz |
-| Opening book | ✅ ~45 embedded main lines with ECO names + troll tier + external Polyglot `.bin` support (key computation verified against the format spec test vectors) |
+| Opening book | ✅ 3,810 CC0 named historical lines covering all 500 ECO codes, plus 45 curated mainlines, 15 risk-graded troll lines, offbeat historical variety, and external Polyglot `.bin` support |
 | Adapter brain | ✅ live opponent-Elo model, MATCH/PUNISH/CLINCH/DEFEND personas, human-plausible move selection, `UCI_Opponent` engine identification |
-| Human policy net | ✅ Maia-style per-rating policy nets (v2: castling-rights + en-passant aware inputs) trained on 19.9M positions from 781k human Lichess games (CC0 data), pure-Rust inference, auto-loaded from `unchessed-maia.bin` |
+| Human policy net | ⚠️ Pure-Rust Maia-style v2 inference and training pipeline are implemented, but no trained `unchessed-maia.bin` ships in this repository; production therefore uses heuristic priors unless a sidecar is supplied |
 
 **Honest goals note:** beating full-strength Stockfish is not a realistic outcome
 for any hand-built engine — Stockfish is 15+ years of distributed testing. The
@@ -38,7 +45,10 @@ automatically. NNUE + search work later raises the ceiling.
 cargo build --release
 ```
 
-Produces `target\release\unchessed-adapter.exe` (standalone, no dependencies).
+Produces `target\release\unchessed-adapter.exe`. The executable itself has no
+shared-library dependency, but production NNUE/policy behavior requires its
+model sidecars. Use `tools/package_release.py` to create a checksum manifest
+and `--require-policy` when heuristic fallback is unacceptable.
 
 Tests (perft suite, search, book, model): `cargo test`. Deep perft:
 `cargo test --release -- --ignored`.
@@ -91,23 +101,28 @@ manually: **Engines → Add new → Local** and point it at
 | `Troll` | Auto | `Off` / `Auto` (model-gated) / `On` (forced clowning) |
 | `OwnBook` | true | use the opening book in games |
 | `BookFile` | — | path to any Polyglot `.bin` book (e.g. built from Lichess masters) |
-| `BookDepth` | 16 | max plies to stay in book |
+| `BookDepth` | 40 | maximum plies available; effective depth is scaled down for weaker opponents to match human book-exit behaviour |
 | `PolicyFile` | auto | path to a policy weights file; default: `unchessed-maia.bin` next to the exe |
-| `UCI_Opponent` | — | standard GUI-supplied opponent info; seeds the model for engines |
+| `UCI_Opponent` | — | standard GUI-supplied opponent info; seeds identity/strength priors |
+| `RandomSeed` | 0 | 0 uses runtime entropy; non-zero makes persona/book choices reproducible for tests |
 
 ## How the adapter thinks
 
-1. **Pre-game:** if the GUI sends `UCI_Opponent`, known engines (Stockfish,
-   Leela, Komodo, …) seed the model at their real strength — trolling is
-   hard-locked off against strong engines. Humans always start neutral:
-   declared ratings are never trusted as truth.
+1. **Pre-game:** if the GUI sends `UCI_Opponent`, identity and current playing
+   strength are tracked separately. Known/computer opponents are anti-troll
+   locked even when deliberately limited to a low declared Elo; an omitted
+   engine rating uses the known-engine prior. Human declarations are treated
+   only as broad priors and are verified from play. The descriptor persists
+   across `ucinewgame` while per-game evidence resets.
 2. **Live model:** every opponent move is compared against the engine's own
    analysis; centipawn loss (weighted by position difficulty, book moves
-   discounted) feeds a Bayesian running Elo estimate that converges in ~8–12
-   moves and keeps tracking.
-3. **Personas** (selection only — the search underneath always runs full
-   strength): **MATCH** blends to the opponent's level with human-plausible
-   moves; **PUNISH** snaps to forcing best moves the moment they blunder
+   discounted) updates a 3,551-bucket posterior with one bucket per integer Elo
+   from 100 through 3650. Decisions use credible bounds—not false one-Elo
+   certainty—and the model keeps tracking as play changes.
+3. **Personas** (selection only — the search underneath remains full):
+   **MATCH** draws a heavy-tailed intended error from a human ACPL curve and
+   selects the closest common-depth root candidate, weighted by human priors;
+   **PUNISH** snaps to forcing best moves the moment they blunder
    (plays found mates immediately, prefers simplifying captures when far
    ahead); **CLINCH** picks venomous, trap-laden lines in drawish late games
    (narrow-safe-path metric, keeps queens on, and wires *contempt into the
@@ -116,14 +131,19 @@ manually: **Engines → Add new → Local** and point it at
    digs in when worse. Transitions have hysteresis (enter/exit thresholds)
    so the engine commits to a plan instead of flapping, and every persona
    change is logged: `persona MATCH -> PUNISH (eval 990 cp, opponent ~1011)`.
-4. **Engine-tell detection**: near-instant, near-perfect replies in positions
-   with real choice raise a suspicion score (fed by the opponent's clock usage
-   between moves). A suspected engine gets full-strength chess and zero
-   trolling, whatever the rating estimate says. Erratic play (brilliancies
-   mixed with blunders) widens the model's uncertainty instead of narrowing
-   it — the sandbagger pattern.
-5. **UCI_Elo semantics**: with `UCI_LimitStrength` on, the engine plays *at*
-   `UCI_Elo` in every mode, matching standard UCI behavior.
+4. **Engine-tell detection**: strength is load-bearing; timing is not. The
+   model tracks lag-1 autocorrelation of log clock-fraction, but regular timing
+   can only lower the evidence threshold for an opponent already playing at
+   the measurement ceiling. Fast premoves or weak regular play can never flag
+   a human by themselves. Erratic play widens uncertainty, and positive engine
+   classification is game-latched to prevent mode flapping. An independent,
+   account-disjoint public-data validation did **not** validate timing as a
+   standalone classifier (account AUC 0.413, 95% CI 0.260–0.575), so this safety
+   restriction remains mandatory.
+5. **UCI_Elo semantics**: with `UCI_LimitStrength` on, fixed strength has
+   absolute precedence and the engine plays *at* `UCI_Elo` (100–2600),
+   matching standard UCI behavior. Style personas cannot bypass the fixed
+   strength selector.
 6. **Book:** popularity-weighted theory with ECO names; a separately-tagged
    troll tier (Bongcloud, Scholar's mate attempts, Stafford, Fried Liver, …)
    gated by the live Elo model — big game detected → mainlines only, and a
@@ -132,9 +152,10 @@ manually: **Engines → Add new → Local** and point it at
 
 ## The human policy net
 
-MATCH-mode move selection is driven by Maia-style policy networks: one net per
-rating bucket (<1300, 1300–1599, 1600–1899, 1900+), each trained to predict
-*what a human of that rating actually plays*, on non-bullet rated games from
+When a `PolicyFile` sidecar is supplied, MATCH move priors use Maia-style
+policy networks: one net per rating bucket (<1300, 1300–1599, 1600–1899,
+1900+), trained to predict *what a human of that rating actually plays* on
+non-bullet rated games from
 the [Lichess open database](https://database.lichess.org) (CC0). At play time
 the engine blends the two buckets nearest its current target rating, so "play
 like a 1450" uses genuinely 1450-flavoured move preferences, not random noise
@@ -169,14 +190,23 @@ see the net's top human moves for the current position.
 
 ## The NNUE evaluator
 
-`unchessed-nnue.bin` (auto-loaded next to the exe if present, `EvalFile` UCI
-option to point elsewhere, falls back to HCE if absent/unreadable) is trained
-on 108M HCE-labeled self-play positions via `tools/train_nnue.py` — a small
-768-input/256-accumulator/SCReLU net (~197K params), 15 epochs, WDL-space loss
-with exponent 2.5 matching Stockfish's nnue-pytorch recipe. SPRT-validated
-+107.1 ± 27.0 Elo over the hand-crafted eval (532 games, LOS 100%) — the
-biggest single gain in this project's history, more than double the previous
-best (mobility, +52.3 Elo).
+`unchessed-nnue.bin` (auto-loaded next to the executable, or selected with
+`EvalFile`) is the v4 HalfKAv2_hm network: 22,528 inputs × 256 accumulator,
+5,767,937 parameters, and an exact f32 file size of 23,071,768 bytes. At load
+time the feature transformer and bias are validated, quantized with scale 511
+to int16 (~11.5 MB runtime table), overflow-bounded, and dispatched once to
+AVX-512BW, AVX2, or scalar accumulation. Active features and accumulators are
+stack-resident, removing the former two heap allocations per evaluation. The
+small scalar output head remains f32 to avoid reassociation drift.
+
+The first flat-768 NNUE was SPRT-validated at +107.1 ± 27.0 Elo over HCE; v4
+was subsequently validated at +26.1 ± 12.4 Elo over that network. Search now carries ply-indexed NNUE state: ordinary moves add/subtract only
+changed feature rows, while a perspective refreshes when its own king changes
+HalfKA bucket/orientation. Special-move and depth-3 tree tests require exact
+agreement with full refresh. An isolated same-tree depth-10 run measured
+1.215x geometric-mean NPS with exact nodes/scores and 12/12 move agreement.
+Run `python tools/inspect_nnue.py
+unchessed-nnue.bin` to verify the shipped architecture and parameter count.
 
 ```
 python tools/train_nnue.py selfcheck              # format/gradient sanity check
@@ -187,10 +217,8 @@ python tools/train_nnue.py unchessed-nnue.bin 15 shard0.bin shard1.bin ...
 
 - **Reviewer**: full-strength UCI engine + PGN review CLI (move classification,
   accuracy %).
-- **NNUE**: quantization-aware training (int8/int16, ~5000x faster inference),
-  incremental accumulator updates, training on Lc0-distilled labels instead of
-  the current HCE-labeled data (shadow-streaming Lc0's training-data repository
-  directly, deliberately deferred pending this first result).
+- **NNUE**: SPRT the measured int16 score drift and incremental path, then
+  retrain on stronger distilled labels and evaluate accumulator-layout tuning.
 - Deeper policy nets (conv/resnet) once GPU training is available; more data,
   more buckets.
 - Lazy SMP threads, pondering, tablebases, adaptation tuning.
@@ -198,4 +226,20 @@ python tools/train_nnue.py unchessed-nnue.bin 15 shard0.bin shard1.bin ...
 ## Development verification tools
 
 - `python tools/uci_smoke.py <engine>` — 9-step UCI protocol conformance test.
+- `python tools/uci_edge_smoke.py <engine>` — malformed-FEN, node-limit, searchmoves, infinite, and ponder regressions.
+- `python tools/persona_smoke.py <adapter>` — black-box identity persistence, fixed-strength, timing, and anti-troll regressions.
 - `python tools/selfplay.py <engine> [games] [movetime]` — self-play sanity run.
+- `python tools/build_balanced_manifest.py --config config/elo_sampling.json --output balanced.jsonl <pgn...>` — build a player-capped manifest with one source-rating cell per integer Elo from 100–3650, without copying PGNs.
+- `python tools/check_opening_coverage.py` — verify 3,810 named lines and all 500 ECO codes.
+- `python tools/inspect_nnue.py unchessed-nnue.bin` — verify file format, dimensions, parameter count, finite values, and runtime quantized size.
+- `python tools/bench_research.py <reviewer> [--baseline <reviewer>]` — self-consistent fixed-depth throughput/quality benchmark that refuses the adaptive binary.
+- `python tools/timing_classifier_validation.py validate --config config/timing_validation.json --records data/timing-validation/records.jsonl --manifest data/timing-validation/source-manifest.json --json data/timing-validation/report.json --markdown data/timing-validation/result.md --check` — reproduce the account-disjoint timing-signal validation and verify the committed negative result.
+- `python tools/service_timing_bench.py ...` — aggregate real Lichess, Chess.com, and FICS timing exports without writing usernames, game IDs, or moves.
+- `python tools/uci_epd_suite.py --engine <reviewer> --epd <licensed-suite.epd> --movetime 10000 --json result.json` — run public or user-licensed coordinate-move EPD suites with pinned UCI settings and checksums.
+- `python tools/summarize_engine_gauntlet.py --candidate Unchessed --provenance benchmarks/real-engines/provenance.json --pgn benchmarks/real-engines/games/*.pgn --json benchmarks/real-engines/report.json --markdown benchmarks/real-engines/result.md --check` — verify the committed 48-game Ethereal/Berserk/Stockfish gauntlet.
+- `python tools/package_release.py --target-dir target/release --output release [--require-policy]` — bundle binaries/models with SHA-256 manifest and optional policy hard requirement.
+- `docs/opponent-detection-and-balanced-data.md` — opponent identity/type/strength architecture, safe behavior policy, balanced-data design, and rollout gates.
+- `docs/timing-classifier-validation.md` — CC0 source provenance, pseudonymous extraction, account-level statistics, failed gates, and safe production decision.
+- `docs/commercial-and-service-validation.md` — measured service coverage, unavailable commercial APIs, and lawful proprietary-suite workflow.
+- `docs/real-engine-testing.md` — controlled real-engine match conditions, results, provenance rules, and current-asset limitations.
+- `docs/opening-book-coverage.md` — historical source, tier safety, coverage, weighting, and external-corpus guidance.
