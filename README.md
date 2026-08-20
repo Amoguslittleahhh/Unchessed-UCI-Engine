@@ -236,7 +236,11 @@ python tools/train_nnue.py unchessed-nnue.bin 15 shard0.bin shard1.bin ...
 - `python tools/timing_classifier_validation.py validate --config config/timing_validation.json --records data/timing-validation/records.jsonl --manifest data/timing-validation/source-manifest.json --json data/timing-validation/report.json --markdown data/timing-validation/result.md --check` — reproduce the account-disjoint timing-signal validation and verify the committed negative result.
 - `python tools/service_timing_bench.py ...` — aggregate real Lichess, Chess.com, and FICS timing exports without writing usernames, game IDs, or moves.
 - `python tools/uci_epd_suite.py --engine <reviewer> --epd <licensed-suite.epd> --movetime 10000 --json result.json` — run public or user-licensed coordinate-move EPD suites with pinned UCI settings and checksums.
-- `python tools/train_nnue_xt_a100.py selfcheck` / `python tools/train_chessformer_a100.py selfcheck --no-compile` — validate the A100-optimized XT-NNUE and Chessformer training candidates before long jobs.
+- `python tools/train_nnue_xt_a100.py selfcheck` / `python tools/train_chessformer_a100.py selfcheck --no-compile` — validate the Hydra v1 A100 XT-NNUE and Chessformer candidates before long jobs.
+- `python tools/train_nnue_xt_v3_a100.py selfcheck --config config/a100_hydra_v3_training.json` — validate Aegis v3's three-stage position/direct/full XT trainer with direct, x-ray, and pawn/king topology groups. A full run requires separate train, calibration, and final-validation shards.
+- `python tools/train_chessformer_v4_a100.py selfcheck --config config/a100_hydra_v4_training.json --no-compile` — exercise v4's nested 2/128, 4/192, and 8/256 legal-only policy, evidential WDL, private history adapters, and per-action regret heads.
+- `cargo run --release -p unchessed-datagen -- policy-v4 ...` — produce schema-headed `UNCHD4R0` human-policy shards containing all promotion-aware legal actions and privacy-keyed game/player pseudonyms.
+- `python tools/aegis_v4_data.py inspect ...` / `audit-split ...` — reject malformed v4 legal sets, target/regret inconsistencies, and player/game leakage before training.
 - `python tools/summarize_engine_gauntlet.py --candidate Unchessed --provenance benchmarks/real-engines/provenance.json --pgn benchmarks/real-engines/games/*.pgn --json benchmarks/real-engines/report.json --markdown benchmarks/real-engines/result.md --check` — verify the committed 48-game Ethereal/Berserk/Stockfish gauntlet.
 - `python tools/package_release.py --target-dir target/release --output release [--require-policy]` — bundle binaries/models with SHA-256 manifest and optional policy hard requirement.
 - `docs/opponent-detection-and-balanced-data.md` — opponent identity/type/strength architecture, safe behavior policy, balanced-data design, and rollout gates.
@@ -245,4 +249,14 @@ python tools/train_nnue.py unchessed-nnue.bin 15 shard0.bin shard1.bin ...
 - `docs/real-engine-testing.md` — controlled real-engine match conditions, results, provenance rules, and current-asset limitations.
 - `docs/nnue-xt-chessformer-hybrid.md` — compact SFNNv10-inspired threat-residual NNUE and persona-routed Chessformer/alpha-beta design, implementation contract, microbenchmark, and gates.
 - `docs/a100-training-guide.md` — BF16/TF32 A100 setup, data contracts, checkpointing, memory tuning, holdouts, and promotion gates.
+- `docs/unchessed-hydra-mathematics.md` — complete equations for the unified XT-NNUE/Chessformer architecture, joint losses, alpha-beta integration, quantization, risk routing, and promotion gates.
+- `docs/unchessed-hydra-v2-mathematics.md` — next-level Aegis design with x-ray/pawn hypergraphs, uncertainty-gated XT evaluation, elastic Chessformer exits, evidential WDL, concept transport, and gradient-conflict control.
+- `docs/unchessed-hydra-v3-mathematics.md` — implementation-focused Aegis v3: three-stage XT, dual aleatoric/epistemic uncertainty, conformal bounds, exact x-ray/topology extractors, private temporal policy adapters, a frozen 160-byte data ABI, calibrated exits, and alpha-beta vetoes.
+- `docs/unchessed-hydra-v4-mathematics.md` — promotion-aware legal-set prediction, shared nested exits, evidential WDL, per-action regret distributions, proof-aware candidate ordering with mandatory full legal fallback, and an exact hypergraph-delta oracle.
+- `docs/hydra-apex-v5-180core-a100.md` — 29M-878M training-only legal-action Oracles, 4-360-vCPU exact UCI labelling, NUMA/affinity scheduling, adaptive GPU VRAM probing, and compact student distillation.
+- `python tools/verda_cpu_profile.py resolve ...` / `tools/v5_180core_datagen.py` / `tools/v5_uci_teacher_worker.py` — resumable guide/regret generation across every advertised Verda CPU-node size.
+- `python tools/verda_v5_preflight.py --role cpu|gpu ...` — verify Verda affinity/NUMA, 1-8 supported GPUs, BF16/FP16 PyTorch, RAM, and NVMe before paid jobs.
+- `python tools/verda_gpu_profile.py resolve ...` — select a 29M-878M training-only Oracle for V100, A100, L40S/Ada/A6000, H100/H200, RTX PRO 6000, or B200/B300/GB300 nodes.
+- `python tools/train_hydra_oracle_v5_a100.py selfcheck ...` — validate the Apex oracle and use `torchrun`-backed `train-oracle`/`distill-student --auto-batch` on 1-8 GPUs.
+- `python tools/aegis_v3_data.py inspect ...` / `audit-split ...` — validate `UNCHD3R0` shards and reject game/player leakage before A100 training.
 - `docs/opening-book-coverage.md` — historical source, tier safety, coverage, weighting, and external-corpus guidance.

@@ -27,13 +27,21 @@
 //!
 //! Usage: unchessed-datagen nnue <out_file> <worker_id> <n_workers>
 //!                               <max_positions> <pgn...>
+//!
+//! Aegis v4 mode emits schema-headed 1,088-byte human-policy records with the
+//! full promotion-aware legal set, WDL/history/time metadata, and SipHash-2-4
+//! game/player pseudonyms. It does not fabricate teacher regrets:
+//!
+//! Usage: unchessed-datagen policy-v4 <out_file> <128-bit-key-hex>
+//!                               <max_positions> <accept_prob> <pgn...>
 
 use std::fs::File;
-use std::io::{BufRead, BufReader, BufWriter, Write};
+use std::io::{BufRead, BufReader, BufWriter, Seek, SeekFrom, Write};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 
 use unchessed_core::board::*;
+use unchessed_core::chessformer::{encode_policy_action, legal_policy_actions};
 use unchessed_core::eval::Hce;
 use unchessed_core::fen;
 use unchessed_core::movegen::in_check;
@@ -117,7 +125,11 @@ fn write_sample(
         castle |= 8;
     }
     buf[100] = castle;
-    buf[101] = if pos.ep == NO_EP { 0xFF } else { file_of(pos.ep) };
+    buf[101] = if pos.ep == NO_EP {
+        0xFF
+    } else {
+        file_of(pos.ep)
+    };
     let mut flags = 0u8;
     if mv.kind() == MK_CASTLE {
         flags |= 1;
@@ -137,7 +149,13 @@ fn write_sample(
 struct Headers {
     white_elo: Option<u16>,
     black_elo: Option<u16>,
+    white_name: Option<String>,
+    black_name: Option<String>,
+    site: Option<String>,
+    date: Option<String>,
+    round: Option<String>,
     base_secs: Option<u32>,
+    increment_secs: Option<u32>,
     result: Option<String>,
 }
 
@@ -147,9 +165,21 @@ fn parse_header(line: &str, h: &mut Headers) {
         h.white_elo = rest.trim_matches('"').parse().ok();
     } else if let Some(rest) = inner.strip_prefix("BlackElo ") {
         h.black_elo = rest.trim_matches('"').parse().ok();
+    } else if let Some(rest) = inner.strip_prefix("White ") {
+        h.white_name = Some(rest.trim_matches('"').to_string());
+    } else if let Some(rest) = inner.strip_prefix("Black ") {
+        h.black_name = Some(rest.trim_matches('"').to_string());
+    } else if let Some(rest) = inner.strip_prefix("Site ") {
+        h.site = Some(rest.trim_matches('"').to_string());
+    } else if let Some(rest) = inner.strip_prefix("Date ") {
+        h.date = Some(rest.trim_matches('"').to_string());
+    } else if let Some(rest) = inner.strip_prefix("Round ") {
+        h.round = Some(rest.trim_matches('"').to_string());
     } else if let Some(rest) = inner.strip_prefix("TimeControl ") {
         let tc = rest.trim_matches('"');
-        h.base_secs = tc.split('+').next().and_then(|b| b.parse().ok());
+        let mut fields = tc.split('+');
+        h.base_secs = fields.next().and_then(|b| b.parse().ok());
+        h.increment_secs = fields.next().and_then(|value| value.parse().ok());
     } else if let Some(rest) = inner.strip_prefix("Result ") {
         h.result = Some(rest.trim_matches('"').to_string());
     }
@@ -157,6 +187,10 @@ fn parse_header(line: &str, h: &mut Headers) {
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
+    if args.len() >= 2 && args[1] == "policy-v4" {
+        run_policy_v4(&args);
+        return;
+    }
     if args.len() >= 2 && args[1] == "nnue" {
         run_nnue(&args);
         return;
@@ -166,7 +200,14 @@ fn main() {
         return;
     }
     if args.len() < 5 {
-        eprintln!("usage: {} <out_dir> <cap_per_bucket> <accept_prob> <pgn...>", args[0]);
+        eprintln!(
+            "usage: {} <out_dir> <cap_per_bucket> <accept_prob> <pgn...>",
+            args[0]
+        );
+        eprintln!(
+            "   or: {} policy-v4 <out_file> <128-bit-hash-key-hex> <max_positions> <accept_prob> <pgn...>",
+            args[0]
+        );
         eprintln!(
             "   or: {} nnue <out_file> <worker_id> <n_workers> <max_positions> <pgn...>",
             args[0]
@@ -183,9 +224,7 @@ fn main() {
     std::fs::create_dir_all(out_dir).unwrap();
 
     let mut writers: Vec<BufWriter<File>> = (0..BUCKETS.len())
-        .map(|i| {
-            BufWriter::new(File::create(format!("{}/bucket{}.bin", out_dir, i)).unwrap())
-        })
+        .map(|i| BufWriter::new(File::create(format!("{}/bucket{}.bin", out_dir, i)).unwrap()))
         .collect();
     let mut counts = vec![0u64; BUCKETS.len()];
     let mut rng = Rng(0x5EED_CAFE_2024_0720);
@@ -209,8 +248,15 @@ fn main() {
                 if in_moves {
                     // new game begins
                     process_game(
-                        &headers, &movetext, &mut writers, &mut counts, cap, accept,
-                        &mut rng, &mut used_games, &mut skipped_moves,
+                        &headers,
+                        &movetext,
+                        &mut writers,
+                        &mut counts,
+                        cap,
+                        accept,
+                        &mut rng,
+                        &mut used_games,
+                        &mut skipped_moves,
                     );
                     games += 1;
                     headers = Headers::default();
@@ -226,8 +272,15 @@ fn main() {
         }
         if in_moves {
             process_game(
-                &headers, &movetext, &mut writers, &mut counts, cap, accept, &mut rng,
-                &mut used_games, &mut skipped_moves,
+                &headers,
+                &movetext,
+                &mut writers,
+                &mut counts,
+                cap,
+                accept,
+                &mut rng,
+                &mut used_games,
+                &mut skipped_moves,
             );
             games += 1;
         }
@@ -245,7 +298,10 @@ fn main() {
         games, used_games, skipped_moves
     );
     for (i, c) in counts.iter().enumerate() {
-        eprintln!("bucket{} ({}-{}): {} samples", i, BUCKETS[i].0, BUCKETS[i].1, c);
+        eprintln!(
+            "bucket{} ({}-{}): {} samples",
+            i, BUCKETS[i].0, BUCKETS[i].1, c
+        );
     }
 }
 
@@ -309,7 +365,11 @@ fn process_game(
                 return; // desynced: abandon rest of game
             }
         };
-        let rating = if matches!(pos.side, Color::White) { we } else { be };
+        let rating = if matches!(pos.side, Color::White) {
+            we
+        } else {
+            be
+        };
         let b = bucket_of(rating);
         // rare special-rule moves always pass the subsample gate
         let special = mv.kind() == MK_EP || mv.is_promo();
@@ -321,6 +381,436 @@ fn process_game(
         pos = pos.make(mv);
         ply += 1;
     }
+}
+
+// ---------------------------------------------------------------------------
+// Hydra Aegis v4 legal-policy data mode
+// ---------------------------------------------------------------------------
+
+const AEGIS_V4_HEADER_BYTES: usize = 64;
+const AEGIS_V4_RECORD_BYTES: usize = 1088;
+const AEGIS_V4_MAX_LEGAL: usize = 218;
+const AEGIS_V4_SCHEMA_SHA256: [u8; 32] = [
+    0x9b, 0x43, 0x3d, 0x91, 0xa8, 0x6f, 0x73, 0x52, 0xb4, 0x80, 0x75, 0x18, 0x5c, 0x75, 0xa7, 0xa9,
+    0x57, 0xc0, 0xc2, 0xef, 0x8a, 0x57, 0x2c, 0xd8, 0x51, 0xe6, 0xc6, 0xf5, 0x59, 0x16, 0x72, 0x17,
+];
+
+fn crc32(bytes: &[u8]) -> u32 {
+    let mut crc = !0u32;
+    for &byte in bytes {
+        crc ^= byte as u32;
+        for _ in 0..8 {
+            crc = (crc >> 1) ^ (0xedb8_8320u32 & 0u32.wrapping_sub(crc & 1));
+        }
+    }
+    !crc
+}
+
+fn aegis_v4_header(records: u64) -> [u8; AEGIS_V4_HEADER_BYTES] {
+    let mut header = [0u8; AEGIS_V4_HEADER_BYTES];
+    header[0..8].copy_from_slice(b"UNCHD4R0");
+    header[8..10].copy_from_slice(&4u16.to_le_bytes());
+    header[10..12].copy_from_slice(&(AEGIS_V4_HEADER_BYTES as u16).to_le_bytes());
+    header[12..14].copy_from_slice(&(AEGIS_V4_RECORD_BYTES as u16).to_le_bytes());
+    header[14..16].copy_from_slice(&0x00ffu16.to_le_bytes());
+    header[16..20].copy_from_slice(&0x0102_0304u32.to_le_bytes());
+    header[20..28].copy_from_slice(&records.to_le_bytes());
+    header[28..60].copy_from_slice(&AEGIS_V4_SCHEMA_SHA256);
+    let checksum = crc32(&header[..60]);
+    header[60..64].copy_from_slice(&checksum.to_le_bytes());
+    header
+}
+
+#[inline]
+fn sip_round(mut v0: u64, mut v1: u64, mut v2: u64, mut v3: u64) -> (u64, u64, u64, u64) {
+    v0 = v0.wrapping_add(v1);
+    v1 = v1.rotate_left(13) ^ v0;
+    v0 = v0.rotate_left(32);
+    v2 = v2.wrapping_add(v3);
+    v3 = v3.rotate_left(16) ^ v2;
+    v0 = v0.wrapping_add(v3);
+    v3 = v3.rotate_left(21) ^ v0;
+    v2 = v2.wrapping_add(v1);
+    v1 = v1.rotate_left(17) ^ v2;
+    v2 = v2.rotate_left(32);
+    (v0, v1, v2, v3)
+}
+
+fn siphash24(key: [u64; 2], bytes: &[u8]) -> u64 {
+    let mut v0 = 0x736f_6d65_7073_6575 ^ key[0];
+    let mut v1 = 0x646f_7261_6e64_6f6d ^ key[1];
+    let mut v2 = 0x6c79_6765_6e65_7261 ^ key[0];
+    let mut v3 = 0x7465_6462_7974_6573 ^ key[1];
+    let mut chunks = bytes.chunks_exact(8);
+    for chunk in &mut chunks {
+        let m = u64::from_le_bytes(chunk.try_into().unwrap());
+        v3 ^= m;
+        (v0, v1, v2, v3) = sip_round(v0, v1, v2, v3);
+        (v0, v1, v2, v3) = sip_round(v0, v1, v2, v3);
+        v0 ^= m;
+    }
+    let mut tail = (bytes.len() as u64) << 56;
+    for (shift, &byte) in chunks.remainder().iter().enumerate() {
+        tail |= (byte as u64) << (8 * shift);
+    }
+    v3 ^= tail;
+    (v0, v1, v2, v3) = sip_round(v0, v1, v2, v3);
+    (v0, v1, v2, v3) = sip_round(v0, v1, v2, v3);
+    v0 ^= tail;
+    v2 ^= 0xff;
+    for _ in 0..4 {
+        (v0, v1, v2, v3) = sip_round(v0, v1, v2, v3);
+    }
+    v0 ^ v1 ^ v2 ^ v3
+}
+
+fn parse_hash_key(value: &str) -> Option<[u64; 2]> {
+    if value.len() != 32 || !value.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return None;
+    }
+    let first = u64::from_str_radix(&value[..16], 16).ok()?;
+    let second = u64::from_str_radix(&value[16..], 16).ok()?;
+    Some([first, second])
+}
+
+fn nonzero_hash(key: [u64; 2], value: &str) -> u64 {
+    siphash24(key, value.as_bytes()).max(1)
+}
+
+fn policy_time_class(base_secs: Option<u32>) -> u8 {
+    match base_secs {
+        Some(seconds) if seconds < 180 => 0,
+        Some(seconds) if seconds < 600 => 1,
+        Some(seconds) if seconds < 1800 => 2,
+        Some(_) => 3,
+        None => 4,
+    }
+}
+
+fn run_policy_v4(args: &[String]) {
+    if args.len() < 7 {
+        eprintln!(
+            "usage: {} policy-v4 <out_file> <128-bit-hash-key-hex> <max_positions> <accept_prob> <pgn...>",
+            args[0]
+        );
+        std::process::exit(1);
+    }
+    let output_path = &args[2];
+    let hash_key =
+        parse_hash_key(&args[3]).expect("hash key must be exactly 32 hexadecimal digits");
+    let maximum: u64 = args[4].parse().expect("max_positions");
+    let accept: f64 = args[5].parse().expect("accept_prob");
+    assert!(
+        (0.0..=1.0).contains(&accept),
+        "accept_prob must be in 0..=1"
+    );
+    let file =
+        File::create(output_path).unwrap_or_else(|error| panic!("create {}: {error}", output_path));
+    let mut output = BufWriter::new(file);
+    output.write_all(&aegis_v4_header(0)).unwrap();
+    let mut rng = Rng(0xa3e6_15d4_2026_0820);
+    let mut records = 0u64;
+    let mut games = 0u64;
+    let mut skipped = 0u64;
+
+    'files: for path in &args[6..] {
+        let file = File::open(path).unwrap_or_else(|error| panic!("open {path}: {error}"));
+        let mut reader = BufReader::with_capacity(1 << 20, file);
+        let mut line = String::new();
+        let mut headers = Headers::default();
+        let mut movetext = String::new();
+        let mut in_moves = false;
+        loop {
+            line.clear();
+            if reader.read_line(&mut line).unwrap() == 0 {
+                break;
+            }
+            let trimmed = line.trim();
+            if trimmed.starts_with('[') {
+                if in_moves {
+                    process_policy_v4_game(
+                        &headers,
+                        &movetext,
+                        games,
+                        hash_key,
+                        accept,
+                        maximum,
+                        &mut rng,
+                        &mut output,
+                        &mut records,
+                        &mut skipped,
+                    );
+                    games += 1;
+                    headers = Headers::default();
+                    movetext.clear();
+                    in_moves = false;
+                    if records >= maximum {
+                        break 'files;
+                    }
+                }
+                parse_header(trimmed, &mut headers);
+            } else if !trimmed.is_empty() {
+                in_moves = true;
+                movetext.push_str(trimmed);
+                movetext.push(' ');
+            }
+        }
+        if in_moves && records < maximum {
+            process_policy_v4_game(
+                &headers,
+                &movetext,
+                games,
+                hash_key,
+                accept,
+                maximum,
+                &mut rng,
+                &mut output,
+                &mut records,
+                &mut skipped,
+            );
+            games += 1;
+        }
+        eprintln!("policy-v4: {path}: {records} records from {games} games");
+        if records >= maximum {
+            break;
+        }
+    }
+    output.flush().unwrap();
+    output.seek(SeekFrom::Start(0)).unwrap();
+    output.write_all(&aegis_v4_header(records)).unwrap();
+    output.flush().unwrap();
+    eprintln!(
+        "policy-v4: wrote {records} records to {output_path}; {skipped} games skipped/desynced"
+    );
+}
+
+#[allow(clippy::too_many_arguments)]
+fn process_policy_v4_game(
+    headers: &Headers,
+    movetext: &str,
+    game_sequence: u64,
+    hash_key: [u64; 2],
+    accept: f64,
+    maximum: u64,
+    rng: &mut Rng,
+    output: &mut BufWriter<File>,
+    records: &mut u64,
+    skipped: &mut u64,
+) {
+    let (white_elo, black_elo, white_name, black_name) = match (
+        headers.white_elo,
+        headers.black_elo,
+        headers.white_name.as_deref(),
+        headers.black_name.as_deref(),
+    ) {
+        (Some(we), Some(be), Some(wn), Some(bn)) => (we, be, wn, bn),
+        _ => return,
+    };
+    let wdl_white = match headers.result.as_deref() {
+        Some("1-0") => 2,
+        Some("1/2-1/2") => 1,
+        Some("0-1") => 0,
+        _ => return,
+    };
+    let game_identity = format!(
+        "{}|{}|{}|{}|{}|{}",
+        headers.site.as_deref().unwrap_or("?"),
+        headers.date.as_deref().unwrap_or("?"),
+        headers.round.as_deref().unwrap_or("?"),
+        white_name,
+        black_name,
+        game_sequence,
+    );
+    let game_hash = nonzero_hash(hash_key, &game_identity);
+    let white_hash = nonzero_hash(hash_key, white_name);
+    let black_hash = nonzero_hash(hash_key, black_name);
+    let mut pos = fen::startpos();
+    let mut history = Vec::<Move>::new();
+    let mut in_comment = false;
+    for token in movetext.split_whitespace() {
+        if *records >= maximum {
+            return;
+        }
+        if in_comment {
+            if token.ends_with('}') {
+                in_comment = false;
+            }
+            continue;
+        }
+        if token.starts_with('{') {
+            if !token.ends_with('}') {
+                in_comment = true;
+            }
+            continue;
+        }
+        if token.starts_with('$') || matches!(token, "*" | "1-0" | "0-1" | "1/2-1/2") {
+            continue;
+        }
+        let san = token
+            .trim_start_matches(|character: char| character.is_ascii_digit() || character == '.');
+        if san.is_empty() {
+            continue;
+        }
+        let mv = match parse_san(&pos, san) {
+            Some(value) => value,
+            None => {
+                *skipped += 1;
+                return;
+            }
+        };
+        let special = mv.kind() == MK_EP || mv.is_promo();
+        if history.len() >= 2 && (special || rng.f64() < accept) {
+            let rating = if pos.side == Color::White {
+                white_elo
+            } else {
+                black_elo
+            };
+            let player_hash = if pos.side == Color::White {
+                white_hash
+            } else {
+                black_hash
+            };
+            if write_policy_v4_sample(
+                output,
+                &pos,
+                mv,
+                rating,
+                if pos.side == Color::White {
+                    wdl_white
+                } else {
+                    2 - wdl_white
+                },
+                policy_time_class(headers.base_secs),
+                headers.increment_secs,
+                &history,
+                game_hash,
+                player_hash,
+            )
+            .is_ok()
+            {
+                *records += 1;
+            }
+        }
+        history.push(mv);
+        pos = pos.make(mv);
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn write_policy_v4_sample(
+    output: &mut BufWriter<File>,
+    pos: &Position,
+    selected: Move,
+    rating: u16,
+    wdl: u8,
+    time_class: u8,
+    increment_secs: Option<u32>,
+    history: &[Move],
+    game_hash: u64,
+    player_hash: u64,
+) -> std::io::Result<()> {
+    let legal_actions = legal_policy_actions(pos);
+    if legal_actions.overflowed()
+        || legal_actions.is_empty()
+        || legal_actions.len() > AEGIS_V4_MAX_LEGAL
+    {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "legal policy action bound exceeded",
+        ));
+    }
+    let selected_action = encode_policy_action(selected, pos.side);
+    if legal_actions.find_action(selected_action) != Some(selected) {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "selected move absent from legal policy set",
+        ));
+    }
+    let flip = pos.side == Color::Black;
+    let (us, them) = (pos.side.idx(), pos.side.flip().idx());
+    let mut record = [0u8; AEGIS_V4_RECORD_BYTES];
+    for piece in 0..6 {
+        let mover = if flip {
+            pos.bb[us][piece].swap_bytes()
+        } else {
+            pos.bb[us][piece]
+        };
+        let opponent = if flip {
+            pos.bb[them][piece].swap_bytes()
+        } else {
+            pos.bb[them][piece]
+        };
+        record[piece * 8..piece * 8 + 8].copy_from_slice(&mover.to_le_bytes());
+        record[48 + piece * 8..48 + piece * 8 + 8].copy_from_slice(&opponent.to_le_bytes());
+    }
+    let normalized_move = selected_action & 0x0fff;
+    record[96..98].copy_from_slice(&normalized_move.to_le_bytes());
+    record[98] = (selected_action >> 12) as u8;
+    record[99] = wdl;
+    record[100..102].copy_from_slice(&rating.to_le_bytes());
+    let (mk, mq, ok, oq) = if flip {
+        (BK, BQ, WK, WQ)
+    } else {
+        (WK, WQ, BK, BQ)
+    };
+    record[102] = u8::from(pos.castling & mk != 0)
+        | (u8::from(pos.castling & mq != 0) << 1)
+        | (u8::from(pos.castling & ok != 0) << 2)
+        | (u8::from(pos.castling & oq != 0) << 3);
+    record[103] = if pos.ep == NO_EP {
+        0xff
+    } else {
+        file_of(pos.ep)
+    };
+    record[104] = pos.halfmove.min(255) as u8;
+    record[105] = time_class.min(4);
+    let mut flags = 0u8;
+    if selected.kind() == MK_CASTLE {
+        flags |= 1;
+    }
+    if selected.kind() == MK_EP {
+        flags |= 2;
+    }
+    if selected.is_promo() {
+        flags |= 4;
+    }
+    let history_len = history.len().min(8);
+    if history_len != 0 {
+        flags |= 1 << 4;
+    }
+    if increment_secs.is_some() {
+        flags |= 1 << 5;
+    }
+    record[106] = flags;
+    record[107] = history_len as u8;
+    for (slot, mv) in history.iter().rev().take(8).enumerate() {
+        let from = if flip { mv.from() ^ 56 } else { mv.from() } as u16;
+        let to = if flip { mv.to() ^ 56 } else { mv.to() } as u16;
+        let normalized = from | (to << 6) | (mv.0 & 0xf000);
+        record[108 + slot * 2..110 + slot * 2].copy_from_slice(&normalized.to_le_bytes());
+    }
+    record[124..132].copy_from_slice(&game_hash.to_le_bytes());
+    record[132..140].copy_from_slice(&player_hash.to_le_bytes());
+    record[148..150].copy_from_slice(&(history.len().min(u16::MAX as usize) as u16).to_le_bytes());
+    record[150..154].copy_from_slice(&u32::MAX.to_le_bytes());
+    record[154..158].copy_from_slice(
+        &increment_secs
+            .map(|seconds| seconds.saturating_mul(1000))
+            .unwrap_or(u32::MAX)
+            .to_le_bytes(),
+    );
+    record[160..162].copy_from_slice(&(legal_actions.len() as u16).to_le_bytes());
+    record[162..164].copy_from_slice(&selected_action.to_le_bytes());
+    record[164..166].copy_from_slice(&u16::MAX.to_le_bytes());
+    // bytes 166/167: human policy kind and no teacher-regret flag.
+    for slot in 0..AEGIS_V4_MAX_LEGAL {
+        record[168 + slot * 2..170 + slot * 2].copy_from_slice(&u16::MAX.to_le_bytes());
+        record[604 + slot * 2..606 + slot * 2].copy_from_slice(&i16::MAX.to_le_bytes());
+    }
+    for (slot, entry) in legal_actions.as_slice().iter().enumerate() {
+        record[168 + slot * 2..170 + slot * 2].copy_from_slice(&entry.action.to_le_bytes());
+    }
+    output.write_all(&record)
 }
 
 // ---------------------------------------------------------------------------
@@ -384,8 +874,15 @@ fn run_nnue(args: &[String]) {
                     // new game begins
                     if games % n_workers == worker_id {
                         process_nnue_game(
-                            &headers, &movetext, &mut out, &tt, &mut rng, &mut samples,
-                            max_positions, &mut used_games, &start,
+                            &headers,
+                            &movetext,
+                            &mut out,
+                            &tt,
+                            &mut rng,
+                            &mut samples,
+                            max_positions,
+                            &mut used_games,
+                            &start,
                         );
                     }
                     games += 1;
@@ -406,8 +903,15 @@ fn run_nnue(args: &[String]) {
         if in_moves {
             if games % n_workers == worker_id {
                 process_nnue_game(
-                    &headers, &movetext, &mut out, &tt, &mut rng, &mut samples,
-                    max_positions, &mut used_games, &start,
+                    &headers,
+                    &movetext,
+                    &mut out,
+                    &tt,
+                    &mut rng,
+                    &mut samples,
+                    max_positions,
+                    &mut used_games,
+                    &start,
                 );
             }
             games += 1;
@@ -635,7 +1139,10 @@ fn run_book(args: &[String]) {
     let max_openings: usize = args[3].parse().expect("max_openings");
     let min_ply: usize = args[4].parse().expect("min_ply");
     let max_ply: usize = args[5].parse().expect("max_ply");
-    assert!(min_ply >= 2 && max_ply >= min_ply, "need 2 <= min_ply <= max_ply");
+    assert!(
+        min_ply >= 2 && max_ply >= min_ply,
+        "need 2 <= min_ply <= max_ply"
+    );
 
     let mut out = BufWriter::new(File::create(out_path).unwrap());
     let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
@@ -659,7 +1166,12 @@ fn run_book(args: &[String]) {
             if t.starts_with('[') {
                 if in_moves {
                     try_extract_opening(
-                        &headers, &movetext, min_ply, max_ply, &mut seen, &mut out,
+                        &headers,
+                        &movetext,
+                        min_ply,
+                        max_ply,
+                        &mut seen,
+                        &mut out,
                         &mut written,
                     );
                     games += 1;
@@ -679,11 +1191,20 @@ fn run_book(args: &[String]) {
         }
         if in_moves {
             try_extract_opening(
-                &headers, &movetext, min_ply, max_ply, &mut seen, &mut out, &mut written,
+                &headers,
+                &movetext,
+                min_ply,
+                max_ply,
+                &mut seen,
+                &mut out,
+                &mut written,
             );
             games += 1;
         }
-        eprintln!("book: {} -> {} unique openings so far ({} games scanned)", path, written, games);
+        eprintln!(
+            "book: {} -> {} unique openings so far ({} games scanned)",
+            path, written, games
+        );
         if written >= max_openings {
             break;
         }
@@ -758,4 +1279,76 @@ fn try_extract_opening(
     writeln!(out, "{}", line).unwrap();
     writeln!(out).unwrap();
     *written += 1;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn siphash_matches_reference_empty_message_vector() {
+        let key = [0x0706_0504_0302_0100, 0x0f0e_0d0c_0b0a_0908];
+        assert_eq!(siphash24(key, b""), 0x726f_db47_dd0e_0e31);
+    }
+
+    #[test]
+    fn v4_header_has_frozen_width_and_crc() {
+        let header = aegis_v4_header(37);
+        assert_eq!(&header[..8], b"UNCHD4R0");
+        assert_eq!(u16::from_le_bytes(header[12..14].try_into().unwrap()), 1088);
+        assert_eq!(u64::from_le_bytes(header[20..28].try_into().unwrap()), 37);
+        assert_eq!(
+            u32::from_le_bytes(header[60..64].try_into().unwrap()),
+            crc32(&header[..60])
+        );
+    }
+
+    #[test]
+    fn v4_writer_emits_complete_sorted_start_position_legal_set() {
+        let path = std::env::temp_dir().join(format!(
+            "unchessed-v4-record-{}-{}.bin",
+            std::process::id(),
+            std::thread::current().name().unwrap_or("test")
+        ));
+        let file = File::create(&path).unwrap();
+        let mut output = BufWriter::new(file);
+        let pos = fen::startpos();
+        let selected = unchessed_core::movegen::parse_uci_move(&pos, "e2e4").unwrap();
+        write_policy_v4_sample(
+            &mut output,
+            &pos,
+            selected,
+            1500,
+            1,
+            2,
+            Some(5),
+            &[],
+            11,
+            12,
+        )
+        .unwrap();
+        output.flush().unwrap();
+        let bytes = fs::read(&path).unwrap();
+        fs::remove_file(&path).ok();
+        assert_eq!(bytes.len(), AEGIS_V4_RECORD_BYTES);
+        let legal_count = u16::from_le_bytes(bytes[160..162].try_into().unwrap()) as usize;
+        assert_eq!(legal_count, 20);
+        let target = u16::from_le_bytes(bytes[162..164].try_into().unwrap());
+        let actions: Vec<u16> = (0..legal_count)
+            .map(|slot| {
+                u16::from_le_bytes(bytes[168 + slot * 2..170 + slot * 2].try_into().unwrap())
+            })
+            .collect();
+        assert!(actions.windows(2).all(|pair| pair[0] < pair[1]));
+        assert!(actions.contains(&target));
+        assert_eq!(
+            u16::from_le_bytes(
+                bytes[168 + legal_count * 2..170 + legal_count * 2]
+                    .try_into()
+                    .unwrap()
+            ),
+            u16::MAX
+        );
+    }
 }

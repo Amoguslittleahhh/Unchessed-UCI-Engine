@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "profiles": [
+    {"vcpus": 4, "reserve_vcpus": 0},
+    {"vcpus": 8, "reserve_vcpus": 1},
+    {"vcpus": 16, "reserve_vcpus": 1},
+    {"vcpus": 32, "reserve_vcpus": 2},
+    {"vcpus": 64, "reserve_vcpus": 4},
+    {"vcpus": 96, "reserve_vcpus": 4},
+    {"vcpus": 120, "reserve_vcpus": 4},
+    {"vcpus": 180, "reserve_vcpus": 4},
+    {"vcpus": 360, "reserve_vcpus": 8}
+  ],
+  "defaults": {
+    "cores_per_worker": 1,
+    "physical_cores_only": false,
+    "numa_aware": true,
+    "maximum_memory_fraction": 0.8,
+    "teacher_threads": 1
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "hardware": {
+    "target": "NVIDIA A100 80GB",
+    "precision": "bfloat16",
+    "allow_tf32": true,
+    "compile": true,
+    "fused_adamw": true,
+    "pin_memory": true,
+    "num_workers": 8
+  },
+  "chessformer": {
+    "d_model": 256,
+    "layers": 8,
+    "heads": 8,
+    "ffn": 256,
+    "exit_layers": [2, 4, 8],
+    "matryoshka_widths": [128, 192, 256],
+    "gab_token_projection": 8,
+    "gab_hidden": 32,
+    "gab_templates": 32,
+    "policy_adapter_rank": 16,
+    "history_width": 32,
+    "history_plies": 8,
+    "time_classes": 5,
+    "regret_width": 32,
+    "dropout": 0.05,
+    "batch_size": 512,
+    "validation_batch_size": 512,
+    "steps_per_epoch": 10000,
+    "epochs": 24,
+    "learning_rate": 0.0003,
+    "weight_decay": 0.01,
+    "warmup_steps": 5000,
+    "gradient_clip": 1.0,
+    "teacher_temperature_cp": 90.0,
+    "evidence_kl_anneal_steps": 20000,
+    "loss_weights": {
+      "human_policy": 0.35,
+      "guide_policy": 0.20,
+      "evidential_wdl": 0.15,
+      "legal_regret": 0.15,
+      "exit_distillation": 0.10,
+      "representation": 0.05
+    },
+    "seed": 20260820
+  },
+  "promotion_gates": {
+    "player_game_disjoint_required": true,
+    "future_holdout_required": true,
+    "calibration_split_required": true,
+    "legal_set_equality_required": true,
+    "underpromotion_metrics_required": true,
+    "quantized_validation_required": true,
+    "alpha_beta_safety_veto_required": true,
+    "paired_sprt_required": true
+  }
+}

@@ -1,0 +1,140 @@
+{
+  "schema": 1,
+  "maximum_gpus": 8,
+  "profiles": [
+    {
+      "id": "blackwell-xxl",
+      "match": "GB300|B300|B200",
+      "minimum_vram_mib": 170000,
+      "hardware": {
+        "precision": "bfloat16",
+        "target_vram_fraction": 0.96
+      },
+      "oracle": {
+        "d_model": 1280,
+        "board_layers": 32,
+        "board_heads": 20,
+        "board_ffn": 3584,
+        "gab_token_projection": 32,
+        "gab_hidden": 128,
+        "gab_templates": 128,
+        "decoder_layers": 8,
+        "decoder_heads": 20,
+        "decoder_ffn": 3584,
+        "history_width": 128,
+        "policy_adapter_rank": 64,
+        "concept_count": 256,
+        "concept_width": 128,
+        "micro_batch_max": 1024
+      }
+    },
+    {
+      "id": "hopper-xl",
+      "match": "H200",
+      "minimum_vram_mib": 135000,
+      "hardware": {
+        "precision": "bfloat16",
+        "target_vram_fraction": 0.95
+      },
+      "oracle": {
+        "d_model": 1024,
+        "board_layers": 28,
+        "board_heads": 16,
+        "board_ffn": 2816,
+        "gab_token_projection": 24,
+        "gab_hidden": 96,
+        "gab_templates": 96,
+        "decoder_layers": 8,
+        "decoder_heads": 16,
+        "decoder_ffn": 2816,
+        "history_width": 96,
+        "policy_adapter_rank": 48,
+        "concept_count": 192,
+        "concept_width": 96,
+        "micro_batch_max": 1024
+      }
+    },
+    {
+      "id": "80gb-large",
+      "match": "H100|A100.*80|RTX PRO 6000",
+      "minimum_vram_mib": 78000,
+      "hardware": {
+        "precision": "bfloat16",
+        "target_vram_fraction": 0.93
+      },
+      "oracle": {
+        "d_model": 768,
+        "board_layers": 24,
+        "board_heads": 12,
+        "board_ffn": 2048,
+        "gab_token_projection": 24,
+        "gab_hidden": 96,
+        "gab_templates": 96,
+        "decoder_layers": 6,
+        "decoder_heads": 12,
+        "decoder_ffn": 2048,
+        "history_width": 96,
+        "policy_adapter_rank": 48,
+        "concept_count": 192,
+        "concept_width": 96,
+        "micro_batch_max": 2048
+      }
+    },
+    {
+      "id": "40-48gb-base",
+      "match": "A100.*40|L40S|RTX 6000 Ada|RTX A6000",
+      "minimum_vram_mib": 39000,
+      "hardware": {
+        "precision": "bfloat16",
+        "target_vram_fraction": 0.90
+      },
+      "oracle": {
+        "d_model": 512,
+        "board_layers": 16,
+        "board_heads": 16,
+        "board_ffn": 1024,
+        "gab_token_projection": 16,
+        "gab_hidden": 64,
+        "gab_templates": 64,
+        "decoder_layers": 4,
+        "decoder_heads": 16,
+        "decoder_ffn": 1024,
+        "history_width": 64,
+        "policy_adapter_rank": 32,
+        "concept_count": 128,
+        "concept_width": 64,
+        "micro_batch_max": 2048
+      }
+    },
+    {
+      "id": "v100-compat",
+      "match": "V100",
+      "minimum_vram_mib": 15000,
+      "hardware": {
+        "precision": "float16",
+        "target_vram_fraction": 0.85,
+        "compile": false
+      },
+      "oracle": {
+        "d_model": 384,
+        "board_layers": 12,
+        "board_heads": 12,
+        "board_ffn": 1024,
+        "gab_token_projection": 12,
+        "gab_hidden": 48,
+        "gab_templates": 48,
+        "decoder_layers": 3,
+        "decoder_heads": 12,
+        "decoder_ffn": 1024,
+        "history_width": 48,
+        "policy_adapter_rank": 24,
+        "concept_count": 96,
+        "concept_width": 48,
+        "micro_batch_min": 4,
+        "micro_batch_initial": 16,
+        "micro_batch_max": 256,
+        "micro_batch_multiple": 4
+      }
+    }
+  ]
+}

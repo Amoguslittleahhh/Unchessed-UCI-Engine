@@ -1,0 +1,27 @@
+{
+  "chessformer": {
+    "attention_matrix_elements_per_layer": 32768,
+    "parameters": 4188744,
+    "root_forward_flops_approx": 547816960,
+    "root_forward_macs_approx": 273908480,
+    "runtime_int8_bytes_approx": 4188744,
+    "training_bf16_parameter_bytes": 8377488
+  },
+  "joint_loss_weight_sum": 1.0,
+  "name": "Unchessed Hydra v1",
+  "schema": 1,
+  "warning": "calculated architecture budget only; not latency, accuracy, or Elo",
+  "xt_nnue": {
+    "average_relation_adds_at_38_6": 1235,
+    "head_parameters": 152200,
+    "incremental_state_bytes_per_ply": 1152,
+    "materialized_threat_parameters": 1036800,
+    "runtime_head_bytes_approx": 152200,
+    "runtime_position_bytes": 11534336,
+    "runtime_threat_bytes": 1036800,
+    "runtime_total_bytes_approx": 12723336,
+    "threat_dimensions": 32400,
+    "training_factor_parameters": 4496,
+    "training_hashed_residual_parameters": 131072
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "schema": 2,
+  "name": "Unchessed Hydra Aegis v2",
+  "file_magic": "UNCHAES2",
+  "xt_nnue": {
+    "position_features": 22528,
+    "position_width": 256,
+    "position_storage_bits": 16,
+    "direct_threat_dimensions": 32400,
+    "direct_threat_width": 32,
+    "xray_hyperedge_dimensions": 13824,
+    "xray_hyperedge_width": 16,
+    "pawn_topology_dimensions": 4096,
+    "pawn_topology_width": 16,
+    "relation_storage_bits": 8,
+    "phase_stacks": 8,
+    "fast_head_l1": 16,
+    "full_head_l1": 16,
+    "head_l2": 32,
+    "quantization_scale": 255,
+    "fast_uncertainty_outputs": 1
+  },
+  "chessformer": {
+    "tokens": 64,
+    "piece_vocabulary": 13,
+    "d_model": 256,
+    "layers": 8,
+    "heads": 8,
+    "ffn": 256,
+    "gab_d1": 8,
+    "gab_d2": 32,
+    "gab_templates": 32,
+    "exit_layers": [2, 4, 8],
+    "matryoshka_widths": [128, 192, 256],
+    "concept_count": 64,
+    "concept_width": 32,
+    "policy_squares": 64,
+    "promotion_classes": 5,
+    "value_classes": 3,
+    "runtime_storage_bits": 8,
+    "maximum_legal_moves": 218
+  },
+  "joint_training": {
+    "loss_weights": {
+      "xt_full_wdl": 0.22,
+      "xt_fast_distillation": 0.08,
+      "teacher_score": 0.12,
+      "human_policy": 0.18,
+      "teacher_policy": 0.08,
+      "evidential_wdl": 0.08,
+      "value_consistency": 0.06,
+      "concept_transport": 0.05,
+      "quantization": 0.05,
+      "symmetry_equivariance": 0.04,
+      "calibration": 0.04
+    },
+    "pcgrad_shared_parameters_only": true,
+    "teacher_temperature": 1.5,
+    "consistency_temperature": 2.0,
+    "random_exit_training": true,
+    "sandwich_width_training": true
+  },
+  "adaptive_compute": {
+    "xt_full_on_root": true,
+    "xt_full_on_pv": true,
+    "xt_full_in_check": true,
+    "fast_uncertainty_threshold": 0.18,
+    "evidential_exit_uncertainty": {
+      "layer_2": 0.08,
+      "layer_4": 0.16,
+      "layer_8": 1.0
+    },
+    "policy_cache_entries": 65536,
+    "policy_guidance_max_depth": 4,
+    "engine_elo_threshold": 2300,
+    "average_human_elo_threshold": 2100,
+    "cvar_alpha": 0.1
+  }
+}

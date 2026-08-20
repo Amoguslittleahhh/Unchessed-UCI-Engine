@@ -164,6 +164,7 @@ class ThreatIndexer:
         self.sources = torch.arange(64, device=device).view(1, 64)
 
     def indices(self, bits, bitboards):
+        batch = bits.shape[0]
         occupied = bits.any(1)
         plane = bits.long().argmax(1)
         pseudo = self.pseudo[plane, self.sources]
