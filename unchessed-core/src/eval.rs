@@ -11,11 +11,16 @@ use crate::movegen::{
 
 pub const EVAL_ACC_WIDTH: usize = 256;
 
+/// NNUE's incremental state: one quantized accumulator per absolute
+/// perspective (White, Black). Search treats it as evaluator-owned state.
 #[derive(Clone, Copy)]
 pub struct NnueEvalState {
     pub accumulator: [[i16; EVAL_ACC_WIDTH]; 2],
 }
 
+/// Ply-indexed state threaded through search. HCE remains stateless;
+/// `is_nnue` prevents accidentally interpreting its zero placeholder as a
+/// trained accumulator.
 #[derive(Clone, Copy)]
 pub struct EvalState {
     pub nnue: NnueEvalState,
@@ -37,10 +42,14 @@ pub trait Eval: Send + Sync {
     /// Score in centipawns from the side-to-move's perspective.
     fn eval(&self, pos: &Position) -> i32;
 
+    /// Build evaluator state for a fresh root. Stateless evaluators keep the
+    /// default placeholder.
     fn initial_state(&self, _pos: &Position) -> EvalState {
         EvalState::stateless()
     }
 
+    /// Derive the child state from its parent. The default recomputes; NNUE
+    /// overrides this with exact row add/remove updates.
     fn update_state(
         &self,
         _before: &Position,
@@ -51,6 +60,7 @@ pub trait Eval: Send + Sync {
         self.initial_state(after)
     }
 
+    /// Evaluate from a precomputed state. The default ignores it.
     fn eval_with_state(&self, pos: &Position, _state: &EvalState) -> i32 {
         self.eval(pos)
     }

@@ -26,7 +26,7 @@ hashes, and SHA-256 manifest in the same directory.
 |---|---|
 | Bitboard movegen | ✅ perft-verified (startpos d6 = 119,060,324; Kiwipete d5 = 193,690,690, exact) |
 | Search | ✅ iterative deepening alpha-beta, quiescence, TT, null-move, LMR, killers/history, MultiPV, time management; research options for IIR, history gravity, countermoves, razoring, and LMP are implemented default-off pending match gates |
-| Eval | ✅ NNUE v4 (HalfKAv2_hm: 22,528 inputs, 256 accumulator, 5,767,937 parameters), SPRT-validated +26.1 Elo over v1; f32 files load as int16 with AVX-512BW/AVX2/scalar dispatch and ply-indexed incremental accumulators; HCE remains the fallback/explanation layer |
+| Eval | ✅ NNUE v4 (HalfKAv2_hm: 22,528 inputs, 256 accumulator, 5,767,937 parameters), SPRT-validated +26.1 Elo over v1; incremental accumulation was independently SPRT-validated at +68.6 ± 21.0 Elo in the main branch's f32 implementation. This branch loads f32 files into int16 AVX-512BW/AVX2/scalar accumulators and applies the same exact row updates; that combined int16 path retains its separate promotion gate. HCE remains the fallback/explanation layer |
 | UCI protocol | ✅ worker-thread loop with strict FEN/state validation, exact shared node limits, `searchmoves`, `mate`, `go infinite`, `ponder`/`ponderhit`, deadline charging, and adversarial smoke coverage |
 | Time management | ✅ clock-aware: deep searches on a full clock, urgency tiers as time drains (near-instant on the increment in panic mode), situation-scaled budgets (sharp/wide positions get more), easy-move early stop, score-drop extensions; verified flag-free in 10s+0.1s blitz |
 | Opening book | ✅ 3,810 CC0 named historical lines covering all 500 ECO codes, plus 45 curated mainlines, 15 risk-graded troll lines, offbeat historical variety, and external Polyglot `.bin` support |
@@ -217,8 +217,9 @@ python tools/train_nnue.py unchessed-nnue.bin 15 shard0.bin shard1.bin ...
 
 - **Reviewer**: full-strength UCI engine + PGN review CLI (move classification,
   accuracy %).
-- **NNUE**: SPRT the measured int16 score drift and incremental path, then
-  retrain on stronger distilled labels and evaluate accumulator-layout tuning.
+- **NNUE**: SPRT the current combined int16+SIMD incremental path against the
+  validated f32 incremental mechanism, then retrain on stronger distilled
+  labels and evaluate accumulator-layout tuning.
 - Deeper policy nets (conv/resnet) once GPU training is available; more data,
   more buckets.
 - Lazy SMP threads, pondering, tablebases, adaptation tuning.

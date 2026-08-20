@@ -440,7 +440,7 @@ impl<'a> Searcher<'a> {
             return 0;
         }
         if ply >= MAX_PLY {
-            return self.eval.eval(pos);
+            return self.eval.eval_with_state(pos, &self.eval_states[ply]);
         }
         let in_chk = in_check(pos);
         if pos.halfmove >= 100 || self.is_repetition(pos.hash, pos.halfmove) {
@@ -520,10 +520,10 @@ impl<'a> Searcher<'a> {
             any_legal = true;
             if ply + 1 < MAX_PLY {
                 self.previous_move[ply + 1] = m;
-                self.eval_states[ply + 1] =
-                    self.eval
-                        .update_state(pos, &next, m, &self.eval_states[ply]);
             }
+            self.eval_states[ply + 1] =
+                self.eval
+                    .update_state(pos, &next, m, &self.eval_states[ply]);
             self.path.push(pos.hash);
             let sc = -self.qsearch(&next, -beta, -alpha, ply + 1);
             self.path.pop();
@@ -567,7 +567,7 @@ impl<'a> Searcher<'a> {
             return 0;
         }
         if ply >= MAX_PLY {
-            return self.eval.eval(pos);
+            return self.eval.eval_with_state(pos, &self.eval_states[ply]);
         }
 
         let in_chk = in_check(pos);
@@ -645,8 +645,9 @@ impl<'a> Searcher<'a> {
             let null_position = pos.make_null();
             if ply + 1 < MAX_PLY {
                 self.previous_move[ply + 1] = Move::NONE;
-                self.eval_states[ply + 1] = self.eval_states[ply];
             }
+            // Null moves change no piece rows, so the accumulator is exact.
+            self.eval_states[ply + 1] = self.eval_states[ply];
             let sc = -self.negamax(
                 &null_position,
                 depth - 1 - r,
@@ -699,10 +700,10 @@ impl<'a> Searcher<'a> {
                     }
                     if ply + 1 < MAX_PLY {
                         self.previous_move[ply + 1] = m;
-                        self.eval_states[ply + 1] =
-                            self.eval
-                                .update_state(pos, &next, m, &self.eval_states[ply]);
                     }
+                    self.eval_states[ply + 1] =
+                        self.eval
+                            .update_state(pos, &next, m, &self.eval_states[ply]);
                     let sc = -self.negamax(
                         &next,
                         rdepth - 1,
@@ -816,10 +817,10 @@ impl<'a> Searcher<'a> {
 
             if ply + 1 < MAX_PLY {
                 self.previous_move[ply + 1] = m;
-                self.eval_states[ply + 1] =
-                    self.eval
-                        .update_state(pos, &next, m, &self.eval_states[ply]);
             }
+            self.eval_states[ply + 1] =
+                self.eval
+                    .update_state(pos, &next, m, &self.eval_states[ply]);
             let mut sc;
             if legal_count == 1 {
                 sc = -self.negamax(&next, nd, -beta, -alpha, ply + 1, is_pv, true);
@@ -991,7 +992,7 @@ pub fn go(
         })
         .collect();
 
-    let mut eval_states = vec![EvalState::stateless(); MAX_PLY];
+    let mut eval_states = vec![EvalState::stateless(); MAX_PLY + 1];
     eval_states[0] = eval.initial_state(pos);
     let mut s = Searcher {
         tt,
