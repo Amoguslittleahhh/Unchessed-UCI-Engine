@@ -47,6 +47,7 @@ Primary documentation:
 - [`config/architecture_registry.json`](config/architecture_registry.json)
 - [`benchmarks/unarchitectured-v1/`](benchmarks/unarchitectured-v1/)
 - [`docs/full-scale-bug-audit-2026-08-21.md`](docs/full-scale-bug-audit-2026-08-21.md)
+- [`docs/unarchitectured-v1-safety-integrity-report.md`](docs/unarchitectured-v1-safety-integrity-report.md)
 
 ### Architecture summary
 
@@ -259,7 +260,7 @@ Latest full local audit:
 
 - 123 normal Rust tests passed;
 - 3 deep/ignored Rust tests passed separately;
-- 102 Python tests passed, with one A100 dependency-gated skip;
+- 107 Python tests passed, with one A100 dependency-gated skip;
 - release build and Clippy `-D warnings` passed;
 - UCI smoke 9/9 passed;
 - adversarial UCI and persona suites passed;

@@ -21,6 +21,7 @@ def summary(records, human, guide, positions, games, players, duplicate_fraction
         "records": records,
         "human": human,
         "guide": guide,
+        "guide_regret_labelled": guide,
         "regret_labelled": guide,
         "positions": set(positions),
         "games": set(games),
@@ -36,6 +37,9 @@ class UnarchitecturedV1DatasetGateTests(unittest.TestCase):
             "data": {
                 "minimum_human_fraction": 0.2,
                 "minimum_guide_fraction": 0.2,
+                "minimum_tune_guide_fraction": 0.2,
+                "minimum_final_guide_fraction": 0.2,
+                "require_all_guide_regrets": True,
                 "maximum_duplicate_position_fraction": 0.02,
             }
         }
@@ -60,9 +64,30 @@ class UnarchitecturedV1DatasetGateTests(unittest.TestCase):
             summary(20, 10, 10, range(100, 120), range(100, 120), range(100, 120)),
             summary(20, 10, 10, range(120, 140), range(120, 140), range(120, 140)),
         ]
-        with mock.patch.object(MODULE, "summarize", side_effect=values):
+        with mock.patch.object(MODULE, "summarize", side_effect=values), mock.patch.object(
+            MODULE, "verify_provenance_files", return_value=True
+        ):
             report = MODULE.audit([], [], [], self.safety, self.training, self.provenance)
         self.assertTrue(report["passed"])
+
+    def test_provenance_hashes_are_content_bound(self):
+        import hashlib
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "train.aegis4"
+            path.write_bytes(b"fixture")
+            digest = hashlib.sha256(b"fixture").hexdigest()
+            self.assertTrue(
+                MODULE.verify_provenance_files(
+                    [path], {"shards": [{"name": path.name, "sha256": digest}]}
+                )
+            )
+            self.assertFalse(
+                MODULE.verify_provenance_files(
+                    [path], {"shards": [{"name": path.name, "sha256": "0" * 64}]}
+                )
+            )
 
     def test_overlap_and_bad_date_fail_closed(self):
         values = [
@@ -75,7 +100,9 @@ class UnarchitecturedV1DatasetGateTests(unittest.TestCase):
             "start_date": "2025-01-01",
             "end_date": "2025-12-31",
         }
-        with mock.patch.object(MODULE, "summarize", side_effect=values):
+        with mock.patch.object(MODULE, "summarize", side_effect=values), mock.patch.object(
+            MODULE, "verify_provenance_files", return_value=True
+        ):
             report = MODULE.audit([], [], [], self.safety, self.training, bad_dates)
         self.assertFalse(report["passed"])
         self.assertFalse(report["checks"]["minimum_guide_fraction"])

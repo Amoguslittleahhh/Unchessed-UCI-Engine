@@ -48,11 +48,11 @@ class TrainingSafetyController:
                 f"{self.config['maximum_gradient_norm']:.4g}",
             )
         if self.loss_ema is not None:
-            limit = max(1e-8, self.loss_ema) * self.config["maximum_loss_to_ema_ratio"]
-            if loss > limit:
+            limit = max(1e-8, abs(self.loss_ema)) * self.config["maximum_loss_to_ema_ratio"]
+            if abs(loss) > limit:
                 return self._decide(
                     "abort",
-                    f"loss {loss:.6g} exceeds EMA spike limit {limit:.6g}",
+                    f"absolute loss {abs(loss):.6g} exceeds EMA spike limit {limit:.6g}",
                 )
         decay = self.config["loss_ema_decay"]
         self.loss_ema = loss if self.loss_ema is None else decay * self.loss_ema + (1 - decay) * loss
@@ -121,6 +121,7 @@ def write_heartbeat(path: str | Path, phase: str, payload: dict) -> None:
             "architecture": "Unarchitectured v1",
             "phase": phase,
             "unix_time": time.time(),
+            "monotonic_time": time.monotonic(),
             **payload,
         },
     )

@@ -56,7 +56,11 @@ def supervise(command, policy, heartbeat: Path, incident: Path) -> int:
                 heartbeat_seen = True
                 try:
                     last_payload = json.loads(heartbeat.read_text(encoding="utf-8"))
-                    age = time.time() - float(last_payload["unix_time"])
+                    age = time.monotonic() - float(last_payload["monotonic_time"])
+                    wall_age = time.time() - float(last_payload["unix_time"])
+                    future_limit = config["maximum_future_clock_skew_seconds"]
+                    if age < -future_limit or wall_age < -future_limit:
+                        raise ValueError("heartbeat timestamp is implausibly in the future")
                 except (OSError, ValueError, KeyError, json.JSONDecodeError) as error:
                     age = float("inf")
                     last_payload = {"heartbeat_error": repr(error)}
@@ -89,9 +93,31 @@ def supervise(command, policy, heartbeat: Path, incident: Path) -> int:
                     },
                 )
                 return 124
-            time.sleep(5)
+            time.sleep(config["poll_interval_seconds"])
         returncode = int(process.returncode or 0)
-        if returncode:
+        if not heartbeat_seen and heartbeat.exists():
+            try:
+                last_payload = json.loads(heartbeat.read_text(encoding="utf-8"))
+                heartbeat_seen = (
+                    last_payload.get("architecture") == "Unarchitectured v1"
+                    and "unix_time" in last_payload
+                    and "monotonic_time" in last_payload
+                )
+            except (OSError, ValueError, json.JSONDecodeError):
+                heartbeat_seen = False
+        if returncode == 0 and not heartbeat_seen:
+            returncode = 125
+            atomic_json(
+                incident,
+                {
+                    "schema": 1,
+                    "action": "missing_heartbeat",
+                    "reason": "child exited successfully without proving liveness",
+                    "gpu": gpu_snapshot(),
+                    "command": command,
+                },
+            )
+        elif returncode:
             atomic_json(
                 incident,
                 {

@@ -28,6 +28,12 @@ class UnarchitecturedV1SafetyTests(unittest.TestCase):
             self.assertTrue(controller.check_step(value, 2.0).safe)
         self.assertIsNotNone(controller.loss_ema)
 
+    def test_negative_losses_do_not_false_trigger_spike_guard(self):
+        controller = self.controller()
+        self.assertTrue(controller.check_step(-1.0, 1.0).safe)
+        self.assertTrue(controller.check_step(-1.1, 1.0).safe)
+        self.assertEqual(controller.check_step(-100.0, 1.0).action, "abort")
+
     def test_nonfinite_gradient_and_loss_spike_abort(self):
         controller = self.controller()
         self.assertFalse(controller.check_step(math.nan, 1.0).safe)
