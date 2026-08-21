@@ -36,7 +36,7 @@ service credential was available or simulated.
 | Rust ignored/deep tests, run separately | **3 passed, 0 failed** |
 | `cargo clippy --workspace --release -- -D warnings` | PASS, zero warnings |
 | `rustfmt --check` on changed Rust | PASS |
-| Python unit tests | **86 passed, 0 failed** |
+| Python unit tests | **86 passed, 0 failed, 1 dependency-gated module skipped** |
 | Python bytecode compilation | PASS |
 | Shell `bash -n` over training/SPRT scripts | PASS |
 | Apex v1 and experimental Hydra v1-v5 deterministic report checks | PASS |

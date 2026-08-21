@@ -287,7 +287,7 @@ class XtNnue(nn.Module):
             head.output.weight.clamp_(-2.0, 2.0)
 
 
-def make_batch(records, device, constants, threat_indexer):
+def make_batch(records, device, constants, threat_indexer, phase_stacks=8):
     bitboards = numpy_to_device(
         np.ascontiguousarray(records["bb"]).view(np.int64), device
     )
@@ -309,7 +309,11 @@ def make_batch(records, device, constants, threat_indexer):
     if int(stm_counts.max()) > 256 or int(nstm_counts.max()) > 256:
         raise RuntimeError("threat relation bound exceeded; do not truncate training data")
     non_pawn_non_king = bits[:, [1, 2, 3, 4, 7, 8, 9, 10]].sum((1, 2)).long()
-    phase_stack = (non_pawn_non_king * 8 // 25).clamp(0, 7)
+    # Bucket by non-pawn/non-king piece count into `phase_stacks` heads,
+    # scaled so the same /25 denominator behaves consistently regardless of
+    # how many heads the model actually has (selfcheck reduces phase_stacks
+    # for speed; the real config uses 8).
+    phase_stack = (non_pawn_non_king * phase_stacks // 25).clamp(0, phase_stacks - 1)
     score = numpy_to_device(
         np.ascontiguousarray(records["score"]).astype(np.float32), device
     )
@@ -351,12 +355,12 @@ def constants(device):
 
 
 @torch.no_grad()
-def evaluate(model, shards, device, fixed, indexer, batch_size, maximum=200_000):
+def evaluate(model, shards, device, fixed, indexer, batch_size, maximum=200_000, phase_stacks=8):
     model.eval()
     total = 0
     total_loss = total_cp = 0.0
     for records in shards.sequential_batches(batch_size, maximum):
-        batch = make_batch(records, device, fixed, indexer)
+        batch = make_batch(records, device, fixed, indexer, phase_stacks)
         raw = model(*batch[:-2])
         total_loss += float(xt_loss(raw, batch[-2])) * len(records)
         prediction_cp = torch.logit(torch.sigmoid(raw).clamp(1e-5, 1 - 1e-5)) * 400.0
@@ -425,7 +429,7 @@ def train(args):
             for group in optimizer.param_groups:
                 group["lr"] = lr
             records = train_data.sample(rng, config["batch_size"])
-            batch = make_batch(records, device, fixed, indexer)
+            batch = make_batch(records, device, fixed, indexer, config["phase_stacks"])
             optimizer.zero_grad(set_to_none=True)
             amp = (
                 torch.autocast(device_type="cuda", dtype=torch.bfloat16)
@@ -450,6 +454,7 @@ def train(args):
             indexer,
             min(config["batch_size"], 4096),
             args.validation_records,
+            config["phase_stacks"],
         )
         elapsed = time.monotonic() - started
         print(
@@ -502,7 +507,7 @@ def selfcheck(args):
     optimizer = make_optimizer(model, config, device)
     records = synthetic_records(32)
     for _ in range(2):
-        batch = make_batch(records, device, fixed, indexer)
+        batch = make_batch(records, device, fixed, indexer, config["phase_stacks"])
         optimizer.zero_grad(set_to_none=True)
         raw = model(*batch[:-2])
         loss = xt_loss(raw, batch[-2])
@@ -512,7 +517,7 @@ def selfcheck(args):
     assert torch.isfinite(loss)
     print(
         f"selfcheck PASS device={device} parameters={model_parameter_count(model):,} "
-        f"loss={float(loss):.6f}"
+        f"loss={float(loss.detach()):.6f}"
     )
 
 
