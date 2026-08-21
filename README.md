@@ -108,6 +108,7 @@ Safety entry points:
 
 ```bash
 python tools/unarchitectured_v1_runtime_readiness.py --strict
+python tools/unarchitectured_v1_architecture_audit.py --strict
 python tools/unarchitectured_v1_feature_audit.py --strict
 python tools/unarchitectured_v1_dataset_gate.py --help
 ```
@@ -258,7 +259,7 @@ Latest full local audit:
 
 - 123 normal Rust tests passed;
 - 3 deep/ignored Rust tests passed separately;
-- 100 Python tests passed, with one A100 dependency-gated skip;
+- 102 Python tests passed, with one A100 dependency-gated skip;
 - release build and Clippy `-D warnings` passed;
 - UCI smoke 9/9 passed;
 - adversarial UCI and persona suites passed;

@@ -28,7 +28,9 @@ class UnarchitecturedV1CanonicalTests(unittest.TestCase):
 
     def test_canonical_config_and_budget(self):
         config = json.loads((ROOT / "config/unarchitectured_v1.json").read_text())
-        student = json.loads((ROOT / "config/unchessed_hydra_v4.json").read_text())
+        student = json.loads(
+            (ROOT / "config/unarchitectured_v1_student.json").read_text()
+        )
         profiles = json.loads((ROOT / "config/verda_gpu_profiles.json").read_text())
         training = json.loads(
             (ROOT / "config/unarchitectured_v1_training.json").read_text()
@@ -44,6 +46,19 @@ class UnarchitecturedV1CanonicalTests(unittest.TestCase):
             report["training_efficiency"]["epoch_mode"],
             "rotated_contiguous_global_batches",
         )
+
+    def test_canonical_training_has_no_experimental_student_dependency(self):
+        training = json.loads(
+            (ROOT / "config/unarchitectured_v1_training.json").read_text()
+        )
+        self.assertEqual(
+            training["student_distillation"]["student_config"],
+            "config/unarchitectured_v1_student.json",
+        )
+        student = json.loads(
+            (ROOT / "config/unarchitectured_v1_student.json").read_text()
+        )
+        self.assertNotIn("steps_per_epoch", student["chessformer"])
 
     def test_checkpoint_names_use_canonical_generation(self):
         source = (TOOLS / "train_hydra_oracle_v5_a100.py").read_text()

@@ -62,11 +62,15 @@ class UnarchitecturedV1RuntimePackageTests(unittest.TestCase):
         with self.assertRaisesRegex(PACKAGE.PackageError, "duplicate"):
             PACKAGE.build_package([section, section], {"x": 1})
 
-    def test_shape_and_alignment_contracts(self):
+    def test_shape_scale_and_alignment_contracts(self):
         blob = self.fixture()
         package = PACKAGE.parse_package(blob)
         for section in package.sections:
             section.validate()
+        with self.assertRaisesRegex(PACKAGE.PackageError, "shape/dtype"):
+            PACKAGE.Section("bad", PACKAGE.DTYPE_F32, (3,), b"\0" * 4).validate()
+        with self.assertRaisesRegex(PACKAGE.PackageError, "finite and positive"):
+            PACKAGE.Section("bad", PACKAGE.DTYPE_I8, (1,), b"\0", scale=0.0).validate()
         self.assertEqual(PACKAGE.HEADER.size, 64)
         self.assertEqual(PACKAGE.ENTRY.size, 200)
 

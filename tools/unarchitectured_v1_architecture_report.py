@@ -19,9 +19,14 @@ def build_report(config, student, profiles, training):
         raise ValueError("canonical Unarchitectured schema/name mismatch")
     if config.get("runtime_file_magic") != "UNARCHV1":
         raise ValueError("canonical Unarchitectured v1 runtime magic mismatch")
+    canonical_student = {"chessformer": config["runtime_student"]}
+    if student is not None:
+        for key in ("d_model", "layers", "exit_layers", "matryoshka_widths"):
+            if student["chessformer"].get(key) != canonical_student["chessformer"].get(key):
+                raise ValueError(f"external student config drifts from canonical key {key}")
     legacy = dict(config)
     legacy["schema"] = 5
-    report = experimental.build_report(legacy, student, profiles, training)
+    report = experimental.build_report(legacy, canonical_student, profiles, training)
     report["schema"] = 1
     report["name"] = config["name"]
     report["runtime_file_magic"] = config["runtime_file_magic"]
@@ -50,7 +55,7 @@ def markdown(report):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", default="config/unarchitectured_v1.json")
-    parser.add_argument("--student-config", default="config/unchessed_hydra_v4.json")
+    parser.add_argument("--student-config", default="config/unarchitectured_v1_student.json")
     parser.add_argument("--profiles", default="config/verda_gpu_profiles.json")
     parser.add_argument("--training-config", default="config/unarchitectured_v1_training.json")
     parser.add_argument("--json", type=Path)

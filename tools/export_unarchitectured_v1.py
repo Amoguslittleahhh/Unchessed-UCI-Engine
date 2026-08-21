@@ -19,7 +19,11 @@ from unarchitectured_v1_package import (
 
 
 def sha256(path):
-    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def export_checkpoint(checkpoint_path, architecture_path, allow_legacy=False):

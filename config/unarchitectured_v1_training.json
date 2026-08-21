@@ -66,7 +66,7 @@
     "shuffle_mode": "rotated_contiguous_global_batches"
   },
   "student_distillation": {
-    "student_config": "config/a100_hydra_v4_training.json",
+    "student_config": "config/unarchitectured_v1_student.json",
     "micro_batch_initial": 256,
     "micro_batch_max": 2048,
     "effective_batch_records": 4096,

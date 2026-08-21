@@ -36,7 +36,7 @@ service credential was available or simulated.
 | Rust ignored/deep tests, run separately | **3 passed, 0 failed** |
 | `cargo clippy --workspace --release -- -D warnings` | PASS, zero warnings |
 | `rustfmt --check` on changed Rust | PASS |
-| Python unit tests | **100 passed, 0 failed, 1 dependency-gated module skipped** |
+| Python unit tests | **102 passed, 0 failed, 1 dependency-gated module skipped** |
 | Python bytecode compilation | PASS |
 | Shell `bash -n` over training/SPRT scripts | PASS |
 | Unarchitectured v1 and experimental Hydra v1-v5 deterministic report checks | PASS |
@@ -159,6 +159,19 @@ lint annotations. Clippy now passes with `-D warnings`.
 
 **Fix:** minimum records and validation sizes now scale from the 29M V100 model
 to the 878M Blackwell model.
+
+### F-11 — High: canonical student depended on an experimental v4 config
+
+**Fix:** expanded the canonical runtime-student architecture and added
+`config/unarchitectured_v1_student.json`. Training and architecture reports no
+longer require an experimental config for student shape or optimizer settings.
+
+### F-12 — High: package readers disagreed on tensor shape/byte validation
+
+**Fix:** Python and Rust now both require exact shape × dtype byte length,
+positive finite scale, known flags, alignment, unique names, and checksums.
+Checkpoint and package hashing is streamed rather than reading large artifacts
+twice into memory.
 
 ## Open blockers and residual risks
 

@@ -31,9 +31,15 @@
     "runtime_deployed": false
   },
   "runtime_student": {
-    "source_architecture": "Unchessed Hydra Aegis v4",
+    "tokens": 64,
+    "piece_vocabulary": 13,
     "d_model": 256,
     "layers": 8,
+    "heads": 8,
+    "ffn": 256,
+    "gab_d1": 8,
+    "gab_d2": 32,
+    "gab_templates": 32,
     "exit_layers": [
       2,
       4,
@@ -44,8 +50,24 @@
       192,
       256
     ],
-    "maximum_legal_moves": 218,
+    "concept_count": 64,
+    "concept_width": 32,
+    "policy_squares": 64,
     "promotion_classes": 5,
+    "policy_action_vocabulary": 20480,
+    "value_classes": 3,
+    "runtime_storage_bits": 8,
+    "maximum_legal_moves": 218,
+    "private_policy_adapters": 2,
+    "policy_adapter_rank": 16,
+    "history_plies": 8,
+    "history_width": 32,
+    "time_classes": 5,
+    "calibrated_exits": 3,
+    "shared_nested_exit_heads": true,
+    "legal_regret_width": 32,
+    "legal_regret_outputs": 2,
+    "source_architecture": "Unarchitectured v1 canonical compact student",
     "teacher_free_inference": true,
     "alpha_beta_authoritative": true
   },
@@ -191,5 +213,13 @@
     "pawn_topology_rows": 4096,
     "exact_delta_oracle": true,
     "rust_gpu_schema_audit": true
+  },
+  "data_format": {
+    "canonical_name": "Unarchitectured data v1",
+    "wire_magic": "UNCHD4R0",
+    "wire_compatibility_origin": "experimental Aegis v4 record layout",
+    "frozen_wire_compatibility": true,
+    "record_bytes": 1088,
+    "maximum_legal_moves": 218
   }
 }

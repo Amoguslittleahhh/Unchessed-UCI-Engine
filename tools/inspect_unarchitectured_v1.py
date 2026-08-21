@@ -11,6 +11,14 @@ from pathlib import Path
 from unarchitectured_v1_package import DTYPE_NAMES, FLAG_METADATA, read_package
 
 
+def file_sha256(path):
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def inspect(path):
     path = Path(path)
     package = read_package(path)
@@ -28,7 +36,7 @@ def inspect(path):
         "schema": 1,
         "path": str(path),
         "bytes": path.stat().st_size,
-        "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        "sha256": file_sha256(path),
         "model_uuid": package.model_uuid.hex(),
         "metadata": metadata,
         "checks": checks,

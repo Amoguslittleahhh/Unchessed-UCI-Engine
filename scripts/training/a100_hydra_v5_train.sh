@@ -24,6 +24,8 @@ else
     --json "$OUTPUT_DIR/runtime-readiness.json"
 fi
 
+python3 tools/unarchitectured_v1_architecture_audit.py --strict \
+  --json "$OUTPUT_DIR/architecture-contract.json"
 python3 tools/unarchitectured_v1_feature_audit.py --strict \
   --json "$OUTPUT_DIR/feature-contract.json"
 # shellcheck disable=SC2086

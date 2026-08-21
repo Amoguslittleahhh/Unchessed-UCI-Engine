@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import math
 import os
 import struct
 import tempfile
@@ -58,10 +59,28 @@ class Section:
             raise PackageError("section name must occupy 1..128 UTF-8 bytes")
         if self.dtype not in DTYPE_NAMES:
             raise PackageError(f"unsupported dtype code {self.dtype}")
+        if self.flags & ~(FLAG_QUANTIZED | FLAG_METADATA):
+            raise PackageError("section contains unknown flags")
         if len(self.shape) > 8 or any(not 0 <= value <= 0xFFFFFFFF for value in self.shape):
             raise PackageError("section shape must contain at most eight u32 dimensions")
+        if not math.isfinite(self.scale) or self.scale <= 0.0:
+            raise PackageError("section quantization scale must be finite and positive")
+        if not -(1 << 31) <= self.zero_point < (1 << 31):
+            raise PackageError("section zero point outside i32 range")
         if not self.data and self.name != "__metadata__":
             raise PackageError("non-metadata sections cannot be empty")
+        width = {
+            DTYPE_BYTES: 1,
+            DTYPE_I8: 1,
+            DTYPE_I16: 2,
+            DTYPE_I32: 4,
+            DTYPE_F32: 4,
+        }[self.dtype]
+        elements = math.prod(self.shape)
+        if elements * width != len(self.data):
+            raise PackageError(
+                f"section {self.name!r} byte length does not match shape/dtype"
+            )
 
 
 @dataclasses.dataclass(frozen=True)
@@ -188,9 +207,11 @@ def parse_package(blob):
         data = bytes(payload[offset : offset + length])
         if zlib.crc32(data) & 0xFFFFFFFF != crc:
             raise PackageError(f"section {name!r} CRC32 mismatch")
-        sections.append(
-            Section(name, dtype, tuple(shape_values[:ndim]), data, scale, zero_point, flags)
+        section = Section(
+            name, dtype, tuple(shape_values[:ndim]), data, scale, zero_point, flags
         )
+        section.validate()
+        sections.append(section)
     metadata_entry = next(
         (section for section in sections if section.name == "__metadata__"), None
     )
