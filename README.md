@@ -22,11 +22,12 @@ hashes, and SHA-256 manifest in the same directory.
 
 ## Canonical neural architecture
 
-**Unchessed Apex v1** is the current canonical architecture. The earlier Hydra
-v1-v5 names are experimental research lineage, not released product versions.
-Apex v1 remains untrained and default-off until exporter, Rust runtime,
+**Unarchitectured v1** is the current canonical architecture. Hydra v1-v5 and
+the Apex v1 naming candidate are experimental research lineage, not released
+product versions.
+Unarchitectured v1 remains untrained and default-off until exporter, Rust runtime,
 quantization, calibration, and paired-game gates pass. See
-[`docs/unchessed-apex-v1.md`](docs/unchessed-apex-v1.md) and
+[`docs/unarchitectured-v1.md`](docs/unarchitectured-v1.md) and
 `config/architecture_registry.json`.
 
 ## Status: barebones milestone (this build)
@@ -259,7 +260,7 @@ python tools/train_nnue.py unchessed-nnue.bin 15 shard0.bin shard1.bin ...
 - `docs/real-engine-testing.md` — controlled real-engine match conditions, results, provenance rules, and current-asset limitations.
 - `docs/nnue-xt-chessformer-hybrid.md` — compact SFNNv10-inspired threat-residual NNUE and persona-routed Chessformer/alpha-beta design, implementation contract, microbenchmark, and gates.
 - `docs/a100-training-guide.md` — BF16/TF32 A100 setup, data contracts, checkpointing, memory tuning, holdouts, and promotion gates.
-- `docs/unchessed-apex-v1.md` — canonical Apex v1 definition, naming policy, current readiness, and promotion gates.
+- `docs/unarchitectured-v1.md` — canonical Unarchitectured v1 definition, autonomous safety policy, readiness, and promotion gates.
 - The following Hydra documents are retained experimental lineage, not product versions:
 - `docs/unchessed-hydra-mathematics.md` — complete equations for the original unified XT-NNUE/Chessformer experiment.
 - `docs/unchessed-hydra-v2-mathematics.md` — next-level Aegis design with x-ray/pawn hypergraphs, uncertainty-gated XT evaluation, elastic Chessformer exits, evidential WDL, concept transport, and gradient-conflict control.
@@ -270,6 +271,8 @@ python tools/train_nnue.py unchessed-nnue.bin 15 shard0.bin shard1.bin ...
 - `python tools/verda_v5_preflight.py --role cpu|gpu ...` — verify Verda affinity/NUMA, 1-8 supported GPUs, BF16/FP16 PyTorch, RAM, and NVMe before paid jobs.
 - `python tools/verda_gpu_profile.py resolve ...` — select a 29M-878M training-only Oracle for V100, A100, L40S/Ada/A6000, H100/H200, RTX PRO 6000, or B200/B300/GB300 nodes.
 - `python tools/train_hydra_oracle_v5_a100.py selfcheck ...` — validate the Apex oracle; paid runs use cardinality-sized, without-replacement epochs, early stopping, CUDA-memory growth guards, and 1-8 GPU DDP.
-- `python tools/v5_runtime_readiness.py --strict` — fail closed before paid training until exporter, package inspector, quantization drift gate, Rust runtime, and safety tests exist.
+- `python tools/unarchitectured_v1_runtime_readiness.py --strict` — fail closed before paid training until exporter, package inspector, quantization drift gate, Rust runtime, and safety tests exist.
+- `tools/unarchitectured_v1_watchdog.py` — autonomously terminate stale or unsafe distributed jobs and preserve incident telemetry without human supervision.
+- `tools/unarchitectured_v1_dataset_gate.py` / `unarchitectured_v1_feature_audit.py` — reject unsafe data splits or Rust/GPU feature-schema drift before allocating CUDA.
 - `python tools/aegis_v3_data.py inspect ...` / `audit-split ...` — validate `UNCHD3R0` shards and reject game/player leakage before A100 training.
 - `docs/opening-book-coverage.md` — historical source, tier safety, coverage, weighting, and external-corpus guidance.

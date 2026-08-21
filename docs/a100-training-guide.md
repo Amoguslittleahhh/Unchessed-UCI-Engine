@@ -20,12 +20,12 @@ feature groups, position/direct/full heads, dual fast uncertainty heads, and a
 mandatory train/calibration/final-holdout split. Aegis v4 separately implements
 elastic 2/128, 4/192, and 8/256 Chessformer training with legal-only actions,
 evidential WDL, private human/guide adapters, and per-action regret. The
-canonical Apex v1 architecture (developed under the experimental Hydra Apex v5
-label) adds an automatically scaled 29M-878M-parameter training-only Oracle, real
+canonical Unarchitectured v1 architecture (developed through the experimental
+Hydra v1-v5 and Apex naming lineage) adds an automatically scaled 29M-878M-parameter training-only Oracle, real
 optimizer-inclusive per-GPU VRAM probing, NCCL/DDP support for 1-8 homogeneous
 Verda GPUs, and student distillation. The branches are still not an exported
 runtime package; see `docs/hydra-apex-v5-180core-a100.md` for the exact boundary.
-Apex v1 specifically removes fixed `steps_per_epoch`: globally shuffled records are
+Unarchitectured v1 specifically removes fixed `steps_per_epoch`: globally shuffled records are
 consumed without replacement once per cardinality-sized epoch, with minimum
 dataset gates and three-epoch early stopping. CUDA graphs are disabled and
 reserved-memory growth is fail-closed after the v1 OOM postmortem.
@@ -186,12 +186,13 @@ For the full Apex v5 oracle-to-student sequence:
 export TRAIN_V5='/nvme/v5/train/*.aegis4'
 export TUNE_V5='/nvme/v5/tune/*.aegis4'
 export FINAL_V5='/nvme/v5/final/*.aegis4'
-export OUTPUT_DIR=/nvme/checkpoints/hydra-apex-v5
-scripts/training/verda_apex_v1_train.sh
+export DATA_PROVENANCE=/nvme/v5/data-provenance.json
+export OUTPUT_DIR=/nvme/checkpoints/unarchitectured-v1
+scripts/training/verda_unarchitectured_v1_train.sh
 ```
 
-The v5 launcher detects the GPU family, selects the corresponding 29M-878M
-Oracle, starts 1-8 `torchrun` ranks, and probes real
+The Unarchitectured v1 launcher detects the GPU family, selects the corresponding
+29M-878M Oracle, starts 1-8 `torchrun` ranks, and probes real
 forward/backward/fused-optimizer memory on every GPU. Profile ceilings retain
 4-15% VRAM for workspaces and fragmentation. All launchers validate records and
 split leakage before CUDA. Shell expansion is intentional; avoid spaces in

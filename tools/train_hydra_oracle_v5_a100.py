@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Train canonical Unchessed Apex v1's 58M offline oracle and distill the runtime student.
+"""Train canonical Unarchitectured v1's 58M offline oracle and distill the runtime student.
 
 The oracle is never loaded by the chess engine. It spends A100 compute on a
 16-layer board trunk and four legal-action decoder layers, then teaches the
@@ -37,6 +37,7 @@ from a100_common import (
     model_parameter_count,
 )
 from aegis_v4_data import LEGAL_FLAG_REGRETS, POLICY_GUIDE, POLICY_HUMAN
+from unarchitectured_v1_safety import TrainingSafetyController, atomic_json, write_heartbeat
 from train_chessformer_v4_a100 import (
     AegisV4Chessformer,
     V4RecordShards,
@@ -524,30 +525,45 @@ def oracle_loss(output, batch, config, global_step):
 
 
 class EpochRecordPrefetcher:
-    """One deterministic, globally disjoint, without-replacement epoch."""
+    """Disjoint block-shuffled epoch with contiguous NVMe reads per rank."""
 
-    def __init__(self, shards, seed, epoch, batch_size, rank, world_size, depth):
+    def __init__(
+        self,
+        shards,
+        seed,
+        epoch,
+        batch_size,
+        rank,
+        world_size,
+        depth,
+        workers=4,
+    ):
         self.shards = shards
         self.batch_size = batch_size
+        self.rank = rank
+        self.world_size = world_size
+        self.global_batch = batch_size * world_size
+        self.batches = shards.total // self.global_batch
         rng = np.random.default_rng(seed + epoch * 1_000_003)
-        permutation = rng.permutation(shards.total)
-        global_batch = batch_size * world_size
-        self.batches = shards.total // global_batch
-        usable = self.batches * global_batch
-        if usable:
-            matrix = permutation[:usable].reshape(self.batches, world_size, batch_size)
-            self.indices = matrix[:, rank, :]
-        else:
-            self.indices = np.empty((0, batch_size), dtype=np.int64)
+        # Shuffle global contiguous batches, not every record. This keeps each
+        # rank's mmap gather sequential while using O(records/global_batch)
+        # index memory instead of O(records) per DDP process.
+        self.batch_order = rng.permutation(self.batches)
+        self.record_rotation = int(rng.integers(0, shards.total)) if shards.total else 0
         self.cursor = 0
-        self.executor = ThreadPoolExecutor(max_workers=1)
+        self.executor = ThreadPoolExecutor(max_workers=max(1, min(workers, depth)))
         self.futures = deque()
         for _ in range(min(max(1, depth), self.batches)):
             self._submit_next()
 
     def _submit_next(self):
         if self.cursor < self.batches:
-            indices = self.indices[self.cursor]
+            global_batch_index = int(self.batch_order[self.cursor])
+            start = global_batch_index * self.global_batch + self.rank * self.batch_size
+            indices = (
+                np.arange(start, start + self.batch_size, dtype=np.int64)
+                + self.record_rotation
+            ) % self.shards.total
             self.cursor += 1
             self.futures.append(self.executor.submit(self.shards.gather, indices))
 
@@ -561,7 +577,7 @@ class EpochRecordPrefetcher:
     def close(self):
         self.executor.shutdown(wait=True, cancel_futures=True)
         self.futures.clear()
-        self.indices = np.empty((0, self.batch_size), dtype=np.int64)
+        self.batch_order = np.empty(0, dtype=np.int64)
 
 
 def require_distinct_shards(train_paths, validation_paths):
@@ -734,7 +750,15 @@ def probe_distillation_microbatch(
 
 
 @torch.no_grad()
-def evaluate_oracle(model, shards, device, config, maximum, distributed_context=None):
+def evaluate_oracle(
+    model,
+    shards,
+    device,
+    config,
+    maximum,
+    distributed_context=None,
+    heartbeat_path=None,
+):
     model.eval()
     total = human_total = guide_total = human_hits = guide_hits = wdl_hits = 0
     regret_error = labelled = nll = 0.0
@@ -759,6 +783,16 @@ def evaluate_oracle(model, shards, device, config, maximum, distributed_context=
         regret_error += float((output["regret_mean"] - batch["regret_target"]).abs()[mask].sum()) * 400.0
         labelled += int(mask.sum())
         total += len(records)
+        if (
+            heartbeat_path
+            and (distributed_context is None or distributed_context.primary)
+            and batch_index % 25 == 0
+        ):
+            write_heartbeat(
+                heartbeat_path,
+                "oracle_validation",
+                {"validation_batches": batch_index + 1, "validation_records_rank": total},
+            )
     values = [
         total,
         human_total,
@@ -796,7 +830,13 @@ def evaluate_oracle(model, shards, device, config, maximum, distributed_context=
 
 @torch.no_grad()
 def evaluate_student_distributed(
-    model, shards, device, config, maximum, distributed_context
+    model,
+    shards,
+    device,
+    config,
+    maximum,
+    distributed_context,
+    heartbeat_path=None,
 ):
     model.eval()
     exits = len(config["exit_layers"])
@@ -834,6 +874,12 @@ def evaluate_student_distributed(
         )
         labelled += int(mask.sum())
         total += len(records)
+        if heartbeat_path and distributed_context.primary and batch_index % 25 == 0:
+            write_heartbeat(
+                heartbeat_path,
+                "student_validation",
+                {"validation_batches": batch_index + 1, "validation_records_rank": total},
+            )
     reduced = distributed_context.sum_floats(
         [total, human_total, guide_total, wdl_hits, labelled, nll, regret_error]
         + human_hits
@@ -857,6 +903,9 @@ def train_oracle(args):
     config, hardware = load_config(args.config, "oracle")
     root = json.loads(Path(args.config).read_text())
     hardware = root["hardware"]
+    safety = TrainingSafetyController.load(root["safety_config"])
+    heartbeat_path = args.heartbeat or Path(str(args.output) + ".heartbeat.json")
+    incident_path = args.incident or Path(str(args.output) + ".incident.json")
     if abs(sum(config["loss_weights"].values()) - 1.0) > 1e-12:
         raise ValueError("oracle loss weights must sum to one")
     if config.get("epoch_mode") != "without_replacement":
@@ -883,7 +932,6 @@ def train_oracle(args):
             f"{config['minimum_validation_records']:,} are required"
         )
     rng = np.random.default_rng(config["seed"] + distributed_context.rank * 1_000_003)
-
     microbatch = args.micro_batch or config["micro_batch_initial"]
     probe_result = None
     if args.auto_batch:
@@ -972,6 +1020,7 @@ def train_oracle(args):
                 distributed_context.rank,
                 distributed_context.world_size,
                 hardware.get("prefetch_batches", 4),
+                hardware.get("prefetch_workers", 4),
             )
             expected_batches = optimizer_steps_per_epoch * accumulation
             if prefetcher.batches < expected_batches:
@@ -1011,11 +1060,58 @@ def train_oracle(args):
                             scaler.scale(scaled_loss).backward()
                         step_loss += float(loss.detach())
                     scaler.unscale_(optimizer)
-                    torch.nn.utils.clip_grad_norm_(raw_model.parameters(), config["gradient_clip"])
+                    gradient_norm = float(
+                        torch.nn.utils.clip_grad_norm_(
+                            raw_model.parameters(), config["gradient_clip"]
+                        )
+                    )
+                    mean_step_loss = step_loss / accumulation
+                    safety_decision = safety.check_step(mean_step_loss, gradient_norm)
+                    unsafe = distributed_context.any_bool(not safety_decision.safe)
+                    if unsafe:
+                        if distributed_context.primary:
+                            atomic_json(
+                                incident_path,
+                                {
+                                    "schema": 1,
+                                    "phase": "oracle",
+                                    "epoch": epoch,
+                                    "global_step": global_step,
+                                    "decision": safety.snapshot(),
+                                    "reason": safety_decision.reason
+                                    or "another DDP rank reported unsafe state",
+                                },
+                            )
+                        raise RuntimeError(
+                            "autonomous safety abort: "
+                            + (
+                                safety_decision.reason
+                                or "another DDP rank reported unsafe state"
+                            )
+                        )
                     scaler.step(optimizer)
                     scaler.update()
-                    epoch_loss += step_loss / accumulation
+                    epoch_loss += mean_step_loss
                     global_step += 1
+                    if (
+                        distributed_context.primary
+                        and global_step
+                        % safety.config["heartbeat_interval_steps"]
+                        == 0
+                    ):
+                        write_heartbeat(
+                            heartbeat_path,
+                            "oracle",
+                            {
+                                "epoch": epoch,
+                                "global_step": global_step,
+                                "loss": mean_step_loss,
+                                "gradient_norm": gradient_norm,
+                                "learning_rate": lr,
+                                "safety": safety.snapshot(),
+                                "memory": cuda_memory_snapshot(device),
+                            },
+                        )
             finally:
                 prefetcher.close()
             metrics = evaluate_oracle(
@@ -1025,8 +1121,10 @@ def train_oracle(args):
                 config,
                 args.validation_records,
                 distributed_context,
+                heartbeat_path,
             )
             require_finite_metrics(metrics)
+            validation_decision = safety.check_validation(metrics["nll"])
             memory = cuda_memory_snapshot(device)
             elapsed = time.monotonic() - started
             mean_epoch_loss = distributed_context.sum_floats([epoch_loss])[0] / distributed_context.world_size
@@ -1047,7 +1145,10 @@ def train_oracle(args):
                     config["reserved_memory_growth_tolerance"],
                 )
             )
-            early_stop = epochs_without_improvement >= config["early_stopping_patience"]
+            early_stop = (
+                epochs_without_improvement >= config["early_stopping_patience"]
+                or validation_decision.action == "early_stop"
+            )
             if distributed_context.primary:
                 print(
                     f"epoch={epoch + 1} loss={mean_epoch_loss / optimizer_steps_per_epoch:.5f} "
@@ -1058,7 +1159,7 @@ def train_oracle(args):
                     flush=True,
                 )
                 payload = {
-                    "format": "UNCHAPX1_ORACLE_TRAINING_V1_DDP",
+                    "format": "UNARCHV1_ORACLE_TRAINING_V1_DDP",
                     "config": config,
                     "hardware": hardware,
                     "precision": precision["name"],
@@ -1187,6 +1288,9 @@ def student_distillation_loss(oracle, student_outputs, batch, config):
 
 def distill_student(args):
     root = json.loads(Path(args.config).read_text())
+    safety = TrainingSafetyController.load(root["safety_config"])
+    heartbeat_path = args.heartbeat or Path(str(args.output) + ".heartbeat.json")
+    incident_path = args.incident or Path(str(args.output) + ".incident.json")
     oracle_config = root["oracle"]
     distill_config = root["student_distillation"]
     if distill_config.get("epoch_mode") != "without_replacement":
@@ -1308,6 +1412,7 @@ def distill_student(args):
                 distributed_context.rank,
                 distributed_context.world_size,
                 root["hardware"].get("prefetch_batches", 4),
+                root["hardware"].get("prefetch_workers", 4),
             )
             expected_batches = optimizer_steps_per_epoch * accumulation
             if prefetcher.batches < expected_batches:
@@ -1350,11 +1455,58 @@ def distill_student(args):
                             scaler.scale(loss / accumulation).backward()
                         step_loss += float(loss.detach())
                     scaler.unscale_(optimizer)
-                    torch.nn.utils.clip_grad_norm_(student.parameters(), student_config["gradient_clip"])
+                    gradient_norm = float(
+                        torch.nn.utils.clip_grad_norm_(
+                            student.parameters(), student_config["gradient_clip"]
+                        )
+                    )
+                    mean_step_loss = step_loss / accumulation
+                    safety_decision = safety.check_step(mean_step_loss, gradient_norm)
+                    unsafe = distributed_context.any_bool(not safety_decision.safe)
+                    if unsafe:
+                        if distributed_context.primary:
+                            atomic_json(
+                                incident_path,
+                                {
+                                    "schema": 1,
+                                    "phase": "student_distillation",
+                                    "epoch": epoch,
+                                    "global_step": global_step,
+                                    "decision": safety.snapshot(),
+                                    "reason": safety_decision.reason
+                                    or "another DDP rank reported unsafe state",
+                                },
+                            )
+                        raise RuntimeError(
+                            "autonomous safety abort: "
+                            + (
+                                safety_decision.reason
+                                or "another DDP rank reported unsafe state"
+                            )
+                        )
                     scaler.step(optimizer)
                     scaler.update()
-                    epoch_loss += step_loss / accumulation
+                    epoch_loss += mean_step_loss
                     global_step += 1
+                    if (
+                        distributed_context.primary
+                        and global_step
+                        % safety.config["heartbeat_interval_steps"]
+                        == 0
+                    ):
+                        write_heartbeat(
+                            heartbeat_path,
+                            "student_distillation",
+                            {
+                                "epoch": epoch,
+                                "global_step": global_step,
+                                "loss": mean_step_loss,
+                                "gradient_norm": gradient_norm,
+                                "learning_rate": lr,
+                                "safety": safety.snapshot(),
+                                "memory": cuda_memory_snapshot(device),
+                            },
+                        )
             finally:
                 prefetcher.close()
             metrics = evaluate_student_distributed(
@@ -1364,8 +1516,10 @@ def distill_student(args):
                 student_config,
                 args.validation_records,
                 distributed_context,
+                heartbeat_path,
             )
             require_finite_metrics(metrics)
+            validation_decision = safety.check_validation(metrics["nll"])
             memory = cuda_memory_snapshot(device)
             elapsed = time.monotonic() - started
             mean_epoch_loss = distributed_context.sum_floats([epoch_loss])[0] / distributed_context.world_size
@@ -1392,6 +1546,7 @@ def distill_student(args):
             early_stop = (
                 epochs_without_improvement
                 >= distill_config["early_stopping_patience"]
+                or validation_decision.action == "early_stop"
             )
             if distributed_context.primary:
                 print(
@@ -1401,7 +1556,7 @@ def distill_student(args):
                     flush=True,
                 )
                 payload = {
-                    "format": "UNCHAPX1_STUDENT_DISTILLATION_V1_DDP",
+                    "format": "UNARCHV1_STUDENT_DISTILLATION_V1_DDP",
                     "oracle_checkpoint": str(args.oracle),
                     "oracle_metrics": oracle_checkpoint.get("metrics", {}),
                     "student_config": student_config,
@@ -1469,7 +1624,7 @@ def calibrate_student_checkpoint(args):
         args.validation_records,
     )
     payload = dict(checkpoint_data)
-    payload["format"] = "UNCHAPX1_STUDENT_CALIBRATED_V1"
+    payload["format"] = "UNARCHV1_STUDENT_CALIBRATED_V1"
     payload["calibration"] = calibration
     payload["calibration_manifest"] = data.manifest()
     output = args.output or Path(str(args.student) + ".calibrated")
@@ -1602,7 +1757,7 @@ def parse_args():
             "evaluate-student",
         ),
     )
-    parser.add_argument("--config", default="config/apex_v1_training.json")
+    parser.add_argument("--config", default="config/unarchitectured_v1_training.json")
     parser.add_argument("--student-config")
     parser.add_argument("--train", nargs="+", default=[])
     parser.add_argument("--validation", nargs="+", default=[])
@@ -1610,6 +1765,8 @@ def parse_args():
     parser.add_argument("--student", type=Path)
     parser.add_argument("--output", type=Path, default=Path("hydra-apex-v5.pt"))
     parser.add_argument("--metrics-json", type=Path)
+    parser.add_argument("--heartbeat", type=Path)
+    parser.add_argument("--incident", type=Path)
     parser.add_argument("--resume", type=Path)
     parser.add_argument("--micro-batch", type=int)
     parser.add_argument("--auto-batch", action="store_true")

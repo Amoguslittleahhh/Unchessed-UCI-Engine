@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
-CONFIG = json.loads((ROOT / "config/a100_hydra_v5_training.json").read_text())
+CONFIG = json.loads((ROOT / "config/unarchitectured_v1_training.json").read_text())
 SOURCE = (ROOT / "tools/train_hydra_oracle_v5_a100.py").read_text()
 LAUNCHER = (ROOT / "scripts/training/a100_hydra_v5_train.sh").read_text()
 
@@ -18,8 +18,10 @@ class V5TrainingSafetyTests(unittest.TestCase):
             self.assertGreaterEqual(section["minimum_optimizer_steps_per_epoch"], 100)
             self.assertGreaterEqual(section["minimum_validation_records"], 50_000)
         self.assertIn("class EpochRecordPrefetcher", SOURCE)
-        self.assertIn("rng.permutation(shards.total)", SOURCE)
+        self.assertIn("rng.permutation(self.batches)", SOURCE)
+        self.assertIn("record_rotation", SOURCE)
         self.assertIn('"sampling": "global_without_replacement"', SOURCE)
+        self.assertEqual(CONFIG["oracle"]["shuffle_mode"], "rotated_contiguous_global_batches")
 
     def test_overfitting_stops_early(self):
         for section in (CONFIG["oracle"], CONFIG["student_distillation"]):
@@ -46,7 +48,7 @@ class V5TrainingSafetyTests(unittest.TestCase):
         calibrate = LAUNCHER.index("calibrate-student")
         final = LAUNCHER.index("evaluate-student")
         self.assertLess(calibrate, final)
-        self.assertIn("student-v5.calibrated.pt", LAUNCHER)
+        self.assertIn("student-unarchitectured-v1.calibrated.pt", LAUNCHER)
 
 
 if __name__ == "__main__":

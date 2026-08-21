@@ -142,5 +142,5 @@
     "little_endian_only": true
   },
   "status": "experimental predecessor; not a canonical product version",
-  "canonical_successor": "config/unchessed_apex_v1.json"
+  "canonical_successor": "config/unarchitectured_v1.json"
 }

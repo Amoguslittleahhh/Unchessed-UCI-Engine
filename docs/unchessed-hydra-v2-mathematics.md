@@ -1,6 +1,6 @@
 # Unchessed Hydra Aegis v2: adaptive hypergraph neural search
 
-> **Experimental lineage document.** This is not a product version. The canonical architecture is [Unchessed Apex v1](unchessed-apex-v1.md).
+> **Experimental lineage document.** This is not a product version. The canonical architecture is [Unarchitectured v1](unarchitectured-v1.md).
 
 ## 1. Why v1 is not enough
 

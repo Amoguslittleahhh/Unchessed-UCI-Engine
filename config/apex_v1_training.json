@@ -10,7 +10,8 @@
     "fused_adamw": true,
     "pin_memory": true,
     "target_vram_fraction": 0.92,
-    "prefetch_batches": 4
+    "prefetch_batches": 4,
+    "prefetch_workers": 4
   },
   "oracle": {
     "expected_parameters": 58412431,
@@ -61,7 +62,8 @@
       "wdl_score_consistency": 0.04,
       "calibration_ranking": 0.03
     },
-    "seed": 20260820
+    "seed": 20260820,
+    "shuffle_mode": "rotated_contiguous_global_batches"
   },
   "student_distillation": {
     "student_config": "config/a100_hydra_v4_training.json",
@@ -87,12 +89,14 @@
       "guide_ground_truth": 0.08,
       "exit_consistency": 0.05,
       "concept_alignment": 0.02
-    }
+    },
+    "shuffle_mode": "rotated_contiguous_global_batches"
   },
   "name": "Unchessed Apex v1 training",
   "architecture_config": "config/unchessed_apex_v1.json",
   "lineage": {
     "canonical_generation": 1,
     "supersedes_experimental_training": "config/a100_hydra_v5_training.json"
-  }
+  },
+  "safety_config": "config/unarchitectured_v1_safety.json"
 }

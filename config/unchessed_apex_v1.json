@@ -134,5 +134,7 @@
     "canonical_generation": 1,
     "derived_from_experimental": "Unchessed Hydra Apex v5",
     "maturity": "current canonical architecture; untrained and default-off until promotion gates pass"
-  }
+  },
+  "status": "experimental naming candidate; not canonical",
+  "canonical_successor": "config/unarchitectured_v1.json"
 }

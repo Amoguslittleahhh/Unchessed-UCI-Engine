@@ -92,5 +92,12 @@
     },
     "shuffle_mode": "rotated_contiguous_global_batches"
   },
+  "name": "Unarchitectured v1 training",
+  "architecture_config": "config/unarchitectured_v1.json",
+  "lineage": {
+    "canonical_generation": 1,
+    "canonical_name": "Unarchitectured v1",
+    "supersedes": "config/apex_v1_training.json"
+  },
   "safety_config": "config/unarchitectured_v1_safety.json"
 }

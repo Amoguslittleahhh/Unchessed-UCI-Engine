@@ -9,11 +9,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
 REQUIREMENTS = {
-    "quantized_exporter": "tools/export_apex_v1.py",
-    "package_inspector": "tools/inspect_apex_v1.py",
-    "rust_scalar_runtime": "unchessed-core/src/apex_v1.rs",
-    "quantization_drift_gate": "tools/validate_apex_v1_quantization.py",
-    "runtime_safety_tests": "tools/test_apex_v1_runtime.py",
+    "quantized_exporter": "tools/export_unarchitectured_v1.py",
+    "package_inspector": "tools/inspect_unarchitectured_v1.py",
+    "rust_scalar_runtime": "unchessed-core/src/unarchitectured_v1.rs",
+    "quantization_drift_gate": "tools/validate_unarchitectured_v1_quantization.py",
+    "runtime_safety_tests": "tools/test_unarchitectured_v1_runtime.py",
 }
 
 

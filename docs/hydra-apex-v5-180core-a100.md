@@ -1,6 +1,6 @@
 # Hydra Apex v5: offline oracle, 4-360 vCPU data generation, and Verda GPU saturation
 
-> **Experimental lineage document.** This is not a product version. The canonical architecture is [Unchessed Apex v1](unchessed-apex-v1.md).
+> **Experimental lineage document.** This is not a product version. The canonical architecture is [Unarchitectured v1](unarchitectured-v1.md).
 
 ## 1. The prominent upgrade
 
@@ -419,9 +419,10 @@ launch; mixed GPU models or mismatched VRAM are intentionally rejected.
 export TRAIN_V5='/nvme/v5/train/*.aegis4'
 export TUNE_V5='/nvme/v5/tune/*.aegis4'
 export FINAL_V5='/nvme/v5/final/*.aegis4'
-export OUTPUT_DIR=/nvme/checkpoints/hydra-apex-v5
+export DATA_PROVENANCE=/nvme/v5/data-provenance.json
+export OUTPUT_DIR=/nvme/checkpoints/unarchitectured-v1
 
-scripts/training/verda_hydra_v5_multigpu_train.sh
+scripts/training/verda_unarchitectured_v1_train.sh
 ```
 
 Today this exits at the runtime-readiness gate because export/Rust inference is

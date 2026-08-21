@@ -7,6 +7,7 @@ cd "$ROOT"
 : "${TRAIN_V5:?space-separated mixed human/guide UNCHD4R0 training shards required}"
 : "${TUNE_V5:?space-separated player/game-disjoint tuning shards required}"
 : "${FINAL_V5:?space-separated untouched final holdout shards required}"
+: "${DATA_PROVENANCE:?path to dated train/tune/final provenance JSON required}"
 
 OUTPUT_DIR=${OUTPUT_DIR:-checkpoints/hydra-apex-v5}
 BASE_CONFIG=${CONFIG:-config/a100_hydra_v5_training.json}
@@ -15,13 +16,22 @@ RESOLVED_CONFIG="$OUTPUT_DIR/resolved-gpu-training.json"
 mkdir -p "$OUTPUT_DIR" "$OUTPUT_DIR/torch-cache"
 
 if [[ ${ALLOW_RESEARCH_CHECKPOINT_ONLY:-0} == 1 ]]; then
-  python3 tools/apex_v1_runtime_readiness.py \
+  python3 tools/unarchitectured_v1_runtime_readiness.py \
     --json "$OUTPUT_DIR/runtime-readiness.json"
   echo "WARNING: proceeding with research-only checkpoints; no engine runtime exists" >&2
 else
-  python3 tools/apex_v1_runtime_readiness.py --strict \
+  python3 tools/unarchitectured_v1_runtime_readiness.py --strict \
     --json "$OUTPUT_DIR/runtime-readiness.json"
 fi
+
+python3 tools/unarchitectured_v1_feature_audit.py --strict \
+  --json "$OUTPUT_DIR/feature-contract.json"
+# shellcheck disable=SC2086
+python3 tools/unarchitectured_v1_dataset_gate.py --strict \
+  --train $TRAIN_V5 --tune $TUNE_V5 --final $FINAL_V5 \
+  --safety "$SAFETY_CONFIG" --training "$CONFIG" \
+  --provenance "$DATA_PROVENANCE" \
+  --json "$OUTPUT_DIR/dataset-safety.json"
 
 GPU_COUNT=${GPU_COUNT:-$(nvidia-smi -L | wc -l)}
 if (( GPU_COUNT < 1 || GPU_COUNT > 8 )); then
@@ -32,6 +42,11 @@ python3 tools/verda_gpu_profile.py resolve \
   --profiles "$PROFILE_CONFIG" --base-config "$BASE_CONFIG" \
   --output "$RESOLVED_CONFIG" >/dev/null
 CONFIG="$RESOLVED_CONFIG"
+SAFETY_CONFIG=$(python3 - "$CONFIG" <<'PY'
+import json, sys
+print(json.load(open(sys.argv[1], encoding="utf-8"))["safety_config"])
+PY
+)
 
 export DEVICE=${DEVICE:-cuda:0}
 export PYTHONUNBUFFERED=1
@@ -87,50 +102,68 @@ python3 tools/train_hydra_oracle_v5_a100.py selfcheck \
 
 # The per-rank probe includes forward, backward, and fused AdamW state; the
 # resolved GPU profile keeps a 4-15% workspace/fragmentation reserve.
+rm -f "$OUTPUT_DIR/oracle-unarchitectured-v1.heartbeat.json" \
+  "$OUTPUT_DIR/oracle-watchdog-incident.json" \
+  "$OUTPUT_DIR/oracle-safety-incident.json"
 # shellcheck disable=SC2086
-torchrun --standalone --nproc_per_node="$GPU_COUNT" \
+python3 tools/unarchitectured_v1_watchdog.py \
+  --policy "$SAFETY_CONFIG" \
+  --heartbeat "$OUTPUT_DIR/oracle-unarchitectured-v1.heartbeat.json" \
+  --incident "$OUTPUT_DIR/oracle-watchdog-incident.json" -- \
+  torchrun --standalone --nproc_per_node="$GPU_COUNT" \
   tools/train_hydra_oracle_v5_a100.py train-oracle \
   --config "$CONFIG" \
   --train $TRAIN_V5 \
   --validation $TUNE_V5 \
   --auto-batch \
-  --output "$OUTPUT_DIR/oracle-v5.pt" \
-  2>&1 | tee "$OUTPUT_DIR/oracle-v5.log"
+  --heartbeat "$OUTPUT_DIR/oracle-unarchitectured-v1.heartbeat.json" \
+  --incident "$OUTPUT_DIR/oracle-safety-incident.json" \
+  --output "$OUTPUT_DIR/oracle-unarchitectured-v1.pt" \
+  2>&1 | tee "$OUTPUT_DIR/oracle-unarchitectured-v1.log"
 
 # shellcheck disable=SC2086
 python3 tools/train_hydra_oracle_v5_a100.py evaluate-oracle \
   --config "$CONFIG" \
-  --oracle "$OUTPUT_DIR/oracle-v5.pt.best" \
+  --oracle "$OUTPUT_DIR/oracle-unarchitectured-v1.pt.best" \
   --validation $FINAL_V5 \
-  --metrics-json "$OUTPUT_DIR/oracle-final-holdout.json"
+  --metrics-json "$OUTPUT_DIR/oracle-unarchitectured-v1-final-holdout.json"
 
 # Distill all oracle distributions into the compact, teacher-free runtime student.
+rm -f "$OUTPUT_DIR/student-unarchitectured-v1.heartbeat.json" \
+  "$OUTPUT_DIR/student-watchdog-incident.json" \
+  "$OUTPUT_DIR/student-safety-incident.json"
 # shellcheck disable=SC2086
-torchrun --standalone --nproc_per_node="$GPU_COUNT" \
+python3 tools/unarchitectured_v1_watchdog.py \
+  --policy "$SAFETY_CONFIG" \
+  --heartbeat "$OUTPUT_DIR/student-unarchitectured-v1.heartbeat.json" \
+  --incident "$OUTPUT_DIR/student-watchdog-incident.json" -- \
+  torchrun --standalone --nproc_per_node="$GPU_COUNT" \
   tools/train_hydra_oracle_v5_a100.py distill-student \
   --config "$CONFIG" \
-  --oracle "$OUTPUT_DIR/oracle-v5.pt.best" \
+  --oracle "$OUTPUT_DIR/oracle-unarchitectured-v1.pt.best" \
   --train $TRAIN_V5 \
   --validation $TUNE_V5 \
   --auto-batch \
-  --output "$OUTPUT_DIR/student-v5.pt" \
-  2>&1 | tee "$OUTPUT_DIR/student-v5.log"
+  --heartbeat "$OUTPUT_DIR/student-unarchitectured-v1.heartbeat.json" \
+  --incident "$OUTPUT_DIR/student-safety-incident.json" \
+  --output "$OUTPUT_DIR/student-unarchitectured-v1.pt" \
+  2>&1 | tee "$OUTPUT_DIR/student-unarchitectured-v1.log"
 
 # Fit regret coverage only on the tuning split, then freeze it before final test.
 # shellcheck disable=SC2086
 python3 tools/train_hydra_oracle_v5_a100.py calibrate-student \
   --config "$CONFIG" \
-  --student "$OUTPUT_DIR/student-v5.pt.best" \
+  --student "$OUTPUT_DIR/student-unarchitectured-v1.pt.best" \
   --validation $TUNE_V5 \
-  --output "$OUTPUT_DIR/student-v5.calibrated.pt" \
-  --metrics-json "$OUTPUT_DIR/student-calibration.json"
+  --output "$OUTPUT_DIR/student-unarchitectured-v1.calibrated.pt" \
+  --metrics-json "$OUTPUT_DIR/student-unarchitectured-v1-calibration.json"
 
 # shellcheck disable=SC2086
 python3 tools/train_hydra_oracle_v5_a100.py evaluate-student \
   --config "$CONFIG" \
-  --student "$OUTPUT_DIR/student-v5.calibrated.pt" \
+  --student "$OUTPUT_DIR/student-unarchitectured-v1.calibrated.pt" \
   --validation $FINAL_V5 \
-  --metrics-json "$OUTPUT_DIR/student-final-holdout.json"
+  --metrics-json "$OUTPUT_DIR/student-unarchitectured-v1-final-holdout.json"
 
 nvidia-smi | tee "$OUTPUT_DIR/nvidia-smi-after.txt"
 sha256sum "$OUTPUT_DIR"/*.pt* "$OUTPUT_DIR"/*holdout.json > "$OUTPUT_DIR/SHA256SUMS"
