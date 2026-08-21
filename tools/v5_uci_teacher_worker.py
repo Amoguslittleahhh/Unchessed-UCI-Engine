@@ -96,6 +96,10 @@ def parse_score(tokens: list[str]) -> int | None:
         value = int(tokens[index + 2])
     except (ValueError, IndexError):
         return None
+    # A lower/upper bound is not a common-budget action value. Accepting one
+    # as exact silently corrupts regret labels.
+    if "lowerbound" in tokens[index + 3 :] or "upperbound" in tokens[index + 3 :]:
+        return None
     if kind == "cp":
         return max(-MATE_SCORE, min(MATE_SCORE, value))
     if kind == "mate":

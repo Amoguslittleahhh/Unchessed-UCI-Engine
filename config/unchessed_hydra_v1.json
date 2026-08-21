@@ -57,5 +57,7 @@
     "policy_guidance_max_bonus": 1200,
     "engine_elo_threshold": 2300,
     "average_human_elo_threshold": 2100
-  }
+  },
+  "status": "experimental predecessor; not a canonical product version",
+  "canonical_successor": "config/unchessed_apex_v1.json"
 }

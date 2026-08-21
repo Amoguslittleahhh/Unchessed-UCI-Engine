@@ -14,6 +14,15 @@ PROFILE_CONFIG=${PROFILE_CONFIG:-config/verda_gpu_profiles.json}
 RESOLVED_CONFIG="$OUTPUT_DIR/resolved-gpu-training.json"
 mkdir -p "$OUTPUT_DIR" "$OUTPUT_DIR/torch-cache"
 
+if [[ ${ALLOW_RESEARCH_CHECKPOINT_ONLY:-0} == 1 ]]; then
+  python3 tools/apex_v1_runtime_readiness.py \
+    --json "$OUTPUT_DIR/runtime-readiness.json"
+  echo "WARNING: proceeding with research-only checkpoints; no engine runtime exists" >&2
+else
+  python3 tools/apex_v1_runtime_readiness.py --strict \
+    --json "$OUTPUT_DIR/runtime-readiness.json"
+fi
+
 GPU_COUNT=${GPU_COUNT:-$(nvidia-smi -L | wc -l)}
 if (( GPU_COUNT < 1 || GPU_COUNT > 8 )); then
   echo "GPU_COUNT must be in 1..8, detected $GPU_COUNT" >&2
@@ -29,6 +38,9 @@ export PYTHONUNBUFFERED=1
 export CUDA_DEVICE_MAX_CONNECTIONS=${CUDA_DEVICE_MAX_CONNECTIONS:-1}
 export PYTORCH_CUDA_ALLOC_CONF=${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}
 export TORCHINDUCTOR_CACHE_DIR=${TORCHINDUCTOR_CACHE_DIR:-$OUTPUT_DIR/torch-cache}
+# V1 showed CUDA-graph memory growth over long runs. Keep graph capture off
+# until a dedicated fixed-memory gate proves it stable on the selected GPU.
+export TORCHINDUCTOR_CUDAGRAPHS=${TORCHINDUCTOR_CUDAGRAPHS:-0}
 export OMP_NUM_THREADS=${OMP_NUM_THREADS:-1}
 export MKL_NUM_THREADS=${MKL_NUM_THREADS:-1}
 
@@ -104,10 +116,19 @@ torchrun --standalone --nproc_per_node="$GPU_COUNT" \
   --output "$OUTPUT_DIR/student-v5.pt" \
   2>&1 | tee "$OUTPUT_DIR/student-v5.log"
 
+# Fit regret coverage only on the tuning split, then freeze it before final test.
+# shellcheck disable=SC2086
+python3 tools/train_hydra_oracle_v5_a100.py calibrate-student \
+  --config "$CONFIG" \
+  --student "$OUTPUT_DIR/student-v5.pt.best" \
+  --validation $TUNE_V5 \
+  --output "$OUTPUT_DIR/student-v5.calibrated.pt" \
+  --metrics-json "$OUTPUT_DIR/student-calibration.json"
+
 # shellcheck disable=SC2086
 python3 tools/train_hydra_oracle_v5_a100.py evaluate-student \
   --config "$CONFIG" \
-  --student "$OUTPUT_DIR/student-v5.pt.best" \
+  --student "$OUTPUT_DIR/student-v5.calibrated.pt" \
   --validation $FINAL_V5 \
   --metrics-json "$OUTPUT_DIR/student-final-holdout.json"
 

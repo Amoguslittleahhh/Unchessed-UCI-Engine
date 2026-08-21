@@ -24,7 +24,7 @@ impl Rng {
         Rng::new(t)
     }
     #[inline]
-    pub fn next(&mut self) -> u64 {
+    pub fn next_u64(&mut self) -> u64 {
         let mut x = self.0;
         x ^= x >> 12;
         x ^= x << 25;
@@ -35,7 +35,7 @@ impl Rng {
     /// uniform in [0, 1)
     #[inline]
     pub fn f64(&mut self) -> f64 {
-        (self.next() >> 11) as f64 / (1u64 << 53) as f64
+        (self.next_u64() >> 11) as f64 / (1u64 << 53) as f64
     }
 
     /// Standard normal via Box--Muller, deterministic for a fixed seed.
@@ -1117,6 +1117,7 @@ fn human_target_acpl(target: i32) -> f64 {
 /// `probe` lets CLINCH measure trap potential: it analyzes a position
 /// (the one after our candidate move) and returns the opponent's best
 /// reply lines; implemented by the UCI layer with a small search budget.
+#[allow(clippy::too_many_arguments)]
 pub fn select_move(
     pos: &Position,
     lines: &[Line],

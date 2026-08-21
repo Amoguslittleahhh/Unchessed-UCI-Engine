@@ -30,8 +30,16 @@
     "gab_d1": 8,
     "gab_d2": 32,
     "gab_templates": 32,
-    "exit_layers": [2, 4, 8],
-    "matryoshka_widths": [128, 192, 256],
+    "exit_layers": [
+      2,
+      4,
+      8
+    ],
+    "matryoshka_widths": [
+      128,
+      192,
+      256
+    ],
     "concept_count": 64,
     "concept_width": 32,
     "policy_squares": 64,
@@ -75,5 +83,7 @@
     "engine_elo_threshold": 2300,
     "average_human_elo_threshold": 2100,
     "cvar_alpha": 0.1
-  }
+  },
+  "status": "experimental predecessor; not a canonical product version",
+  "canonical_successor": "config/unchessed_apex_v1.json"
 }

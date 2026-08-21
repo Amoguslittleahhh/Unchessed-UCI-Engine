@@ -66,6 +66,12 @@ class V5UciTeacherWorkerTests(unittest.TestCase):
         self.assertEqual(WORKER.parse_score("info depth 4 score cp -37 nodes 10".split()), -37)
         self.assertEqual(WORKER.parse_score("info score mate 3".split()), WORKER.MATE_SCORE - 3)
         self.assertEqual(WORKER.parse_score("info score mate -2".split()), -WORKER.MATE_SCORE + 2)
+        self.assertIsNone(
+            WORKER.parse_score("info score cp 42 lowerbound nodes 10".split())
+        )
+        self.assertIsNone(
+            WORKER.parse_score("info score cp -12 upperbound nodes 10".split())
+        )
 
     def test_fake_uci_engine_annotates_every_legal_action(self):
         script = """#!/usr/bin/env python3

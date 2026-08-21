@@ -1,5 +1,7 @@
 # Unchessed Hydra v1: mathematical architecture
 
+> **Experimental lineage document.** This is not a product version. The canonical architecture is [Unchessed Apex v1](unchessed-apex-v1.md).
+
 ## Status and objective
 
 Hydra is a proposed unified neural base with two execution branches:

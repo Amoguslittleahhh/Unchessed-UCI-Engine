@@ -25,7 +25,9 @@
         "policy_adapter_rank": 64,
         "concept_count": 256,
         "concept_width": 128,
-        "micro_batch_max": 1024
+        "micro_batch_max": 1024,
+        "minimum_optimizer_steps_per_epoch": 4000,
+        "minimum_validation_records": 500000
       }
     },
     {
@@ -51,7 +53,9 @@
         "policy_adapter_rank": 48,
         "concept_count": 192,
         "concept_width": 96,
-        "micro_batch_max": 1024
+        "micro_batch_max": 1024,
+        "minimum_optimizer_steps_per_epoch": 2500,
+        "minimum_validation_records": 300000
       }
     },
     {
@@ -77,7 +81,9 @@
         "policy_adapter_rank": 48,
         "concept_count": 192,
         "concept_width": 96,
-        "micro_batch_max": 2048
+        "micro_batch_max": 2048,
+        "minimum_optimizer_steps_per_epoch": 1000,
+        "minimum_validation_records": 150000
       }
     },
     {
@@ -103,7 +109,9 @@
         "policy_adapter_rank": 32,
         "concept_count": 128,
         "concept_width": 64,
-        "micro_batch_max": 2048
+        "micro_batch_max": 2048,
+        "minimum_optimizer_steps_per_epoch": 250,
+        "minimum_validation_records": 75000
       }
     },
     {
@@ -133,7 +141,9 @@
         "micro_batch_min": 4,
         "micro_batch_initial": 16,
         "micro_batch_max": 256,
-        "micro_batch_multiple": 4
+        "micro_batch_multiple": 4,
+        "minimum_optimizer_steps_per_epoch": 100,
+        "minimum_validation_records": 50000
       }
     }
   ]

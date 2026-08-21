@@ -361,7 +361,7 @@ impl<'a> Searcher<'a> {
     /// Draw value from the perspective of the side to move at `ply`.
     #[inline]
     fn draw(&self, ply: usize) -> i32 {
-        if ply % 2 == 0 {
+        if ply.is_multiple_of(2) {
             self.root_draw
         } else {
             -self.root_draw
@@ -433,6 +433,7 @@ impl<'a> Searcher<'a> {
         }
     }
 
+    #[allow(clippy::needless_range_loop)]
     fn qsearch(&mut self, pos: &Position, mut alpha: i32, beta: i32, ply: usize) -> i32 {
         self.count_node();
         self.check_limits();
@@ -548,6 +549,7 @@ impl<'a> Searcher<'a> {
     }
 
     #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::needless_range_loop)]
     fn negamax(
         &mut self,
         pos: &Position,
@@ -925,6 +927,7 @@ impl<'a> Searcher<'a> {
 /// retracing the same shallow tree in lockstep. Pass 1 for a normal search.
 /// Returns MultiPV lines sorted best-first.
 #[allow(clippy::too_many_arguments)]
+#[allow(clippy::needless_range_loop)]
 pub fn go(
     pos: &Position,
     eval: &dyn Eval,

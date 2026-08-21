@@ -81,16 +81,27 @@ class V4RecordShards:
         self.cumulative = np.cumsum(self.counts)
         self.total = int(self.cumulative[-1])
 
-    def sample(self, rng, count):
-        global_indices = rng.integers(0, self.total, count, endpoint=False)
+    def gather(self, global_indices):
+        """Gather exact global record indices across memory-mapped shards."""
+        global_indices = np.asarray(global_indices, dtype=np.int64)
+        if global_indices.ndim != 1:
+            raise ValueError("global record indices must be one-dimensional")
+        if global_indices.size and (
+            int(global_indices.min()) < 0 or int(global_indices.max()) >= self.total
+        ):
+            raise IndexError("global record index outside shard set")
         shard_ids = np.searchsorted(self.cumulative, global_indices, side="right")
         previous = np.where(shard_ids == 0, 0, self.cumulative[shard_ids - 1])
         local_indices = global_indices - previous
-        output = np.empty(count, dtype=self.dtype)
+        output = np.empty(len(global_indices), dtype=self.dtype)
         for shard_id in np.unique(shard_ids):
             mask = shard_ids == shard_id
             output[mask] = self.shards[int(shard_id)][local_indices[mask]]
         return output
+
+    def sample(self, rng, count):
+        global_indices = rng.integers(0, self.total, count, endpoint=False)
+        return self.gather(global_indices)
 
     def sequential_batches(self, batch_size, maximum=None):
         emitted = 0

@@ -1,10 +1,10 @@
 # Aegis v3 feature microbenchmark
 
-Measured on 2026-08-20 with Rust 1.97.1 release optimization on the sandbox's
+Measured on 2026-08-21 with Rust 1.97.1 release optimization on the sandbox's
 Intel Xeon 2.60 GHz CPU (2 visible logical CPUs):
 
 ```text
-Aegis v3 full feature refresh + synthetic accumulation: 2317.9 ns/call
+Aegis v3 full feature refresh + synthetic accumulation: 2264.2 ns/call
 mean active direct/xray/topology: 38.6 / 11.2 / 15.1
 ```
 

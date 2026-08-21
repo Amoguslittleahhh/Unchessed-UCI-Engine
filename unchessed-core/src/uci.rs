@@ -915,11 +915,8 @@ fn print_info(ev: &InfoEvent, multipv_shown: usize) {
     } else {
         format!("cp {}", ev.score)
     };
-    let nps = if ev.time_ms > 0 {
-        ev.nodes * 1000 / ev.time_ms
-    } else {
-        ev.nodes * 1000
-    };
+    let scaled_nodes = ev.nodes.saturating_mul(1000);
+    let nps = scaled_nodes.checked_div(ev.time_ms).unwrap_or(scaled_nodes);
     let pv: Vec<String> = ev.pv.iter().map(|m| m.uci()).collect();
     println!(
         "info depth {} multipv {} score {} nodes {} nps {} hashfull {} time {} pv {}",

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Train Hydra Apex v5's 58M offline oracle and distill the runtime student.
+"""Train canonical Unchessed Apex v1's 58M offline oracle and distill the runtime student.
 
 The oracle is never loaded by the chess engine. It spends A100 compute on a
 16-layer board trunk and four legal-action decoder layers, then teaches the
@@ -88,6 +88,13 @@ class DistributedContext:
             dist.all_reduce(tensor, op=dist.ReduceOp.SUM)
         return tensor.cpu().tolist()
 
+    def any_bool(self, value):
+        if not self.distributed:
+            return bool(value)
+        tensor = torch.tensor(int(bool(value)), dtype=torch.int32, device=self.device)
+        dist.all_reduce(tensor, op=dist.ReduceOp.MAX)
+        return bool(tensor.item())
+
     def barrier(self):
         if self.distributed:
             dist.barrier()
@@ -121,6 +128,21 @@ def make_grad_scaler(enabled):
         return torch.amp.GradScaler("cuda", enabled=enabled)
     except (AttributeError, TypeError):
         return torch.cuda.amp.GradScaler(enabled=enabled)
+
+
+def configure_compiler_safety(hardware):
+    """Disable Inductor CUDA graphs unless a future isolated gate enables them."""
+    if not hardware.get("disable_cudagraphs", True):
+        return
+    os.environ["TORCHINDUCTOR_CUDAGRAPHS"] = "0"
+    try:
+        import torch._inductor.config as inductor_config
+
+        inductor_config.triton.cudagraphs = False
+    except (ImportError, AttributeError):
+        # The environment flag is retained for PyTorch versions without this
+        # public-ish config path.
+        pass
 
 
 class RMSNorm(nn.Module):
@@ -501,26 +523,82 @@ def oracle_loss(output, batch, config, global_step):
     return total, {name: value.detach() for name, value in losses.items()}
 
 
-class RecordPrefetcher:
-    def __init__(self, shards, rng, batch_size, depth):
+class EpochRecordPrefetcher:
+    """One deterministic, globally disjoint, without-replacement epoch."""
+
+    def __init__(self, shards, seed, epoch, batch_size, rank, world_size, depth):
         self.shards = shards
-        self.rng = rng
         self.batch_size = batch_size
+        rng = np.random.default_rng(seed + epoch * 1_000_003)
+        permutation = rng.permutation(shards.total)
+        global_batch = batch_size * world_size
+        self.batches = shards.total // global_batch
+        usable = self.batches * global_batch
+        if usable:
+            matrix = permutation[:usable].reshape(self.batches, world_size, batch_size)
+            self.indices = matrix[:, rank, :]
+        else:
+            self.indices = np.empty((0, batch_size), dtype=np.int64)
+        self.cursor = 0
         self.executor = ThreadPoolExecutor(max_workers=1)
         self.futures = deque()
-        for _ in range(max(1, depth)):
-            self.futures.append(self.executor.submit(shards.sample, rng, batch_size))
+        for _ in range(min(max(1, depth), self.batches)):
+            self._submit_next()
+
+    def _submit_next(self):
+        if self.cursor < self.batches:
+            indices = self.indices[self.cursor]
+            self.cursor += 1
+            self.futures.append(self.executor.submit(self.shards.gather, indices))
 
     def next(self):
-        future = self.futures.popleft()
-        records = future.result()
-        self.futures.append(
-            self.executor.submit(self.shards.sample, self.rng, self.batch_size)
-        )
+        if not self.futures:
+            raise StopIteration("epoch record stream is exhausted")
+        records = self.futures.popleft().result()
+        self._submit_next()
         return records
 
     def close(self):
         self.executor.shutdown(wait=True, cancel_futures=True)
+        self.futures.clear()
+        self.indices = np.empty((0, self.batch_size), dtype=np.int64)
+
+
+def require_distinct_shards(train_paths, validation_paths):
+    train = {str(Path(path).resolve()) for path in train_paths}
+    validation = {str(Path(path).resolve()) for path in validation_paths}
+    overlap = train & validation
+    if overlap:
+        raise ValueError(
+            "training and validation arguments share shard paths: "
+            + ", ".join(sorted(overlap))
+        )
+
+
+def optimizer_steps_for_epoch(total_records, effective_global_batch, minimum_steps):
+    if effective_global_batch <= 0:
+        raise ValueError("effective global batch must be positive")
+    steps = total_records // effective_global_batch
+    if steps < minimum_steps:
+        required = effective_global_batch * minimum_steps
+        raise ValueError(
+            f"dataset has {total_records:,} records, but at least {required:,} are "
+            f"required for {minimum_steps} without-replacement optimizer steps"
+        )
+    return steps
+
+
+def reserved_memory_growth_exceeded(current, baseline, tolerance):
+    if not baseline or not current:
+        return False
+    allowance = max(512 * 2**20, int(baseline * tolerance))
+    return current > baseline + allowance
+
+
+def require_finite_metrics(metrics):
+    for name, value in metrics.items():
+        if isinstance(value, (int, float)) and not math.isfinite(float(value)):
+            raise RuntimeError(f"validation metric {name} is non-finite: {value}")
 
 
 def make_optimizer(model, learning_rate_value, weight_decay, device):
@@ -536,12 +614,23 @@ def make_optimizer(model, learning_rate_value, weight_decay, device):
 
 def cuda_memory_snapshot(device):
     if device.type != "cuda":
-        return {"device": str(device), "peak_allocated": 0, "total": 0, "fraction": 0.0}
+        return {
+            "device": str(device),
+            "allocated": 0,
+            "reserved": 0,
+            "peak_allocated": 0,
+            "peak_reserved": 0,
+            "total": 0,
+            "fraction": 0.0,
+        }
     total = torch.cuda.get_device_properties(device).total_memory
     peak = torch.cuda.max_memory_allocated(device)
     return {
         "device": torch.cuda.get_device_name(device),
+        "allocated": torch.cuda.memory_allocated(device),
+        "reserved": torch.cuda.memory_reserved(device),
         "peak_allocated": peak,
+        "peak_reserved": torch.cuda.max_memory_reserved(device),
         "total": total,
         "fraction": peak / total,
     }
@@ -770,11 +859,29 @@ def train_oracle(args):
     hardware = root["hardware"]
     if abs(sum(config["loss_weights"].values()) - 1.0) > 1e-12:
         raise ValueError("oracle loss weights must sum to one")
+    if config.get("epoch_mode") != "without_replacement":
+        raise ValueError("Apex v5 requires without-replacement epoch semantics")
+    require_distinct_shards(args.train, args.validation)
+    configure_compiler_safety(hardware)
     distributed_context = DistributedContext(config["seed"], args.deterministic)
     device = distributed_context.device
     precision = resolve_precision(device, hardware)
     train_data = V4RecordShards(args.train)
     validation_data = V4RecordShards(args.validation)
+    minimum_records = (
+        config["effective_batch_records"]
+        * config["minimum_optimizer_steps_per_epoch"]
+    )
+    if train_data.total < minimum_records:
+        raise ValueError(
+            f"training set has {train_data.total:,} records; Apex requires at least "
+            f"{minimum_records:,} before allocating the full Oracle"
+        )
+    if validation_data.total < config["minimum_validation_records"]:
+        raise ValueError(
+            f"validation set has {validation_data.total:,} records; at least "
+            f"{config['minimum_validation_records']:,} are required"
+        )
     rng = np.random.default_rng(config["seed"] + distributed_context.rank * 1_000_003)
 
     microbatch = args.micro_batch or config["micro_batch_initial"]
@@ -790,6 +897,12 @@ def train_oracle(args):
         / (microbatch * distributed_context.world_size)
     )
     effective_batch = microbatch * accumulation * distributed_context.world_size
+    optimizer_steps_per_epoch = optimizer_steps_for_epoch(
+        train_data.total,
+        effective_batch,
+        config["minimum_optimizer_steps_per_epoch"],
+    )
+    records_per_epoch = optimizer_steps_per_epoch * effective_batch
 
     raw_model = HydraOracleV5(config).to(device)
     parameter_count = model_parameter_count(raw_model)
@@ -811,7 +924,9 @@ def train_oracle(args):
         best_nll = float(checkpoint_data.get("metrics", {}).get("nll", best_nll))
     train_model = raw_model
     if hardware.get("compile", True) and device.type == "cuda" and not args.no_compile:
-        train_model = torch.compile(raw_model, mode="max-autotune")
+        train_model = torch.compile(
+            raw_model, mode=hardware.get("compile_mode", "default")
+        )
     if distributed_context.distributed:
         train_model = DistributedDataParallel(
             train_model,
@@ -821,7 +936,7 @@ def train_oracle(args):
             gradient_as_bucket_view=True,
         )
     scaler = make_grad_scaler(precision["uses_scaler"])
-    total_steps = config["epochs"] * config["steps_per_epoch"]
+    total_steps = config["epochs"] * optimizer_steps_per_epoch
     if distributed_context.primary:
         print(
             json.dumps(
@@ -833,6 +948,10 @@ def train_oracle(args):
                     "microbatch_per_gpu": microbatch,
                     "accumulation": accumulation,
                     "effective_global_batch": effective_batch,
+                    "optimizer_steps_per_epoch": optimizer_steps_per_epoch,
+                    "records_consumed_once_per_epoch": records_per_epoch,
+                    "dropped_tail_records": train_data.total - records_per_epoch,
+                    "sampling": "global_without_replacement",
                     "probe": probe_result,
                     "train_records": train_data.total,
                     "validation_records": validation_data.total,
@@ -841,47 +960,64 @@ def train_oracle(args):
             ),
             flush=True,
         )
-    prefetcher = RecordPrefetcher(
-        train_data, rng, microbatch, hardware.get("prefetch_batches", 4)
-    )
+    epochs_without_improvement = 0
+    reserved_memory_baseline = 0
     try:
         for epoch in range(start_epoch, config["epochs"]):
+            prefetcher = EpochRecordPrefetcher(
+                train_data,
+                config["seed"],
+                epoch,
+                microbatch,
+                distributed_context.rank,
+                distributed_context.world_size,
+                hardware.get("prefetch_batches", 4),
+            )
+            expected_batches = optimizer_steps_per_epoch * accumulation
+            if prefetcher.batches < expected_batches:
+                prefetcher.close()
+                raise RuntimeError("without-replacement epoch produced too few rank batches")
             train_model.train()
+            if device.type == "cuda":
+                torch.cuda.reset_peak_memory_stats(device)
             started = time.monotonic()
             epoch_loss = 0.0
-            for _ in range(config["steps_per_epoch"]):
-                lr = learning_rate(
-                    global_step,
-                    total_steps,
-                    config["learning_rate"],
-                    config["warmup_steps"],
-                )
-                for group in optimizer.param_groups:
-                    group["lr"] = lr
-                optimizer.zero_grad(set_to_none=True)
-                step_loss = 0.0
-                for accumulation_index in range(accumulation):
-                    records = prefetcher.next()
-                    batch = prepare_oracle_batch(records, device, augment=True)
-                    synchronize = accumulation_index == accumulation - 1
-                    sync_context = (
-                        train_model.no_sync()
-                        if distributed_context.distributed and not synchronize
-                        else contextlib.nullcontext()
+            try:
+                for _ in range(optimizer_steps_per_epoch):
+                    lr = learning_rate(
+                        global_step,
+                        total_steps,
+                        config["learning_rate"],
+                        config["warmup_steps"],
                     )
-                    with sync_context:
-                        with autocast_context(device, precision):
-                            output = train_model(batch)
-                            loss, _ = oracle_loss(output, batch, config, global_step)
-                            scaled_loss = loss / accumulation
-                        scaler.scale(scaled_loss).backward()
-                    step_loss += float(loss.detach())
-                scaler.unscale_(optimizer)
-                torch.nn.utils.clip_grad_norm_(raw_model.parameters(), config["gradient_clip"])
-                scaler.step(optimizer)
-                scaler.update()
-                epoch_loss += step_loss / accumulation
-                global_step += 1
+                    for group in optimizer.param_groups:
+                        group["lr"] = lr
+                    optimizer.zero_grad(set_to_none=True)
+                    step_loss = 0.0
+                    for accumulation_index in range(accumulation):
+                        records = prefetcher.next()
+                        batch = prepare_oracle_batch(records, device, augment=True)
+                        synchronize = accumulation_index == accumulation - 1
+                        sync_context = (
+                            train_model.no_sync()
+                            if distributed_context.distributed and not synchronize
+                            else contextlib.nullcontext()
+                        )
+                        with sync_context:
+                            with autocast_context(device, precision):
+                                output = train_model(batch)
+                                loss, _ = oracle_loss(output, batch, config, global_step)
+                                scaled_loss = loss / accumulation
+                            scaler.scale(scaled_loss).backward()
+                        step_loss += float(loss.detach())
+                    scaler.unscale_(optimizer)
+                    torch.nn.utils.clip_grad_norm_(raw_model.parameters(), config["gradient_clip"])
+                    scaler.step(optimizer)
+                    scaler.update()
+                    epoch_loss += step_loss / accumulation
+                    global_step += 1
+            finally:
+                prefetcher.close()
             metrics = evaluate_oracle(
                 raw_model,
                 validation_data,
@@ -890,20 +1026,39 @@ def train_oracle(args):
                 args.validation_records,
                 distributed_context,
             )
+            require_finite_metrics(metrics)
             memory = cuda_memory_snapshot(device)
             elapsed = time.monotonic() - started
             mean_epoch_loss = distributed_context.sum_floats([epoch_loss])[0] / distributed_context.world_size
+            improved = metrics["nll"] < best_nll - config["early_stopping_min_delta"]
+            if improved:
+                best_nll = metrics["nll"]
+                epochs_without_improvement = 0
+            else:
+                epochs_without_improvement += 1
+            current_reserved = memory.get("reserved", 0)
+            if epoch <= start_epoch + 1:
+                reserved_memory_baseline = max(reserved_memory_baseline, current_reserved)
+            memory_growth_abort = distributed_context.any_bool(
+                epoch > start_epoch + 1
+                and reserved_memory_growth_exceeded(
+                    current_reserved,
+                    reserved_memory_baseline,
+                    config["reserved_memory_growth_tolerance"],
+                )
+            )
+            early_stop = epochs_without_improvement >= config["early_stopping_patience"]
             if distributed_context.primary:
                 print(
-                    f"epoch={epoch + 1} loss={mean_epoch_loss / config['steps_per_epoch']:.5f} "
+                    f"epoch={epoch + 1} loss={mean_epoch_loss / optimizer_steps_per_epoch:.5f} "
                     f"nll={metrics['nll']:.5f} human={metrics['human_top1']:.4f} "
                     f"guide={metrics['guide_best_top1']:.4f} wdl={metrics['wdl_top1']:.4f} "
                     f"regret={metrics['regret_mae_cp']:.1f}cp vram={memory['fraction']:.3f} "
-                    f"records_per_second={effective_batch * config['steps_per_epoch'] / elapsed:.0f}",
+                    f"records_per_second={records_per_epoch / elapsed:.0f}",
                     flush=True,
                 )
                 payload = {
-                    "format": "UNCHAPX5_ORACLE_TRAINING_V2_DDP",
+                    "format": "UNCHAPX1_ORACLE_TRAINING_V1_DDP",
                     "config": config,
                     "hardware": hardware,
                     "precision": precision["name"],
@@ -913,6 +1068,10 @@ def train_oracle(args):
                     "microbatch_per_gpu": microbatch,
                     "accumulation": accumulation,
                     "effective_global_batch": effective_batch,
+                    "optimizer_steps_per_epoch": optimizer_steps_per_epoch,
+                    "records_per_epoch": records_per_epoch,
+                    "sampling": "global_without_replacement",
+                    "epochs_without_improvement": epochs_without_improvement,
                     "model": raw_model.state_dict(),
                     "optimizer": optimizer.state_dict(),
                     "metrics": metrics,
@@ -921,12 +1080,27 @@ def train_oracle(args):
                     "validation_manifest": validation_data.manifest(),
                 }
                 atomic_torch_save(payload, args.output)
-                if metrics["nll"] < best_nll:
-                    best_nll = metrics["nll"]
+                if improved:
                     atomic_torch_save(payload, str(args.output) + ".best")
+                if early_stop:
+                    print(
+                        f"early stop: validation NLL failed to improve for "
+                        f"{epochs_without_improvement} epochs",
+                        flush=True,
+                    )
+                if memory_growth_abort:
+                    print(
+                        "abort: CUDA reserved memory grew beyond the configured stable envelope",
+                        flush=True,
+                    )
             distributed_context.barrier()
+            if memory_growth_abort:
+                raise RuntimeError("CUDA reserved-memory growth guard triggered")
+            if early_stop:
+                break
+            if device.type == "cuda":
+                torch.cuda.empty_cache()
     finally:
-        prefetcher.close()
         distributed_context.close()
 
 
@@ -1015,6 +1189,10 @@ def distill_student(args):
     root = json.loads(Path(args.config).read_text())
     oracle_config = root["oracle"]
     distill_config = root["student_distillation"]
+    if distill_config.get("epoch_mode") != "without_replacement":
+        raise ValueError("Apex v5 distillation requires without-replacement epochs")
+    require_distinct_shards(args.train, args.validation)
+    configure_compiler_safety(root["hardware"])
     student_config, hardware = load_config(
         args.student_config or distill_config["student_config"], "chessformer"
     )
@@ -1025,6 +1203,20 @@ def distill_student(args):
     precision = resolve_precision(device, root["hardware"])
     train_data = V4RecordShards(args.train)
     validation_data = V4RecordShards(args.validation)
+    minimum_records = (
+        distill_config["effective_batch_records"]
+        * distill_config["minimum_optimizer_steps_per_epoch"]
+    )
+    if train_data.total < minimum_records:
+        raise ValueError(
+            f"distillation set has {train_data.total:,} records; at least "
+            f"{minimum_records:,} are required"
+        )
+    if validation_data.total < distill_config["minimum_validation_records"]:
+        raise ValueError(
+            f"distillation validation set has {validation_data.total:,} records; at least "
+            f"{distill_config['minimum_validation_records']:,} are required"
+        )
     oracle_checkpoint = torch.load(args.oracle, map_location=device, weights_only=False)
     oracle = HydraOracleV5(oracle_checkpoint["config"]).to(device)
     oracle.load_state_dict(oracle_checkpoint["model"])
@@ -1059,9 +1251,17 @@ def distill_student(args):
         / (microbatch * distributed_context.world_size)
     )
     effective_batch = microbatch * accumulation * distributed_context.world_size
+    optimizer_steps_per_epoch = optimizer_steps_for_epoch(
+        train_data.total,
+        effective_batch,
+        distill_config["minimum_optimizer_steps_per_epoch"],
+    )
+    records_per_epoch = optimizer_steps_per_epoch * effective_batch
     train_student = student
     if root["hardware"].get("compile", True) and device.type == "cuda" and not args.no_compile:
-        train_student = torch.compile(student, mode="max-autotune")
+        train_student = torch.compile(
+            student, mode=root["hardware"].get("compile_mode", "default")
+        )
     if distributed_context.distributed:
         train_student = DistributedDataParallel(
             train_student,
@@ -1071,7 +1271,7 @@ def distill_student(args):
             gradient_as_bucket_view=True,
         )
     scaler = make_grad_scaler(precision["uses_scaler"])
-    total_steps = distill_config["epochs"] * distill_config["steps_per_epoch"]
+    total_steps = distill_config["epochs"] * optimizer_steps_per_epoch
     global_step = 0
     best_nll = float("inf")
     if distributed_context.primary:
@@ -1086,56 +1286,77 @@ def distill_student(args):
                     "microbatch_per_gpu": microbatch,
                     "accumulation": accumulation,
                     "effective_global_batch": effective_batch,
+                    "optimizer_steps_per_epoch": optimizer_steps_per_epoch,
+                    "records_consumed_once_per_epoch": records_per_epoch,
+                    "dropped_tail_records": train_data.total - records_per_epoch,
+                    "sampling": "global_without_replacement",
                     "probe": probe_result,
                 },
                 indent=2,
             ),
             flush=True,
         )
-    prefetcher = RecordPrefetcher(
-        train_data, rng, microbatch, root["hardware"].get("prefetch_batches", 4)
-    )
+    epochs_without_improvement = 0
+    reserved_memory_baseline = 0
     try:
         for epoch in range(distill_config["epochs"]):
+            prefetcher = EpochRecordPrefetcher(
+                train_data,
+                oracle_config["seed"] + 1,
+                epoch,
+                microbatch,
+                distributed_context.rank,
+                distributed_context.world_size,
+                root["hardware"].get("prefetch_batches", 4),
+            )
+            expected_batches = optimizer_steps_per_epoch * accumulation
+            if prefetcher.batches < expected_batches:
+                prefetcher.close()
+                raise RuntimeError("without-replacement distillation epoch is too short")
             train_student.train()
+            if device.type == "cuda":
+                torch.cuda.reset_peak_memory_stats(device)
             epoch_loss = 0.0
             started = time.monotonic()
-            for _ in range(distill_config["steps_per_epoch"]):
-                lr = learning_rate(
-                    global_step,
-                    total_steps,
-                    distill_config["learning_rate"],
-                    distill_config["warmup_steps"],
-                )
-                for group in optimizer.param_groups:
-                    group["lr"] = lr
-                optimizer.zero_grad(set_to_none=True)
-                step_loss = 0.0
-                for accumulation_index in range(accumulation):
-                    records = prefetcher.next()
-                    batch = prepare_oracle_batch(records, device, augment=True)
-                    with torch.no_grad(), autocast_context(device, precision):
-                        oracle_output = oracle(batch)
-                    synchronize = accumulation_index == accumulation - 1
-                    sync_context = (
-                        train_student.no_sync()
-                        if distributed_context.distributed and not synchronize
-                        else contextlib.nullcontext()
+            try:
+                for _ in range(optimizer_steps_per_epoch):
+                    lr = learning_rate(
+                        global_step,
+                        total_steps,
+                        distill_config["learning_rate"],
+                        distill_config["warmup_steps"],
                     )
-                    with sync_context:
-                        with autocast_context(device, precision):
-                            student_outputs = train_student(batch)
-                            loss, _ = student_distillation_loss(
-                                oracle_output, student_outputs, batch, distill_config
-                            )
-                        scaler.scale(loss / accumulation).backward()
-                    step_loss += float(loss.detach())
-                scaler.unscale_(optimizer)
-                torch.nn.utils.clip_grad_norm_(student.parameters(), student_config["gradient_clip"])
-                scaler.step(optimizer)
-                scaler.update()
-                epoch_loss += step_loss / accumulation
-                global_step += 1
+                    for group in optimizer.param_groups:
+                        group["lr"] = lr
+                    optimizer.zero_grad(set_to_none=True)
+                    step_loss = 0.0
+                    for accumulation_index in range(accumulation):
+                        records = prefetcher.next()
+                        batch = prepare_oracle_batch(records, device, augment=True)
+                        with torch.no_grad(), autocast_context(device, precision):
+                            oracle_output = oracle(batch)
+                        synchronize = accumulation_index == accumulation - 1
+                        sync_context = (
+                            train_student.no_sync()
+                            if distributed_context.distributed and not synchronize
+                            else contextlib.nullcontext()
+                        )
+                        with sync_context:
+                            with autocast_context(device, precision):
+                                student_outputs = train_student(batch)
+                                loss, _ = student_distillation_loss(
+                                    oracle_output, student_outputs, batch, distill_config
+                                )
+                            scaler.scale(loss / accumulation).backward()
+                        step_loss += float(loss.detach())
+                    scaler.unscale_(optimizer)
+                    torch.nn.utils.clip_grad_norm_(student.parameters(), student_config["gradient_clip"])
+                    scaler.step(optimizer)
+                    scaler.update()
+                    epoch_loss += step_loss / accumulation
+                    global_step += 1
+            finally:
+                prefetcher.close()
             metrics = evaluate_student_distributed(
                 student,
                 validation_data,
@@ -1144,17 +1365,43 @@ def distill_student(args):
                 args.validation_records,
                 distributed_context,
             )
+            require_finite_metrics(metrics)
+            memory = cuda_memory_snapshot(device)
             elapsed = time.monotonic() - started
             mean_epoch_loss = distributed_context.sum_floats([epoch_loss])[0] / distributed_context.world_size
+            improved = (
+                metrics["nll"]
+                < best_nll - distill_config["early_stopping_min_delta"]
+            )
+            if improved:
+                best_nll = metrics["nll"]
+                epochs_without_improvement = 0
+            else:
+                epochs_without_improvement += 1
+            current_reserved = memory.get("reserved", 0)
+            if epoch <= 1:
+                reserved_memory_baseline = max(reserved_memory_baseline, current_reserved)
+            memory_growth_abort = distributed_context.any_bool(
+                epoch > 1
+                and reserved_memory_growth_exceeded(
+                    current_reserved,
+                    reserved_memory_baseline,
+                    distill_config["reserved_memory_growth_tolerance"],
+                )
+            )
+            early_stop = (
+                epochs_without_improvement
+                >= distill_config["early_stopping_patience"]
+            )
             if distributed_context.primary:
                 print(
-                    f"epoch={epoch + 1} distill_loss={mean_epoch_loss / distill_config['steps_per_epoch']:.5f} "
-                    f"nll={metrics['nll']:.5f} records_per_second="
-                    f"{effective_batch * distill_config['steps_per_epoch'] / elapsed:.0f}",
+                    f"epoch={epoch + 1} distill_loss={mean_epoch_loss / optimizer_steps_per_epoch:.5f} "
+                    f"nll={metrics['nll']:.5f} vram={memory['fraction']:.3f} records_per_second="
+                    f"{records_per_epoch / elapsed:.0f}",
                     flush=True,
                 )
                 payload = {
-                    "format": "UNCHAPX5_STUDENT_DISTILLATION_V2_DDP",
+                    "format": "UNCHAPX1_STUDENT_DISTILLATION_V1_DDP",
                     "oracle_checkpoint": str(args.oracle),
                     "oracle_metrics": oracle_checkpoint.get("metrics", {}),
                     "student_config": student_config,
@@ -1167,20 +1414,75 @@ def distill_student(args):
                     "microbatch_per_gpu": microbatch,
                     "accumulation": accumulation,
                     "effective_global_batch": effective_batch,
+                    "optimizer_steps_per_epoch": optimizer_steps_per_epoch,
+                    "records_per_epoch": records_per_epoch,
+                    "sampling": "global_without_replacement",
+                    "epochs_without_improvement": epochs_without_improvement,
                     "model": student.state_dict(),
                     "optimizer": optimizer.state_dict(),
                     "metrics": metrics,
+                    "memory_rank0": memory,
                     "train_manifest": train_data.manifest(),
                     "validation_manifest": validation_data.manifest(),
                 }
                 atomic_torch_save(payload, args.output)
-                if metrics["nll"] < best_nll:
-                    best_nll = metrics["nll"]
+                if improved:
                     atomic_torch_save(payload, str(args.output) + ".best")
+                if early_stop:
+                    print(
+                        f"early stop: student validation NLL failed to improve for "
+                        f"{epochs_without_improvement} epochs",
+                        flush=True,
+                    )
+                if memory_growth_abort:
+                    print(
+                        "abort: distillation CUDA reserved memory exceeded its stable envelope",
+                        flush=True,
+                    )
             distributed_context.barrier()
+            if memory_growth_abort:
+                raise RuntimeError("distillation reserved-memory growth guard triggered")
+            if early_stop:
+                break
+            if device.type == "cuda":
+                torch.cuda.empty_cache()
     finally:
-        prefetcher.close()
         distributed_context.close()
+
+
+def calibrate_student_checkpoint(args):
+    root = json.loads(Path(args.config).read_text())
+    oracle_config = root["oracle"]
+    device = configure_torch(oracle_config["seed"], args.deterministic)
+    data = V4RecordShards(args.validation)
+    checkpoint_data = torch.load(args.student, map_location=device, weights_only=False)
+    config = checkpoint_data["student_config"]
+    model = AegisV4Chessformer(config).to(device)
+    model.load_state_dict(checkpoint_data["model"])
+    from train_chessformer_v4_a100 import fit_regret_calibration
+
+    calibration = fit_regret_calibration(
+        model,
+        data,
+        device,
+        config,
+        args.validation_records,
+    )
+    payload = dict(checkpoint_data)
+    payload["format"] = "UNCHAPX1_STUDENT_CALIBRATED_V1"
+    payload["calibration"] = calibration
+    payload["calibration_manifest"] = data.manifest()
+    output = args.output or Path(str(args.student) + ".calibrated")
+    atomic_torch_save(payload, output)
+    write_metrics(
+        args.metrics_json,
+        {
+            "input_checkpoint": str(args.student),
+            "output_checkpoint": str(output),
+            "calibration": calibration,
+            "calibration_manifest": data.manifest(),
+        },
+    )
 
 
 def write_metrics(path, metrics):
@@ -1207,14 +1509,20 @@ def evaluate_checkpoint(args, student=False):
         model.load_state_dict(checkpoint_data["model"])
         from train_chessformer_v4_a100 import evaluate
 
+        calibration = checkpoint_data.get("calibration")
         metrics = evaluate(
             model,
             data,
             device,
             config,
-            {"upper_regret_quantile": 0.0},
+            calibration or {"upper_regret_quantile": 0.0},
             args.validation_records,
         )
+        if calibration is None:
+            metrics.pop("regret_upper_coverage", None)
+            metrics["regret_calibration"] = "missing; coverage intentionally omitted"
+        else:
+            metrics["regret_calibration"] = calibration
     else:
         config = checkpoint_data["config"]
         model = HydraOracleV5(config).to(device)
@@ -1289,11 +1597,12 @@ def parse_args():
             "selfcheck",
             "train-oracle",
             "distill-student",
+            "calibrate-student",
             "evaluate-oracle",
             "evaluate-student",
         ),
     )
-    parser.add_argument("--config", default="config/a100_hydra_v5_training.json")
+    parser.add_argument("--config", default="config/apex_v1_training.json")
     parser.add_argument("--student-config")
     parser.add_argument("--train", nargs="+", default=[])
     parser.add_argument("--validation", nargs="+", default=[])
@@ -1322,6 +1631,10 @@ if __name__ == "__main__":
         if not arguments.oracle or not arguments.train or not arguments.validation:
             raise SystemExit("distill-student requires --oracle, --train, and --validation")
         distill_student(arguments)
+    elif arguments.command == "calibrate-student":
+        if not arguments.student or not arguments.validation:
+            raise SystemExit("calibrate-student requires --student and --validation")
+        calibrate_student_checkpoint(arguments)
     elif arguments.command == "evaluate-oracle":
         if not arguments.oracle or not arguments.validation:
             raise SystemExit("evaluate-oracle requires --oracle and --validation")

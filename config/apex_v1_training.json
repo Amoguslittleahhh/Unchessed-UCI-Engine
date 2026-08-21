@@ -53,7 +53,7 @@
     "evidence_kl_anneal_steps": 20000,
     "loss_weights": {
       "human_policy": 0.24,
-      "guide_policy": 0.20,
+      "guide_policy": 0.2,
       "evidential_wdl": 0.14,
       "legal_regret": 0.18,
       "score_quantiles": 0.12,
@@ -80,13 +80,19 @@
     "policy_temperature": 1.5,
     "wdl_temperature": 2.0,
     "loss_weights": {
-      "oracle_policy": 0.40,
+      "oracle_policy": 0.4,
       "oracle_wdl": 0.18,
       "oracle_regret": 0.17,
-      "human_ground_truth": 0.10,
+      "human_ground_truth": 0.1,
       "guide_ground_truth": 0.08,
       "exit_consistency": 0.05,
       "concept_alignment": 0.02
     }
+  },
+  "name": "Unchessed Apex v1 training",
+  "architecture_config": "config/unchessed_apex_v1.json",
+  "lineage": {
+    "canonical_generation": 1,
+    "supersedes_experimental_training": "config/a100_hydra_v5_training.json"
   }
 }

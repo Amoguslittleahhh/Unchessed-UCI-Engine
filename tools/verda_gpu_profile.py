@@ -113,7 +113,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=("detect", "resolve"))
     parser.add_argument("--profiles", default="config/verda_gpu_profiles.json")
-    parser.add_argument("--base-config", default="config/a100_hydra_v5_training.json")
+    parser.add_argument("--base-config", default="config/apex_v1_training.json")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--gpu-name")
     parser.add_argument("--memory-mib", type=int)

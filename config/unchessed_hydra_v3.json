@@ -36,8 +36,16 @@
     "gab_d1": 8,
     "gab_d2": 32,
     "gab_templates": 32,
-    "exit_layers": [2, 4, 8],
-    "matryoshka_widths": [128, 192, 256],
+    "exit_layers": [
+      2,
+      4,
+      8
+    ],
+    "matryoshka_widths": [
+      128,
+      192,
+      256
+    ],
     "concept_count": 64,
     "concept_width": 32,
     "policy_squares": 64,
@@ -68,7 +76,7 @@
       "xt_full_wdl": 0.18,
       "xt_direct_distillation": 0.07,
       "xt_fast_heteroscedastic": 0.07,
-      "teacher_score": 0.10,
+      "teacher_score": 0.1,
       "human_policy": 0.17,
       "teacher_regret_policy": 0.08,
       "evidential_wdl": 0.07,
@@ -92,7 +100,7 @@
     "xt_full_on_root": true,
     "xt_full_on_pv": true,
     "xt_full_in_check": true,
-    "fast_to_direct_uncertainty": 0.10,
+    "fast_to_direct_uncertainty": 0.1,
     "direct_to_full_uncertainty": 0.18,
     "minimum_conformal_coverage": 0.99,
     "evidential_exit_uncertainty": {
@@ -112,5 +120,7 @@
     "require_calibration_sha256": true,
     "reject_unknown_sections": true,
     "little_endian_only": true
-  }
+  },
+  "status": "experimental predecessor; not a canonical product version",
+  "canonical_successor": "config/unchessed_apex_v1.json"
 }

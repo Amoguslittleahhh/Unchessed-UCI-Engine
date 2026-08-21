@@ -457,6 +457,7 @@ fn cheb_dist(a: u8, b: u8) -> i32 {
     (af - bf).abs().max((ar - br).abs())
 }
 
+#[derive(Default)]
 pub struct Hce {
     pub params: EvalParams,
 }
@@ -464,14 +465,6 @@ pub struct Hce {
 impl Hce {
     pub fn new(params: EvalParams) -> Hce {
         Hce { params }
-    }
-}
-
-impl Default for Hce {
-    fn default() -> Self {
-        Hce {
-            params: EvalParams::default(),
-        }
     }
 }
 

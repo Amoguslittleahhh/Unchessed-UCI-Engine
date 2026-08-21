@@ -83,15 +83,15 @@ const fn build_pawn_attacks() -> [[Bitboard; 64]; 2] {
         let mut w = 0u64;
         let mut b = 0u64;
         if r + 1 < 8 {
-            if f - 1 >= 0 {
+            if f > 0 {
                 w |= 1u64 << ((r + 1) * 8 + f - 1);
             }
             if f + 1 < 8 {
                 w |= 1u64 << ((r + 1) * 8 + f + 1);
             }
         }
-        if r - 1 >= 0 {
-            if f - 1 >= 0 {
+        if r > 0 {
+            if f > 0 {
                 b |= 1u64 << ((r - 1) * 8 + f - 1);
             }
             if f + 1 < 8 {

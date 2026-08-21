@@ -20,6 +20,15 @@ The complete IEEE-LaTeX-styled engineering and research guide is available as
 with its LaTeX source, renamed IEEEtran derivative, build script, evidence
 hashes, and SHA-256 manifest in the same directory.
 
+## Canonical neural architecture
+
+**Unchessed Apex v1** is the current canonical architecture. The earlier Hydra
+v1-v5 names are experimental research lineage, not released product versions.
+Apex v1 remains untrained and default-off until exporter, Rust runtime,
+quantization, calibration, and paired-game gates pass. See
+[`docs/unchessed-apex-v1.md`](docs/unchessed-apex-v1.md) and
+`config/architecture_registry.json`.
+
 ## Status: barebones milestone (this build)
 
 | Component | State |
@@ -250,7 +259,9 @@ python tools/train_nnue.py unchessed-nnue.bin 15 shard0.bin shard1.bin ...
 - `docs/real-engine-testing.md` — controlled real-engine match conditions, results, provenance rules, and current-asset limitations.
 - `docs/nnue-xt-chessformer-hybrid.md` — compact SFNNv10-inspired threat-residual NNUE and persona-routed Chessformer/alpha-beta design, implementation contract, microbenchmark, and gates.
 - `docs/a100-training-guide.md` — BF16/TF32 A100 setup, data contracts, checkpointing, memory tuning, holdouts, and promotion gates.
-- `docs/unchessed-hydra-mathematics.md` — complete equations for the unified XT-NNUE/Chessformer architecture, joint losses, alpha-beta integration, quantization, risk routing, and promotion gates.
+- `docs/unchessed-apex-v1.md` — canonical Apex v1 definition, naming policy, current readiness, and promotion gates.
+- The following Hydra documents are retained experimental lineage, not product versions:
+- `docs/unchessed-hydra-mathematics.md` — complete equations for the original unified XT-NNUE/Chessformer experiment.
 - `docs/unchessed-hydra-v2-mathematics.md` — next-level Aegis design with x-ray/pawn hypergraphs, uncertainty-gated XT evaluation, elastic Chessformer exits, evidential WDL, concept transport, and gradient-conflict control.
 - `docs/unchessed-hydra-v3-mathematics.md` — implementation-focused Aegis v3: three-stage XT, dual aleatoric/epistemic uncertainty, conformal bounds, exact x-ray/topology extractors, private temporal policy adapters, a frozen 160-byte data ABI, calibrated exits, and alpha-beta vetoes.
 - `docs/unchessed-hydra-v4-mathematics.md` — promotion-aware legal-set prediction, shared nested exits, evidential WDL, per-action regret distributions, proof-aware candidate ordering with mandatory full legal fallback, and an exact hypergraph-delta oracle.
@@ -258,6 +269,7 @@ python tools/train_nnue.py unchessed-nnue.bin 15 shard0.bin shard1.bin ...
 - `python tools/verda_cpu_profile.py resolve ...` / `tools/v5_180core_datagen.py` / `tools/v5_uci_teacher_worker.py` — resumable guide/regret generation across every advertised Verda CPU-node size.
 - `python tools/verda_v5_preflight.py --role cpu|gpu ...` — verify Verda affinity/NUMA, 1-8 supported GPUs, BF16/FP16 PyTorch, RAM, and NVMe before paid jobs.
 - `python tools/verda_gpu_profile.py resolve ...` — select a 29M-878M training-only Oracle for V100, A100, L40S/Ada/A6000, H100/H200, RTX PRO 6000, or B200/B300/GB300 nodes.
-- `python tools/train_hydra_oracle_v5_a100.py selfcheck ...` — validate the Apex oracle and use `torchrun`-backed `train-oracle`/`distill-student --auto-batch` on 1-8 GPUs.
+- `python tools/train_hydra_oracle_v5_a100.py selfcheck ...` — validate the Apex oracle; paid runs use cardinality-sized, without-replacement epochs, early stopping, CUDA-memory growth guards, and 1-8 GPU DDP.
+- `python tools/v5_runtime_readiness.py --strict` — fail closed before paid training until exporter, package inspector, quantization drift gate, Rust runtime, and safety tests exist.
 - `python tools/aegis_v3_data.py inspect ...` / `audit-split ...` — validate `UNCHD3R0` shards and reject game/player leakage before A100 training.
 - `docs/opening-book-coverage.md` — historical source, tier safety, coverage, weighting, and external-corpus guidance.

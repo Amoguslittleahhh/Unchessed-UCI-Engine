@@ -42,7 +42,13 @@
     "threads_per_worker": 1,
     "workers": 176
   },
-  "name": "Unchessed Hydra Apex v5",
+  "experimental_predecessor": "Hydra Apex v5",
+  "lineage": {
+    "canonical_generation": 1,
+    "derived_from_experimental": "Unchessed Hydra Apex v5",
+    "maturity": "current canonical architecture; untrained and default-off until promotion gates pass"
+  },
+  "name": "Unchessed Apex v1",
   "offline_oracle": {
     "bf16_weight_bytes": 116824862,
     "board_forward_flops_approx": 5502926848,
@@ -58,6 +64,7 @@
     "private_adapter_parameters": 65536
   },
   "parameter_compression_factor": 13.83228630528037,
+  "runtime_file_magic": "UNCHAPX1",
   "runtime_student": {
     "calibration_parameters": 15,
     "concept_parameters": 18432,
@@ -87,7 +94,7 @@
     "trunk_parameters": 3927872,
     "value_parameters": 771
   },
-  "schema": 5,
+  "schema": 1,
   "verda_profiles": [
     {
       "id": "blackwell-xxl",

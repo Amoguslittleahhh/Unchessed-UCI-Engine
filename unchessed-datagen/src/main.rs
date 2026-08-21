@@ -373,10 +373,12 @@ fn process_game(
         let b = bucket_of(rating);
         // rare special-rule moves always pass the subsample gate
         let special = mv.kind() == MK_EP || mv.is_promo();
-        if ply >= 2 && counts[b] < cap && (special || rng.f64() < accept) {
-            if write_sample(&mut writers[b], &pos, mv, rating).is_ok() {
-                counts[b] += 1;
-            }
+        if ply >= 2
+            && counts[b] < cap
+            && (special || rng.f64() < accept)
+            && write_sample(&mut writers[b], &pos, mv, rating).is_ok()
+        {
+            counts[b] += 1;
         }
         pos = pos.make(mv);
         ply += 1;
@@ -531,7 +533,6 @@ fn run_policy_v4(args: &[String]) {
                     process_policy_v4_game(
                         &headers,
                         &movetext,
-                        games,
                         hash_key,
                         accept,
                         maximum,
@@ -559,7 +560,6 @@ fn run_policy_v4(args: &[String]) {
             process_policy_v4_game(
                 &headers,
                 &movetext,
-                games,
                 hash_key,
                 accept,
                 maximum,
@@ -584,11 +584,38 @@ fn run_policy_v4(args: &[String]) {
     );
 }
 
+fn canonical_game_movetext(movetext: &str) -> String {
+    let mut output = Vec::new();
+    let mut in_comment = false;
+    for token in movetext.split_whitespace() {
+        if in_comment {
+            if token.ends_with('}') {
+                in_comment = false;
+            }
+            continue;
+        }
+        if token.starts_with('{') {
+            if !token.ends_with('}') {
+                in_comment = true;
+            }
+            continue;
+        }
+        if token.starts_with('$') || matches!(token, "*" | "1-0" | "0-1" | "1/2-1/2") {
+            continue;
+        }
+        let san = token
+            .trim_start_matches(|character: char| character.is_ascii_digit() || character == '.');
+        if !san.is_empty() {
+            output.push(san);
+        }
+    }
+    output.join(" ")
+}
+
 #[allow(clippy::too_many_arguments)]
 fn process_policy_v4_game(
     headers: &Headers,
     movetext: &str,
-    game_sequence: u64,
     hash_key: [u64; 2],
     accept: f64,
     maximum: u64,
@@ -612,18 +639,21 @@ fn process_policy_v4_game(
         Some("0-1") => 0,
         _ => return,
     };
+    let white_identity = white_name.trim().to_lowercase();
+    let black_identity = black_name.trim().to_lowercase();
     let game_identity = format!(
-        "{}|{}|{}|{}|{}|{}",
-        headers.site.as_deref().unwrap_or("?"),
+        "{}|{}|{}|{}|{}|{}|{}",
+        headers.site.as_deref().unwrap_or("?").trim().to_lowercase(),
         headers.date.as_deref().unwrap_or("?"),
         headers.round.as_deref().unwrap_or("?"),
-        white_name,
-        black_name,
-        game_sequence,
+        white_identity,
+        black_identity,
+        headers.result.as_deref().unwrap_or("?"),
+        canonical_game_movetext(movetext),
     );
     let game_hash = nonzero_hash(hash_key, &game_identity);
-    let white_hash = nonzero_hash(hash_key, white_name);
-    let black_hash = nonzero_hash(hash_key, black_name);
+    let white_hash = nonzero_hash(hash_key, &white_identity);
+    let black_hash = nonzero_hash(hash_key, &black_identity);
     let mut pos = fen::startpos();
     let mut history = Vec::<Move>::new();
     let mut in_comment = false;
@@ -1071,7 +1101,7 @@ fn process_nnue_game(
             *samples += 1;
             taken += 1;
             last_ply = Some(ply);
-            if *samples % 100_000 == 0 {
+            if (*samples).is_multiple_of(100_000) {
                 let secs = start.elapsed().as_secs_f64().max(1e-9);
                 eprintln!(
                     "nnue samples: {} ({:.0}/s)",
@@ -1302,6 +1332,14 @@ mod tests {
             u32::from_le_bytes(header[60..64].try_into().unwrap()),
             crc32(&header[..60])
         );
+    }
+
+    #[test]
+    fn game_identity_movetext_is_stable_across_formatting_and_comments() {
+        let a = "1. e4 {clock 10:00} e5 2. Nf3 Nc6 1-0";
+        let b = "1.e4 e5\n2.Nf3 $1 Nc6 1-0";
+        assert_eq!(canonical_game_movetext(a), "e4 e5 Nf3 Nc6");
+        assert_eq!(canonical_game_movetext(a), canonical_game_movetext(b));
     }
 
     #[test]

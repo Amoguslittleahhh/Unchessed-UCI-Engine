@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "benchmark": "Aegis v3 full relation refresh plus synthetic int16 accumulation",
-  "date": "2026-08-20",
+  "date": "2026-08-21",
   "command": "cargo test -p unchessed-core --release aegis_v3_feature_microbench -- --ignored --nocapture",
   "host": {
     "architecture": "x86_64",
@@ -14,13 +14,13 @@
   "perspectives_per_position": 2,
   "iterations": 10000,
   "calls": 160000,
-  "nanoseconds_per_call": 2317.9,
+  "nanoseconds_per_call": 2264.2,
   "mean_active": {
     "direct_relations": 38.6,
     "xray_hyperedges": 11.2,
     "pawn_king_topologies": 15.1
   },
   "checksum": -12112,
-  "source_sha256": "12218c23523fa8aaeb8b2475d68e27cdb635c9184d15116094328a2167df6be7",
+  "source_sha256": "54b335371cc7c95aafd7f191b0964ce6102368b7e26807cec14919252e8f51bb",
   "warning": "Standalone full-refresh microbenchmark on a shared sandbox CPU; not dirty-update cost, integrated engine NPS, model accuracy, Elo, or SPRT evidence."
 }

@@ -62,6 +62,19 @@ class VerdaGpuProfileTests(unittest.TestCase):
             [29_144_367, 58_412_431, 230_537_295, 501_835_855, 878_114_575],
         )
 
+    def test_larger_oracles_require_larger_datasets(self):
+        cases = [
+            ("Tesla V100-SXM2-16GB", 16384, 100, 50_000),
+            ("NVIDIA A100-SXM4-40GB", 40960, 250, 75_000),
+            ("NVIDIA A100-SXM4-80GB", 81920, 1_000, 150_000),
+            ("NVIDIA H200", 144384, 2_500, 300_000),
+            ("NVIDIA B300", 274432, 4_000, 500_000),
+        ]
+        for name, memory, steps, validation in cases:
+            resolved = self.resolve(name, memory)
+            self.assertEqual(resolved["oracle"]["minimum_optimizer_steps_per_epoch"], steps)
+            self.assertEqual(resolved["oracle"]["minimum_validation_records"], validation)
+
     def test_one_to_eight_homogeneous_gpus_are_supported(self):
         for count in (1, 2, 4, 8):
             resolved = self.resolve("NVIDIA H100 80GB HBM3", 81920, count)

@@ -131,6 +131,10 @@ def verda_profile_matrix(profiles, training_config):
                 "oracle_parameters": gpu_profiles.oracle_parameter_count(
                     resolved["oracle"]
                 ),
+                "minimum_training_records": (
+                    resolved["oracle"]["minimum_optimizer_steps_per_epoch"]
+                    * resolved["oracle"]["effective_batch_records"]
+                ),
             }
         )
     return matrix
@@ -189,14 +193,15 @@ def markdown(report):
         lines.extend(
             [
                 "",
-                "| Resolved Verda profile | Minimum VRAM | Precision | Oracle parameters |",
-                "|---|---:|---:|---:|",
+                "| Resolved Verda profile | Minimum VRAM | Precision | Oracle parameters | Minimum records |",
+                "|---|---:|---:|---:|---:|",
             ]
         )
         for profile in report["verda_profiles"]:
             lines.append(
                 f"| {profile['id']} | {profile['minimum_vram_mib']:,} MiB | "
-                f"{profile['precision']} | {profile['oracle_parameters']:,} |"
+                f"{profile['precision']} | {profile['oracle_parameters']:,} | "
+                f"{profile['minimum_training_records']:,} |"
             )
     lines.extend(
         [

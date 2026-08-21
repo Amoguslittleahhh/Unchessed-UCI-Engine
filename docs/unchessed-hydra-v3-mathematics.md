@@ -1,5 +1,7 @@
 # Unchessed Hydra Aegis v3: certified adaptive compute
 
+> **Experimental lineage document.** This is not a product version. The canonical architecture is [Unchessed Apex v1](unchessed-apex-v1.md).
+
 ## 1. Scope and status
 
 Aegis v2 defined a useful target, but most of it was still a mathematical
@@ -388,7 +390,7 @@ remains 1,280 bytes per ply.
 
 A release Rust microbenchmark over eight positions and both perspectives
 measured a full direct+x-ray+topology refresh plus synthetic width-32/16/16
-int16 accumulation at **2,317.9 ns/call** on the sandbox's Intel Xeon 2.60 GHz
+int16 accumulation at **2,264.2 ns/call** on the sandbox's Intel Xeon 2.60 GHz
 CPU. Mean active counts were 38.6 direct relations, 11.2 x-rays, and 15.1
 topologies. This is a shared-host standalone measurement—not dirty-update cost,
 integrated NPS, trained inference latency, accuracy, or Elo. Full provenance is

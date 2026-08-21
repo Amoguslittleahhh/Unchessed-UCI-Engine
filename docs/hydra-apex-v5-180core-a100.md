@@ -1,5 +1,7 @@
 # Hydra Apex v5: offline oracle, 4-360 vCPU data generation, and Verda GPU saturation
 
+> **Experimental lineage document.** This is not a product version. The canonical architecture is [Unchessed Apex v1](unchessed-apex-v1.md).
+
 ## 1. The prominent upgrade
 
 The strongest responsible upgrade is not to make the CPU engine run a huge
@@ -27,6 +29,35 @@ Apex v5 therefore has two neural scales:
 This buys substantially more training capacity without permanently charging
 engine NPS. It is a hypothesis that must still win holdout and game gates—not a
 claimed Elo improvement.
+
+### 1.1 V1 failure postmortem and v5 safeguards
+
+V1 exposed two expensive failure modes: a fixed `steps_per_epoch` that repeatedly
+sampled a small shard until it overfit almost immediately, and long-run CUDA
+graph memory growth that ended in OOM. V5 now prevents those exact failures:
+
+- epochs are derived from dataset cardinality, never a fixed step count;
+- one global permutation is partitioned across DDP ranks, so records are used at
+  most once per epoch instead of sampled with replacement;
+- profile-scaled minimums fail before the full Oracle is allocated: 409,600
+  records for V100 up to 16,384,000 for the 878M Blackwell Oracle;
+- validation requires at least 50,000 records and separate shard paths;
+- early stopping triggers after three non-improving validation epochs;
+- non-finite metrics abort immediately;
+- Inductor CUDA graphs are disabled by default;
+- allocated/reserved/peak CUDA memory is recorded every epoch;
+- reserved-memory growth above a 12%/512MiB envelope aborts after preserving the
+  latest atomic checkpoint; and
+- optimizer-inclusive microbatch probes retain a GPU-profile safety reserve.
+
+This makes v5 much less likely to waste a full rental on the same bugs. It does
+not prove model quality or eliminate every possible driver/compiler OOM.
+
+The second V1 lesson remains unresolved: the repository still lacks a quantized
+v5 exporter and Rust inference runtime. `tools/v5_runtime_readiness.py` therefore
+makes the paid launcher fail closed. To run architecture research anyway, the
+operator must explicitly set `ALLOW_RESEARCH_CHECKPOINT_ONLY=1`; such a
+checkpoint is not engine-ready.
 
 ## 2. Why the oracle is different from simply enlarging v4
 
@@ -340,13 +371,13 @@ Apex now supports homogeneous 1x, 2x, 4x, and 8x Verda nodes across every GPU
 family shown in the Verda selector. `tools/verda_gpu_profile.py` reads
 `nvidia-smi`, rejects mixed nodes, and materializes a resolved training config:
 
-| Verda GPU family | Precision | Training-only Oracle parameters |
-|---|---:|---:|
-| Tesla V100 16GB | FP16 + dynamic loss scaling | 29,144,367 |
-| A100 40GB, L40S, RTX 6000 Ada, RTX A6000 | BF16 | 58,412,431 |
-| A100 80GB, H100 80GB, RTX PRO 6000 96GB | BF16 | 230,537,295 |
-| H200 141GB | BF16 | 501,835,855 |
-| B200/B300/GB300 | BF16 | 878,114,575 |
+| Verda GPU family | Precision | Training-only Oracle parameters | Minimum records |
+|---|---:|---:|---:|
+| Tesla V100 16GB | FP16 + dynamic loss scaling | 29,144,367 | 409,600 |
+| A100 40GB, L40S, RTX 6000 Ada, RTX A6000 | BF16 | 58,412,431 | 1,024,000 |
+| A100 80GB, H100 80GB, RTX PRO 6000 96GB | BF16 | 230,537,295 | 4,096,000 |
+| H200 141GB | BF16 | 501,835,855 | 10,240,000 |
+| B200/B300/GB300 | BF16 | 878,114,575 | 16,384,000 |
 
 The runtime student remains 4.22M parameters in every case. Expensive GPUs buy
 a better-capacity teacher and faster exposure to more records, not a larger UCI
@@ -393,20 +424,29 @@ export OUTPUT_DIR=/nvme/checkpoints/hydra-apex-v5
 scripts/training/verda_hydra_v5_multigpu_train.sh
 ```
 
+Today this exits at the runtime-readiness gate because export/Rust inference is
+not implemented. A deliberate research-only run requires:
+
+```bash
+export ALLOW_RESEARCH_CHECKPOINT_ONLY=1
+```
+
 The launcher performs, sequentially:
 
-1. full record validation;
-2. pairwise player/game leakage audits;
-3. GPU-family detection and Oracle-profile resolution;
-4. CUDA BF16/FP16 capability verification for all visible GPUs;
-5. reduced oracle self-check;
-6. per-rank real VRAM microbatch probe;
-7. 1-8 GPU NCCL/DDP oracle training;
-8. untouched oracle final evaluation;
-9. separate oracle+student VRAM probe;
-10. 1-8 GPU student distillation;
-11. untouched student final evaluation; and
-12. checkpoint/metric SHA-256 generation.
+1. runtime/export readiness validation;
+2. full record validation;
+3. pairwise player/game leakage audits;
+4. GPU-family detection and Oracle-profile resolution;
+5. CUDA BF16/FP16 capability verification for all visible GPUs;
+6. reduced oracle self-check;
+7. per-rank real VRAM microbatch probe;
+8. 1-8 GPU NCCL/DDP oracle training;
+9. untouched oracle final evaluation;
+10. separate oracle+student VRAM probe;
+11. 1-8 GPU student distillation;
+12. regret calibration on the tuning split;
+13. untouched calibrated-student final evaluation; and
+14. checkpoint/metric SHA-256 generation.
 
 Running oracle and student jobs sequentially gives each phase the full visible
 1-8 GPU node. Do not run XT, oracle, and student training concurrently.

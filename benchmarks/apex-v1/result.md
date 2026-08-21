@@ -1,4 +1,4 @@
-# Unchessed Hydra Apex v5 calculated budget
+# Unchessed Apex v1 calculated budget
 
 | Quantity | Value |
 |---|---:|
@@ -24,3 +24,5 @@
 | v100-compat | 15,000 MiB | float16 | 29,144,367 | 409,600 |
 
 The oracle is training-only. These are calculations, not measured hardware throughput, model accuracy, NPS, Elo, or SPRT evidence.
+
+The Hydra v1-v5 names are experimental lineage labels. Apex v1 is the canonical architecture name, but remains untrained and default-off until all export, runtime, calibration, and SPRT gates pass.

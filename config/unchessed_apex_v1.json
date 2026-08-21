@@ -1,7 +1,7 @@
 {
-  "schema": 5,
-  "name": "Unchessed Hydra Apex v5",
-  "runtime_file_magic": "UNCHAEG5",
+  "schema": 1,
+  "name": "Unchessed Apex v1",
+  "runtime_file_magic": "UNCHAPX1",
   "data_magic": "UNCHD4R0",
   "offline_oracle": {
     "board_tokens": 64,
@@ -130,6 +130,9 @@
     "missing_oracle_does_not_affect_runtime": true,
     "strength_features_default_off_until_sprt": true
   },
-  "status": "experimental predecessor; not a canonical product version",
-  "canonical_successor": "config/unchessed_apex_v1.json"
+  "lineage": {
+    "canonical_generation": 1,
+    "derived_from_experimental": "Unchessed Hydra Apex v5",
+    "maturity": "current canonical architecture; untrained and default-off until promotion gates pass"
+  }
 }

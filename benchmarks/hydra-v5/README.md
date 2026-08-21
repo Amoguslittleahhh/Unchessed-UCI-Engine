@@ -1,4 +1,4 @@
-# Hydra Apex v5 calculated architecture budget
+# Experimental Hydra Apex v5 calculated architecture budget
 
 Reproduce the committed parameter, memory, CPU-layout, and operation counts:
 
