@@ -15,6 +15,7 @@ pub mod tt;
 pub mod search;
 pub mod book;
 pub mod policy;
+pub mod unarchitectured_v1;
 mod polyglot_keys;
 pub mod adapt;
 pub mod uci;
