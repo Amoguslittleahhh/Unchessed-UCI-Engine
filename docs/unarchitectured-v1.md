@@ -13,8 +13,9 @@ This naming reset does not fabricate maturity. Unarchitectured v1 is currently:
 architecture: frozen canonical v1
 training pipeline: implemented but not executed in this repository
 trained checkpoint: absent
-quantized exporter: absent
-Rust neural runtime: absent
+tensor container/exporter/inspector: implemented
+Rust package loader: implemented
+scalar and quantized neural forward: absent
 production enablement: default-off
 Elo/SPRT evidence: absent
 ```
@@ -164,12 +165,32 @@ config, Rust direct/x-ray/topology extractor, GPU trainer constants, topology
 hash multiplier, and exact-delta requirements before CUDA is allocated. Dirty
 feature optimization may not ship unless it equals the full-refresh oracle.
 
+## Runtime package bridge
+
+The first engine-integration layer is implemented:
+
+- fixed 64-byte `UNARCHV1` header;
+- fixed 200-byte tensor table entries;
+- 64-byte payload alignment;
+- model UUID;
+- dtype, shape, scale, zero-point, flags, and per-section CRC32;
+- whole table/payload CRC32;
+- deterministic metadata section;
+- symmetric int8 matrix export with float32 bias/norm tensors;
+- strict Python inspector and tensor reconstruction report; and
+- dependency-free Rust parser with bounds, alignment, shape, duplicate-name,
+  UTF-8, and CRC validation.
+
+This is a package bridge, not neural inference. Capability flags remain false
+for scalar forward, quantized forward, exported reference vectors, SIMD, and the
+runtime chess-safety suite. The paid launcher therefore remains fail-closed.
+
 ## Promotion gates
 
 Unarchitectured v1 becomes usable only after all of the following pass:
 
-1. quantized package exporter and deterministic inspector;
-2. scalar Rust inference matching exported reference vectors;
+1. export a real calibrated checkpoint and pass package/tensor drift inspection;
+2. complete scalar Rust inference matching exported reference vectors;
 3. SIMD equality tests;
 4. float/quantized/Rust drift thresholds;
 5. player/game/future-disjoint holdout metrics;

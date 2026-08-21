@@ -165,6 +165,21 @@ python3 tools/train_hydra_oracle_v5_a100.py evaluate-student \
   --validation $FINAL_V5 \
   --metrics-json "$OUTPUT_DIR/student-unarchitectured-v1-final-holdout.json"
 
+python3 tools/export_unarchitectured_v1.py \
+  "$OUTPUT_DIR/student-unarchitectured-v1.calibrated.pt" \
+  "$OUTPUT_DIR/unarchitectured-v1.unarch" \
+  --architecture config/unarchitectured_v1.json \
+  --json "$OUTPUT_DIR/unarchitectured-v1-export.json"
+python3 tools/inspect_unarchitectured_v1.py \
+  "$OUTPUT_DIR/unarchitectured-v1.unarch" --strict \
+  --json "$OUTPUT_DIR/unarchitectured-v1-inspection.json"
+python3 tools/validate_unarchitectured_v1_quantization.py \
+  "$OUTPUT_DIR/student-unarchitectured-v1.calibrated.pt" \
+  "$OUTPUT_DIR/unarchitectured-v1.unarch" --strict \
+  --json "$OUTPUT_DIR/unarchitectured-v1-tensor-drift.json"
+
 nvidia-smi | tee "$OUTPUT_DIR/nvidia-smi-after.txt"
-sha256sum "$OUTPUT_DIR"/*.pt* "$OUTPUT_DIR"/*holdout.json > "$OUTPUT_DIR/SHA256SUMS"
+sha256sum "$OUTPUT_DIR"/*.pt* "$OUTPUT_DIR"/*.unarch \
+  "$OUTPUT_DIR"/*holdout.json "$OUTPUT_DIR"/*inspection.json \
+  "$OUTPUT_DIR"/*drift.json > "$OUTPUT_DIR/SHA256SUMS"
 echo "Hydra Apex v5 $GPU_COUNT-GPU oracle training and student distillation complete: $OUTPUT_DIR"

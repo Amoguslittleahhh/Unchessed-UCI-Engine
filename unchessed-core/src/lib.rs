@@ -17,6 +17,7 @@ pub mod book;
 pub mod policy;
 pub mod threat_features;
 pub mod chessformer;
+pub mod unarchitectured_v1;
 mod polyglot_keys;
 pub mod adapt;
 pub mod uci;

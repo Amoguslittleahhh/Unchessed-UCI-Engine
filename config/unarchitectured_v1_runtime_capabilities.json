@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "architecture": "Unarchitectured v1",
+  "container_format": true,
+  "checkpoint_exporter": true,
+  "package_inspector": true,
+  "rust_package_loader": true,
+  "tensor_quantization_drift": true,
+  "scalar_neural_forward": false,
+  "quantized_neural_forward": false,
+  "exported_reference_vectors": false,
+  "simd_neural_forward": false,
+  "runtime_safety_suite": false,
+  "notes": "Package infrastructure is implemented. Full scalar/quantized model inference and end-to-end reference-vector equality remain blockers.",
+  "runtime_package_tests": true
+}

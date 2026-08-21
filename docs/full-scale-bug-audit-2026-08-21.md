@@ -32,11 +32,11 @@ service credential was available or simulated.
 | Check | Result |
 |---|---:|
 | `cargo build --workspace --release` | PASS |
-| Rust normal workspace tests | **120 passed, 0 failed, 3 ignored** |
+| Rust normal workspace tests | **123 passed, 0 failed, 3 ignored** |
 | Rust ignored/deep tests, run separately | **3 passed, 0 failed** |
 | `cargo clippy --workspace --release -- -D warnings` | PASS, zero warnings |
 | `rustfmt --check` on changed Rust | PASS |
-| Python unit tests | **97 passed, 0 failed, 1 dependency-gated module skipped** |
+| Python unit tests | **100 passed, 0 failed, 1 dependency-gated module skipped** |
 | Python bytecode compilation | PASS |
 | Shell `bash -n` over training/SPRT scripts | PASS |
 | Unarchitectured v1 and experimental Hydra v1-v5 deterministic report checks | PASS |
@@ -162,19 +162,22 @@ to the 878M Blackwell model.
 
 ## Open blockers and residual risks
 
-### O-01 — Critical: no engine-loadable Unarchitectured v1 format/runtime
+### O-01 — Critical: package bridge exists, neural runtime does not
 
-Missing:
+The `UNARCHV1` container, generic calibrated-checkpoint exporter, inspector,
+tensor reconstruction drift report, strict Rust package parser, and corruption
+tests now exist. Still missing:
 
 ```text
-tools/export_unarchitectured_v1.py
-tools/inspect_unarchitectured_v1.py
-unchessed-core/src/unarchitectured_v1.rs
-tools/validate_unarchitectured_v1_quantization.py
-tools/test_unarchitectured_v1_runtime.py
+complete scalar neural forward
+quantized neural forward
+exported Python/Rust reference vectors
+SIMD equality implementation
+runtime mate/only-move safety suite
 ```
 
-Until these exist and pass, Unarchitectured v1 training is research-only.
+The capability manifest keeps readiness false until those semantic capabilities
+pass; file existence alone cannot unlock paid training.
 
 ### O-02 — High: GPU/DDP code has not executed
 

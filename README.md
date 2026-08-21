@@ -256,9 +256,9 @@ python3 -m unittest discover -s tools -p 'test_*.py'
 
 Latest full local audit:
 
-- 120 normal Rust tests passed;
+- 123 normal Rust tests passed;
 - 3 deep/ignored Rust tests passed separately;
-- 97 Python tests passed, with one A100 dependency-gated skip;
+- 100 Python tests passed, with one A100 dependency-gated skip;
 - release build and Clippy `-D warnings` passed;
 - UCI smoke 9/9 passed;
 - adversarial UCI and persona suites passed;
@@ -306,19 +306,22 @@ Their configs, reports, and mathematics remain available for reproducibility.
 
 ## Known blockers
 
-Unarchitectured v1 cannot yet produce an engine-loadable candidate because the
-following canonical components are absent:
+The `UNARCHV1` binary tensor container, checkpoint exporter, package inspector,
+strict Rust package loader, and tensor reconstruction drift tool now exist.
+Engine readiness remains blocked on:
 
 ```text
-tools/export_unarchitectured_v1.py
-tools/inspect_unarchitectured_v1.py
-unchessed-core/src/unarchitectured_v1.rs
-tools/validate_unarchitectured_v1_quantization.py
-tools/test_unarchitectured_v1_runtime.py
+complete scalar neural forward in unchessed-core
+quantized neural forward
+exported Python/Rust reference-vector equality
+runtime mate/only-move safety suite
+SIMD implementation and equality tests
 ```
 
-No full GPU run, trained Unarchitectured v1 checkpoint, quantization report,
-integrated neural NPS, Elo, or SPRT result is claimed.
+`config/unarchitectured_v1_runtime_capabilities.json` records these capabilities
+explicitly, so adding package files cannot accidentally unlock paid training.
+No full GPU run, trained checkpoint, end-to-end quantization report, integrated
+neural NPS, Elo, or SPRT result is claimed.
 
 ## Research paper
 

@@ -9,12 +9,24 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
 REQUIREMENTS = {
-    "quantized_exporter": "tools/export_unarchitectured_v1.py",
+    "checkpoint_exporter": "tools/export_unarchitectured_v1.py",
     "package_inspector": "tools/inspect_unarchitectured_v1.py",
-    "rust_scalar_runtime": "unchessed-core/src/unarchitectured_v1.rs",
-    "quantization_drift_gate": "tools/validate_unarchitectured_v1_quantization.py",
-    "runtime_safety_tests": "tools/test_unarchitectured_v1_runtime.py",
+    "rust_package_loader": "unchessed-core/src/unarchitectured_v1.rs",
+    "tensor_quantization_drift": "tools/validate_unarchitectured_v1_quantization.py",
+    "runtime_package_tests": "tools/test_unarchitectured_v1_runtime.py",
 }
+CAPABILITIES = "config/unarchitectured_v1_runtime_capabilities.json"
+REQUIRED_CAPABILITIES = (
+    "container_format",
+    "checkpoint_exporter",
+    "package_inspector",
+    "rust_package_loader",
+    "tensor_quantization_drift",
+    "scalar_neural_forward",
+    "quantized_neural_forward",
+    "exported_reference_vectors",
+    "runtime_safety_suite",
+)
 
 
 def readiness(root=ROOT):
@@ -22,15 +34,27 @@ def readiness(root=ROOT):
         name: {"path": path, "exists": (root / path).is_file()}
         for name, path in REQUIREMENTS.items()
     }
+    capability_path = root / CAPABILITIES
+    capabilities = (
+        json.loads(capability_path.read_text(encoding="utf-8"))
+        if capability_path.is_file()
+        else {}
+    )
+    capability_checks = {
+        name: bool(capabilities.get(name)) for name in REQUIRED_CAPABILITIES
+    }
+    ready = all(item["exists"] for item in checks.values()) and all(
+        capability_checks.values()
+    )
     return {
         "schema": 1,
-        "ready_for_engine_candidate_training": all(
-            item["exists"] for item in checks.values()
-        ),
+        "ready_for_engine_candidate_training": ready,
         "checks": checks,
+        "capability_file": CAPABILITIES,
+        "capabilities": capability_checks,
         "warning": (
-            "A training checkpoint is not engine-loadable without exporter, "
-            "inspector, scalar runtime, quantization drift, and safety gates."
+            "Package infrastructure alone is insufficient: full scalar and "
+            "quantized neural forward, exported vectors, and safety gates must pass."
         ),
     }
 
@@ -48,7 +72,7 @@ def main():
         args.json.write_text(text, encoding="utf-8")
     if args.strict and not report["ready_for_engine_candidate_training"]:
         raise SystemExit(
-            "v5 runtime pipeline is incomplete; set ALLOW_RESEARCH_CHECKPOINT_ONLY=1 "
+            "Unarchitectured v1 neural runtime is incomplete; set ALLOW_RESEARCH_CHECKPOINT_ONLY=1 "
             "only if a non-engine-loadable research checkpoint is intentional"
         )
 
