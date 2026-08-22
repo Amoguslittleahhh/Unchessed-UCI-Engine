@@ -11,11 +11,14 @@ This naming reset does not fabricate maturity. Unarchitectured v1 is currently:
 
 ```text
 architecture: frozen canonical v1
-training pipeline: implemented but not executed in this repository
-trained checkpoint: absent
+training pipeline: executed; calibrated checkpoint committed
+trained checkpoint: artifacts/unarchitectured-v1-final.unarchv1
+checkpoint SHA-256: 5fd9fc3fbf47bd2620c2e832e24c98525b59feeea791abf1c7ae32b9d311b16d
 tensor container/exporter/inspector: implemented
-Rust package loader: implemented
-scalar and quantized neural forward: absent
+Rust package loader and full f32 forward: implemented
+full-exit Python/Rust parity: passed within 5e-3
+AVX2/FMA runtime kernels: implemented
+retained-int8 neural forward: absent
 production enablement: default-off
 Elo/SPRT evidence: absent
 ```
@@ -43,9 +46,9 @@ The canonical runtime package magic is:
 UNARCHV1
 ```
 
-No package using that magic may be emitted until the exporter, package
-inspector, scalar Rust runtime, quantization drift gate, and runtime safety tests
-exist.
+A real calibrated package now exists and is accepted by the strict loader. It
+remains unwired because integer arithmetic, shallow-exit reference parity,
+chess-level runtime safety, and game gates are incomplete.
 
 ## Canonical files
 
@@ -181,24 +184,29 @@ The first engine-integration layer is implemented:
 - dependency-free Rust parser with bounds, alignment, shape, duplicate-name,
   UTF-8, and CRC validation.
 
-This is a package bridge, not neural inference. Capability flags remain false
-for scalar forward, quantized forward, exported reference vectors, SIMD, and the
-runtime chess-safety suite. The paid launcher therefore remains fail-closed.
+The package bridge now feeds a complete full-exit f32 Rust forward pass.
+Independent Python reference values match within `5e-3`, including identical
+best moves, and AVX2/FMA kernels preserve those tests. Capability flags remain
+false for retained-int8 forward and the runtime chess-safety suite, so the paid
+launcher remains fail-closed.
+
+Measured on the two-visible-CPU sandbox, the naive full forward fell from
+208.61ms to 14.92ms. The trained Matryoshka prefixes measure 6.37ms at 4/192 and
+2.66ms at 2/128. Full parity remains validated; shallow/middle parity is still a
+gate. See `benchmarks/unarchitectured-v1/runtime-forward-2026-08-21.md`.
 
 ## Promotion gates
 
 Unarchitectured v1 becomes usable only after all of the following pass:
 
-1. export a real calibrated checkpoint and pass package/tensor drift inspection;
-2. complete scalar Rust inference matching exported reference vectors;
-3. SIMD equality tests;
-4. float/quantized/Rust drift thresholds;
-5. player/game/future-disjoint holdout metrics;
-6. conformal calibration on a tuning split and coverage on final holdout;
-7. deployment CPU latency and integrated engine NPS;
-8. forced-mate and only-move safety suites;
-9. separate paired-game gates for XT tiers and policy backends; and
-10. owner-approved packaging/licensing decisions.
+1. generate and freeze independent Python vectors for shallow and middle exits;
+2. implement retained-int8/integer neural arithmetic and end-to-end drift gates;
+3. add a nonblocking or clock-surplus search integration;
+4. confirm player/game/future-disjoint holdout and calibration provenance;
+5. measure deployment CPU latency and integrated engine NPS;
+6. pass forced-mate and only-move safety suites;
+7. pass separate paired-game gates for every exit/backend; and
+8. complete owner-approved packaging/licensing decisions.
 
 Until then, engines, GMs, uncertain opponents, FULL, PUNISH, and DEFEND continue
 to use authoritative alpha-beta.

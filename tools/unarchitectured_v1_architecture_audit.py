@@ -80,7 +80,10 @@ def audit(root=ROOT):
         "safety_fail_closed": safety["fail_closed"] is True,
         "runtime_capability_schema": capabilities["architecture"]
         == "Unarchitectured v1",
-        "scalar_forward_still_blocked": capabilities["scalar_neural_forward"]
+        "scalar_forward_available": capabilities["scalar_neural_forward"] is True,
+        "reference_vectors_available": capabilities["exported_reference_vectors"]
+        is True,
+        "quantized_forward_still_blocked": capabilities["quantized_neural_forward"]
         is False,
     }
     for architecture_key, student_key in mapping.items():

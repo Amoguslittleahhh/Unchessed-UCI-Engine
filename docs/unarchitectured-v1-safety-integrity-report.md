@@ -129,8 +129,8 @@ Any failed stage prevents later stages.
 ## Verification totals
 
 - Python: **107 passed, 0 failed, 1 dependency-gated skip**
-- Rust normal workspace: **123 passed, 0 failed, 3 ignored**
-- Rust deep/ignored tests: **3 passed separately**
+- Rust normal workspace: **129 passed, 0 failed, 5 ignored**
+- Rust deep/ignored tests: **5 passed separately**
 - Clippy `-D warnings`: PASS
 - Architecture audit: PASS
 - Feature schema audit: PASS

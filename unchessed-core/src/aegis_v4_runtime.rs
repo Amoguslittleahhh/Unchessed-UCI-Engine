@@ -1,5 +1,5 @@
-//! Pure-Rust inference forward pass for the AegisV4Chessformer architecture
-//! exported to a UNARCHV1 package (see `unarchitectured_v1.rs` for the
+//! Pure-Rust inference forward pass for the canonical Unarchitectured v1
+//! compact student (training class `AegisV4Chessformer`), exported to a UNARCHV1 package (see `unarchitectured_v1.rs` for the
 //! container format). This runs the *full* exit only (8 layers, width 256) --
 //! the shallow matryoshka exits exist purely to supervise distillation and
 //! are not needed at inference time.
@@ -8,9 +8,16 @@
 //! `AegisV4Chessformer.forward_path` / `history_context`, and cross-checked
 //! against a Python reference run on the same exported weights.
 
-use crate::board::{file_of, Move, Position, BISHOP, BQ, BK, KNIGHT, NO_EP, QUEEN, ROOK, WK, WQ};
+#![allow(
+    clippy::excessive_precision,
+    clippy::needless_range_loop,
+    clippy::too_many_arguments
+)]
+
+use crate::board::{file_of, Move, Position, BISHOP, BK, BQ, KNIGHT, NO_EP, QUEEN, ROOK, WK, WQ};
 use crate::unarchitectured_v1::TensorPackage;
 use std::collections::HashMap;
+use std::sync::OnceLock;
 
 pub const D_MODEL: usize = 256;
 pub const HEADS: usize = 8;
@@ -26,6 +33,198 @@ pub const MAX_LEGAL_ACTIONS: usize = 218;
 
 pub const POLICY_HUMAN: usize = 0;
 pub const POLICY_GUIDE: usize = 1;
+
+type DotKernel = fn(&[f32], &[f32]) -> f32;
+type Dot4Kernel = fn(&[f32], usize, &[f32]) -> [f32; 4];
+type AxpyKernel = fn(f32, &[f32], &mut [f32]);
+
+static DOT_KERNEL: OnceLock<DotKernel> = OnceLock::new();
+static DOT4_KERNEL: OnceLock<Dot4Kernel> = OnceLock::new();
+static AXPY_KERNEL: OnceLock<AxpyKernel> = OnceLock::new();
+static INFERENCE_THREADS: OnceLock<usize> = OnceLock::new();
+
+fn inference_threads() -> usize {
+    *INFERENCE_THREADS.get_or_init(|| {
+        std::env::var("UNCHESSED_INFERENCE_THREADS")
+            .ok()
+            .and_then(|value| value.parse::<usize>().ok())
+            .filter(|&value| value > 0)
+            .unwrap_or_else(|| {
+                std::thread::available_parallelism()
+                    .map(usize::from)
+                    .unwrap_or(1)
+                    .min(4)
+            })
+    })
+}
+
+#[inline]
+fn dot_product(left: &[f32], right: &[f32]) -> f32 {
+    debug_assert_eq!(left.len(), right.len());
+    DOT_KERNEL.get_or_init(select_dot_kernel)(left, right)
+}
+
+#[inline]
+fn dot_four(rows: &[f32], row_stride: usize, weights: &[f32]) -> [f32; 4] {
+    debug_assert!(rows.len() >= 3 * row_stride + weights.len());
+    DOT4_KERNEL.get_or_init(select_dot4_kernel)(rows, row_stride, weights)
+}
+
+#[inline]
+fn scaled_add(scale: f32, source: &[f32], destination: &mut [f32]) {
+    debug_assert_eq!(source.len(), destination.len());
+    AXPY_KERNEL.get_or_init(select_axpy_kernel)(scale, source, destination)
+}
+
+fn select_dot_kernel() -> DotKernel {
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    if std::is_x86_feature_detected!("avx2") && std::is_x86_feature_detected!("fma") {
+        return |left, right| unsafe { dot_avx2_fma(left, right) };
+    }
+    dot_scalar
+}
+
+fn select_dot4_kernel() -> Dot4Kernel {
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    if std::is_x86_feature_detected!("avx2") && std::is_x86_feature_detected!("fma") {
+        return |rows, stride, weights| unsafe { dot4_avx2_fma(rows, stride, weights) };
+    }
+    dot4_scalar
+}
+
+fn select_axpy_kernel() -> AxpyKernel {
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    if std::is_x86_feature_detected!("avx2") && std::is_x86_feature_detected!("fma") {
+        return |scale, source, destination| unsafe { axpy_avx2_fma(scale, source, destination) };
+    }
+    axpy_scalar
+}
+
+#[inline]
+fn dot_scalar(left: &[f32], right: &[f32]) -> f32 {
+    let mut lanes = [0.0f32; 4];
+    let mut chunks = left.chunks_exact(4);
+    let mut right_chunks = right.chunks_exact(4);
+    for (a, b) in chunks.by_ref().zip(right_chunks.by_ref()) {
+        lanes[0] += a[0] * b[0];
+        lanes[1] += a[1] * b[1];
+        lanes[2] += a[2] * b[2];
+        lanes[3] += a[3] * b[3];
+    }
+    let mut sum = lanes.into_iter().sum::<f32>();
+    for (&a, &b) in chunks.remainder().iter().zip(right_chunks.remainder()) {
+        sum += a * b;
+    }
+    sum
+}
+
+#[inline]
+fn dot4_scalar(rows: &[f32], row_stride: usize, weights: &[f32]) -> [f32; 4] {
+    [
+        dot_scalar(&rows[..weights.len()], weights),
+        dot_scalar(&rows[row_stride..row_stride + weights.len()], weights),
+        dot_scalar(
+            &rows[2 * row_stride..2 * row_stride + weights.len()],
+            weights,
+        ),
+        dot_scalar(
+            &rows[3 * row_stride..3 * row_stride + weights.len()],
+            weights,
+        ),
+    ]
+}
+
+#[inline]
+fn axpy_scalar(scale: f32, source: &[f32], destination: &mut [f32]) {
+    for (value, &input) in destination.iter_mut().zip(source) {
+        *value += scale * input;
+    }
+}
+
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+#[target_feature(enable = "avx2,fma")]
+unsafe fn dot4_avx2_fma(rows: &[f32], row_stride: usize, weights: &[f32]) -> [f32; 4] {
+    #[cfg(target_arch = "x86")]
+    use std::arch::x86::*;
+    #[cfg(target_arch = "x86_64")]
+    use std::arch::x86_64::*;
+    let mut accumulators = [_mm256_setzero_ps(); 4];
+    let vector_end = weights.len() / 8 * 8;
+    let mut index = 0usize;
+    while index < vector_end {
+        let weight = _mm256_loadu_ps(weights.as_ptr().add(index));
+        for row in 0..4 {
+            let input = _mm256_loadu_ps(rows.as_ptr().add(row * row_stride + index));
+            accumulators[row] = _mm256_fmadd_ps(input, weight, accumulators[row]);
+        }
+        index += 8;
+    }
+    let mut output = [0.0f32; 4];
+    for row in 0..4 {
+        let mut lanes = [0.0f32; 8];
+        _mm256_storeu_ps(lanes.as_mut_ptr(), accumulators[row]);
+        output[row] = lanes.into_iter().sum();
+        let mut tail = index;
+        while tail < weights.len() {
+            output[row] += rows[row * row_stride + tail] * weights[tail];
+            tail += 1;
+        }
+    }
+    output
+}
+
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+#[target_feature(enable = "avx2,fma")]
+unsafe fn dot_avx2_fma(left: &[f32], right: &[f32]) -> f32 {
+    #[cfg(target_arch = "x86")]
+    use std::arch::x86::*;
+    #[cfg(target_arch = "x86_64")]
+    use std::arch::x86_64::*;
+
+    let mut accumulator = _mm256_setzero_ps();
+    let vector_end = left.len() / 8 * 8;
+    let mut index = 0usize;
+    while index < vector_end {
+        let a = _mm256_loadu_ps(left.as_ptr().add(index));
+        let b = _mm256_loadu_ps(right.as_ptr().add(index));
+        accumulator = _mm256_fmadd_ps(a, b, accumulator);
+        index += 8;
+    }
+    let mut lanes = [0.0f32; 8];
+    _mm256_storeu_ps(lanes.as_mut_ptr(), accumulator);
+    let mut sum = lanes.into_iter().sum::<f32>();
+    while index < left.len() {
+        sum += left[index] * right[index];
+        index += 1;
+    }
+    sum
+}
+
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+#[target_feature(enable = "avx2,fma")]
+unsafe fn axpy_avx2_fma(scale: f32, source: &[f32], destination: &mut [f32]) {
+    #[cfg(target_arch = "x86")]
+    use std::arch::x86::*;
+    #[cfg(target_arch = "x86_64")]
+    use std::arch::x86_64::*;
+
+    let factor = _mm256_set1_ps(scale);
+    let vector_end = source.len() / 8 * 8;
+    let mut index = 0usize;
+    while index < vector_end {
+        let input = _mm256_loadu_ps(source.as_ptr().add(index));
+        let output = _mm256_loadu_ps(destination.as_ptr().add(index));
+        _mm256_storeu_ps(
+            destination.as_mut_ptr().add(index),
+            _mm256_fmadd_ps(factor, input, output),
+        );
+        index += 8;
+    }
+    while index < source.len() {
+        destination[index] += scale * source[index];
+        index += 1;
+    }
+}
 
 /// One dequantized tensor, row-major, with its logical shape for bounds
 /// documentation (not enforced beyond total length).
@@ -67,23 +266,99 @@ impl ChessformerWeights {
             if section.name == "__metadata__" {
                 continue;
             }
-            tensors.insert(section.name.to_string(), Tensor { data: dequantize(section) });
+            tensors.insert(
+                section.name.to_string(),
+                Tensor {
+                    data: dequantize(section),
+                },
+            );
         }
         let weights = ChessformerWeights { tensors };
-        weights.require("piece_embedding.weight")?;
+        weights.validate_schema()?;
         Ok(weights)
     }
 
-    fn require(&self, name: &str) -> Result<&Tensor, String> {
-        self.tensors
+    fn require_len(&self, name: &str, expected: usize) -> Result<(), String> {
+        let tensor = self
+            .tensors
             .get(name)
-            .ok_or_else(|| format!("UNARCHV1 package missing tensor {name:?}"))
+            .ok_or_else(|| format!("UNARCHV1 package missing tensor {name:?}"))?;
+        if tensor.data.len() != expected {
+            return Err(format!(
+                "UNARCHV1 tensor {name:?} has {} values, expected {expected}",
+                tensor.data.len()
+            ));
+        }
+        Ok(())
+    }
+
+    fn validate_schema(&self) -> Result<(), String> {
+        for (name, length) in [
+            ("piece_embedding.weight", 13 * D_MODEL),
+            ("square_embedding.weight", 64 * D_MODEL),
+            ("castling_embedding.weight", 16 * D_MODEL),
+            ("ep_embedding.weight", 9 * D_MODEL),
+            ("halfmove_embedding.weight", 16 * D_MODEL),
+            ("gab.token_projection", GAB_TOKEN_PROJECTION * D_MODEL),
+            (
+                "gab.compress.weight",
+                GAB_HIDDEN * 64 * GAB_TOKEN_PROJECTION,
+            ),
+            ("gab.compress.bias", GAB_HIDDEN),
+            ("gab.norm", GAB_HIDDEN),
+            ("gab.templates", GAB_TEMPLATES * 64 * 64),
+            ("final_norm.scale", D_MODEL),
+            ("value_weight", 3 * D_MODEL),
+            ("value_bias", 3),
+            ("time_embedding.weight", 5 * HISTORY_WIDTH),
+            ("rating_weight", HISTORY_WIDTH),
+            ("rating_bias", HISTORY_WIDTH),
+            ("history_project.weight", D_MODEL * HISTORY_WIDTH),
+            ("history_project.bias", D_MODEL),
+            ("promotion_bias.weight", 5),
+            ("regret_from", REGRET_WIDTH * D_MODEL),
+            ("regret_to", REGRET_WIDTH * D_MODEL),
+            ("regret_promotion.weight", 5 * REGRET_WIDTH),
+            ("regret_output.weight", 2 * REGRET_WIDTH),
+            ("regret_output.bias", 2),
+        ] {
+            self.require_len(name, length)?;
+        }
+        for prefix in ["policy_body", "policy_source", "policy_target"] {
+            self.require_len(&format!("{prefix}.weight"), D_MODEL * D_MODEL)?;
+            self.require_len(
+                &format!("{prefix}.adapter_a"),
+                2 * POLICY_ADAPTER_RANK * D_MODEL,
+            )?;
+            self.require_len(
+                &format!("{prefix}.adapter_b"),
+                2 * D_MODEL * POLICY_ADAPTER_RANK,
+            )?;
+        }
+        self.require_len("policy_body.bias", D_MODEL)?;
+        for layer in 0..LAYERS {
+            self.require_len(
+                &format!("gab.coefficients.{layer}.weight"),
+                HEADS * GAB_TEMPLATES * GAB_HIDDEN,
+            )?;
+            let prefix = format!("blocks.{layer}");
+            self.require_len(&format!("{prefix}.norm_attention.scale"), D_MODEL)?;
+            self.require_len(&format!("{prefix}.qkv"), 3 * D_MODEL * D_MODEL)?;
+            self.require_len(&format!("{prefix}.project"), D_MODEL * D_MODEL)?;
+            self.require_len(&format!("{prefix}.project_bias"), D_MODEL)?;
+            self.require_len(&format!("{prefix}.norm_ffn.scale"), D_MODEL)?;
+            self.require_len(&format!("{prefix}.up"), 2 * D_MODEL * D_MODEL)?;
+            self.require_len(&format!("{prefix}.up_bias"), 2 * D_MODEL)?;
+            self.require_len(&format!("{prefix}.down"), D_MODEL * D_MODEL)?;
+            self.require_len(&format!("{prefix}.down_bias"), D_MODEL)?;
+        }
+        Ok(())
     }
 
     fn t(&self, name: &str) -> &Tensor {
-        self.tensors
-            .get(name)
-            .unwrap_or_else(|| panic!("UNARCHV1 package missing tensor {name:?} (checked in from_package)"))
+        self.tensors.get(name).unwrap_or_else(|| {
+            panic!("UNARCHV1 package missing tensor {name:?} (checked in from_package)")
+        })
     }
 }
 
@@ -107,6 +382,31 @@ pub struct PositionInput {
     pub policy_kind: usize,
     /// Encoded legal actions, in the same coordinate frame as `pieces`.
     pub legal_actions: Vec<u16>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum InferenceExit {
+    Layer2Width128,
+    Layer4Width192,
+    Layer8Width256,
+}
+
+impl InferenceExit {
+    pub const fn layers(self) -> usize {
+        match self {
+            Self::Layer2Width128 => 2,
+            Self::Layer4Width192 => 4,
+            Self::Layer8Width256 => 8,
+        }
+    }
+
+    pub const fn width(self) -> usize {
+        match self {
+            Self::Layer2Width128 => 128,
+            Self::Layer4Width192 => 192,
+            Self::Layer8Width256 => 256,
+        }
+    }
 }
 
 pub struct ForwardOutput {
@@ -135,7 +435,7 @@ fn width_of_table(_table: &Tensor, width: usize) -> usize {
 }
 
 fn rmsnorm(values: &[f32], scale: &Tensor, width: usize, out: &mut [f32]) {
-    let mean_sq: f32 = values.iter().map(|v| v * v).sum::<f32>() / width as f32;
+    let mean_sq = dot_product(&values[..width], &values[..width]) / width as f32;
     let inv = 1.0 / (mean_sq + 1e-6).sqrt();
     for i in 0..width {
         out[i] = values[i] * inv * scale.get(i);
@@ -186,15 +486,214 @@ fn linear_full(
     bias: Option<&Tensor>,
     out: &mut [f32],
 ) {
-    for tok in 0..tokens {
-        let in_row = &values[tok * in_width..tok * in_width + in_width];
+    let threads = inference_threads().min(tokens);
+    let work = tokens.saturating_mul(in_width).saturating_mul(out_width);
+    if threads <= 1 || work < 1_000_000 {
+        linear_full_sequential(
+            values,
+            tokens,
+            in_width,
+            weight,
+            weight_stride,
+            out_width,
+            bias,
+            out,
+        );
+        return;
+    }
+    let tokens_per_thread = tokens.div_ceil(threads);
+    std::thread::scope(|scope| {
+        for (chunk_index, out_chunk) in out.chunks_mut(tokens_per_thread * out_width).enumerate() {
+            let token_start = chunk_index * tokens_per_thread;
+            let token_count = out_chunk.len() / out_width;
+            let input = &values[token_start * in_width..(token_start + token_count) * in_width];
+            scope.spawn(move || {
+                linear_full_sequential(
+                    input,
+                    token_count,
+                    in_width,
+                    weight,
+                    weight_stride,
+                    out_width,
+                    bias,
+                    out_chunk,
+                );
+            });
+        }
+    });
+}
+
+fn linear_full_sequential(
+    values: &[f32],
+    tokens: usize,
+    in_width: usize,
+    weight: &Tensor,
+    weight_stride: usize,
+    out_width: usize,
+    bias: Option<&Tensor>,
+    out: &mut [f32],
+) {
+    const TOKEN_BLOCK: usize = 4;
+    for token_start in (0..tokens).step_by(TOKEN_BLOCK) {
+        let token_end = (token_start + TOKEN_BLOCK).min(tokens);
         for o in 0..out_width {
-            let mut acc = bias.map(|b| b.get(o)).unwrap_or(0.0);
             let w_row = o * weight_stride;
-            for i in 0..in_width {
-                acc += in_row[i] * weight.get(w_row + i);
+            let weights = &weight.data[w_row..w_row + in_width];
+            let initial = bias.map(|b| b.get(o)).unwrap_or(0.0);
+            if token_end - token_start == 4 {
+                let results = dot_four(&values[token_start * in_width..], in_width, weights);
+                for lane in 0..4 {
+                    out[(token_start + lane) * out_width + o] = initial + results[lane];
+                }
+            } else {
+                for tok in token_start..token_end {
+                    let in_row = &values[tok * in_width..tok * in_width + in_width];
+                    out[tok * out_width + o] = initial + dot_product(in_row, weights);
+                }
             }
-            out[tok * out_width + o] = acc;
+        }
+    }
+}
+
+fn project_qkv(
+    normalized: &[f32],
+    tokens: usize,
+    width: usize,
+    weights: &Tensor,
+    q: &mut [f32],
+    k: &mut [f32],
+    v: &mut [f32],
+) {
+    const TOKEN_BLOCK: usize = 4;
+    for token_start in (0..tokens).step_by(TOKEN_BLOCK) {
+        let token_end = (token_start + TOKEN_BLOCK).min(tokens);
+        for o in 0..width {
+            let base_q = o * D_MODEL;
+            let base_k = (D_MODEL + o) * D_MODEL;
+            let base_v = (2 * D_MODEL + o) * D_MODEL;
+            let weight_q = &weights.data[base_q..base_q + width];
+            let weight_k = &weights.data[base_k..base_k + width];
+            let weight_v = &weights.data[base_v..base_v + width];
+            if token_end - token_start == 4 {
+                let rows = &normalized[token_start * D_MODEL..];
+                let result_q = dot_four(rows, D_MODEL, weight_q);
+                let result_k = dot_four(rows, D_MODEL, weight_k);
+                let result_v = dot_four(rows, D_MODEL, weight_v);
+                for lane in 0..4 {
+                    q[(token_start + lane) * width + o] = result_q[lane];
+                    k[(token_start + lane) * width + o] = result_k[lane];
+                    v[(token_start + lane) * width + o] = result_v[lane];
+                }
+            } else {
+                for tok in token_start..token_end {
+                    let input = &normalized[tok * D_MODEL..tok * D_MODEL + width];
+                    q[tok * width + o] = dot_product(input, weight_q);
+                    k[tok * width + o] = dot_product(input, weight_k);
+                    v[tok * width + o] = dot_product(input, weight_v);
+                }
+            }
+        }
+    }
+}
+
+fn project_up(
+    normalized: &[f32],
+    tokens: usize,
+    width: usize,
+    weights: &Tensor,
+    bias: &Tensor,
+    hidden: &mut [f32],
+    gate: &mut [f32],
+) {
+    const TOKEN_BLOCK: usize = 4;
+    for token_start in (0..tokens).step_by(TOKEN_BLOCK) {
+        let token_end = (token_start + TOKEN_BLOCK).min(tokens);
+        for o in 0..width {
+            let base_h = o * D_MODEL;
+            let base_g = (D_MODEL + o) * D_MODEL;
+            let weight_h = &weights.data[base_h..base_h + width];
+            let weight_g = &weights.data[base_g..base_g + width];
+            if token_end - token_start == 4 {
+                let rows = &normalized[token_start * width..];
+                let result_h = dot_four(rows, width, weight_h);
+                let result_g = dot_four(rows, width, weight_g);
+                for lane in 0..4 {
+                    hidden[(token_start + lane) * width + o] = bias.get(o) + result_h[lane];
+                    gate[(token_start + lane) * width + o] = bias.get(width + o) + result_g[lane];
+                }
+            } else {
+                for tok in token_start..token_end {
+                    let input = &normalized[tok * width..(tok + 1) * width];
+                    hidden[tok * width + o] = bias.get(o) + dot_product(input, weight_h);
+                    gate[tok * width + o] = bias.get(width + o) + dot_product(input, weight_g);
+                }
+            }
+        }
+    }
+}
+
+fn attention_heads(
+    q: &[f32],
+    k: &[f32],
+    v: &[f32],
+    geometric_bias: &[f32],
+    width: usize,
+    head_start: usize,
+    head_end: usize,
+) -> Vec<f32> {
+    let tokens = 64;
+    let head_dim = width / HEADS;
+    let scale = 1.0 / (head_dim as f32).sqrt();
+    let mut output = vec![0.0f32; (head_end - head_start) * tokens * head_dim];
+    let mut scores = [0.0f32; 64];
+    for h in head_start..head_end {
+        let bias_base = h * 64 * 64;
+        let local_head = h - head_start;
+        for i in 0..tokens {
+            let qi = &q[i * width + h * head_dim..i * width + h * head_dim + head_dim];
+            let mut max_score = f32::NEG_INFINITY;
+            for j in 0..tokens {
+                let kj = &k[j * width + h * head_dim..j * width + h * head_dim + head_dim];
+                let score = dot_product(qi, kj) * scale + geometric_bias[bias_base + i * 64 + j];
+                scores[j] = score;
+                max_score = max_score.max(score);
+            }
+            let mut sum = 0.0f32;
+            for score in &mut scores {
+                *score = (*score - max_score).exp();
+                sum += *score;
+            }
+            let output_base = (local_head * tokens + i) * head_dim;
+            let row = &mut output[output_base..output_base + head_dim];
+            let inverse_sum = 1.0 / sum;
+            for j in 0..tokens {
+                let value_base = j * width + h * head_dim;
+                scaled_add(
+                    scores[j] * inverse_sum,
+                    &v[value_base..value_base + head_dim],
+                    row,
+                );
+            }
+        }
+    }
+    output
+}
+
+fn copy_attention_heads(
+    source: &[f32],
+    destination: &mut [f32],
+    width: usize,
+    head_start: usize,
+    head_end: usize,
+) {
+    let head_dim = width / HEADS;
+    for h in head_start..head_end {
+        let local_head = h - head_start;
+        for token in 0..64 {
+            let source_base = (local_head * 64 + token) * head_dim;
+            let destination_base = token * width + h * head_dim;
+            destination[destination_base..destination_base + head_dim]
+                .copy_from_slice(&source[source_base..source_base + head_dim]);
         }
     }
 }
@@ -213,7 +712,7 @@ struct ElasticBlockWeights<'a> {
 
 fn elastic_block(
     values: &mut [f32; 64 * D_MODEL],
-    geometric_bias: &[f32; HEADS * 64 * 64],
+    geometric_bias: &[f32],
     width: usize,
     w: &ElasticBlockWeights,
 ) {
@@ -234,74 +733,72 @@ fn elastic_block(
     let mut q = vec![0f32; tokens * width];
     let mut k = vec![0f32; tokens * width];
     let mut v = vec![0f32; tokens * width];
-    for tok in 0..tokens {
-        let in_row = &normalized[tok * D_MODEL..tok * D_MODEL + width];
-        for o in 0..width {
-            let mut acc_q = 0f32;
-            let mut acc_k = 0f32;
-            let mut acc_v = 0f32;
-            let base_q = (0 * D_MODEL + o) * D_MODEL;
-            let base_k = (1 * D_MODEL + o) * D_MODEL;
-            let base_v = (2 * D_MODEL + o) * D_MODEL;
-            for i in 0..width {
-                let x = in_row[i];
-                acc_q += x * w.qkv.get(base_q + i);
-                acc_k += x * w.qkv.get(base_k + i);
-                acc_v += x * w.qkv.get(base_v + i);
-            }
-            q[tok * width + o] = acc_q;
-            k[tok * width + o] = acc_k;
-            v[tok * width + o] = acc_v;
-        }
+    if inference_threads() > 1 {
+        let split = tokens / 2;
+        let (q_left, q_right) = q.split_at_mut(split * width);
+        let (k_left, k_right) = k.split_at_mut(split * width);
+        let (v_left, v_right) = v.split_at_mut(split * width);
+        std::thread::scope(|scope| {
+            scope.spawn(|| {
+                project_qkv(
+                    &normalized[..split * D_MODEL],
+                    split,
+                    width,
+                    w.qkv,
+                    q_left,
+                    k_left,
+                    v_left,
+                );
+            });
+            project_qkv(
+                &normalized[split * D_MODEL..],
+                tokens - split,
+                width,
+                w.qkv,
+                q_right,
+                k_right,
+                v_right,
+            );
+        });
+    } else {
+        project_qkv(&normalized, tokens, width, w.qkv, &mut q, &mut k, &mut v);
     }
 
-    // Scaled dot-product attention per head, with the geometric bias added
-    // to the raw scores (matches `attn_mask=geometric_bias` as an additive bias).
-    let head_dim = width / HEADS;
-    let scale = 1.0 / (head_dim as f32).sqrt();
-    let mut attended = vec![0f32; tokens * width];
-    let mut scores = vec![0f32; tokens];
-    for h in 0..HEADS {
-        let bias_base = h * 64 * 64;
-        for i in 0..tokens {
-            let qi = &q[i * width + h * head_dim..i * width + h * head_dim + head_dim];
-            let mut max_score = f32::NEG_INFINITY;
-            for j in 0..tokens {
-                let kj = &k[j * width + h * head_dim..j * width + h * head_dim + head_dim];
-                let mut dot = 0f32;
-                for d in 0..head_dim {
-                    dot += qi[d] * kj[d];
-                }
-                let s = dot * scale + geometric_bias[bias_base + i * 64 + j];
-                scores[j] = s;
-                if s > max_score {
-                    max_score = s;
-                }
-            }
-            let mut sum = 0f32;
-            for j in 0..tokens {
-                let e = (scores[j] - max_score).exp();
-                scores[j] = e;
-                sum += e;
-            }
-            let out_base = i * width + h * head_dim;
-            for d in 0..head_dim {
-                let mut acc = 0f32;
-                for j in 0..tokens {
-                    acc += scores[j] * v[j * width + h * head_dim + d];
-                }
-                attended[out_base + d] = acc / sum;
-            }
-        }
+    // Scaled dot-product attention. Heads are independent, so split them
+    // across two scoped workers without changing per-head reduction order.
+    let mut attended = vec![0.0f32; tokens * width];
+    if inference_threads() > 1 {
+        let split = HEADS / 2;
+        std::thread::scope(|scope| {
+            let left = scope.spawn(|| attention_heads(&q, &k, &v, geometric_bias, width, 0, split));
+            let right = attention_heads(&q, &k, &v, geometric_bias, width, split, HEADS);
+            let left = left.join().expect("attention worker panicked");
+            copy_attention_heads(&left, &mut attended, width, 0, split);
+            copy_attention_heads(&right, &mut attended, width, split, HEADS);
+        });
+    } else {
+        let all = attention_heads(&q, &k, &v, geometric_bias, width, 0, HEADS);
+        copy_attention_heads(&all, &mut attended, width, 0, HEADS);
     }
 
     // project (width x width slice of D_MODEL x D_MODEL) + residual
     let mut delta = vec![0f32; tokens * width];
-    linear_full(&attended, tokens, width, w.project, D_MODEL, width, Some(w.project_bias), &mut delta);
+    linear_full(
+        &attended,
+        tokens,
+        width,
+        w.project,
+        D_MODEL,
+        width,
+        Some(w.project_bias),
+        &mut delta,
+    );
     for tok in 0..tokens {
-        for i in 0..width {
-            values[tok * D_MODEL + i] += delta[tok * width + i];
-        }
+        scaled_add(
+            1.0,
+            &delta[tok * width..(tok + 1) * width],
+            &mut values[tok * D_MODEL..tok * D_MODEL + width],
+        );
     }
 
     // FFN
@@ -317,36 +814,102 @@ fn elastic_block(
     // up: shape (2, D_MODEL, D_MODEL) sliced to (2, width, width), reshaped (2*width, width)
     let mut hidden = vec![0f32; tokens * width];
     let mut gate = vec![0f32; tokens * width];
-    for tok in 0..tokens {
-        let in_row = &normalized2[tok * width..tok * width + width];
-        for o in 0..width {
-            let mut acc_h = w.up_bias.get(o);
-            let mut acc_g = w.up_bias.get(width + o);
-            let base_h = (0 * D_MODEL + o) * D_MODEL;
-            let base_g = (1 * D_MODEL + o) * D_MODEL;
-            for i in 0..width {
-                acc_h += in_row[i] * w.up.get(base_h + i);
-                acc_g += in_row[i] * w.up.get(base_g + i);
-            }
-            hidden[tok * width + o] = acc_h;
-            gate[tok * width + o] = acc_g;
-        }
+    if inference_threads() > 1 {
+        let split = tokens / 2;
+        let (hidden_left, hidden_right) = hidden.split_at_mut(split * width);
+        let (gate_left, gate_right) = gate.split_at_mut(split * width);
+        std::thread::scope(|scope| {
+            scope.spawn(|| {
+                project_up(
+                    &normalized2[..split * width],
+                    split,
+                    width,
+                    w.up,
+                    w.up_bias,
+                    hidden_left,
+                    gate_left,
+                );
+            });
+            project_up(
+                &normalized2[split * width..],
+                tokens - split,
+                width,
+                w.up,
+                w.up_bias,
+                hidden_right,
+                gate_right,
+            );
+        });
+    } else {
+        project_up(
+            &normalized2,
+            tokens,
+            width,
+            w.up,
+            w.up_bias,
+            &mut hidden,
+            &mut gate,
+        );
     }
     let mut ffn_input = vec![0f32; tokens * width];
     for i in 0..tokens * width {
         ffn_input[i] = silu(gate[i]) * hidden[i];
     }
     let mut ffn_out = vec![0f32; tokens * width];
-    linear_full(&ffn_input, tokens, width, w.down, D_MODEL, width, Some(w.down_bias), &mut ffn_out);
+    linear_full(
+        &ffn_input,
+        tokens,
+        width,
+        w.down,
+        D_MODEL,
+        width,
+        Some(w.down_bias),
+        &mut ffn_out,
+    );
     for tok in 0..tokens {
-        for i in 0..width {
-            values[tok * D_MODEL + i] += ffn_out[tok * width + i];
-        }
+        scaled_add(
+            1.0,
+            &ffn_out[tok * width..(tok + 1) * width],
+            &mut values[tok * D_MODEL..tok * D_MODEL + width],
+        );
     }
 }
 
+pub fn validate_input(input: &PositionInput) -> Result<(), String> {
+    if input.pieces.iter().any(|&piece| piece > 12) {
+        return Err("Chessformer input contains an invalid piece token".into());
+    }
+    if input.castling >= 16 || input.ep_file > 8 || input.time_class >= 5 {
+        return Err("Chessformer input contains invalid global state".into());
+    }
+    if input.policy_kind > POLICY_GUIDE {
+        return Err("Chessformer input contains invalid policy kind".into());
+    }
+    if input.legal_actions.is_empty() || input.legal_actions.len() > MAX_LEGAL_ACTIONS {
+        return Err("Chessformer legal action count outside 1..=218".into());
+    }
+    if input
+        .legal_actions
+        .iter()
+        .any(|&action| action as usize >= 64 * 64 * 5)
+    {
+        return Err("Chessformer input contains invalid action encoding".into());
+    }
+    Ok(())
+}
+
 pub fn forward(weights: &ChessformerWeights, input: &PositionInput) -> ForwardOutput {
-    let width = D_MODEL;
+    forward_at_exit(weights, input, InferenceExit::Layer8Width256)
+}
+
+pub fn forward_at_exit(
+    weights: &ChessformerWeights,
+    input: &PositionInput,
+    exit: InferenceExit,
+) -> ForwardOutput {
+    validate_input(input).expect("invalid Chessformer runtime input");
+    let width = exit.width();
+    let layers = exit.layers();
     let tokens = 64;
 
     // --- Embeddings ---
@@ -359,10 +922,25 @@ pub fn forward(weights: &ChessformerWeights, input: &PositionInput) -> ForwardOu
         embed(square_table, sq, D_MODEL, out);
     }
     let mut global_state = [0f32; D_MODEL];
-    embed(weights.t("castling_embedding.weight"), input.castling as usize, D_MODEL, &mut global_state);
-    embed(weights.t("ep_embedding.weight"), input.ep_file as usize, D_MODEL, &mut global_state);
+    embed(
+        weights.t("castling_embedding.weight"),
+        input.castling as usize,
+        D_MODEL,
+        &mut global_state,
+    );
+    embed(
+        weights.t("ep_embedding.weight"),
+        input.ep_file as usize,
+        D_MODEL,
+        &mut global_state,
+    );
     let halfmove_bucket = ((input.halfmove_clock / 8) as usize).min(15);
-    embed(weights.t("halfmove_embedding.weight"), halfmove_bucket, D_MODEL, &mut global_state);
+    embed(
+        weights.t("halfmove_embedding.weight"),
+        halfmove_bucket,
+        D_MODEL,
+        &mut global_state,
+    );
     for sq in 0..64 {
         for i in 0..D_MODEL {
             values[sq * D_MODEL + i] += global_state[i];
@@ -374,12 +952,11 @@ pub fn forward(weights: &ChessformerWeights, input: &PositionInput) -> ForwardOu
     let mut projected = vec![0f32; 64 * GAB_TOKEN_PROJECTION];
     for sq in 0..64 {
         for o in 0..GAB_TOKEN_PROJECTION {
-            let mut acc = 0f32;
             let row = o * D_MODEL;
-            for i in 0..width {
-                acc += values[sq * D_MODEL + i] * token_projection.get(row + i);
-            }
-            projected[sq * GAB_TOKEN_PROJECTION + o] = acc;
+            projected[sq * GAB_TOKEN_PROJECTION + o] = dot_product(
+                &values[sq * D_MODEL..sq * D_MODEL + width],
+                &token_projection.data[row..row + width],
+            );
         }
     }
     // flatten(1): (64*GAB_TOKEN_PROJECTION) -> compress: Linear(64*d1, hidden)
@@ -388,17 +965,16 @@ pub fn forward(weights: &ChessformerWeights, input: &PositionInput) -> ForwardOu
     let flat_width = 64 * GAB_TOKEN_PROJECTION;
     let mut compressed = [0f32; GAB_HIDDEN];
     for o in 0..GAB_HIDDEN {
-        let mut acc = compress_bias.get(o);
         let row = o * flat_width;
-        for i in 0..flat_width {
-            acc += projected[i] * compress_weight.get(row + i);
-        }
-        compressed[o] = gelu(acc);
+        compressed[o] = gelu(
+            compress_bias.get(o)
+                + dot_product(&projected, &compress_weight.data[row..row + flat_width]),
+        );
     }
     let mut context = [0f32; GAB_HIDDEN];
     let gab_norm = weights.t("gab.norm");
     {
-        let mean_sq: f32 = compressed.iter().map(|v| v * v).sum::<f32>() / GAB_HIDDEN as f32;
+        let mean_sq = dot_product(&compressed, &compressed) / GAB_HIDDEN as f32;
         let inv = 1.0 / (mean_sq + 1e-6).sqrt();
         for i in 0..GAB_HIDDEN {
             context[i] = compressed[i] * inv * gab_norm.get(i);
@@ -407,16 +983,12 @@ pub fn forward(weights: &ChessformerWeights, input: &PositionInput) -> ForwardOu
 
     let templates = weights.t("gab.templates"); // (GAB_TEMPLATES, 64, 64)
 
-    for layer in 0..LAYERS {
+    for layer in 0..layers {
         let coeff_weight = weights.t(&format!("gab.coefficients.{layer}.weight")); // (HEADS*GAB_TEMPLATES, GAB_HIDDEN)
         let mut coefficients = [0f32; HEADS * GAB_TEMPLATES];
         for o in 0..HEADS * GAB_TEMPLATES {
-            let mut acc = 0f32;
             let row = o * GAB_HIDDEN;
-            for i in 0..GAB_HIDDEN {
-                acc += context[i] * coeff_weight.get(row + i);
-            }
-            coefficients[o] = acc;
+            coefficients[o] = dot_product(&context, &coeff_weight.data[row..row + GAB_HIDDEN]);
         }
         let mut geometric_bias = vec![0f32; HEADS * 64 * 64].into_boxed_slice();
         for h in 0..HEADS {
@@ -427,14 +999,13 @@ pub fn forward(weights: &ChessformerWeights, input: &PositionInput) -> ForwardOu
                 }
                 let tmpl_base = t * 64 * 64;
                 let out_base = h * 64 * 64;
-                for ij in 0..64 * 64 {
-                    geometric_bias[out_base + ij] += c * templates.get(tmpl_base + ij);
-                }
+                scaled_add(
+                    c,
+                    &templates.data[tmpl_base..tmpl_base + 64 * 64],
+                    &mut geometric_bias[out_base..out_base + 64 * 64],
+                );
             }
         }
-        let mut geometric_bias_fixed = [0f32; HEADS * 64 * 64];
-        geometric_bias_fixed.copy_from_slice(&geometric_bias);
-
         let block = ElasticBlockWeights {
             norm_attention: weights.t(&format!("blocks.{layer}.norm_attention.scale")),
             qkv: weights.t(&format!("blocks.{layer}.qkv")),
@@ -446,7 +1017,7 @@ pub fn forward(weights: &ChessformerWeights, input: &PositionInput) -> ForwardOu
             down: weights.t(&format!("blocks.{layer}.down")),
             down_bias: weights.t(&format!("blocks.{layer}.down_bias")),
         };
-        elastic_block(&mut values, &geometric_bias_fixed, width, &block);
+        elastic_block(&mut values, &geometric_bias, width, &block);
     }
 
     // --- Final norm + pooling ---
@@ -461,9 +1032,11 @@ pub fn forward(weights: &ChessformerWeights, input: &PositionInput) -> ForwardOu
     }
     let mut pooled = [0f32; D_MODEL];
     for tok in 0..tokens {
-        for i in 0..width {
-            pooled[i] += normalized[tok * width + i];
-        }
+        scaled_add(
+            1.0,
+            &normalized[tok * width..(tok + 1) * width],
+            &mut pooled,
+        );
     }
     for i in 0..width {
         pooled[i] /= tokens as f32;
@@ -474,18 +1047,21 @@ pub fn forward(weights: &ChessformerWeights, input: &PositionInput) -> ForwardOu
     let value_bias = weights.t("value_bias");
     let mut evidence = [0f32; 3];
     for o in 0..3 {
-        let mut acc = value_bias.get(o);
         let row = o * D_MODEL;
-        for i in 0..width {
-            acc += pooled[i] * value_weight.get(row + i);
-        }
-        evidence[o] = softplus(acc);
+        evidence[o] = softplus(
+            value_bias.get(o) + dot_product(&pooled, &value_weight.data[row..row + width]),
+        );
     }
 
     // --- History context (no move history at inference: history_len=0) ---
     let normalized_rating = (((input.rating as f32) - 100.0) / 3550.0).clamp(0.0, 1.0);
     let mut history_vec = [0f32; HISTORY_WIDTH];
-    embed(weights.t("time_embedding.weight"), input.time_class, HISTORY_WIDTH, &mut history_vec);
+    embed(
+        weights.t("time_embedding.weight"),
+        input.time_class,
+        HISTORY_WIDTH,
+        &mut history_vec,
+    );
     let rating_weight = weights.t("rating_weight");
     let rating_bias = weights.t("rating_bias");
     for i in 0..HISTORY_WIDTH {
@@ -495,20 +1071,26 @@ pub fn forward(weights: &ChessformerWeights, input: &PositionInput) -> ForwardOu
     let history_project_b = weights.t("history_project.bias");
     let mut history_full = [0f32; D_MODEL];
     for o in 0..D_MODEL {
-        let mut acc = history_project_b.get(o);
         let row = o * HISTORY_WIDTH;
-        for i in 0..HISTORY_WIDTH {
-            acc += history_vec[i] * history_project_w.get(row + i);
-        }
-        history_full[o] = acc;
+        history_full[o] = history_project_b.get(o)
+            + dot_product(
+                &history_vec,
+                &history_project_w.data[row..row + HISTORY_WIDTH],
+            );
     }
 
     // --- Policy heads ---
     let mut body = vec![0f32; tokens * width];
     persona_full(
-        &normalized, tokens, width, input.policy_kind, &history_full,
-        weights.t("policy_body.weight"), Some(weights.t("policy_body.bias")),
-        weights.t("policy_body.adapter_a"), weights.t("policy_body.adapter_b"),
+        &normalized,
+        tokens,
+        width,
+        input.policy_kind,
+        &history_full,
+        weights.t("policy_body.weight"),
+        Some(weights.t("policy_body.bias")),
+        weights.t("policy_body.adapter_a"),
+        weights.t("policy_body.adapter_b"),
         &mut body,
     );
     for v in body.iter_mut() {
@@ -516,16 +1098,28 @@ pub fn forward(weights: &ChessformerWeights, input: &PositionInput) -> ForwardOu
     }
     let mut source_values = vec![0f32; tokens * width];
     persona_full(
-        &body, tokens, width, input.policy_kind, &history_full,
-        weights.t("policy_source.weight"), None,
-        weights.t("policy_source.adapter_a"), weights.t("policy_source.adapter_b"),
+        &body,
+        tokens,
+        width,
+        input.policy_kind,
+        &history_full,
+        weights.t("policy_source.weight"),
+        None,
+        weights.t("policy_source.adapter_a"),
+        weights.t("policy_source.adapter_b"),
         &mut source_values,
     );
     let mut target_values = vec![0f32; tokens * width];
     persona_full(
-        &body, tokens, width, input.policy_kind, &history_full,
-        weights.t("policy_target.weight"), None,
-        weights.t("policy_target.adapter_a"), weights.t("policy_target.adapter_b"),
+        &body,
+        tokens,
+        width,
+        input.policy_kind,
+        &history_full,
+        weights.t("policy_target.weight"),
+        None,
+        weights.t("policy_target.adapter_a"),
+        weights.t("policy_target.adapter_b"),
         &mut target_values,
     );
 
@@ -537,11 +1131,9 @@ pub fn forward(weights: &ChessformerWeights, input: &PositionInput) -> ForwardOu
         let source_sq = (action & 63) as usize;
         let target_sq = ((action >> 6) & 63) as usize;
         let promotion = ((action >> 12) as usize).min(4);
-        let mut dot = 0f32;
-        for i in 0..width {
-            dot += source_values[source_sq * width + i] * target_values[target_sq * width + i];
-        }
-        logits[idx] = dot * scale + promotion_bias.get(promotion);
+        let source = &source_values[source_sq * width..(source_sq + 1) * width];
+        let target = &target_values[target_sq * width..(target_sq + 1) * width];
+        logits[idx] = dot_product(source, target) * scale + promotion_bias.get(promotion);
     }
 
     // --- Regret head ---
@@ -553,18 +1145,14 @@ pub fn forward(weights: &ChessformerWeights, input: &PositionInput) -> ForwardOu
 
     let mut regret_source_all = vec![0f32; 64 * REGRET_WIDTH];
     let mut regret_target_all = vec![0f32; 64 * REGRET_WIDTH];
-    for sq in 0..64 {
-        for o in 0..REGRET_WIDTH {
-            let mut acc_s = 0f32;
-            let mut acc_t = 0f32;
-            let row = o * D_MODEL;
-            for i in 0..width {
-                let x = normalized[sq * width + i];
-                acc_s += x * regret_from.get(row + i);
-                acc_t += x * regret_to.get(row + i);
-            }
-            regret_source_all[sq * REGRET_WIDTH + o] = acc_s;
-            regret_target_all[sq * REGRET_WIDTH + o] = acc_t;
+    for o in 0..REGRET_WIDTH {
+        let row = o * D_MODEL;
+        let weight_from = &regret_from.data[row..row + width];
+        let weight_to = &regret_to.data[row..row + width];
+        for sq in 0..64 {
+            let input = &normalized[sq * width..(sq + 1) * width];
+            regret_source_all[sq * REGRET_WIDTH + o] = dot_product(input, weight_from);
+            regret_target_all[sq * REGRET_WIDTH + o] = dot_product(input, weight_to);
         }
     }
     let mut regret_mean = vec![0f32; legal_count];
@@ -580,17 +1168,24 @@ pub fn forward(weights: &ChessformerWeights, input: &PositionInput) -> ForwardOu
                 + regret_promotion.get(promotion * REGRET_WIDTH + i))
             .tanh();
         }
-        let mut raw0 = regret_output_b.get(0);
-        let mut raw1 = regret_output_b.get(1);
-        for i in 0..REGRET_WIDTH {
-            raw0 += hidden[i] * regret_output_w.get(i);
-            raw1 += hidden[i] * regret_output_w.get(REGRET_WIDTH + i);
-        }
+        let raw0 =
+            regret_output_b.get(0) + dot_product(&hidden, &regret_output_w.data[..REGRET_WIDTH]);
+        let raw1 = regret_output_b.get(1)
+            + dot_product(
+                &hidden,
+                &regret_output_w.data[REGRET_WIDTH..2 * REGRET_WIDTH],
+            );
         regret_mean[idx] = softplus(raw0);
         regret_log_scale[idx] = raw1.clamp(-8.0, 4.0);
     }
 
-    ForwardOutput { logits, regret_mean, regret_log_scale, evidence, representation: pooled }
+    ForwardOutput {
+        logits,
+        regret_mean,
+        regret_log_scale,
+        evidence,
+        representation: pooled,
+    }
 }
 
 /// Same as `persona` but takes the full D_MODEL-wide history vector (the
@@ -611,26 +1206,41 @@ fn persona_full(
     linear_full(values, tokens, width, weight, D_MODEL, width, bias, out);
     let a_base = policy_kind * POLICY_ADAPTER_RANK * D_MODEL;
     let b_base = policy_kind * D_MODEL * POLICY_ADAPTER_RANK;
-    let mut low = vec![0f32; tokens * POLICY_ADAPTER_RANK];
+    let mut adapter_input = values.to_vec();
     for tok in 0..tokens {
+        scaled_add(
+            1.0,
+            &history[..width],
+            &mut adapter_input[tok * width..(tok + 1) * width],
+        );
+    }
+    let mut low = vec![0f32; tokens * POLICY_ADAPTER_RANK];
+    const TOKEN_BLOCK: usize = 4;
+    for token_start in (0..tokens).step_by(TOKEN_BLOCK) {
+        let token_end = (token_start + TOKEN_BLOCK).min(tokens);
         for r in 0..POLICY_ADAPTER_RANK {
-            let mut acc = 0f32;
             let row = a_base + r * D_MODEL;
-            for i in 0..width {
-                let x = values[tok * width + i] + history[i];
-                acc += x * adapter_a.get(row + i);
+            let adapter = &adapter_a.data[row..row + width];
+            if token_end - token_start == 4 {
+                let result = dot_four(&adapter_input[token_start * width..], width, adapter);
+                for lane in 0..4 {
+                    low[(token_start + lane) * POLICY_ADAPTER_RANK + r] = result[lane];
+                }
+            } else {
+                for tok in token_start..token_end {
+                    low[tok * POLICY_ADAPTER_RANK + r] =
+                        dot_product(&adapter_input[tok * width..(tok + 1) * width], adapter);
+                }
             }
-            low[tok * POLICY_ADAPTER_RANK + r] = acc;
         }
     }
     for tok in 0..tokens {
+        let low_row = &low[tok * POLICY_ADAPTER_RANK..(tok + 1) * POLICY_ADAPTER_RANK];
         for o in 0..width {
-            let mut acc = 0f32;
             let row = b_base + o * POLICY_ADAPTER_RANK;
-            for r in 0..POLICY_ADAPTER_RANK {
-                acc += low[tok * POLICY_ADAPTER_RANK + r] * adapter_b.get(row + r);
-            }
-            out[tok * width + o] += acc / POLICY_ADAPTER_RANK as f32;
+            out[tok * width + o] +=
+                dot_product(low_row, &adapter_b.data[row..row + POLICY_ADAPTER_RANK])
+                    / POLICY_ADAPTER_RANK as f32;
         }
     }
 }
@@ -654,8 +1264,16 @@ pub fn position_to_input(
 
     let mut pieces = [0u8; 64];
     for p in 0..6usize {
-        let mover_bb = if flip { pos.bb[us][p].swap_bytes() } else { pos.bb[us][p] };
-        let opp_bb = if flip { pos.bb[them][p].swap_bytes() } else { pos.bb[them][p] };
+        let mover_bb = if flip {
+            pos.bb[us][p].swap_bytes()
+        } else {
+            pos.bb[us][p]
+        };
+        let opp_bb = if flip {
+            pos.bb[them][p].swap_bytes()
+        } else {
+            pos.bb[them][p]
+        };
         let mut bits = mover_bb;
         while bits != 0 {
             let sq = bits.trailing_zeros() as usize;
@@ -670,7 +1288,11 @@ pub fn position_to_input(
         }
     }
 
-    let (mk, mq, ok, oq) = if flip { (BK, BQ, WK, WQ) } else { (WK, WQ, BK, BQ) };
+    let (mk, mq, ok, oq) = if flip {
+        (BK, BQ, WK, WQ)
+    } else {
+        (WK, WQ, BK, BQ)
+    };
     let mut castling = 0u8;
     if pos.castling & mk != 0 {
         castling |= 1;
@@ -691,7 +1313,11 @@ pub fn position_to_input(
     let legal_actions: Vec<u16> = legal_moves
         .iter()
         .map(|&m| {
-            let (from, to) = if flip { (m.from() ^ 56, m.to() ^ 56) } else { (m.from(), m.to()) };
+            let (from, to) = if flip {
+                (m.from() ^ 56, m.to() ^ 56)
+            } else {
+                (m.from(), m.to())
+            };
             let promotion: u16 = if m.is_promo() {
                 match m.promo_piece() {
                     p if p == KNIGHT => 1,
@@ -723,6 +1349,9 @@ pub fn position_to_input(
 mod tests {
     use super::*;
     use crate::unarchitectured_v1::TensorPackage;
+    use std::sync::Mutex;
+
+    static BENCHMARK_LOCK: Mutex<()> = Mutex::new(());
 
     fn start_position_input() -> PositionInput {
         let mut pieces = [0u8; 64];
@@ -773,7 +1402,7 @@ mod tests {
         ChessformerWeights::from_package(&pkg).expect("build weights")
     }
 
-    /// Cross-checked against tools/_scratch_reference_forward.py run on the
+    /// Cross-checked against tools/reference_forward_aegis_v4.py run on the
     /// same real exported checkpoint (artifacts/unarchitectured-v1-final.unarchv1):
     ///   legal_count 20
     ///   logits[:20] = [-1.94899, -1.53363, -1.711539, -0.696044, -1.576939,
@@ -785,6 +1414,24 @@ mod tests {
     ///     0.049596, -0.239851, -0.521234, -1.072829]
     ///   best_action_index 7, action 1350
     #[test]
+    fn rejects_malformed_runtime_input() {
+        let mut input = start_position_input();
+        input.pieces[0] = 13;
+        assert!(validate_input(&input).is_err());
+        input.pieces[0] = 4;
+        input.legal_actions.clear();
+        assert!(validate_input(&input).is_err());
+    }
+
+    #[test]
+    fn rejects_incomplete_runtime_tensor_schema() {
+        let weights = ChessformerWeights {
+            tensors: HashMap::new(),
+        };
+        assert!(weights.validate_schema().is_err());
+    }
+
+    #[test]
     fn start_position_matches_python_reference() {
         let weights = load_reference_weights();
         let input = start_position_input();
@@ -792,9 +1439,9 @@ mod tests {
         let output = forward(&weights, &input);
 
         let expected_logits = [
-            -1.94899, -1.53363, -1.711539, -0.696044, -1.576939, -0.456242, -0.652165,
-            -0.287219, -1.707068, -1.615397, -1.915703, -1.426473, -1.761397, -1.96128,
-            -1.868046, -1.067433, -1.09751, -2.014229, -1.843139, -1.567619,
+            -1.94899, -1.53363, -1.711539, -0.696044, -1.576939, -0.456242, -0.652165, -0.287219,
+            -1.707068, -1.615397, -1.915703, -1.426473, -1.761397, -1.96128, -1.868046, -1.067433,
+            -1.09751, -2.014229, -1.843139, -1.567619,
         ];
         for (i, (&got, &want)) in output.logits.iter().zip(expected_logits.iter()).enumerate() {
             assert!(
@@ -803,7 +1450,11 @@ mod tests {
             );
         }
 
-        let expected_evidence = [3.3165156841278076f32, 0.04533608630299568, 3.893404245376587];
+        let expected_evidence = [
+            3.3165156841278076f32,
+            0.04533608630299568,
+            3.893404245376587,
+        ];
         for i in 0..3 {
             assert!(
                 (output.evidence[i] - expected_evidence[i]).abs() < 5e-3,
@@ -814,7 +1465,13 @@ mod tests {
         }
 
         let expected_representation = [
-            0.160754f32, -0.092479, 0.932122, -0.786012, 0.049596, -0.239851, -0.521234,
+            0.160754f32,
+            -0.092479,
+            0.932122,
+            -0.786012,
+            0.049596,
+            -0.239851,
+            -0.521234,
             -1.072829,
         ];
         for i in 0..8 {
@@ -875,8 +1532,8 @@ mod tests {
         let output = forward(&weights, &input);
 
         let expected_logits = [
-            -1.473108, -1.365497, -1.90742, -0.724959, -1.290341, -1.222262, -0.451867,
-            -1.899517, -1.401405, -1.672434, -1.534469, -1.091158, -2.957112,
+            -1.473108, -1.365497, -1.90742, -0.724959, -1.290341, -1.222262, -0.451867, -1.899517,
+            -1.401405, -1.672434, -1.534469, -1.091158, -2.957112,
         ];
         for (i, (&got, &want)) in output.logits.iter().zip(expected_logits.iter()).enumerate() {
             assert!(
@@ -885,7 +1542,11 @@ mod tests {
             );
         }
 
-        let expected_evidence = [3.3614559173583984f32, 0.04310621693730354, 3.917607545852661];
+        let expected_evidence = [
+            3.3614559173583984f32,
+            0.04310621693730354,
+            3.917607545852661,
+        ];
         for i in 0..3 {
             assert!(
                 (output.evidence[i] - expected_evidence[i]).abs() < 5e-3,
@@ -903,8 +1564,32 @@ mod tests {
     }
 
     #[test]
+    fn elastic_exit_shapes_and_finiteness() {
+        let weights = load_reference_weights();
+        let input = start_position_input();
+        for exit in [
+            InferenceExit::Layer2Width128,
+            InferenceExit::Layer4Width192,
+            InferenceExit::Layer8Width256,
+        ] {
+            let output = forward_at_exit(&weights, &input, exit);
+            assert_eq!(output.logits.len(), input.legal_actions.len());
+            assert!(output.logits.iter().all(|value| value.is_finite()));
+            assert!(output.regret_mean.iter().all(|value| value.is_finite()));
+            assert!(output.evidence.iter().all(|value| value.is_finite()));
+            assert!(output.representation[..exit.width()]
+                .iter()
+                .all(|value| value.is_finite()));
+            assert!(output.representation[exit.width()..]
+                .iter()
+                .all(|&value| value == 0.0));
+        }
+    }
+
+    #[test]
     #[ignore]
     fn benchmark_forward_pass() {
+        let _guard = BENCHMARK_LOCK.lock().unwrap();
         let weights = load_reference_weights();
         let input = start_position_input();
         for _ in 0..5 {
@@ -917,6 +1602,40 @@ mod tests {
         }
         let elapsed = started.elapsed();
         println!("{} calls in {:?} -> {:?}/call", n, elapsed, elapsed / n);
+    }
+
+    #[test]
+    #[ignore]
+    fn benchmark_exit_ladder() {
+        let _guard = BENCHMARK_LOCK.lock().unwrap();
+        let weights = load_reference_weights();
+        let input = start_position_input();
+        for exit in [
+            InferenceExit::Layer2Width128,
+            InferenceExit::Layer4Width192,
+            InferenceExit::Layer8Width256,
+        ] {
+            for _ in 0..3 {
+                std::hint::black_box(forward_at_exit(&weights, &input, exit));
+            }
+            let calls = match exit {
+                InferenceExit::Layer2Width128 => 500,
+                InferenceExit::Layer4Width192 => 300,
+                InferenceExit::Layer8Width256 => 100,
+            };
+            let started = std::time::Instant::now();
+            for _ in 0..calls {
+                std::hint::black_box(forward_at_exit(&weights, &input, exit));
+            }
+            let elapsed = started.elapsed();
+            println!(
+                "{:?}: {} calls in {:?} -> {:?}/call",
+                exit,
+                calls,
+                elapsed,
+                elapsed / calls,
+            );
+        }
     }
 
     /// Confirms `position_to_input` (real movegen + real board state) agrees
@@ -942,7 +1661,11 @@ mod tests {
         let weights = load_reference_weights();
         let live_output = forward(&weights, &live_input);
         let best = (0..live_input.legal_actions.len())
-            .max_by(|&a, &b| live_output.logits[a].partial_cmp(&live_output.logits[b]).unwrap())
+            .max_by(|&a, &b| {
+                live_output.logits[a]
+                    .partial_cmp(&live_output.logits[b])
+                    .unwrap()
+            })
             .unwrap();
         assert_eq!(
             live_input.legal_actions[best], 1350,

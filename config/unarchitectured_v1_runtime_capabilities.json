@@ -6,11 +6,11 @@
   "package_inspector": true,
   "rust_package_loader": true,
   "tensor_quantization_drift": true,
-  "scalar_neural_forward": false,
+  "scalar_neural_forward": true,
   "quantized_neural_forward": false,
-  "exported_reference_vectors": false,
-  "simd_neural_forward": false,
+  "exported_reference_vectors": true,
+  "simd_neural_forward": true,
   "runtime_safety_suite": false,
-  "notes": "Package infrastructure is implemented. Full scalar/quantized model inference and end-to-end reference-vector equality remain blockers.",
+  "notes": "Real checkpoint and full f32 scalar/SIMD forward are Python-parity validated. Shallow/middle parity, retained-int8 arithmetic, search integration, and chess runtime safety remain blocked.",
   "runtime_package_tests": true
 }

@@ -77,9 +77,23 @@ Unarchitectured v1 includes:
 - 1-8 GPU Oracle training and compact-student distillation; and
 - mandatory full-legal alpha-beta fallback.
 
-Calling it v1 does **not** claim it is trained or promoted. There is currently no
-`UNARCHV1` exporter, inspector, Rust evaluator, quantization drift report, Elo,
-or SPRT result.
+Calling it v1 does **not** claim it is promoted. A real calibrated checkpoint,
+strict package, Python reference, and numerically validated Rust forward pass
+now exist; search integration, full quantized neural arithmetic, Elo, and SPRT
+remain unpromoted.
+
+### Runtime forward performance
+
+The validated full 8-layer/256-width Rust forward was reduced from 208.61 ms to
+14.92 ms on the two-visible-CPU sandbox through AVX2/FMA, four-token matrix
+microkernels, cache blocking, and scoped QKV/FFN/attention parallelism. The
+trained Matryoshka exits measure 6.37 ms at 4/192 and 2.66 ms at 2/128.
+
+Full-exit Python/Rust parity and identical best-move tests still pass. Shallow
+and middle exits are not integrated and still require independent Python parity,
+calibration, and SPRT. See
+[`benchmarks/unarchitectured-v1/runtime-forward-2026-08-21.md`](benchmarks/unarchitectured-v1/runtime-forward-2026-08-21.md)
+and [`docs/unarchitectured-v1-runtime-optimization.md`](docs/unarchitectured-v1-runtime-optimization.md).
 
 ## Autonomous fail-closed safety
 
@@ -258,8 +272,8 @@ python3 -m unittest discover -s tools -p 'test_*.py'
 
 Latest full local audit:
 
-- 123 normal Rust tests passed;
-- 3 deep/ignored Rust tests passed separately;
+- 129 normal Rust tests passed;
+- 5 deep/ignored Rust tests passed separately;
 - 107 Python tests passed, with one A100 dependency-gated skip;
 - release build and Clippy `-D warnings` passed;
 - UCI smoke 9/9 passed;
@@ -313,17 +327,17 @@ strict Rust package loader, and tensor reconstruction drift tool now exist.
 Engine readiness remains blocked on:
 
 ```text
-complete scalar neural forward in unchessed-core
-quantized neural forward
-exported Python/Rust reference-vector equality
+retained-int8/integer neural arithmetic
+independent shallow/middle Python parity vectors
+safe asynchronous or clock-surplus search integration
 runtime mate/only-move safety suite
-SIMD implementation and equality tests
+integrated search NPS and paired-game SPRT
 ```
 
-`config/unarchitectured_v1_runtime_capabilities.json` records these capabilities
-explicitly, so adding package files cannot accidentally unlock paid training.
-No full GPU run, trained checkpoint, end-to-end quantization report, integrated
-neural NPS, Elo, or SPRT result is claimed.
+The full f32 Rust forward, AVX2/FMA kernels, real checkpoint, package loader, and
+full-exit Python reference equality now exist. The model is still unwired, and
+`config/unarchitectured_v1_runtime_capabilities.json` keeps readiness false
+until quantized arithmetic and chess-level runtime safety are proven.
 
 ## Research paper
 

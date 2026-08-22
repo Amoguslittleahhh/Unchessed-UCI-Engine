@@ -20,7 +20,9 @@ class V5RuntimeReadinessTests(unittest.TestCase):
         self.assertFalse(report["ready_for_engine_candidate_training"])
         self.assertTrue(all(value["exists"] for value in report["checks"].values()))
         self.assertTrue(report["capabilities"]["container_format"])
-        self.assertFalse(report["capabilities"]["scalar_neural_forward"])
+        self.assertTrue(report["capabilities"]["scalar_neural_forward"])
+        self.assertTrue(report["capabilities"]["exported_reference_vectors"])
+        self.assertFalse(report["capabilities"]["quantized_neural_forward"])
         self.assertFalse(report["capabilities"]["runtime_safety_suite"])
 
     def test_complete_fixture_becomes_ready(self):

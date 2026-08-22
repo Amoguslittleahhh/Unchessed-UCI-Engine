@@ -2,7 +2,9 @@
 """Ground-truth reference forward pass for AegisV4Chessformer, computed from
 the real exported UNARCHV1 package, for validating the Rust port against.
 
-Usage: python3 tools/_scratch_reference_forward.py artifacts/unarchitectured-v1-final.unarchv1
+Usage:
+  python3 tools/reference_forward_aegis_v4.py artifacts/unarchitectured-v1-final.unarchv1
+  python3 tools/reference_forward_aegis_v4.py artifacts/unarchitectured-v1-final.unarchv1 --all-exits
 """
 import json
 import math
@@ -234,6 +236,34 @@ def main():
     print("representation[:8]", [round(x, 6) for x in out["representation"][0][:8].tolist()])
     best = max(range(legal_count), key=lambda i: legal_logits[i])
     print("best_action_index", best, "action", actions[best], "logit", legal_logits[best])
+
+    if "--all-exits" in sys.argv[2:]:
+        for layers, width in ((2, 128), (4, 192), (8, 256)):
+            result = forward(w, batch, config, layers=layers, width=width)
+            values = result["logits"][0][:legal_count].tolist()
+            selected = max(range(legal_count), key=lambda index: values[index])
+            print(
+                "exit",
+                layers,
+                width,
+                "logits",
+                [round(value, 8) for value in values],
+            )
+            print(
+                "exit",
+                layers,
+                width,
+                "evidence",
+                [round(value, 8) for value in result["evidence"][0].tolist()],
+            )
+            print(
+                "exit",
+                layers,
+                width,
+                "representation",
+                [round(value, 8) for value in result["representation"][0][:8].tolist()],
+            )
+            print("exit", layers, width, "best", selected, actions[selected])
 
 
 if __name__ == "__main__":

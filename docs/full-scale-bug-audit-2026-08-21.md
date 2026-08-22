@@ -32,7 +32,7 @@ service credential was available or simulated.
 | Check | Result |
 |---|---:|
 | `cargo build --workspace --release` | PASS |
-| Rust normal workspace tests | **123 passed, 0 failed, 3 ignored** |
+| Rust normal workspace tests | **129 passed, 0 failed, 5 ignored** |
 | Rust ignored/deep tests, run separately | **3 passed, 0 failed** |
 | `cargo clippy --workspace --release -- -D warnings` | PASS, zero warnings |
 | `rustfmt --check` on changed Rust | PASS |
@@ -175,27 +175,28 @@ twice into memory.
 
 ## Open blockers and residual risks
 
-### O-01 — Critical: package bridge exists, neural runtime does not
+### O-01 — Critical: full f32 runtime exists, safe engine integration does not
 
-The `UNARCHV1` container, generic calibrated-checkpoint exporter, inspector,
-tensor reconstruction drift report, strict Rust package parser, and corruption
-tests now exist. Still missing:
+The real calibrated package, strict loader, complete full-exit f32 forward,
+independent Python vectors, AVX2/FMA kernels, and best-move parity now exist.
+Still missing:
 
 ```text
-complete scalar neural forward
-quantized neural forward
-exported Python/Rust reference vectors
-SIMD equality implementation
+retained-int8/integer neural arithmetic
+independent shallow/middle reference vectors
+nonblocking or clock-surplus search integration
 runtime mate/only-move safety suite
+integrated NPS and paired-game SPRT
 ```
 
 The capability manifest keeps readiness false until those semantic capabilities
-pass; file existence alone cannot unlock paid training.
+pass; file existence alone cannot unlock production routing.
 
-### O-02 — High: GPU/DDP code has not executed
+### O-02 — High: the committed GPU run was not reproduced in this sandbox
 
-PyTorch and NumPy are absent locally. Therefore the following remain source- and
-contract-tested, not runtime-tested:
+A real calibrated student package is committed and its runtime outputs are
+cross-checked. PyTorch and NumPy remain absent locally, so this audit did not
+independently rerun:
 
 - BF16/FP16 numerical behavior;
 - GradScaler overflow recovery on V100;
@@ -255,18 +256,13 @@ claims.** This does not promote the Unarchitectured v1 neural path, which remain
 
 ## Required staged rollout
 
-1. Implement scalar Rust Unarchitectured v1 package loading and exporter before renting a full
-   node for engine-candidate training.
-2. Run reduced self-check on the exact chosen GPU model.
-3. Run 100 optimizer steps with compilation disabled; verify finite metrics,
-   data uniqueness, and stable memory.
-4. Run one cardinality-sized epoch with compilation enabled and CUDA graphs
-   disabled.
-5. Run at most four epochs on one GPU; require validation improvement and a
-   working calibrated export round-trip.
-6. Only then scale to 2/4/8 GPUs and larger Oracle profiles.
-7. Quantize, compare float/export/Rust outputs, benchmark integrated NPS, and
-   run isolated paired-game gates.
+1. Generate independent Python reference vectors for the 2/128 and 4/192 exits.
+2. Implement retained-int8 arithmetic and gate end-to-end output drift.
+3. Benchmark full and shallow paths on the actual deployment CPUs.
+4. Add a nonblocking or clock-surplus-only root integration behind an option.
+5. Run mate/only-move and exact-clock-budget safety suites.
+6. Measure integrated NPS/depth before game testing.
+7. Run isolated paired-game gates for each exit and routing policy.
 
 ## Reproduction commands
 
