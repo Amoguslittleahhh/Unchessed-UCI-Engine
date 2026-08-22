@@ -75,6 +75,16 @@ Eight simultaneous accumulators increased register pressure and regressed the
 optimized full path from about 14.6ms to 17.9ms. The four-token microkernel was
 retained.
 
+### Int8 activation prototype
+
+A signed-int8 activation prototype used AVX2 `abs/sign/maddubs/madd` products
+against the retained int8 weights. Per-token symmetric quantization exceeded the
+existing Python gate (for example, the start-position first logit differed by
+about `1.01e-2`, versus the required `5e-3`). Affine and small-group variants
+also failed at least one frozen parity component. They were reverted rather than
+loosening correctness. The retained backend therefore uses int16 activations;
+its measured complete-output drift is below `1.21e-4`.
+
 ## Correctness
 
 The existing full-exit gates still pass unchanged:
