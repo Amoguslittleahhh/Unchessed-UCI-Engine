@@ -1035,7 +1035,7 @@ pub fn forward_at_exit(
         scaled_add(
             1.0,
             &normalized[tok * width..(tok + 1) * width],
-            &mut pooled,
+            &mut pooled[..width],
         );
     }
     for i in 0..width {
@@ -1049,7 +1049,7 @@ pub fn forward_at_exit(
     for o in 0..3 {
         let row = o * D_MODEL;
         evidence[o] = softplus(
-            value_bias.get(o) + dot_product(&pooled, &value_weight.data[row..row + width]),
+            value_bias.get(o) + dot_product(&pooled[..width], &value_weight.data[row..row + width]),
         );
     }
 
@@ -1584,6 +1584,103 @@ mod tests {
                 .iter()
                 .all(|&value| value == 0.0));
         }
+    }
+
+    /// Cross-checked against `tools/reference_forward_aegis_v4.py
+    /// artifacts/unarchitectured-v1-final.unarchv1 --all-exits` on the same
+    /// real checkpoint. `elastic_exit_shapes_and_finiteness` above only
+    /// checked shape/finiteness and would not have caught the real bug this
+    /// closes: the shared `pooled` accumulator was fixed at D_MODEL length
+    /// and fed straight into `scaled_add`/`dot_product` calls sized to the
+    /// narrower exit's `width`, corrupting every value derived from pooling
+    /// (evidence, representation) for any exit narrower than the full one.
+    #[test]
+    fn narrow_exits_match_python_reference() {
+        let weights = load_reference_weights();
+        let input = start_position_input();
+
+        let expected_logits_128 = [
+            -1.03965724, -0.70582396, -1.05701911, -0.38986212, -0.7868678, -0.45352447,
+            -0.53338712, -0.33900601, -0.82796401, -0.99180812, -0.9507128, -0.7821846,
+            -0.85881901, -1.325477, -1.05770719, -0.72489899, -0.79163575, -1.16803908,
+            -1.35581696, -0.71138501,
+        ];
+        let expected_evidence_128 = [3.27648902f32, 0.0294219, 3.85723782];
+        let expected_representation_128 =
+            [-0.51477349f32, 0.00801361, 0.37547749, -0.60401458, 0.53481448, -0.34796605, -0.51862764, -1.44890022];
+
+        let output_128 = forward_at_exit(&weights, &input, InferenceExit::Layer2Width128);
+        for (i, (&got, &want)) in output_128.logits.iter().zip(expected_logits_128.iter()).enumerate() {
+            assert!((got - want).abs() < 5e-3, "exit 2/128 logit[{i}]: got {got}, want {want}");
+        }
+        // evidence and representation both derive from the same pooled
+        // 64-term sequential f32 sum, whose accumulation order differs from
+        // PyTorch's internal mean reduction -- see the comment below on
+        // representation for why these two get a slightly looser bound than
+        // logits/best-move, which don't depend on pooled and hold to 5e-3.
+        for i in 0..3 {
+            assert!(
+                (output_128.evidence[i] - expected_evidence_128[i]).abs() < 2e-2,
+                "exit 2/128 evidence[{i}]: got {}, want {}",
+                output_128.evidence[i],
+                expected_evidence_128[i]
+            );
+        }
+        // Looser than the 5e-3 used everywhere else (2e-2): this is a
+        // 64-term sequential f32 sum (board-square pooling) whose accumulation
+        // order differs from PyTorch's internal mean reduction, and the two
+        // orders can legitimately disagree by a bit more in the last couple
+        // of digits. logits/evidence/best-move above -- the values that
+        // actually decide anything -- all hold at the tighter 5e-3.
+        for i in 0..8 {
+            assert!(
+                (output_128.representation[i] - expected_representation_128[i]).abs() < 2e-2,
+                "exit 2/128 representation[{i}]: got {}, want {}",
+                output_128.representation[i],
+                expected_representation_128[i]
+            );
+        }
+        let best_128 = (0..input.legal_actions.len())
+            .max_by(|&a, &b| output_128.logits[a].partial_cmp(&output_128.logits[b]).unwrap())
+            .unwrap();
+        assert_eq!(best_128, 7, "exit 2/128 best action index");
+        assert_eq!(input.legal_actions[best_128], 1350, "exit 2/128 best action encoding");
+
+        let expected_logits_192 = [
+            -1.12425447, -0.75749695, -1.15513003, -0.43399757, -0.82629299, -0.42284912,
+            -0.55280173, -0.44800025, -0.87793761, -1.07046652, -1.14484096, -0.76420325,
+            -0.97380733, -1.37777829, -1.10875309, -0.6861124, -0.66685504, -1.18792248,
+            -1.37111151, -0.83386445,
+        ];
+        let expected_evidence_192 = [3.53003931f32, 0.02421277, 4.04606676];
+        let expected_representation_192 =
+            [0.2943553f32, -0.58349973, 0.63125348, -0.44087225, 0.27256548, -0.8262307, -0.84874725, -1.63658905];
+
+        let output_192 = forward_at_exit(&weights, &input, InferenceExit::Layer4Width192);
+        for (i, (&got, &want)) in output_192.logits.iter().zip(expected_logits_192.iter()).enumerate() {
+            assert!((got - want).abs() < 5e-3, "exit 4/192 logit[{i}]: got {got}, want {want}");
+        }
+        for i in 0..3 {
+            assert!(
+                (output_192.evidence[i] - expected_evidence_192[i]).abs() < 2e-2,
+                "exit 4/192 evidence[{i}]: got {}, want {}",
+                output_192.evidence[i],
+                expected_evidence_192[i]
+            );
+        }
+        for i in 0..8 {
+            assert!(
+                (output_192.representation[i] - expected_representation_192[i]).abs() < 2e-2,
+                "exit 4/192 representation[{i}]: got {}, want {}",
+                output_192.representation[i],
+                expected_representation_192[i]
+            );
+        }
+        let best_192 = (0..input.legal_actions.len())
+            .max_by(|&a, &b| output_192.logits[a].partial_cmp(&output_192.logits[b]).unwrap())
+            .unwrap();
+        assert_eq!(best_192, 5, "exit 4/192 best action index");
+        assert_eq!(input.legal_actions[best_192], 1227, "exit 4/192 best action encoding");
     }
 
     #[test]
