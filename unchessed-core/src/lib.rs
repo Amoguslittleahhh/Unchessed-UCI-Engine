@@ -16,6 +16,7 @@ pub mod search;
 pub mod book;
 pub mod policy;
 pub mod unarchitectured_v1;
+pub mod aegis_v4_runtime;
 mod polyglot_keys;
 pub mod adapt;
 pub mod uci;
