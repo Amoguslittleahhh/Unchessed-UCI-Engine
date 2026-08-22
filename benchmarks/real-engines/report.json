@@ -1,0 +1,213 @@
+{
+  "bootstrap_iterations": 10000,
+  "candidate_build": {
+    "adaptive": false,
+    "binary_sha256": "e8823dde37c8640f64ab502e9e3fb642d94b13507dfb0a24ee2786c46d67a6d9",
+    "nnue_sha256": "38845a16d73a6fe0bd4ac95c86c017c65c97bc82c7ce2f6dce2f1b3fbe8577b5",
+    "own_book": false,
+    "rustc": "1.97.1 (8bab26f4f 2026-07-14)",
+    "rustflags": "-C target-cpu=native",
+    "source_base": "fde7fcec37f2d286385371b85d2964bdaa2f72c8 plus the current Arena patchset",
+    "uci_name": "Unchessed Game Reviewer 0.2.3"
+  },
+  "decision": "real-engine interoperability passed; sample too small for Elo claims",
+  "generated_utc": "2026-08-19",
+  "harness": {
+    "binary_sha256": "5b90612de6fadddf6b8e6a3dc52bb7c363fc54160031b6743ac98a9c96c9acd7",
+    "commit": "ccb85325b1db322658687b8be8cfe9f54c495840",
+    "name": "fastchess",
+    "repository": "https://github.com/Disservin/fastchess",
+    "version": "alpha 1.8.2 20260813-ccb8532"
+  },
+  "host": {
+    "architecture": "x86_64",
+    "cpu": "Intel Xeon Processor @ 2.60GHz",
+    "features_used": "AVX2/BMI2 where selected",
+    "logical_cpus": 2,
+    "physical_cores_available": 1
+  },
+  "matches": [
+    {
+      "candidate": "Unchessed",
+      "draws": 1,
+      "engine_ids": {
+        "Ethereal14-HCE": [
+          "Ethereal 14.00 (PEXT)"
+        ],
+        "Unchessed": [
+          "Unchessed Game Reviewer 0.2.3"
+        ]
+      },
+      "games": 16,
+      "losses": 9,
+      "median_last_completed_nodes": {
+        "Ethereal14-HCE": 13500,
+        "Unchessed": 13681
+      },
+      "median_reported_nps": {
+        "Ethereal14-HCE": 1762000,
+        "Unchessed": 911391
+      },
+      "opponent": "Ethereal14-HCE",
+      "paired_bootstrap_score_95": [
+        21.875,
+        62.5
+      ],
+      "pairs": 8,
+      "pentanomial_0_to_2": [
+        2,
+        1,
+        4,
+        0,
+        1
+      ],
+      "pgn": "Ethereal14-HCE.pgn",
+      "pgn_sha256": "ba999ae41184b676d3bf6a0fd11275e9b2037750ff88c310c7573a9a22c8b724",
+      "points": 6.5,
+      "score_percent": 40.625,
+      "terminations": {
+        "adjudication": 14,
+        "normal": 2
+      },
+      "wins": 6
+    },
+    {
+      "candidate": "Unchessed",
+      "draws": 1,
+      "engine_ids": {
+        "Berserk4.7": [
+          "Berserk 4.7.0"
+        ],
+        "Unchessed": [
+          "Unchessed Game Reviewer 0.2.3"
+        ]
+      },
+      "games": 16,
+      "losses": 10,
+      "median_last_completed_nodes": {
+        "Berserk4.7": 14216,
+        "Unchessed": 13502
+      },
+      "median_reported_nps": {
+        "Berserk4.7": 1926833,
+        "Unchessed": 886937
+      },
+      "opponent": "Berserk4.7",
+      "paired_bootstrap_score_95": [
+        6.25,
+        65.625
+      ],
+      "pairs": 8,
+      "pentanomial_0_to_2": [
+        4,
+        1,
+        1,
+        0,
+        2
+      ],
+      "pgn": "Berserk4.7.pgn",
+      "pgn_sha256": "26eb821a37b4728f01c52b21ec43d63e63d240a56aa6e301d1eeddaeed616991",
+      "points": 5.5,
+      "score_percent": 34.375,
+      "terminations": {
+        "adjudication": 15,
+        "normal": 1
+      },
+      "wins": 5
+    },
+    {
+      "candidate": "Unchessed",
+      "draws": 3,
+      "engine_ids": {
+        "Stockfish12-Classical": [
+          "Stockfish 12"
+        ],
+        "Unchessed": [
+          "Unchessed Game Reviewer 0.2.3"
+        ]
+      },
+      "games": 16,
+      "losses": 9,
+      "median_last_completed_nodes": {
+        "Stockfish12-Classical": 20011,
+        "Unchessed": 13247
+      },
+      "median_reported_nps": {
+        "Stockfish12-Classical": 1540000,
+        "Unchessed": 888250
+      },
+      "opponent": "Stockfish12-Classical",
+      "paired_bootstrap_score_95": [
+        15.625,
+        56.25
+      ],
+      "pairs": 8,
+      "pentanomial_0_to_2": [
+        2,
+        3,
+        2,
+        0,
+        1
+      ],
+      "pgn": "Stockfish12-Classical.pgn",
+      "pgn_sha256": "a99f27804b124139017e96ed8eeb1bdf476b15e50ebb5f0144afc22899c18baa",
+      "points": 5.5,
+      "score_percent": 34.375,
+      "terminations": {
+        "adjudication": 15,
+        "normal": 1
+      },
+      "wins": 4
+    }
+  ],
+  "opponent_builds": [
+    {
+      "binary_sha256": "240c6b59d64ba5f75166ed695ac9c76a543197500bf421fb8af107999538f02d",
+      "build": "make basic CC=gcc; source-default USE_NNUE=0; native PEXT/AVX2",
+      "commit": "96cde8d2f82a3ab0536bf33572405fda96f6e236",
+      "display_name": "Ethereal14-HCE",
+      "license": "GPL-3.0",
+      "repository": "https://github.com/AndyGrant/Ethereal",
+      "tag": "v14.00",
+      "uci_name": "Ethereal 14.00 (PEXT)"
+    },
+    {
+      "binary_sha256": "7c0fe972a6a7cc9e191965510d8eb16ec62e1df1cb5ffde226891a2184394145",
+      "build": "make CC=gcc ARCH=avx2 build; HCE release before Berserk NNUE",
+      "commit": "ca7d01ac71ed3f46a1fd8d4c2c7446f36f976b2c",
+      "display_name": "Berserk4.7",
+      "license": "GPL-3.0",
+      "repository": "https://github.com/jhonnold/berserk",
+      "tag": "4.7.0",
+      "uci_name": "Berserk 4.7.0"
+    },
+    {
+      "binary_sha256": "306f46bae2f0229b83408046955e20ae5108ff8c38e6b9ad50838ff9212a5839",
+      "build": "x86-64-avx2 with NNUE_EMBEDDING_OFF; UCI Use NNUE=false; Contempt=0",
+      "commit": "c306d838697011da0a960758dde3f7ede6849060",
+      "display_name": "Stockfish12-Classical",
+      "license": "GPL-3.0",
+      "repository": "https://github.com/official-stockfish/Stockfish",
+      "tag": "sf_12",
+      "uci_name": "Stockfish 12"
+    }
+  ],
+  "schema": 1,
+  "seed": 20260819,
+  "settings": {
+    "concurrency": 1,
+    "draw_adjudication": "after move 40, score within 20cp for 8 moves",
+    "hash_mb": 64,
+    "maximum_moves": 180,
+    "multipv": 1,
+    "nodes_per_move": 20000,
+    "opening_pairs": 8,
+    "opening_plies": 8,
+    "openings": "tools/classics.pgn",
+    "openings_sha256": "0d74fc193d3f18f52f294c24107ce6d41132fef1c27d16da87bcbe2fe0d98e73",
+    "paired_colors": true,
+    "resign_adjudication": "score 800cp for 3 moves",
+    "tablebases": false,
+    "threads": 1
+  }
+}

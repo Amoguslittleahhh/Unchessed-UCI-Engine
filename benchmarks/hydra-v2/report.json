@@ -1,0 +1,42 @@
+{
+  "chessformer": {
+    "base_parameters": 4189000,
+    "concept_parameters": 18432,
+    "dense_policy_dot_products": 4096,
+    "exit_budgets": {
+      "layer_2_width_128": {
+        "flops_approx": 44309760,
+        "mflops_approx": 44.31
+      },
+      "layer_4_width_192": {
+        "flops_approx": 167652224,
+        "mflops_approx": 167.652
+      },
+      "layer_8_width_256": {
+        "flops_approx": 545831424,
+        "mflops_approx": 545.831
+      }
+    },
+    "intermediate_exit_parameters": 398864,
+    "legal_only_policy_dot_products": 218,
+    "parameters": 4606296,
+    "policy_dot_reduction_factor": 18.788990825688074,
+    "runtime_int8_bytes_approx": 4606296
+  },
+  "joint_loss_weight_sum": 1.0,
+  "name": "Unchessed Hydra Aegis v2",
+  "schema": 2,
+  "warning": "calculated architecture budget only; not latency, accuracy, or Elo",
+  "xt_nnue": {
+    "fast_head_input": 1024,
+    "full_padded_input": 1184,
+    "full_semantic_input": 1158,
+    "head_parameters": 300568,
+    "incremental_state_bytes_per_ply": 1280,
+    "runtime_direct_threat_bytes": 1036800,
+    "runtime_pawn_topology_bytes": 65536,
+    "runtime_position_bytes": 11534336,
+    "runtime_total_bytes_approx": 13158424,
+    "runtime_xray_bytes": 221184
+  }
+}

@@ -1,0 +1,5 @@
+Source: https://github.com/lichess-org/chess-openings
+Commit: 4b8622759e7ae6f93f011cc6c83a3823401ab45e
+License: CC0-1.0 (see CC0-1.0.txt)
+Imported: 2026-08-19
+Rows: 3810 named opening lines covering all 500 ECO codes.

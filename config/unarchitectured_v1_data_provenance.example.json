@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "splits": {
+    "train": {
+      "start_date": "2024-01-01",
+      "end_date": "2025-12-31",
+      "source": "replace with actual source manifest",
+      "shards": [
+        {
+          "name": "replace-train.aegis4",
+          "sha256": "REPLACE_WITH_SHA256"
+        }
+      ]
+    },
+    "tune": {
+      "start_date": "2026-01-01",
+      "end_date": "2026-03-31",
+      "source": "replace with actual source manifest",
+      "shards": [
+        {
+          "name": "replace-tune.aegis4",
+          "sha256": "REPLACE_WITH_SHA256"
+        }
+      ]
+    },
+    "final": {
+      "start_date": "2026-04-01",
+      "end_date": "2026-06-30",
+      "source": "replace with actual source manifest",
+      "shards": [
+        {
+          "name": "replace-final.aegis4",
+          "sha256": "REPLACE_WITH_SHA256"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "canonical": {
+    "id": "unarchitectured-v1",
+    "name": "Unarchitectured v1",
+    "architecture": "config/unarchitectured_v1.json",
+    "training": "config/unarchitectured_v1_training.json",
+    "runtime_magic": "UNARCHV1",
+    "status": "current canonical architecture; untrained, exporter/runtime incomplete, default-off"
+  },
+  "experimental_predecessors": [
+    {"id": "hydra-v1", "config": "config/unchessed_hydra_v1.json"},
+    {"id": "hydra-aegis-v2", "config": "config/unchessed_hydra_v2.json"},
+    {"id": "hydra-aegis-v3", "config": "config/unchessed_hydra_v3.json"},
+    {"id": "hydra-aegis-v4", "config": "config/unchessed_hydra_v4.json"},
+    {"id": "hydra-apex-v5", "config": "config/unchessed_hydra_v5.json"},
+    {"id": "apex-v1-name-candidate", "config": "config/unchessed_apex_v1.json"}
+  ],
+  "policy": {
+    "predecessor_assets_are_loadable_only_by_explicit_legacy_tools": true,
+    "predecessors_are_not_production_versions": true,
+    "canonical_does_not_mean_trained_or_promoted": true,
+    "alpha_beta_remains_authoritative_until_all_runtime_and_sprt_gates_pass": true
+  }
+}

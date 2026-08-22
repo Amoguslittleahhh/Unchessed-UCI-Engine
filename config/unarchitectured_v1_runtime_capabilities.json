@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "architecture": "Unarchitectured v1",
+  "container_format": true,
+  "checkpoint_exporter": true,
+  "package_inspector": true,
+  "rust_package_loader": true,
+  "tensor_quantization_drift": true,
+  "scalar_neural_forward": true,
+  "quantized_neural_forward": true,
+  "exported_reference_vectors": true,
+  "simd_neural_forward": true,
+  "runtime_safety_suite": false,
+  "notes": "Real checkpoint and all three exits are Python-parity validated. Dominant matrices retain int8 package weights and use dynamic int16 activations with i32 accumulation; complete-output drift is gated against the dequantized backend. Search integration, deployment calibration, tactical runtime safety, and paired-game gates remain blocked.",
+  "runtime_package_tests": true
+}

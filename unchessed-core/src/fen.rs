@@ -9,84 +9,159 @@ pub fn startpos() -> Position {
 }
 
 pub fn parse(fen: &str) -> Result<Position, String> {
-    let mut pos = Position::empty();
-    let mut parts = fen.split_whitespace();
+    let fields: Vec<&str> = fen.split_whitespace().collect();
+    if !(4..=6).contains(&fields.len()) {
+        return Err(format!("FEN needs 4 to 6 fields, got {}", fields.len()));
+    }
 
-    let placement = parts.next().ok_or("empty FEN")?;
-    let mut rank: i32 = 7;
-    let mut file: i32 = 0;
-    for ch in placement.chars() {
-        match ch {
-            '/' => {
-                rank -= 1;
-                file = 0;
-                if rank < 0 {
-                    return Err("too many ranks".into());
+    let mut pos = Position::empty();
+    let ranks: Vec<&str> = fields[0].split('/').collect();
+    if ranks.len() != 8 {
+        return Err(format!(
+            "piece placement needs 8 ranks, got {}",
+            ranks.len()
+        ));
+    }
+    for (row, text) in ranks.iter().enumerate() {
+        let rank = 7 - row as u8;
+        let mut file = 0u8;
+        for ch in text.chars() {
+            match ch {
+                '1'..='8' => {
+                    file = file
+                        .checked_add(ch as u8 - b'0')
+                        .ok_or("rank width overflow")?;
+                    if file > 8 {
+                        return Err(format!("rank {} exceeds 8 files", 8 - row));
+                    }
+                }
+                _ => {
+                    if file >= 8 {
+                        return Err(format!("rank {} exceeds 8 files", 8 - row));
+                    }
+                    let color = if ch.is_ascii_uppercase() {
+                        Color::White
+                    } else {
+                        Color::Black
+                    };
+                    let piece = match ch.to_ascii_lowercase() {
+                        'p' => PAWN,
+                        'n' => KNIGHT,
+                        'b' => BISHOP,
+                        'r' => ROOK,
+                        'q' => QUEEN,
+                        'k' => KING,
+                        _ => return Err(format!("bad piece '{}'", ch)),
+                    };
+                    let square = sq(file, rank);
+                    let bit = 1u64 << square;
+                    pos.bb[color.idx()][piece] |= bit;
+                    pos.occ_side[color.idx()] |= bit;
+                    pos.occ |= bit;
+                    pos.board[square as usize] = (color.idx() * 6 + piece) as u8;
+                    file += 1;
                 }
             }
-            '1'..='8' => file += ch as i32 - '0' as i32,
-            _ => {
-                if file > 7 {
-                    return Err(format!("rank overflow at '{}'", ch));
-                }
-                let color = if ch.is_ascii_uppercase() {
-                    Color::White
-                } else {
-                    Color::Black
-                };
-                let piece = match ch.to_ascii_lowercase() {
-                    'p' => PAWN,
-                    'n' => KNIGHT,
-                    'b' => BISHOP,
-                    'r' => ROOK,
-                    'q' => QUEEN,
-                    'k' => KING,
-                    _ => return Err(format!("bad piece '{}'", ch)),
-                };
-                let s = sq(file as u8, rank as u8);
-                let b = 1u64 << s;
-                pos.bb[color.idx()][piece] |= b;
-                pos.occ_side[color.idx()] |= b;
-                pos.occ |= b;
-                pos.board[s as usize] = (color.idx() * 6 + piece) as u8;
-                file += 1;
-            }
+        }
+        if file != 8 {
+            return Err(format!("rank {} has {} files, expected 8", 8 - row, file));
         }
     }
 
-    pos.side = match parts.next().unwrap_or("w") {
+    pos.side = match fields[1] {
         "w" => Color::White,
         "b" => Color::Black,
         other => return Err(format!("bad side '{}'", other)),
     };
 
     pos.castling = 0;
-    if let Some(c) = parts.next() {
-        if c != "-" {
-            for ch in c.chars() {
-                pos.castling |= match ch {
-                    'K' => WK,
-                    'Q' => WQ,
-                    'k' => BK,
-                    'q' => BQ,
-                    _ => return Err(format!("bad castling '{}'", ch)),
-                };
+    if fields[2] != "-" {
+        for ch in fields[2].chars() {
+            let right = match ch {
+                'K' => WK,
+                'Q' => WQ,
+                'k' => BK,
+                'q' => BQ,
+                _ => return Err(format!("bad castling '{}'", ch)),
+            };
+            if pos.castling & right != 0 {
+                return Err(format!("duplicate castling right '{}'", ch));
             }
+            pos.castling |= right;
         }
     }
 
-    pos.ep = NO_EP;
-    if let Some(e) = parts.next() {
-        if e != "-" {
-            pos.ep = parse_sq(e).ok_or_else(|| format!("bad ep '{}'", e))?;
-        }
+    pos.ep = if fields[3] == "-" {
+        NO_EP
+    } else {
+        parse_sq(fields[3]).ok_or_else(|| format!("bad ep '{}'", fields[3]))?
+    };
+    pos.halfmove = if fields.len() >= 5 {
+        fields[4]
+            .parse::<u16>()
+            .map_err(|_| format!("bad halfmove '{}'", fields[4]))?
+    } else {
+        0
+    };
+    pos.fullmove = if fields.len() >= 6 {
+        fields[5]
+            .parse::<u16>()
+            .map_err(|_| format!("bad fullmove '{}'", fields[5]))?
+    } else {
+        1
+    };
+    if pos.fullmove == 0 {
+        return Err("fullmove number must be at least 1".into());
     }
-
-    pos.halfmove = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
-    pos.fullmove = parts.next().and_then(|s| s.parse().ok()).unwrap_or(1);
 
     if pos.bb[0][KING].count_ones() != 1 || pos.bb[1][KING].count_ones() != 1 {
         return Err("each side needs exactly one king".into());
+    }
+    if (pos.bb[0][PAWN] | pos.bb[1][PAWN]) & (0xff | (0xffu64 << 56)) != 0 {
+        return Err("pawns may not occupy the first or eighth rank".into());
+    }
+    for color in [Color::White, Color::Black] {
+        if pos.bb[color.idx()][PAWN].count_ones() > 8 || pos.occ_side[color.idx()].count_ones() > 16
+        {
+            return Err("too many pieces for one side".into());
+        }
+    }
+    let white_king = pos.king_sq(Color::White);
+    let black_king = pos.king_sq(Color::Black);
+    if file_of(white_king).abs_diff(file_of(black_king)) <= 1
+        && rank_of(white_king).abs_diff(rank_of(black_king)) <= 1
+    {
+        return Err("kings may not be adjacent".into());
+    }
+
+    let required = [
+        (WK, Color::White, 4, 7, "K"),
+        (WQ, Color::White, 4, 0, "Q"),
+        (BK, Color::Black, 60, 63, "k"),
+        (BQ, Color::Black, 60, 56, "q"),
+    ];
+    for (right, color, king_square, rook_square, name) in required {
+        if pos.castling & right != 0
+            && (pos.piece_on(king_square) != Some((color, KING))
+                || pos.piece_on(rook_square) != Some((color, ROOK)))
+        {
+            return Err(format!("castling right '{}' lacks home king/rook", name));
+        }
+    }
+
+    if pos.ep != NO_EP {
+        let expected_rank = if pos.side == Color::White { 5 } else { 2 };
+        if rank_of(pos.ep) != expected_rank || pos.piece_on(pos.ep).is_some() {
+            return Err("invalid en-passant target rank or occupied target".into());
+        }
+        let pawn_square = if pos.side == Color::White {
+            pos.ep - 8
+        } else {
+            pos.ep + 8
+        };
+        if pos.piece_on(pawn_square) != Some((pos.side.flip(), PAWN)) {
+            return Err("en-passant target has no double-pushed pawn".into());
+        }
     }
 
     pos.hash = pos.compute_hash();
@@ -123,7 +198,11 @@ pub fn serialize(pos: &Position) -> String {
         }
     }
     out.push(' ');
-    out.push(if let Color::White = pos.side { 'w' } else { 'b' });
+    out.push(if let Color::White = pos.side {
+        'w'
+    } else {
+        'b'
+    });
     out.push(' ');
     if pos.castling == 0 {
         out.push('-');
@@ -154,6 +233,43 @@ pub fn serialize(pos: &Position) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rejects_malformed_state_that_could_create_illegal_moves() {
+        for invalid in [
+            "4k3/8/8/8/8/8/8/4K2 w - - 0 1", // short rank
+            "4k3/8/8/8/8/8/8/4K3 w K - 0 1", // no rook
+            "4k3/8/8/8/8/8/4K3/8 w K - 0 1", // king off home
+            "4k3/8/8/8/8/8/1P6/4K3 w - a1junk 0 1",
+            "4k3/8/8/8/8/8/1P6/4K3 w - a1 0 1",
+            "4k3/8/8/8/8/8/4k3/4K3 w - - 0 1", // duplicate/adjacent kings
+            "4k3/8/8/8/8/8/8/P3K3 w - - 0 1",  // pawn on rank one
+        ] {
+            assert!(
+                parse(invalid).is_err(),
+                "accepted malformed FEN: {}",
+                invalid
+            );
+        }
+    }
+
+    #[test]
+    fn accepts_four_field_fen_with_strict_defaults() {
+        let pos = parse("4k3/8/8/8/8/8/8/4K3 w - -").unwrap();
+        assert_eq!(pos.halfmove, 0);
+        assert_eq!(pos.fullmove, 1);
+    }
+
+    #[test]
+    fn uncapturable_en_passant_does_not_change_repetition_hash() {
+        let no_capture_ep = parse("4k3/8/8/8/4P3/8/8/4K3 b - e3 0 1").unwrap();
+        let no_ep = parse("4k3/8/8/8/4P3/8/8/4K3 b - - 0 1").unwrap();
+        assert_eq!(no_capture_ep.hash, no_ep.hash);
+
+        let capturable = parse("4k3/8/8/8/3pP3/8/8/4K3 b - e3 0 1").unwrap();
+        let capturable_without_ep = parse("4k3/8/8/8/3pP3/8/8/4K3 b - - 0 1").unwrap();
+        assert_ne!(capturable.hash, capturable_without_ep.hash);
+    }
 
     #[test]
     fn roundtrip() {

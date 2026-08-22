@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "cpu": {
+    "verda_vcpus": 180,
+    "requested_cores": 176,
+    "cores_per_worker": 1,
+    "reserve_cores": 4,
+    "physical_cores_only": false,
+    "numa_aware": true,
+    "maximum_memory_fraction": 0.8
+  },
+  "teacher": {
+    "engine": "/opt/stockfish/stockfish",
+    "engine_args": [],
+    "assets": [],
+    "threads": 1,
+    "hash_mb": 64,
+    "estimated_process_mb": 64,
+    "nodes_per_action": 5000,
+    "timeout_seconds": 120,
+    "clear_hash_per_action": true,
+    "options": {
+      "Ponder": "false",
+      "UCI_ShowWDL": "true"
+    }
+  },
+  "data": {
+    "input_globs": [
+      "/data/unchessed/human-v4/*.aegis4"
+    ],
+    "output_dir": "/data/unchessed/guide-v5",
+    "records_per_task": 1000
+  }
+}

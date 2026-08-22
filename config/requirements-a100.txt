@@ -1,0 +1,4 @@
+# Install the CUDA build matching the data-centre driver from pytorch.org.
+# The generic PyPI index may select a CPU-only wheel on some systems.
+numpy>=2.0,<3
+torch>=2.5,<3

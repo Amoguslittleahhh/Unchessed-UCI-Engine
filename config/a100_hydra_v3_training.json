@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "hardware": {
+    "target": "NVIDIA A100 80GB",
+    "precision": "bfloat16",
+    "allow_tf32": true,
+    "compile": true,
+    "fused_adamw": true,
+    "pin_memory": true,
+    "num_workers": 8
+  },
+  "xt_nnue": {
+    "position_width": 256,
+    "direct_threat_width": 32,
+    "xray_width": 16,
+    "pawn_topology_width": 16,
+    "direct_threat_dimensions": 32400,
+    "xray_dimensions": 13824,
+    "pawn_topology_dimensions": 4096,
+    "quantization_scale": 255,
+    "phase_stacks": 8,
+    "head_l1": 16,
+    "head_hidden": 32,
+    "fast_ensemble_members": 2,
+    "bootstrap_fast_ensemble": true,
+    "batch_size": 8192,
+    "validation_batch_size": 4096,
+    "steps_per_epoch": 20000,
+    "epochs": 30,
+    "learning_rate": 0.001,
+    "weight_decay": 0.000001,
+    "warmup_steps": 2000,
+    "gradient_clip": 4.0,
+    "fast_to_direct_uncertainty": 0.1,
+    "direct_to_full_uncertainty": 0.18,
+    "loss_weights": {
+      "full": 0.55,
+      "direct": 0.2,
+      "fast_heteroscedastic": 0.2,
+      "ensemble_diversity": 0.05
+    },
+    "seed": 20260820
+  },
+  "promotion_gates": {
+    "future_holdout_required": true,
+    "quantized_validation_required": true,
+    "uncertainty_calibration_split_required": true,
+    "dirty_feature_equality_required": true,
+    "paired_sprt_required": true
+  }
+}

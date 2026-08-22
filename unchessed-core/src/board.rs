@@ -64,7 +64,7 @@ pub fn sq_name(s: u8) -> String {
 
 pub fn parse_sq(s: &str) -> Option<u8> {
     let b = s.as_bytes();
-    if b.len() < 2 {
+    if b.len() != 2 {
         return None;
     }
     let f = b[0].wrapping_sub(b'a');
@@ -304,6 +304,21 @@ impl Position {
         self.hash ^= ZOBRIST.psq[c.idx()][p][s as usize];
     }
 
+    fn ep_hash_active_for(&self, side_to_move: Color) -> bool {
+        if self.ep == NO_EP {
+            return false;
+        }
+        const FILE_A: u64 = 0x0101_0101_0101_0101;
+        const FILE_H: u64 = FILE_A << 7;
+        let target = 1u64 << self.ep;
+        let pawns = self.bb[side_to_move.idx()][PAWN];
+        let attacks = match side_to_move {
+            Color::White => ((pawns & !FILE_A) << 7) | ((pawns & !FILE_H) << 9),
+            Color::Black => ((pawns & !FILE_H) >> 7) | ((pawns & !FILE_A) >> 9),
+        };
+        attacks & target != 0
+    }
+
     /// Recompute the hash from scratch (used after FEN parsing and in tests).
     pub fn compute_hash(&self) -> u64 {
         let mut h = 0u64;
@@ -313,7 +328,7 @@ impl Position {
             }
         }
         h ^= ZOBRIST.castle[self.castling as usize];
-        if self.ep != NO_EP {
+        if self.ep_hash_active_for(self.side) {
             h ^= ZOBRIST.ep_file[file_of(self.ep) as usize];
         }
         if let Color::Black = self.side {
@@ -331,9 +346,12 @@ impl Position {
         let to = mv.to();
         let (_, pt) = p.piece_on(from).expect("make: no piece on from-square");
 
-        // clear old en passant
+        // Clear the old canonical en-passant hash (uncapturable EP targets do
+        // not distinguish positions for repetition/TT purposes).
         if p.ep != NO_EP {
-            p.hash ^= ZOBRIST.ep_file[file_of(p.ep) as usize];
+            if p.ep_hash_active_for(us) {
+                p.hash ^= ZOBRIST.ep_file[file_of(p.ep) as usize];
+            }
             p.ep = NO_EP;
         }
 
@@ -352,7 +370,11 @@ impl Position {
                 p.put(us, ROOK, rt);
             }
             MK_EP => {
-                let cap_sq = if let Color::White = us { to - 8 } else { to + 8 };
+                let cap_sq = if let Color::White = us {
+                    to - 8
+                } else {
+                    to + 8
+                };
                 p.take(them, PAWN, cap_sq);
                 p.take(us, PAWN, from);
                 p.put(us, PAWN, to);
@@ -374,7 +396,9 @@ impl Position {
                 if pt == PAWN && (from as i16 - to as i16).abs() == 16 {
                     let ep_sq = ((from as u16 + to as u16) / 2) as u8;
                     p.ep = ep_sq;
-                    p.hash ^= ZOBRIST.ep_file[file_of(ep_sq) as usize];
+                    if p.ep_hash_active_for(them) {
+                        p.hash ^= ZOBRIST.ep_file[file_of(ep_sq) as usize];
+                    }
                 }
             }
         }
@@ -403,10 +427,13 @@ impl Position {
     pub fn make_null(&self) -> Position {
         let mut p = *self;
         if p.ep != NO_EP {
-            p.hash ^= ZOBRIST.ep_file[file_of(p.ep) as usize];
+            if p.ep_hash_active_for(p.side) {
+                p.hash ^= ZOBRIST.ep_file[file_of(p.ep) as usize];
+            }
             p.ep = NO_EP;
         }
-        p.halfmove += 1;
+        // A search null move is not a legal game move and must not advance the
+        // fifty-move counter.
         p.side = p.side.flip();
         p.hash ^= ZOBRIST.side;
         p

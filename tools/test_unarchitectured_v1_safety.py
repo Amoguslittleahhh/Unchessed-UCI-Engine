@@ -67,6 +67,19 @@ class UnarchitecturedV1SafetyTests(unittest.TestCase):
         )
         self.assertEqual(POLICY["training"]["maximum_consecutive_nonfinite_steps"], 0)
 
+    def test_launcher_uses_external_watchdog_and_internal_heartbeats(self):
+        launcher = (
+            ROOT / "scripts/training/a100_hydra_v5_train.sh"
+        ).read_text()
+        trainer = (ROOT / "tools/train_hydra_oracle_v5_a100.py").read_text()
+        watchdog = (ROOT / "tools/unarchitectured_v1_watchdog.py").read_text()
+        self.assertIn("unarchitectured_v1_watchdog.py", launcher)
+        self.assertIn('rm -f "$OUTPUT_DIR/oracle-unarchitectured-v1.heartbeat.json"', launcher)
+        self.assertIn("write_heartbeat", trainer)
+        self.assertIn("os.killpg", watchdog)
+        self.assertIn("SIGKILL", watchdog)
+        self.assertIn('"action": "child_failed"', watchdog)
+
 
 if __name__ == "__main__":
     unittest.main()

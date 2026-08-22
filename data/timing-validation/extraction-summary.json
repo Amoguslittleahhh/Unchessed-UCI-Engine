@@ -1,0 +1,18 @@
+{
+  "accounts": {
+    "bot": 39,
+    "unmarked": 2141
+  },
+  "records": 2594,
+  "schema": 1,
+  "statistics": {
+    "bot_games_seen": 336,
+    "bot_perspectives_insufficient": 33,
+    "bot_records": 390,
+    "excluded_not_rated": 121,
+    "excluded_without_clocks": 6,
+    "unmarked_games_seen": 1115,
+    "unmarked_perspectives_insufficient": 14,
+    "unmarked_records": 2204
+  }
+}

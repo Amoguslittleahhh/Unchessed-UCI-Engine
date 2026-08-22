@@ -9,30 +9,31 @@ use crate::movegen::{
     attacked, bishop_att, queen_att, rook_att, FILE_A, KING_ATT, KNIGHT_ATT, PAWN_ATT, RANK_1,
 };
 
-/// NNUE's own incremental state: one accumulator per absolute perspective
-/// (White, Black), indexed by `Color::idx()`. Opaque to everyone except the
-/// `Eval` impl that produced it -- the search only ever passes it back to
-/// the same evaluator it came from.
+pub const EVAL_ACC_WIDTH: usize = 256;
+
+/// NNUE's incremental state: one quantized accumulator per absolute
+/// perspective (White, Black). Search treats it as evaluator-owned state.
 #[derive(Clone, Copy)]
 pub struct NnueEvalState {
-    pub acc: [[f32; crate::nnue::ACC]; 2],
+    pub accumulator: [[i16; EVAL_ACC_WIDTH]; 2],
 }
 
-/// Ply-indexed evaluator state threaded through the search so NNUE can
-/// update its accumulators incrementally (add/remove the handful of
-/// feature rows a move actually changed) instead of a full recompute on
-/// every node. HCE is stateless and never looks at this.
+/// Ply-indexed state threaded through search. HCE remains stateless;
+/// `is_nnue` prevents accidentally interpreting its zero placeholder as a
+/// trained accumulator.
 #[derive(Clone, Copy)]
 pub struct EvalState {
     pub nnue: NnueEvalState,
+    pub is_nnue: bool,
 }
 
 impl EvalState {
     pub const fn stateless() -> EvalState {
         EvalState {
             nnue: NnueEvalState {
-                acc: [[0.0; crate::nnue::ACC]; 2],
+                accumulator: [[0; EVAL_ACC_WIDTH]; 2],
             },
+            is_nnue: false,
         }
     }
 }
@@ -41,16 +42,14 @@ pub trait Eval: Send + Sync {
     /// Score in centipawns from the side-to-move's perspective.
     fn eval(&self, pos: &Position) -> i32;
 
-    /// Build the state for a fresh search root. Default: no state needed
-    /// (stateless evaluators like HCE never override this).
+    /// Build evaluator state for a fresh root. Stateless evaluators keep the
+    /// default placeholder.
     fn initial_state(&self, _pos: &Position) -> EvalState {
         EvalState::stateless()
     }
 
-    /// Derive the state after `mv` (which turns `before` into `after`) from
-    /// the state `before` already had. Default: recompute from scratch --
-    /// correct but defeats the purpose of incremental updates, so only an
-    /// evaluator that can actually do better (NNUE) overrides this.
+    /// Derive the child state from its parent. The default recomputes; NNUE
+    /// overrides this with exact row add/remove updates.
     fn update_state(
         &self,
         _before: &Position,
@@ -61,8 +60,7 @@ pub trait Eval: Send + Sync {
         self.initial_state(after)
     }
 
-    /// Evaluate `pos` using an already-computed state instead of rebuilding
-    /// it. Default: ignore the state and fall back to plain `eval`.
+    /// Evaluate from a precomputed state. The default ignores it.
     fn eval_with_state(&self, pos: &Position, _state: &EvalState) -> i32 {
         self.eval(pos)
     }
@@ -184,8 +182,7 @@ fn mobility_term(pos: &Position, color: Color, area: Bitboard) -> (i32, i32) {
     let mut mg = 0i32;
     let mut eg = 0i32;
 
-    let xray_bishop_occ =
-        pos.occ & !(pos.bb[color.idx()][BISHOP] | pos.bb[color.idx()][QUEEN]);
+    let xray_bishop_occ = pos.occ & !(pos.bb[color.idx()][BISHOP] | pos.bb[color.idx()][QUEEN]);
     let xray_rook_occ = pos.occ & !(pos.bb[color.idx()][ROOK] | pos.bb[color.idx()][QUEEN]);
 
     let mut nb = pos.bb[color.idx()][KNIGHT];
@@ -267,7 +264,11 @@ fn rook_term(pos: &Position, color: Color) -> (i32, i32) {
         let file_mask: Bitboard = FILE_A << file;
 
         if pos.bb[color.idx()][PAWN] & file_mask == 0 {
-            let idx = if pos.bb[opp.idx()][PAWN] & file_mask == 0 { 1 } else { 0 };
+            let idx = if pos.bb[opp.idx()][PAWN] & file_mask == 0 {
+                1
+            } else {
+                0
+            };
             mg += ROOK_FREE_FILE_MG[idx];
             eg += ROOK_FREE_FILE_EG[idx];
         }
@@ -284,7 +285,11 @@ fn rook_term(pos: &Position, color: Color) -> (i32, i32) {
     // applying it per-rook (as an earlier version of this function did)
     // double-counted doubled rooks on the 7th, since RubiChess's own tuner
     // never saw that case paid out twice.
-    let rank7: Bitboard = if let Color::White = color { RANK_1 << 48 } else { RANK_1 << 8 };
+    let rank7: Bitboard = if let Color::White = color {
+        RANK_1 << 48
+    } else {
+        RANK_1 << 8
+    };
     if pos.bb[color.idx()][ROOK] & rank7 != 0 {
         let king_sq = pos.bb[opp.idx()][KING].trailing_zeros() as usize;
         if king_sq < 64 {
@@ -335,7 +340,11 @@ fn knight_outpost_term(pos: &Position, color: Color) -> (i32, i32) {
         let s = nb.trailing_zeros() as usize;
         nb &= nb - 1;
 
-        let rel_rank = if let Color::White = color { s / 8 } else { 7 - s / 8 };
+        let rel_rank = if let Color::White = color {
+            s / 8
+        } else {
+            7 - s / 8
+        };
         if !(3..=5).contains(&rel_rank) {
             continue;
         }
@@ -448,6 +457,7 @@ fn cheb_dist(a: u8, b: u8) -> i32 {
     (af - bf).abs().max((ar - br).abs())
 }
 
+#[derive(Default)]
 pub struct Hce {
     pub params: EvalParams,
 }
@@ -455,12 +465,6 @@ pub struct Hce {
 impl Hce {
     pub fn new(params: EvalParams) -> Hce {
         Hce { params }
-    }
-}
-
-impl Default for Hce {
-    fn default() -> Self {
-        Hce { params: EvalParams::default() }
     }
 }
 
@@ -620,8 +624,12 @@ const KING_EG: [i32; 64] = [
     -53, -34, -21, -11, -28, -14, -24, -43,
 ];
 
-const PST_MG: [&[i32; 64]; 6] = [&PAWN_MG, &KNIGHT_MG, &BISHOP_MG, &ROOK_MG, &QUEEN_MG, &KING_MG];
-const PST_EG: [&[i32; 64]; 6] = [&PAWN_EG, &KNIGHT_EG, &BISHOP_EG, &ROOK_EG, &QUEEN_EG, &KING_EG];
+const PST_MG: [&[i32; 64]; 6] = [
+    &PAWN_MG, &KNIGHT_MG, &BISHOP_MG, &ROOK_MG, &QUEEN_MG, &KING_MG,
+];
+const PST_EG: [&[i32; 64]; 6] = [
+    &PAWN_EG, &KNIGHT_EG, &BISHOP_EG, &ROOK_EG, &QUEEN_EG, &KING_EG,
+];
 
 const PHASE_WEIGHT: [i32; 6] = [0, 1, 1, 2, 4, 0];
 const TOTAL_PHASE: i32 = 24;
@@ -764,7 +772,11 @@ pub fn evaluate(pos: &Position, params: &EvalParams) -> i32 {
     let phase = phase.min(TOTAL_PHASE);
     let score = (mg * phase + eg * (TOTAL_PHASE - phase)) / TOTAL_PHASE;
 
-    let stm = if let Color::White = pos.side { score } else { -score };
+    let stm = if let Color::White = pos.side {
+        score
+    } else {
+        -score
+    };
     stm + TEMPO
 }
 
@@ -798,13 +810,28 @@ mod tests {
         let pos = fen::parse("4k3/P7/8/8/8/8/8/4K3 w - - 0 1").unwrap();
         let off = evaluate(
             &pos,
-            &EvalParams { passed_mg_pct: 0, passed_eg_pct: 0, mobility_pct: 0, rook_pct: 0, knight_outpost_pct: 0 },
+            &EvalParams {
+                passed_mg_pct: 0,
+                passed_eg_pct: 0,
+                mobility_pct: 0,
+                rook_pct: 0,
+                knight_outpost_pct: 0,
+            },
         );
         let on = evaluate(
             &pos,
-            &EvalParams { passed_mg_pct: 100, passed_eg_pct: 100, mobility_pct: 0, rook_pct: 0, knight_outpost_pct: 0 },
+            &EvalParams {
+                passed_mg_pct: 100,
+                passed_eg_pct: 100,
+                mobility_pct: 0,
+                rook_pct: 0,
+                knight_outpost_pct: 0,
+            },
         );
-        assert_ne!(off, on, "scale=100 should differ from scale=0 for an advanced passed pawn");
+        assert_ne!(
+            off, on,
+            "scale=100 should differ from scale=0 for an advanced passed pawn"
+        );
     }
 
     #[test]
@@ -816,7 +843,13 @@ mod tests {
         // h8 and a7 is wide open. A naive "is it technically passed"
         // bonus would score these identically; the corrected version
         // (matching a real reference implementation) must not.
-        let params = EvalParams { passed_mg_pct: 100, passed_eg_pct: 100, mobility_pct: 0, rook_pct: 0, knight_outpost_pct: 0 };
+        let params = EvalParams {
+            passed_mg_pct: 100,
+            passed_eg_pct: 100,
+            mobility_pct: 0,
+            rook_pct: 0,
+            knight_outpost_pct: 0,
+        };
         let blocked = fen::parse("8/k7/P7/8/8/8/8/4K3 w - - 0 1").unwrap();
         let free = fen::parse("7k/8/P7/8/8/8/8/4K3 w - - 0 1").unwrap();
         assert!(
@@ -832,8 +865,20 @@ mod tests {
         // A white knight with lots of open squares to jump to -- pct=0
         // must reproduce the exact pre-mobility score.
         let pos = fen::parse("4k3/8/8/8/4N3/8/8/4K3 w - - 0 1").unwrap();
-        let off = EvalParams { passed_mg_pct: 0, passed_eg_pct: 0, mobility_pct: 0, rook_pct: 0, knight_outpost_pct: 0 };
-        let on = EvalParams { passed_mg_pct: 0, passed_eg_pct: 0, mobility_pct: 100, rook_pct: 0, knight_outpost_pct: 0 };
+        let off = EvalParams {
+            passed_mg_pct: 0,
+            passed_eg_pct: 0,
+            mobility_pct: 0,
+            rook_pct: 0,
+            knight_outpost_pct: 0,
+        };
+        let on = EvalParams {
+            passed_mg_pct: 0,
+            passed_eg_pct: 0,
+            mobility_pct: 100,
+            rook_pct: 0,
+            knight_outpost_pct: 0,
+        };
         assert_ne!(
             evaluate(&pos, &off),
             evaluate(&pos, &on),
@@ -846,7 +891,13 @@ mod tests {
         // Same material, same side to move -- only difference is whether
         // white's knight sits in the open center (many safe squares) or
         // jammed in the corner (few safe squares).
-        let params = EvalParams { passed_mg_pct: 0, passed_eg_pct: 0, mobility_pct: 100, rook_pct: 0, knight_outpost_pct: 0 };
+        let params = EvalParams {
+            passed_mg_pct: 0,
+            passed_eg_pct: 0,
+            mobility_pct: 100,
+            rook_pct: 0,
+            knight_outpost_pct: 0,
+        };
         let cornered = fen::parse("4k3/8/8/8/8/8/8/N3K3 w - - 0 1").unwrap();
         let mobile = fen::parse("4k3/8/8/8/4N3/8/8/4K3 w - - 0 1").unwrap();
         assert!(
@@ -862,10 +913,20 @@ mod tests {
         // White rook on a fully open a-file -- pct=0 must reproduce the
         // exact pre-rook-term score.
         let pos = fen::parse("4k3/8/8/8/8/8/8/R3K3 w - - 0 1").unwrap();
-        let off =
-            EvalParams { passed_mg_pct: 0, passed_eg_pct: 0, mobility_pct: 0, rook_pct: 0, knight_outpost_pct: 0 };
-        let on =
-            EvalParams { passed_mg_pct: 0, passed_eg_pct: 0, mobility_pct: 0, rook_pct: 100, knight_outpost_pct: 0 };
+        let off = EvalParams {
+            passed_mg_pct: 0,
+            passed_eg_pct: 0,
+            mobility_pct: 0,
+            rook_pct: 0,
+            knight_outpost_pct: 0,
+        };
+        let on = EvalParams {
+            passed_mg_pct: 0,
+            passed_eg_pct: 0,
+            mobility_pct: 0,
+            rook_pct: 100,
+            knight_outpost_pct: 0,
+        };
         assert_ne!(
             evaluate(&pos, &off),
             evaluate(&pos, &on),
@@ -878,7 +939,13 @@ mod tests {
         // Same material (one pawn each) and same rook -- only difference
         // is whether the pawn sits on the rook's own a-file (blocking it)
         // or off on the b-file (leaving the a-file open).
-        let params = EvalParams { passed_mg_pct: 0, passed_eg_pct: 0, mobility_pct: 0, rook_pct: 100, knight_outpost_pct: 0 };
+        let params = EvalParams {
+            passed_mg_pct: 0,
+            passed_eg_pct: 0,
+            mobility_pct: 0,
+            rook_pct: 100,
+            knight_outpost_pct: 0,
+        };
         let blocked = fen::parse("4k3/8/8/8/8/8/P7/R3K3 w - - 0 1").unwrap();
         let open = fen::parse("4k3/8/8/8/8/8/1P6/R3K3 w - - 0 1").unwrap();
         assert!(
@@ -894,7 +961,13 @@ mod tests {
         // Same rook, same enemy king pinned to the back rank -- only
         // difference is whether the rook itself sits on the 7th rank
         // (pressing) or one rank back.
-        let params = EvalParams { passed_mg_pct: 0, passed_eg_pct: 0, mobility_pct: 0, rook_pct: 100, knight_outpost_pct: 0 };
+        let params = EvalParams {
+            passed_mg_pct: 0,
+            passed_eg_pct: 0,
+            mobility_pct: 0,
+            rook_pct: 100,
+            knight_outpost_pct: 0,
+        };
         let pressing = fen::parse("6k1/4R3/8/8/8/8/8/4K3 w - - 0 1").unwrap();
         let off_7th = fen::parse("6k1/8/4R3/8/8/8/8/4K3 w - - 0 1").unwrap();
         assert!(
@@ -912,10 +985,18 @@ mod tests {
         // pre-outpost-term score.
         let pos = fen::parse("4k3/7p/8/3N4/2P5/8/8/4K3 w - - 0 1").unwrap();
         let off = EvalParams {
-            passed_mg_pct: 0, passed_eg_pct: 0, mobility_pct: 0, rook_pct: 0, knight_outpost_pct: 0,
+            passed_mg_pct: 0,
+            passed_eg_pct: 0,
+            mobility_pct: 0,
+            rook_pct: 0,
+            knight_outpost_pct: 0,
         };
         let on = EvalParams {
-            passed_mg_pct: 0, passed_eg_pct: 0, mobility_pct: 0, rook_pct: 0, knight_outpost_pct: 100,
+            passed_mg_pct: 0,
+            passed_eg_pct: 0,
+            mobility_pct: 0,
+            rook_pct: 0,
+            knight_outpost_pct: 100,
         };
         assert_ne!(
             evaluate(&pos, &off),
@@ -932,7 +1013,11 @@ mod tests {
         // (never a threat). A knight sitting on a square any enemy pawn
         // could eventually contest is not a real outpost.
         let params = EvalParams {
-            passed_mg_pct: 0, passed_eg_pct: 0, mobility_pct: 0, rook_pct: 0, knight_outpost_pct: 100,
+            passed_mg_pct: 0,
+            passed_eg_pct: 0,
+            mobility_pct: 0,
+            rook_pct: 0,
+            knight_outpost_pct: 100,
         };
         let qualifying = fen::parse("4k3/7p/8/3N4/2P5/8/8/4K3 w - - 0 1").unwrap();
         let contested = fen::parse("4k3/4p3/8/3N4/2P5/8/8/4K3 w - - 0 1").unwrap();

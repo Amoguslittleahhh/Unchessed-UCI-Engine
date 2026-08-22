@@ -1,0 +1,31 @@
+{
+  "exact_elo_cells": true,
+  "min_elo": 100,
+  "max_elo": 3650,
+  "elo_bands": [
+    {"name": "0000-0399", "min": 0, "max": 399},
+    {"name": "0400-0599", "min": 400, "max": 599},
+    {"name": "0600-0799", "min": 600, "max": 799},
+    {"name": "0800-0999", "min": 800, "max": 999},
+    {"name": "1000-1199", "min": 1000, "max": 1199},
+    {"name": "1200-1399", "min": 1200, "max": 1399},
+    {"name": "1400-1599", "min": 1400, "max": 1599},
+    {"name": "1600-1799", "min": 1600, "max": 1799},
+    {"name": "1800-1999", "min": 1800, "max": 1999},
+    {"name": "2000-2199", "min": 2000, "max": 2199},
+    {"name": "2200-2399", "min": 2200, "max": 2399},
+    {"name": "2400-2599", "min": 2400, "max": 2599},
+    {"name": "2600-2799", "min": 2600, "max": 2799},
+    {"name": "2800-plus", "min": 2800, "max": 100000}
+  ],
+  "time_controls": [
+    {"name": "bullet", "min_seconds": 0, "max_seconds": 179},
+    {"name": "blitz", "min_seconds": 180, "max_seconds": 599},
+    {"name": "rapid", "min_seconds": 600, "max_seconds": 1799},
+    {"name": "classical", "min_seconds": 1800, "max_seconds": 1000000000}
+  ],
+  "results": ["1-0", "0-1", "1/2-1/2"],
+  "per_cell": 500,
+  "per_player_cell": 20,
+  "seed": 20260819
+}

@@ -1,8 +1,9 @@
 //! Pure-Rust inference forward pass for the canonical Unarchitectured v1
-//! compact student (training class `AegisV4Chessformer`), exported to a UNARCHV1 package (see `unarchitectured_v1.rs` for the
-//! container format). This runs the *full* exit only (8 layers, width 256) --
-//! the shallow matryoshka exits exist purely to supervise distillation and
-//! are not needed at inference time.
+//! compact student (training class `AegisV4Chessformer`), exported to a
+//! UNARCHV1 package (see `unarchitectured_v1.rs` for the container format).
+//! It executes all three trained Matryoshka exits (2/128, 4/192, and 8/256).
+//! Dominant package-int8 matrices use dynamically quantized int16 activations
+//! and i32 accumulation; non-x86 targets retain a scalar integer fallback.
 //!
 //! Ported line-for-line from `tools/train_chessformer_v4_a100.py`'s
 //! `AegisV4Chessformer.forward_path` / `history_context`, and cross-checked
@@ -36,11 +37,17 @@ pub const POLICY_GUIDE: usize = 1;
 
 type DotKernel = fn(&[f32], &[f32]) -> f32;
 type Dot4Kernel = fn(&[f32], usize, &[f32]) -> [f32; 4];
+type Dot4x2I16I8Kernel = fn(&[i16], usize, &[i8], &[i8]) -> [[i32; 4]; 2];
+type Dot4x3I16I8Kernel = fn(&[i16], usize, &[i8], &[i8], &[i8]) -> [[i32; 4]; 3];
 type AxpyKernel = fn(f32, &[f32], &mut [f32]);
+type QuantizeI16Kernel = fn(&[f32], &mut [i16]) -> f32;
 
 static DOT_KERNEL: OnceLock<DotKernel> = OnceLock::new();
 static DOT4_KERNEL: OnceLock<Dot4Kernel> = OnceLock::new();
+static DOT4X2_I16_I8_KERNEL: OnceLock<Dot4x2I16I8Kernel> = OnceLock::new();
+static DOT4X3_I16_I8_KERNEL: OnceLock<Dot4x3I16I8Kernel> = OnceLock::new();
 static AXPY_KERNEL: OnceLock<AxpyKernel> = OnceLock::new();
+static QUANTIZE_I16_KERNEL: OnceLock<QuantizeI16Kernel> = OnceLock::new();
 static INFERENCE_THREADS: OnceLock<usize> = OnceLock::new();
 
 fn inference_threads() -> usize {
@@ -71,6 +78,36 @@ fn dot_four(rows: &[f32], row_stride: usize, weights: &[f32]) -> [f32; 4] {
 }
 
 #[inline]
+fn dot_four_two_i16_i8(
+    rows: &[i16],
+    row_stride: usize,
+    weights_0: &[i8],
+    weights_1: &[i8],
+) -> [[i32; 4]; 2] {
+    debug_assert_eq!(weights_0.len(), weights_1.len());
+    debug_assert!(rows.len() >= 3 * row_stride + weights_0.len());
+    DOT4X2_I16_I8_KERNEL.get_or_init(select_dot4x2_i16_i8_kernel)(
+        rows, row_stride, weights_0, weights_1,
+    )
+}
+
+#[inline]
+fn dot_four_three_i16_i8(
+    rows: &[i16],
+    row_stride: usize,
+    weights_0: &[i8],
+    weights_1: &[i8],
+    weights_2: &[i8],
+) -> [[i32; 4]; 3] {
+    debug_assert_eq!(weights_0.len(), weights_1.len());
+    debug_assert_eq!(weights_0.len(), weights_2.len());
+    debug_assert!(rows.len() >= 3 * row_stride + weights_0.len());
+    DOT4X3_I16_I8_KERNEL.get_or_init(select_dot4x3_i16_i8_kernel)(
+        rows, row_stride, weights_0, weights_1, weights_2,
+    )
+}
+
+#[inline]
 fn scaled_add(scale: f32, source: &[f32], destination: &mut [f32]) {
     debug_assert_eq!(source.len(), destination.len());
     AXPY_KERNEL.get_or_init(select_axpy_kernel)(scale, source, destination)
@@ -92,12 +129,62 @@ fn select_dot4_kernel() -> Dot4Kernel {
     dot4_scalar
 }
 
+fn select_dot4x2_i16_i8_kernel() -> Dot4x2I16I8Kernel {
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    if std::is_x86_feature_detected!("avx2") {
+        return |rows, stride, weights_0, weights_1| unsafe {
+            dot4x2_i16_i8_avx2(rows, stride, weights_0, weights_1)
+        };
+    }
+    dot4x2_i16_i8_scalar
+}
+
+fn select_dot4x3_i16_i8_kernel() -> Dot4x3I16I8Kernel {
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    if std::is_x86_feature_detected!("avx2") {
+        return |rows, stride, weights_0, weights_1, weights_2| unsafe {
+            dot4x3_i16_i8_avx2(rows, stride, weights_0, weights_1, weights_2)
+        };
+    }
+    dot4x3_i16_i8_scalar
+}
+
 fn select_axpy_kernel() -> AxpyKernel {
     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
     if std::is_x86_feature_detected!("avx2") && std::is_x86_feature_detected!("fma") {
         return |scale, source, destination| unsafe { axpy_avx2_fma(scale, source, destination) };
     }
     axpy_scalar
+}
+
+fn select_quantize_i16_kernel() -> QuantizeI16Kernel {
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    if std::is_x86_feature_detected!("avx2") {
+        return |source, destination| unsafe { quantize_i16_avx2(source, destination) };
+    }
+    quantize_i16_scalar
+}
+
+#[inline]
+fn quantize_i16(source: &[f32], destination: &mut [i16]) -> f32 {
+    debug_assert_eq!(source.len(), destination.len());
+    QUANTIZE_I16_KERNEL.get_or_init(select_quantize_i16_kernel)(source, destination)
+}
+
+#[inline]
+fn quantize_i16_scalar(source: &[f32], destination: &mut [i16]) -> f32 {
+    const QMAX: f32 = i16::MAX as f32;
+    let max_abs = source
+        .iter()
+        .fold(0.0f32, |maximum, value| maximum.max(value.abs()));
+    if max_abs == 0.0 {
+        return 0.0;
+    }
+    let inverse_scale = QMAX / max_abs;
+    for (output, &value) in destination.iter_mut().zip(source) {
+        *output = (value * inverse_scale).round().clamp(-QMAX, QMAX) as i16;
+    }
+    max_abs / QMAX
 }
 
 #[inline]
@@ -135,10 +222,205 @@ fn dot4_scalar(rows: &[f32], row_stride: usize, weights: &[f32]) -> [f32; 4] {
 }
 
 #[inline]
+fn dot4_i16_i8_scalar(rows: &[i16], row_stride: usize, weights: &[i8]) -> [i32; 4] {
+    let mut output = [0i32; 4];
+    for (index, &weight) in weights.iter().enumerate() {
+        let weight = i32::from(weight);
+        for row in 0..4 {
+            output[row] += i32::from(rows[row * row_stride + index]) * weight;
+        }
+    }
+    output
+}
+
+#[inline]
+fn dot4x2_i16_i8_scalar(
+    rows: &[i16],
+    row_stride: usize,
+    weights_0: &[i8],
+    weights_1: &[i8],
+) -> [[i32; 4]; 2] {
+    [
+        dot4_i16_i8_scalar(rows, row_stride, weights_0),
+        dot4_i16_i8_scalar(rows, row_stride, weights_1),
+    ]
+}
+
+#[inline]
+fn dot4x3_i16_i8_scalar(
+    rows: &[i16],
+    row_stride: usize,
+    weights_0: &[i8],
+    weights_1: &[i8],
+    weights_2: &[i8],
+) -> [[i32; 4]; 3] {
+    [
+        dot4_i16_i8_scalar(rows, row_stride, weights_0),
+        dot4_i16_i8_scalar(rows, row_stride, weights_1),
+        dot4_i16_i8_scalar(rows, row_stride, weights_2),
+    ]
+}
+
+#[inline]
 fn axpy_scalar(scale: f32, source: &[f32], destination: &mut [f32]) {
     for (value, &input) in destination.iter_mut().zip(source) {
         *value += scale * input;
     }
+}
+
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+#[target_feature(enable = "avx2")]
+unsafe fn dot4x3_i16_i8_avx2(
+    rows: &[i16],
+    row_stride: usize,
+    weights_0: &[i8],
+    weights_1: &[i8],
+    weights_2: &[i8],
+) -> [[i32; 4]; 3] {
+    #[cfg(target_arch = "x86")]
+    use std::arch::x86::*;
+    #[cfg(target_arch = "x86_64")]
+    use std::arch::x86_64::*;
+
+    let mut accumulators = [[_mm256_setzero_si256(); 4]; 3];
+    let vector_end = weights_0.len() / 16 * 16;
+    let mut index = 0usize;
+    while index < vector_end {
+        let packed_0 = _mm_loadu_si128(weights_0.as_ptr().add(index).cast());
+        let packed_1 = _mm_loadu_si128(weights_1.as_ptr().add(index).cast());
+        let packed_2 = _mm_loadu_si128(weights_2.as_ptr().add(index).cast());
+        let widened_0 = _mm256_cvtepi8_epi16(packed_0);
+        let widened_1 = _mm256_cvtepi8_epi16(packed_1);
+        let widened_2 = _mm256_cvtepi8_epi16(packed_2);
+        for row in 0..4 {
+            let input = _mm256_loadu_si256(rows.as_ptr().add(row * row_stride + index).cast());
+            accumulators[0][row] =
+                _mm256_add_epi32(accumulators[0][row], _mm256_madd_epi16(input, widened_0));
+            accumulators[1][row] =
+                _mm256_add_epi32(accumulators[1][row], _mm256_madd_epi16(input, widened_1));
+            accumulators[2][row] =
+                _mm256_add_epi32(accumulators[2][row], _mm256_madd_epi16(input, widened_2));
+        }
+        index += 16;
+    }
+
+    let mut output = [[0i32; 4]; 3];
+    for output_index in 0..3 {
+        let weights = match output_index {
+            0 => weights_0,
+            1 => weights_1,
+            _ => weights_2,
+        };
+        for row in 0..4 {
+            let mut lanes = [0i32; 8];
+            _mm256_storeu_si256(lanes.as_mut_ptr().cast(), accumulators[output_index][row]);
+            output[output_index][row] = lanes.into_iter().sum();
+            for tail in index..weights.len() {
+                output[output_index][row] +=
+                    i32::from(rows[row * row_stride + tail]) * i32::from(weights[tail]);
+            }
+        }
+    }
+    output
+}
+
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+#[target_feature(enable = "avx2")]
+unsafe fn dot4x2_i16_i8_avx2(
+    rows: &[i16],
+    row_stride: usize,
+    weights_0: &[i8],
+    weights_1: &[i8],
+) -> [[i32; 4]; 2] {
+    #[cfg(target_arch = "x86")]
+    use std::arch::x86::*;
+    #[cfg(target_arch = "x86_64")]
+    use std::arch::x86_64::*;
+
+    let mut accumulators = [[_mm256_setzero_si256(); 4]; 2];
+    let vector_end = weights_0.len() / 16 * 16;
+    let mut index = 0usize;
+    while index < vector_end {
+        let packed_0 = _mm_loadu_si128(weights_0.as_ptr().add(index).cast());
+        let packed_1 = _mm_loadu_si128(weights_1.as_ptr().add(index).cast());
+        let widened_0 = _mm256_cvtepi8_epi16(packed_0);
+        let widened_1 = _mm256_cvtepi8_epi16(packed_1);
+        for row in 0..4 {
+            let input = _mm256_loadu_si256(rows.as_ptr().add(row * row_stride + index).cast());
+            accumulators[0][row] =
+                _mm256_add_epi32(accumulators[0][row], _mm256_madd_epi16(input, widened_0));
+            accumulators[1][row] =
+                _mm256_add_epi32(accumulators[1][row], _mm256_madd_epi16(input, widened_1));
+        }
+        index += 16;
+    }
+
+    let mut output = [[0i32; 4]; 2];
+    for output_index in 0..2 {
+        let weights = if output_index == 0 {
+            weights_0
+        } else {
+            weights_1
+        };
+        for row in 0..4 {
+            let mut lanes = [0i32; 8];
+            _mm256_storeu_si256(lanes.as_mut_ptr().cast(), accumulators[output_index][row]);
+            output[output_index][row] = lanes.into_iter().sum();
+            for tail in index..weights.len() {
+                output[output_index][row] +=
+                    i32::from(rows[row * row_stride + tail]) * i32::from(weights[tail]);
+            }
+        }
+    }
+    output
+}
+
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+#[target_feature(enable = "avx2")]
+unsafe fn quantize_i16_avx2(source: &[f32], destination: &mut [i16]) -> f32 {
+    #[cfg(target_arch = "x86")]
+    use std::arch::x86::*;
+    #[cfg(target_arch = "x86_64")]
+    use std::arch::x86_64::*;
+
+    const QMAX: f32 = i16::MAX as f32;
+    let sign_mask = _mm256_set1_ps(-0.0);
+    let mut maximum = _mm256_setzero_ps();
+    let vector_end = source.len() / 8 * 8;
+    let mut index = 0usize;
+    while index < vector_end {
+        let values = _mm256_loadu_ps(source.as_ptr().add(index));
+        maximum = _mm256_max_ps(maximum, _mm256_andnot_ps(sign_mask, values));
+        index += 8;
+    }
+    let mut maximum_lanes = [0.0f32; 8];
+    _mm256_storeu_ps(maximum_lanes.as_mut_ptr(), maximum);
+    let mut max_abs = maximum_lanes.into_iter().fold(0.0f32, f32::max);
+    for &value in &source[vector_end..] {
+        max_abs = max_abs.max(value.abs());
+    }
+    if max_abs == 0.0 {
+        destination.fill(0);
+        return 0.0;
+    }
+
+    let inverse_scale = _mm256_set1_ps(QMAX / max_abs);
+    index = 0;
+    while index < vector_end {
+        let values = _mm256_loadu_ps(source.as_ptr().add(index));
+        let quantized = _mm256_cvtps_epi32(_mm256_mul_ps(values, inverse_scale));
+        let low = _mm256_castsi256_si128(quantized);
+        let high = _mm256_extracti128_si256(quantized, 1);
+        let packed = _mm_packs_epi32(low, high);
+        _mm_storeu_si128(destination.as_mut_ptr().add(index).cast(), packed);
+        index += 8;
+    }
+    let inverse_scale = QMAX / max_abs;
+    while index < source.len() {
+        destination[index] = (source[index] * inverse_scale).round().clamp(-QMAX, QMAX) as i16;
+        index += 1;
+    }
+    max_abs / QMAX
 }
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
@@ -226,17 +508,49 @@ unsafe fn axpy_avx2_fma(scale: f32, source: &[f32], destination: &mut [f32]) {
     }
 }
 
-/// One dequantized tensor, row-major, with its logical shape for bounds
-/// documentation (not enforced beyond total length).
+/// Retained symmetric int8 data from the deployment package. Matrix-heavy
+/// paths dynamically quantize each activation row to int16 and accumulate
+/// exact i16 x i8 products into i32, then apply both scales once per output.
+#[derive(Clone)]
+struct QuantizedTensor {
+    data: Vec<i8>,
+    scale: f32,
+}
+
+/// A tensor's dequantized values remain available for embeddings, norms,
+/// small heads and the independently validated f32 fallback. Quantized package
+/// bytes are retained as well so dominant 64-token matrix projections do not
+/// expand weights to f32 in their hot loops.
 #[derive(Clone)]
 struct Tensor {
     data: Vec<f32>,
+    quantized: Option<QuantizedTensor>,
 }
 
 impl Tensor {
     fn get(&self, i: usize) -> f32 {
         self.data[i]
     }
+}
+
+struct QuantizedActivations {
+    data: Vec<i16>,
+    scales: Vec<f32>,
+}
+
+fn quantize_activation_rows(
+    values: &[f32],
+    tokens: usize,
+    row_stride: usize,
+    width: usize,
+) -> QuantizedActivations {
+    let mut data = vec![0i16; tokens * width];
+    let mut scales = vec![0.0f32; tokens];
+    for token in 0..tokens {
+        let source = &values[token * row_stride..token * row_stride + width];
+        scales[token] = quantize_i16(source, &mut data[token * width..(token + 1) * width]);
+    }
+    QuantizedActivations { data, scales }
 }
 
 pub struct ChessformerWeights {
@@ -266,10 +580,29 @@ impl ChessformerWeights {
             if section.name == "__metadata__" {
                 continue;
             }
+            if section.is_quantized()
+                && (section.dtype != crate::unarchitectured_v1::DTYPE_I8 || section.zero_point != 0)
+            {
+                return Err(format!(
+                    "UNARCHV1 tensor {:?} uses unsupported non-symmetric int8 quantization",
+                    section.name
+                ));
+            }
+            if !section.is_quantized() && section.dtype != crate::unarchitectured_v1::DTYPE_F32 {
+                return Err(format!(
+                    "UNARCHV1 tensor {:?} uses an unsupported runtime dtype",
+                    section.name
+                ));
+            }
+            let quantized = section.is_quantized().then(|| QuantizedTensor {
+                data: section.data.iter().map(|&value| value as i8).collect(),
+                scale: section.scale,
+            });
             tensors.insert(
                 section.name.to_string(),
                 Tensor {
                     data: dequantize(section),
+                    quantized,
                 },
             );
         }
@@ -488,6 +821,49 @@ fn linear_full(
 ) {
     let threads = inference_threads().min(tokens);
     let work = tokens.saturating_mul(in_width).saturating_mul(out_width);
+    if let Some(quantized_weight) = &weight.quantized {
+        let activations = quantize_activation_rows(values, tokens, in_width, in_width);
+        if threads <= 1 || work < 1_000_000 {
+            linear_quantized_sequential(
+                &activations.data,
+                &activations.scales,
+                tokens,
+                in_width,
+                quantized_weight,
+                weight_stride,
+                out_width,
+                bias,
+                out,
+            );
+            return;
+        }
+        let tokens_per_thread = tokens.div_ceil(threads);
+        std::thread::scope(|scope| {
+            for (chunk_index, out_chunk) in
+                out.chunks_mut(tokens_per_thread * out_width).enumerate()
+            {
+                let token_start = chunk_index * tokens_per_thread;
+                let token_count = out_chunk.len() / out_width;
+                let input = &activations.data
+                    [token_start * in_width..(token_start + token_count) * in_width];
+                let scales = &activations.scales[token_start..token_start + token_count];
+                scope.spawn(move || {
+                    linear_quantized_sequential(
+                        input,
+                        scales,
+                        token_count,
+                        in_width,
+                        quantized_weight,
+                        weight_stride,
+                        out_width,
+                        bias,
+                        out_chunk,
+                    );
+                });
+            }
+        });
+        return;
+    }
     if threads <= 1 || work < 1_000_000 {
         linear_full_sequential(
             values,
@@ -521,6 +897,65 @@ fn linear_full(
             });
         }
     });
+}
+
+fn linear_quantized_sequential(
+    values: &[i16],
+    activation_scales: &[f32],
+    tokens: usize,
+    in_width: usize,
+    weight: &QuantizedTensor,
+    weight_stride: usize,
+    out_width: usize,
+    bias: Option<&Tensor>,
+    out: &mut [f32],
+) {
+    const TOKEN_BLOCK: usize = 4;
+    for token_start in (0..tokens).step_by(TOKEN_BLOCK) {
+        let token_end = (token_start + TOKEN_BLOCK).min(tokens);
+        for output_start in (0..out_width).step_by(2) {
+            let output_end = (output_start + 2).min(out_width);
+            let first_weight_start = output_start * weight_stride;
+            let first_weight = &weight.data[first_weight_start..first_weight_start + in_width];
+            if output_end - output_start == 2 && token_end - token_start == TOKEN_BLOCK {
+                let second_weight_start = (output_start + 1) * weight_stride;
+                let second_weight =
+                    &weight.data[second_weight_start..second_weight_start + in_width];
+                let sums = dot_four_two_i16_i8(
+                    &values[token_start * in_width..],
+                    in_width,
+                    first_weight,
+                    second_weight,
+                );
+                for output_lane in 0..2 {
+                    let output_index = output_start + output_lane;
+                    let initial = bias.map(|values| values.get(output_index)).unwrap_or(0.0);
+                    for token_lane in 0..TOKEN_BLOCK {
+                        out[(token_start + token_lane) * out_width + output_index] = initial
+                            + sums[output_lane][token_lane] as f32
+                                * activation_scales[token_start + token_lane]
+                                * weight.scale;
+                    }
+                }
+            } else {
+                for output_index in output_start..output_end {
+                    let weight_start = output_index * weight_stride;
+                    let weight_row = &weight.data[weight_start..weight_start + in_width];
+                    let initial = bias.map(|values| values.get(output_index)).unwrap_or(0.0);
+                    for token in token_start..token_end {
+                        let input = &values[token * in_width..(token + 1) * in_width];
+                        let sum = input
+                            .iter()
+                            .zip(weight_row)
+                            .map(|(&activation, &weight)| i32::from(activation) * i32::from(weight))
+                            .sum::<i32>();
+                        out[token * out_width + output_index] =
+                            initial + sum as f32 * activation_scales[token] * weight.scale;
+                    }
+                }
+            }
+        }
+    }
 }
 
 fn linear_full_sequential(
@@ -564,6 +999,11 @@ fn project_qkv(
     k: &mut [f32],
     v: &mut [f32],
 ) {
+    if let Some(quantized_weights) = &weights.quantized {
+        let activations = quantize_activation_rows(normalized, tokens, D_MODEL, width);
+        project_qkv_quantized(&activations, tokens, width, quantized_weights, q, k, v);
+        return;
+    }
     const TOKEN_BLOCK: usize = 4;
     for token_start in (0..tokens).step_by(TOKEN_BLOCK) {
         let token_end = (token_start + TOKEN_BLOCK).min(tokens);
@@ -596,6 +1036,58 @@ fn project_qkv(
     }
 }
 
+fn project_qkv_quantized(
+    activations: &QuantizedActivations,
+    tokens: usize,
+    width: usize,
+    weights: &QuantizedTensor,
+    q: &mut [f32],
+    k: &mut [f32],
+    v: &mut [f32],
+) {
+    const TOKEN_BLOCK: usize = 4;
+    for token_start in (0..tokens).step_by(TOKEN_BLOCK) {
+        let token_end = (token_start + TOKEN_BLOCK).min(tokens);
+        for output_index in 0..width {
+            let q_start = output_index * D_MODEL;
+            let k_start = (D_MODEL + output_index) * D_MODEL;
+            let v_start = (2 * D_MODEL + output_index) * D_MODEL;
+            let weight_q = &weights.data[q_start..q_start + width];
+            let weight_k = &weights.data[k_start..k_start + width];
+            let weight_v = &weights.data[v_start..v_start + width];
+            if token_end - token_start == TOKEN_BLOCK {
+                let rows = &activations.data[token_start * width..];
+                let results = dot_four_three_i16_i8(rows, width, weight_q, weight_k, weight_v);
+                for lane in 0..TOKEN_BLOCK {
+                    let scale = activations.scales[token_start + lane] * weights.scale;
+                    q[(token_start + lane) * width + output_index] =
+                        results[0][lane] as f32 * scale;
+                    k[(token_start + lane) * width + output_index] =
+                        results[1][lane] as f32 * scale;
+                    v[(token_start + lane) * width + output_index] =
+                        results[2][lane] as f32 * scale;
+                }
+            } else {
+                for token in token_start..token_end {
+                    let input = &activations.data[token * width..(token + 1) * width];
+                    let dot = |weight_row: &[i8]| {
+                        input
+                            .iter()
+                            .zip(weight_row)
+                            .map(|(&activation, &weight)| i32::from(activation) * i32::from(weight))
+                            .sum::<i32>() as f32
+                            * activations.scales[token]
+                            * weights.scale
+                    };
+                    q[token * width + output_index] = dot(weight_q);
+                    k[token * width + output_index] = dot(weight_k);
+                    v[token * width + output_index] = dot(weight_v);
+                }
+            }
+        }
+    }
+}
+
 fn project_up(
     normalized: &[f32],
     tokens: usize,
@@ -605,6 +1097,19 @@ fn project_up(
     hidden: &mut [f32],
     gate: &mut [f32],
 ) {
+    if let Some(quantized_weights) = &weights.quantized {
+        let activations = quantize_activation_rows(normalized, tokens, width, width);
+        project_up_quantized(
+            &activations,
+            tokens,
+            width,
+            quantized_weights,
+            bias,
+            hidden,
+            gate,
+        );
+        return;
+    }
     const TOKEN_BLOCK: usize = 4;
     for token_start in (0..tokens).step_by(TOKEN_BLOCK) {
         let token_end = (token_start + TOKEN_BLOCK).min(tokens);
@@ -626,6 +1131,55 @@ fn project_up(
                     let input = &normalized[tok * width..(tok + 1) * width];
                     hidden[tok * width + o] = bias.get(o) + dot_product(input, weight_h);
                     gate[tok * width + o] = bias.get(width + o) + dot_product(input, weight_g);
+                }
+            }
+        }
+    }
+}
+
+fn project_up_quantized(
+    activations: &QuantizedActivations,
+    tokens: usize,
+    width: usize,
+    weights: &QuantizedTensor,
+    bias: &Tensor,
+    hidden: &mut [f32],
+    gate: &mut [f32],
+) {
+    const TOKEN_BLOCK: usize = 4;
+    for token_start in (0..tokens).step_by(TOKEN_BLOCK) {
+        let token_end = (token_start + TOKEN_BLOCK).min(tokens);
+        for output_index in 0..width {
+            let hidden_start = output_index * D_MODEL;
+            let gate_start = (D_MODEL + output_index) * D_MODEL;
+            let weight_hidden = &weights.data[hidden_start..hidden_start + width];
+            let weight_gate = &weights.data[gate_start..gate_start + width];
+            if token_end - token_start == TOKEN_BLOCK {
+                let rows = &activations.data[token_start * width..];
+                let results = dot_four_two_i16_i8(rows, width, weight_hidden, weight_gate);
+                for lane in 0..TOKEN_BLOCK {
+                    let scale = activations.scales[token_start + lane] * weights.scale;
+                    hidden[(token_start + lane) * width + output_index] =
+                        bias.get(output_index) + results[0][lane] as f32 * scale;
+                    gate[(token_start + lane) * width + output_index] =
+                        bias.get(width + output_index) + results[1][lane] as f32 * scale;
+                }
+            } else {
+                for token in token_start..token_end {
+                    let input = &activations.data[token * width..(token + 1) * width];
+                    let dot = |weight_row: &[i8]| {
+                        input
+                            .iter()
+                            .zip(weight_row)
+                            .map(|(&activation, &weight)| i32::from(activation) * i32::from(weight))
+                            .sum::<i32>() as f32
+                            * activations.scales[token]
+                            * weights.scale
+                    };
+                    hidden[token * width + output_index] =
+                        bias.get(output_index) + dot(weight_hidden);
+                    gate[token * width + output_index] =
+                        bias.get(width + output_index) + dot(weight_gate);
                 }
             }
         }
@@ -1414,6 +1968,49 @@ mod tests {
     ///     0.049596, -0.239851, -0.521234, -1.072829]
     ///   best_action_index 7, action 1350
     #[test]
+    fn integer_microkernels_match_scalar() {
+        let width = D_MODEL;
+        let activations = (0..4 * width)
+            .map(|index| ((index * 7919 + 17) % 65_535) as i32 - 32_767)
+            .map(|value| value as i16)
+            .collect::<Vec<_>>();
+        let weights = (0..3 * width)
+            .map(|index| ((index * 97 + 11) % 255) as i16 - 127)
+            .map(|value| value as i8)
+            .collect::<Vec<_>>();
+        let weight_0 = &weights[..width];
+        let weight_1 = &weights[width..2 * width];
+        let weight_2 = &weights[2 * width..];
+
+        assert_eq!(
+            dot_four_two_i16_i8(&activations, width, weight_0, weight_1),
+            dot4x2_i16_i8_scalar(&activations, width, weight_0, weight_1),
+        );
+        assert_eq!(
+            dot_four_three_i16_i8(&activations, width, weight_0, weight_1, weight_2),
+            dot4x3_i16_i8_scalar(&activations, width, weight_0, weight_1, weight_2),
+        );
+    }
+
+    #[test]
+    fn activation_quantizer_matches_scalar() {
+        let source = (0..D_MODEL)
+            .map(|index| ((index as f32 * 0.123_456_7).sin() * 3.25) + index as f32 * 1e-4)
+            .collect::<Vec<_>>();
+        let mut selected = [0i16; D_MODEL];
+        let mut scalar = [0i16; D_MODEL];
+        let selected_scale = quantize_i16(&source, &mut selected);
+        let scalar_scale = quantize_i16_scalar(&source, &mut scalar);
+        assert_eq!(selected_scale, scalar_scale);
+        for (index, (&got, &expected)) in selected.iter().zip(&scalar).enumerate() {
+            assert!(
+                (i32::from(got) - i32::from(expected)).abs() <= 1,
+                "quantized activation {index}: got {got}, expected {expected}"
+            );
+        }
+    }
+
+    #[test]
     fn rejects_malformed_runtime_input() {
         let mut input = start_position_input();
         input.pieces[0] = 13;
@@ -1586,6 +2183,57 @@ mod tests {
         }
     }
 
+    #[test]
+    fn integer_matrix_path_stays_close_to_dequantized_path() {
+        let integer_weights = load_reference_weights();
+        let mut dequantized_weights = load_reference_weights();
+        for tensor in dequantized_weights.tensors.values_mut() {
+            tensor.quantized = None;
+        }
+        let input = start_position_input();
+
+        for exit in [
+            InferenceExit::Layer2Width128,
+            InferenceExit::Layer4Width192,
+            InferenceExit::Layer8Width256,
+        ] {
+            let integer = forward_at_exit(&integer_weights, &input, exit);
+            let dequantized = forward_at_exit(&dequantized_weights, &input, exit);
+            let maximum_delta = |left: &[f32], right: &[f32]| {
+                left.iter()
+                    .zip(right)
+                    .map(|(&lhs, &rhs)| (lhs - rhs).abs())
+                    .fold(0.0f32, f32::max)
+            };
+            let logit_delta = maximum_delta(&integer.logits, &dequantized.logits);
+            let regret_mean_delta = maximum_delta(&integer.regret_mean, &dequantized.regret_mean);
+            let regret_scale_delta =
+                maximum_delta(&integer.regret_log_scale, &dequantized.regret_log_scale);
+            let evidence_delta = maximum_delta(&integer.evidence, &dequantized.evidence);
+            let representation_delta = maximum_delta(
+                &integer.representation[..exit.width()],
+                &dequantized.representation[..exit.width()],
+            );
+            eprintln!(
+                "{exit:?} integer-vs-f32 max deltas: logits={logit_delta:.8}, \
+                 regret_mean={regret_mean_delta:.8}, regret_log_scale={regret_scale_delta:.8}, \
+                 evidence={evidence_delta:.8}, representation={representation_delta:.8}"
+            );
+            for (name, delta) in [
+                ("logits", logit_delta),
+                ("regret mean", regret_mean_delta),
+                ("regret log scale", regret_scale_delta),
+                ("evidence", evidence_delta),
+                ("representation", representation_delta),
+            ] {
+                assert!(
+                    delta < 5e-4,
+                    "{exit:?} {name} drift {delta} exceeds the retained-int8 matrix gate"
+                );
+            }
+        }
+    }
+
     /// Cross-checked against `tools/reference_forward_aegis_v4.py
     /// artifacts/unarchitectured-v1-final.unarchv1 --all-exits` on the same
     /// real checkpoint. `elastic_exit_shapes_and_finiteness` above only
@@ -1600,18 +2248,50 @@ mod tests {
         let input = start_position_input();
 
         let expected_logits_128 = [
-            -1.03965724, -0.70582396, -1.05701911, -0.38986212, -0.7868678, -0.45352447,
-            -0.53338712, -0.33900601, -0.82796401, -0.99180812, -0.9507128, -0.7821846,
-            -0.85881901, -1.325477, -1.05770719, -0.72489899, -0.79163575, -1.16803908,
-            -1.35581696, -0.71138501,
+            -1.03965724,
+            -0.70582396,
+            -1.05701911,
+            -0.38986212,
+            -0.7868678,
+            -0.45352447,
+            -0.53338712,
+            -0.33900601,
+            -0.82796401,
+            -0.99180812,
+            -0.9507128,
+            -0.7821846,
+            -0.85881901,
+            -1.325477,
+            -1.05770719,
+            -0.72489899,
+            -0.79163575,
+            -1.16803908,
+            -1.35581696,
+            -0.71138501,
         ];
         let expected_evidence_128 = [3.27648902f32, 0.0294219, 3.85723782];
-        let expected_representation_128 =
-            [-0.51477349f32, 0.00801361, 0.37547749, -0.60401458, 0.53481448, -0.34796605, -0.51862764, -1.44890022];
+        let expected_representation_128 = [
+            -0.51477349f32,
+            0.00801361,
+            0.37547749,
+            -0.60401458,
+            0.53481448,
+            -0.34796605,
+            -0.51862764,
+            -1.44890022,
+        ];
 
         let output_128 = forward_at_exit(&weights, &input, InferenceExit::Layer2Width128);
-        for (i, (&got, &want)) in output_128.logits.iter().zip(expected_logits_128.iter()).enumerate() {
-            assert!((got - want).abs() < 5e-3, "exit 2/128 logit[{i}]: got {got}, want {want}");
+        for (i, (&got, &want)) in output_128
+            .logits
+            .iter()
+            .zip(expected_logits_128.iter())
+            .enumerate()
+        {
+            assert!(
+                (got - want).abs() < 5e-3,
+                "exit 2/128 logit[{i}]: got {got}, want {want}"
+            );
         }
         // evidence and representation both derive from the same pooled
         // 64-term sequential f32 sum, whose accumulation order differs from
@@ -1641,24 +2321,63 @@ mod tests {
             );
         }
         let best_128 = (0..input.legal_actions.len())
-            .max_by(|&a, &b| output_128.logits[a].partial_cmp(&output_128.logits[b]).unwrap())
+            .max_by(|&a, &b| {
+                output_128.logits[a]
+                    .partial_cmp(&output_128.logits[b])
+                    .unwrap()
+            })
             .unwrap();
         assert_eq!(best_128, 7, "exit 2/128 best action index");
-        assert_eq!(input.legal_actions[best_128], 1350, "exit 2/128 best action encoding");
+        assert_eq!(
+            input.legal_actions[best_128], 1350,
+            "exit 2/128 best action encoding"
+        );
 
         let expected_logits_192 = [
-            -1.12425447, -0.75749695, -1.15513003, -0.43399757, -0.82629299, -0.42284912,
-            -0.55280173, -0.44800025, -0.87793761, -1.07046652, -1.14484096, -0.76420325,
-            -0.97380733, -1.37777829, -1.10875309, -0.6861124, -0.66685504, -1.18792248,
-            -1.37111151, -0.83386445,
+            -1.12425447,
+            -0.75749695,
+            -1.15513003,
+            -0.43399757,
+            -0.82629299,
+            -0.42284912,
+            -0.55280173,
+            -0.44800025,
+            -0.87793761,
+            -1.07046652,
+            -1.14484096,
+            -0.76420325,
+            -0.97380733,
+            -1.37777829,
+            -1.10875309,
+            -0.6861124,
+            -0.66685504,
+            -1.18792248,
+            -1.37111151,
+            -0.83386445,
         ];
         let expected_evidence_192 = [3.53003931f32, 0.02421277, 4.04606676];
-        let expected_representation_192 =
-            [0.2943553f32, -0.58349973, 0.63125348, -0.44087225, 0.27256548, -0.8262307, -0.84874725, -1.63658905];
+        let expected_representation_192 = [
+            0.2943553f32,
+            -0.58349973,
+            0.63125348,
+            -0.44087225,
+            0.27256548,
+            -0.8262307,
+            -0.84874725,
+            -1.63658905,
+        ];
 
         let output_192 = forward_at_exit(&weights, &input, InferenceExit::Layer4Width192);
-        for (i, (&got, &want)) in output_192.logits.iter().zip(expected_logits_192.iter()).enumerate() {
-            assert!((got - want).abs() < 5e-3, "exit 4/192 logit[{i}]: got {got}, want {want}");
+        for (i, (&got, &want)) in output_192
+            .logits
+            .iter()
+            .zip(expected_logits_192.iter())
+            .enumerate()
+        {
+            assert!(
+                (got - want).abs() < 5e-3,
+                "exit 4/192 logit[{i}]: got {got}, want {want}"
+            );
         }
         for i in 0..3 {
             assert!(
@@ -1677,10 +2396,17 @@ mod tests {
             );
         }
         let best_192 = (0..input.legal_actions.len())
-            .max_by(|&a, &b| output_192.logits[a].partial_cmp(&output_192.logits[b]).unwrap())
+            .max_by(|&a, &b| {
+                output_192.logits[a]
+                    .partial_cmp(&output_192.logits[b])
+                    .unwrap()
+            })
             .unwrap();
         assert_eq!(best_192, 5, "exit 4/192 best action index");
-        assert_eq!(input.legal_actions[best_192], 1227, "exit 4/192 best action encoding");
+        assert_eq!(
+            input.legal_actions[best_192], 1227,
+            "exit 4/192 best action encoding"
+        );
     }
 
     #[test]
@@ -1699,6 +2425,50 @@ mod tests {
         }
         let elapsed = started.elapsed();
         println!("{} calls in {:?} -> {:?}/call", n, elapsed, elapsed / n);
+    }
+
+    #[test]
+    #[ignore]
+    fn benchmark_integer_matrix_speedup() {
+        let _guard = BENCHMARK_LOCK.lock().unwrap();
+        let integer_weights = load_reference_weights();
+        let mut dequantized_weights = load_reference_weights();
+        for tensor in dequantized_weights.tensors.values_mut() {
+            tensor.quantized = None;
+        }
+        let input = start_position_input();
+        for _ in 0..5 {
+            std::hint::black_box(forward(&integer_weights, &input));
+            std::hint::black_box(forward(&dequantized_weights, &input));
+        }
+
+        let rounds = 4;
+        let calls_per_round = 50;
+        let mut integer_elapsed = std::time::Duration::ZERO;
+        let mut dequantized_elapsed = std::time::Duration::ZERO;
+        for round in 0..rounds {
+            let measure = |weights: &ChessformerWeights| {
+                let started = std::time::Instant::now();
+                for _ in 0..calls_per_round {
+                    std::hint::black_box(forward(weights, &input));
+                }
+                started.elapsed()
+            };
+            if round % 2 == 0 {
+                dequantized_elapsed += measure(&dequantized_weights);
+                integer_elapsed += measure(&integer_weights);
+            } else {
+                integer_elapsed += measure(&integer_weights);
+                dequantized_elapsed += measure(&dequantized_weights);
+            }
+        }
+        let calls = rounds * calls_per_round;
+        println!(
+            "{calls} calls/path: dequantized={:?}/call retained-int8={:?}/call speedup={:.4}x",
+            dequantized_elapsed / calls,
+            integer_elapsed / calls,
+            dequantized_elapsed.as_secs_f64() / integer_elapsed.as_secs_f64(),
+        );
     }
 
     #[test]

@@ -1,0 +1,27 @@
+{
+  "class": "IEEEtranSSP, renamed local derivative of IEEEtran V1.8b with Source Sans Pro defaults",
+  "compiler": "pdfTeX 3.141592653-2.6-1.40.26 (TeX Live 2024)",
+  "evidence_inputs": {
+    "benchmarks/real-engines/report.json": "4dfe42c3f37b35ca93282401ed7e64dc3a0c4a55d582d072ff16e51a8b3eec81",
+    "data/service-timing-benchmarks/report.json": "3a4b7732802714ffa42f2081183620030e7b728e7148d752ab507c52aa9182c5",
+    "data/timing-validation/report.json": "3b98a228f8bf5f6ec1eabc6d43c60ffbf8a566d73c8fcd776e9b5c3a6f2b4b5e",
+    "docs/opening-book-coverage.md": "b8f3d0e2dc60867a7c29f695a9e5a447b4cbf61d2a49336bc191c479f5f98372",
+    "docs/opponent-detection-and-balanced-data.md": "dbbd92c067636c57349126ef387847c64179e316aedcfa15f2282a78d8e1815d",
+    "docs/real-engine-testing.md": "0650ebc539a9ea0536ce0f69babd5596738fb2e38b12a97cd39df65541358738",
+    "docs/research-implementation.md": "ab5a13197b7884461daec2227bcb163789e73a7fec2da8e9629e692b0cb36c9f",
+    "docs/timing-classifier-validation.md": "8860486041d298be9100d31dc8418eddc9d7e6c27ac8cccd2c8884e3e72032ad"
+  },
+  "format": "IEEEtran-derived conference, two column",
+  "generated_date": "2026-08-19",
+  "pages": 8,
+  "pdf_sha256": "e4b2aafca8fb3954025b5424201910611662023880cddc156c8a537ab91f6baf",
+  "schema": 1,
+  "source_sha256": "53f640d0cf62149afa16ea4d00b774bb0fbfedbaab533af9f2dad19cbb0a0ebb",
+  "title": "Engineering and Validating Unchessed: A Production Research Guide for an Opponent-Adaptive Rust UCI Chess Engine",
+  "validation": {
+    "overfull_boxes": false,
+    "undefined_citations": false,
+    "undefined_references": false
+  },
+  "word_count_tex": 5124
+}

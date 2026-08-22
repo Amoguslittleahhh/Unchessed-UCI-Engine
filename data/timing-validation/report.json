@@ -1,0 +1,197 @@
+{
+  "account_level": {
+    "auc": 0.413095,
+    "auc_bootstrap_95": [
+      0.259524,
+      0.575
+    ],
+    "bot": {
+      "count": 20,
+      "mean": 0.237882,
+      "median": 0.228435
+    },
+    "higher_is_bot_permutation_p": 0.864414,
+    "threshold": 0.45,
+    "threshold_false_positive_rate": 0.333333,
+    "threshold_false_positive_rate_bootstrap_95": [
+      0.190476,
+      0.47619
+    ],
+    "threshold_sensitivity": 0.2,
+    "threshold_sensitivity_bootstrap_95": [
+      0.05,
+      0.4
+    ],
+    "unmarked": {
+      "count": 42,
+      "mean": 0.338017,
+      "median": 0.331158
+    }
+  },
+  "all_standalone_classifier_gates_pass": false,
+  "by_time_control": [
+    {
+      "auc": 0.0,
+      "bot_median": -0.148746,
+      "pairs": 3,
+      "time_control": "120+1",
+      "unmarked_median": 0.077167
+    },
+    {
+      "auc": 0.34375,
+      "bot_median": -0.079332,
+      "pairs": 8,
+      "time_control": "180+0",
+      "unmarked_median": 0.268503
+    },
+    {
+      "auc": 0.0,
+      "bot_median": -0.374452,
+      "pairs": 1,
+      "time_control": "180+1",
+      "unmarked_median": 0.169679
+    },
+    {
+      "auc": 0.453125,
+      "bot_median": 0.080292,
+      "pairs": 8,
+      "time_control": "180+2",
+      "unmarked_median": 0.184636
+    },
+    {
+      "auc": 0.777778,
+      "bot_median": 0.451188,
+      "pairs": 3,
+      "time_control": "300+0",
+      "unmarked_median": 0.275922
+    },
+    {
+      "auc": 0.75,
+      "bot_median": 0.483311,
+      "pairs": 2,
+      "time_control": "300+2",
+      "unmarked_median": 0.161645
+    },
+    {
+      "auc": 0.0,
+      "bot_median": 0.457533,
+      "pairs": 1,
+      "time_control": "300+3",
+      "unmarked_median": 0.517293
+    },
+    {
+      "auc": 0.338843,
+      "bot_median": 0.183428,
+      "pairs": 11,
+      "time_control": "60+0",
+      "unmarked_median": 0.593492
+    },
+    {
+      "auc": 0.5,
+      "bot_median": 0.411165,
+      "pairs": 2,
+      "time_control": "600+1",
+      "unmarked_median": 0.264551
+    },
+    {
+      "auc": 0.75,
+      "bot_median": 0.305232,
+      "pairs": 2,
+      "time_control": "600+5",
+      "unmarked_median": 0.145935
+    },
+    {
+      "auc": 0.0,
+      "bot_median": 0.077549,
+      "pairs": 1,
+      "time_control": "900+0",
+      "unmarked_median": 0.114837
+    }
+  ],
+  "feature": "lag-1 autocorrelation of log(spent / clock-before), last 32 positive observations",
+  "gates": {
+    "account_auc_lower_95": {
+      "pass": false,
+      "required": 0.55,
+      "value": 0.259524
+    },
+    "matched_bot_accounts": {
+      "pass": false,
+      "required": 25,
+      "value": 20
+    },
+    "source_bot_accounts": {
+      "pass": true,
+      "required": 30,
+      "value": 39
+    },
+    "threshold_fpr_upper_95": {
+      "pass": false,
+      "required_maximum": 0.1,
+      "value": 0.47619
+    }
+  },
+  "label_definition": {
+    "negative": "unmarked account from a separate rated-game corpus; noisy human proxy, not affirmative human identity",
+    "positive": "Lichess BOT title (affirmative Bot API account)"
+  },
+  "leave_one_account_out_logistic": {
+    "accounts": 62,
+    "auc": 0.565476,
+    "brier": 0.251283,
+    "ece_5_bin": 0.235732,
+    "feature": "acf1 only",
+    "warning": "exploratory calibration only; it may learn a reversed sign and is not used by the engine"
+  },
+  "limitations": [
+    "Lichess %clk values in this snapshot have one-second precision, so sub-second behavior is censored.",
+    "The unmarked class is a human proxy and can contain undeclared automation or assisted play.",
+    "PGN-only extraction cannot reproduce the runtime legal-choice and search-difficulty filter.",
+    "The matched Bot API account sample is small and not engine-family-disjoint.",
+    "A result on these public accounts does not establish generalization to unseen accounts or platforms."
+  ],
+  "matched_sequence_level": {
+    "auc_descriptive_only": 0.407596,
+    "bot": {
+      "count": 42,
+      "mean": 0.23868,
+      "median": 0.163135
+    },
+    "unmarked": {
+      "count": 42,
+      "mean": 0.338017,
+      "median": 0.331158
+    },
+    "warning": "sequences from one account are correlated; account-level metrics are primary"
+  },
+  "matching": {
+    "bot_accounts": 20,
+    "elo_bin_width": 200,
+    "exact_time_control": true,
+    "max_records_per_account": 8,
+    "max_records_per_account_cell": 3,
+    "maximum_absolute_rating_difference": 137,
+    "median_absolute_rating_difference": 2.0,
+    "pairs": 42,
+    "unmarked_accounts": 42
+  },
+  "production_decision": "reject-standalone-timing-classifier",
+  "runtime_policy": "timing remains a weak modulator for independently ceiling-level play and can never trigger classification alone",
+  "schema": 1,
+  "seed": 20260819,
+  "snapshot": {
+    "records_bytes": 1193273,
+    "records_sha256": "f6d577dd847a9d8fd7addfb3681d4d9822373e1b101b88d8d6628cb775c072d5",
+    "source_manifest_sha256": "1f9cb45559ec6cf23f96e66db36b266eacc7a69674c30b6c21dc342037903e62"
+  },
+  "source": {
+    "bot": {
+      "accounts": 39,
+      "records": 390
+    },
+    "unmarked": {
+      "accounts": 2141,
+      "records": 2204
+    }
+  }
+}

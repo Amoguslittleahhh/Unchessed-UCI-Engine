@@ -1,0 +1,173 @@
+{
+  "a100": {
+    "activation_checkpointing": true,
+    "allow_tf32": true,
+    "automatic_microbatch_probe": true,
+    "cardinality_sized_epochs": true,
+    "cuda_graphs_enabled": false,
+    "distributed_backend": "NCCL DDP",
+    "early_stopping_patience": 3,
+    "effective_batch_records": 4096,
+    "fp8_allowed": false,
+    "fused_adamw": true,
+    "minimum_free_vram_fraction": 0.08,
+    "pinned_prefetch_batches": 4,
+    "precision": "BF16, with FP16 GradScaler fallback for V100",
+    "reserved_memory_growth_guard": true,
+    "runtime_readiness_gate": true,
+    "supported_families": [
+      "GB300",
+      "B300",
+      "B200",
+      "H200",
+      "H100",
+      "A100 80GB",
+      "A100 40GB",
+      "Tesla V100",
+      "RTX PRO 6000",
+      "L40S",
+      "RTX 6000 Ada",
+      "RTX A6000"
+    ],
+    "target": "Verda homogeneous NVIDIA node, 1-8 GPUs",
+    "target_vram_fraction": 0.92,
+    "torch_compile": true,
+    "without_replacement_epochs": true
+  },
+  "autonomous_safety": {
+    "all_rank_numeric_abort": true,
+    "atomic_heartbeat": true,
+    "data_quality_fail_closed": true,
+    "external_watchdog": true,
+    "feature_schema_fail_closed": true,
+    "memory_growth_abort": true,
+    "policy": "config/unarchitectured_v1_safety.json",
+    "runtime_readiness_fail_closed": true,
+    "validation_cusum": true
+  },
+  "cpu_datagen": {
+    "aggregate_hash_mib": 11264,
+    "node_vcpus": 180,
+    "nodes_per_action": 5000,
+    "reserved_service_vcpus": 4,
+    "threads_per_worker": 1,
+    "workers": 176
+  },
+  "experimental_predecessor": "Hydra Apex v5",
+  "feature_extraction": {
+    "direct_relations": 32400,
+    "exact_delta_oracle": true,
+    "pawn_topology_rows": 4096,
+    "rust_gpu_schema_audit": true,
+    "xray_hyperedges": 13824
+  },
+  "lineage": {
+    "canonical_generation": 1,
+    "canonical_name": "Unarchitectured v1",
+    "derived_from_experimental": [
+      "Hydra v1-v5",
+      "Unchessed Apex v1 naming candidate"
+    ],
+    "maturity": "current canonical architecture; untrained and default-off until promotion gates pass"
+  },
+  "name": "Unarchitectured v1",
+  "offline_oracle": {
+    "bf16_weight_bytes": 116824862,
+    "board_forward_flops_approx": 5502926848,
+    "board_trunk_parameters": 43454080,
+    "concept_parameters": 73728,
+    "forward_flops_approx": 11761123328,
+    "fp32_adamw_persistent_bytes_approx": 934598896,
+    "head_parameters": 7695,
+    "history_parameters": 42752,
+    "legal_decoder_forward_flops_approx": 6258196480,
+    "legal_decoder_parameters": 14768640,
+    "parameters": 58412431,
+    "private_adapter_parameters": 65536
+  },
+  "parameter_compression_factor": 13.83228630528037,
+  "runtime_file_magic": "UNARCHV1",
+  "runtime_student": {
+    "calibration_parameters": 15,
+    "concept_parameters": 18432,
+    "dense_policy_dot_products": 4096,
+    "exit_budgets": {
+      "layer_2_width_128": {
+        "flops_approx": 46967296,
+        "mflops_approx": 46.967
+      },
+      "layer_4_width_192": {
+        "flops_approx": 171624576,
+        "mflops_approx": 171.625
+      },
+      "layer_8_width_256": {
+        "flops_approx": 551118592,
+        "mflops_approx": 551.119
+      }
+    },
+    "history_adapter_parameters": 13184,
+    "legal_only_policy_dot_products": 218,
+    "legal_regret_parameters": 16610,
+    "parameters": 4222905,
+    "policy_dot_reduction_factor": 18.788990825688074,
+    "private_adapter_parameters": 49152,
+    "runtime_int8_bytes_approx": 4222905,
+    "shared_policy_parameters": 196869,
+    "trunk_parameters": 3927872,
+    "value_parameters": 771
+  },
+  "schema": 1,
+  "training_efficiency": {
+    "compiler_mode": "default",
+    "cuda_graphs": false,
+    "ddp_rank_disjoint": true,
+    "epoch_mode": "rotated_contiguous_global_batches",
+    "index_memory_complexity": "O(records/global_batch)",
+    "nvme_access": "mostly contiguous",
+    "prefetch_workers": 4,
+    "without_replacement": true
+  },
+  "verda_profiles": [
+    {
+      "id": "blackwell-xxl",
+      "match": "GB300|B300|B200",
+      "minimum_training_records": 16384000,
+      "minimum_vram_mib": 170000,
+      "oracle_parameters": 878114575,
+      "precision": "bfloat16"
+    },
+    {
+      "id": "hopper-xl",
+      "match": "H200",
+      "minimum_training_records": 10240000,
+      "minimum_vram_mib": 135000,
+      "oracle_parameters": 501835855,
+      "precision": "bfloat16"
+    },
+    {
+      "id": "80gb-large",
+      "match": "H100|A100.*80|RTX PRO 6000",
+      "minimum_training_records": 4096000,
+      "minimum_vram_mib": 78000,
+      "oracle_parameters": 230537295,
+      "precision": "bfloat16"
+    },
+    {
+      "id": "40-48gb-base",
+      "match": "A100.*40|L40S|RTX 6000 Ada|RTX A6000",
+      "minimum_training_records": 1024000,
+      "minimum_vram_mib": 39000,
+      "oracle_parameters": 58412431,
+      "precision": "bfloat16"
+    },
+    {
+      "id": "v100-compat",
+      "match": "V100",
+      "minimum_training_records": 409600,
+      "minimum_vram_mib": 15000,
+      "oracle_parameters": 29144367,
+      "precision": "float16"
+    }
+  ],
+  "warning": "calculated architecture/memory/operation budgets only; not measured throughput, accuracy, NPS, Elo, or SPRT evidence"
+}

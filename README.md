@@ -1,207 +1,357 @@
 # Unchessed AI
 
-A UCI chess engine family built from scratch in Rust:
+A Rust UCI chess-engine family with opponent adaptation, a production alpha-beta
+core, and a research-grade neural training stack.
 
-- **Unchessed Game Adapter** (`unchessed-adapter.exe`) — an adaptive engine that
-  estimates its opponent's strength *live from their moves* (fully offline, no
-  rating lookups) and shapes its play to match, punish, or clinch.
-- **Unchessed Game Reviewer** (`unchessed-reviewer.exe`) — a full-strength
-  analysis engine: same `unchessed-core` eval/search as the adapter, but no
-  persona/opponent-modeling layer — always plays at its raw strength.
+- **Unchessed Game Adapter** — estimates its opponent from play and chooses a
+  guarded MATCH, PUNISH, CLINCH, DEFEND, or full-strength response.
+- **Unchessed Game Reviewer** — uses the same move generation, evaluation, and
+  search without persona weakening.
 
-Both binaries share the same `unchessed-core` crate (eval, search, movegen)
-and are always rebuilt/redeployed together after any change; they differ only
-in the UCI options and default behavior their own `main.rs` exposes.
+Both binaries are built from `unchessed-core`; neither depends on a network
+service at runtime.
 
-## Status: barebones milestone (this build)
+## Current status
 
-| Component | State |
+| Component | Status |
 |---|---|
-| Bitboard movegen | ✅ perft-verified (startpos d6 = 119,060,324; Kiwipete d5 = 193,690,690, exact) |
-| Search | ✅ iterative deepening alpha-beta, quiescence, TT, null-move, LMR, killers/history, MultiPV, time management |
-| Eval | ✅ NNUE v4 (HalfKAv2_hm: 22528-input king-relative/mirrored/factorized-trained, 256-accumulator/SCReLU), SPRT-validated +26.1 Elo over v1 (which was itself +107.1 Elo over the hand-crafted eval), auto-loaded from `unchessed-nnue.bin`; incremental accumulator updates (v1/v3, add/remove only the feature rows a move changed instead of a full recompute) SPRT-validated **+68.6 ± 21.0 Elo** (657 games, LOS 100%) at real game time controls from reaching deeper search in the same clock; HCE (material + PSTs + bishop pair + mobility/passed-pawns/rook/knight-outpost terms) remains as a fallback when the file is absent |
-| UCI protocol | ✅ full loop, worker-thread search, `stop` safe, 9/9 smoke tests |
-| Time management | ✅ clock-aware: deep searches on a full clock, urgency tiers as time drains (near-instant on the increment in panic mode), situation-scaled budgets (sharp/wide positions get more), easy-move early stop, score-drop extensions; verified flag-free in 10s+0.1s blitz |
-| Opening book | ✅ ~45 embedded main lines with ECO names + troll tier + external Polyglot `.bin` support (key computation verified against the format spec test vectors) |
-| Adapter brain | ✅ live opponent-Elo model, MATCH/PUNISH/CLINCH/DEFEND personas, human-plausible move selection, `UCI_Opponent` engine identification |
-| Human policy net | ✅ Maia-style per-rating policy nets (v2: castling-rights + en-passant aware inputs) trained on 19.9M positions from 781k human Lichess games (CC0 data), pure-Rust inference, auto-loaded from `unchessed-maia.bin` |
+| Legal move generation | Perft verified: start position depth 6 = 119,060,324; Kiwipete depth 5 = 193,690,690 |
+| Search | Iterative deepening alpha-beta, qsearch, TT, null move, LMR, killers/history, MultiPV, exact shared node limits, `searchmoves`, mate limits, infinite/stop, and basic ponder support |
+| Production evaluation | Shipped HalfKAv2_hm NNUE plus HCE fallback |
+| NNUE execution | Int16 feature transformer, AVX-512BW/AVX2/scalar dispatch, stack-resident active features, incremental per-ply accumulators |
+| Opening coverage | 3,810 CC0 historical lines, all 500 ECO codes, curated main/troll overlays, Polyglot support |
+| Opponent model | 3,551 integer-Elo posterior buckets from 100 through 3650 with credible bounds |
+| Human policy sidecar | Inference/training code exists; **no trained `unchessed-maia.bin` ships** |
+| Canonical neural architecture | **Unarchitectured v1**; untrained, exporter/runtime incomplete, default-off |
+| Production neural routing | Alpha-beta only until every model/runtime/game gate passes |
 
-**Honest goals note:** beating full-strength Stockfish is not a realistic outcome
-for any hand-built engine — Stockfish is 15+ years of distributed testing. The
-achievable target, which this architecture is built for: play convincingly at
-*any* level from ~600 Elo to master+ strength and adapt between them
-automatically. NNUE + search work later raises the ceiling.
+## Canonical architecture: Unarchitectured v1
 
-## Building
+**Unarchitectured v1 is the only canonical architecture name.** Hydra v1-v5 and
+the short-lived Apex v1 name are experimental lineage retained for reproducible
+ablation history.
 
+Canonical identity:
+
+```text
+Registry ID:   unarchitectured-v1
+Runtime magic: UNARCHV1
+Architecture:  config/unarchitectured_v1.json
+Training:      config/unarchitectured_v1_training.json
+Safety:        config/unarchitectured_v1_safety.json
 ```
-cargo build --release
+
+Primary documentation:
+
+- [`docs/unarchitectured-v1.md`](docs/unarchitectured-v1.md)
+- [`config/architecture_registry.json`](config/architecture_registry.json)
+- [`benchmarks/unarchitectured-v1/`](benchmarks/unarchitectured-v1/)
+- [`docs/full-scale-bug-audit-2026-08-21.md`](docs/full-scale-bug-audit-2026-08-21.md)
+- [`docs/unarchitectured-v1-safety-integrity-report.md`](docs/unarchitectured-v1-safety-integrity-report.md)
+
+### Architecture summary
+
+```text
+three-stage XT-NNUE
+  position-only -> direct relations -> x-ray/pawn topology
+                       |
+          authoritative alpha-beta search
+                       |
+     exact promotion-aware legal action set
+                       |
+  elastic runtime student: 2/128, 4/192, 8/256
+                       ^
+  29M-878M training-only legal-action Oracle
 ```
 
-Produces `target\release\unchessed-adapter.exe` (standalone, no dependencies).
+Unarchitectured v1 includes:
 
-Tests (perft suite, search, book, model): `cargo test`. Deep perft:
-`cargo test --release -- --ignored`.
+- 32,400 direct threat/defence relations;
+- 13,824 slider/blocker/behind-target x-ray hyperedges;
+- 4,096 hashed pawn/king topology rows;
+- exact full-refresh hypergraph delta oracle;
+- fast/direct/full uncertainty routing and conformal bounds;
+- promotion-aware legal actions for N/B/R/Q underpromotions;
+- evidential WDL and per-action regret distributions;
+- private human and guide policy adapters;
+- 1-8 GPU Oracle training and compact-student distillation; and
+- mandatory full-legal alpha-beta fallback.
+
+Calling it v1 does **not** claim it is promoted. A real calibrated checkpoint,
+strict package, Python reference, and numerically validated mixed-integer Rust
+forward pass now exist; search integration, tactical safety, Elo, and SPRT
+remain unpromoted.
+
+### Runtime forward performance
+
+The first optimization round reduced the validated full 8-layer/256-width Rust
+forward from 208.61 ms to 14.92 ms on the two-visible-CPU sandbox through
+AVX2/FMA, four-token matrix microkernels, cache blocking, and scoped
+QKV/FFN/attention parallelism. The retained-int8 round now dynamically
+quantizes activations to int16, performs the dominant matrix products as
+AVX2 i16×i8→i32 arithmetic, and vectorizes activation quantization. In a
+same-process controlled benchmark on this host it reduced one-thread latency
+from 21.49 ms to 15.45 ms (1.39x) and two-thread latency from 16.01 ms to
+13.01 ms (1.23x) versus the dequantized-f32 backend.
+
+Full, middle, and shallow Python/Rust parity and best-move gates pass. The exits
+remain unwired and still require deployment calibration, clock-budget,
+tactical-safety, integrated NPS, and paired-game gates. See
+[`benchmarks/unarchitectured-v1/runtime-forward-2026-08-22.md`](benchmarks/unarchitectured-v1/runtime-forward-2026-08-22.md)
+and [`docs/unarchitectured-v1-runtime-optimization.md`](docs/unarchitectured-v1-runtime-optimization.md).
+
+## Autonomous fail-closed safety
+
+Unarchitectured v1 is designed to stop unsafe paid jobs without a person
+watching the terminal.
+
+The launch path applies, in order:
+
+1. engine-runtime/export readiness gate;
+2. Rust/config/GPU feature-schema equality gate;
+3. dataset size, balance, deduplication, identity, position, and date-order gate;
+4. Verda CPU/GPU/RAM/NVMe preflight;
+5. reduced model self-check;
+6. optimizer-inclusive per-GPU VRAM probe;
+7. all-rank numerical, gradient, loss-spike, overfit, and memory-growth guards;
+8. external stale-heartbeat process-group watchdog; and
+9. atomic checkpoints plus durable incident telemetry.
+
+The paid launcher fails by default because the engine runtime pipeline is not
+yet complete. Research-only checkpoints require explicit acknowledgement:
+
+```bash
+export ALLOW_RESEARCH_CHECKPOINT_ONLY=1
+```
+
+Safety entry points:
+
+```bash
+python tools/unarchitectured_v1_runtime_readiness.py --strict
+python tools/unarchitectured_v1_architecture_audit.py --strict
+python tools/unarchitectured_v1_feature_audit.py --strict
+python tools/unarchitectured_v1_dataset_gate.py --help
+```
+
+## Efficient data-centre training
+
+### GPU support
+
+Homogeneous Verda nodes with 1, 2, 4, or 8 GPUs are supported.
+
+| GPU profile | Precision | Training-only Oracle | Minimum records |
+|---|---:|---:|---:|
+| Tesla V100 16GB | FP16 + GradScaler | 29,144,367 | 409,600 |
+| A100 40GB / L40S / RTX 6000 Ada / RTX A6000 | BF16 | 58,412,431 | 1,024,000 |
+| A100 80GB / H100 / RTX PRO 6000 | BF16 | 230,537,295 | 4,096,000 |
+| H200 | BF16 | 501,835,855 | 10,240,000 |
+| B200 / B300 / GB300 | BF16 | 878,114,575 | 16,384,000 |
+
+Training uses NCCL DDP, non-final `no_sync()` accumulation, activation
+checkpointing, fused AdamW, SDPA, per-rank auto-batching, and BF16 or V100 FP16.
+The runtime student remains approximately 4.22M parameters on every profile.
+
+### Faster epochs
+
+Fixed `steps_per_epoch` is forbidden. Every epoch is derived from dataset
+cardinality and uses rotated contiguous global-batch shuffling:
+
+- without replacement;
+- disjoint DDP rank slices;
+- mostly sequential NVMe reads;
+- four asynchronous mmap prefetch workers; and
+- index memory `O(records/global_batch)` instead of `O(records)` per rank.
+
+CUDA graphs are disabled after the earlier long-run OOM. Validation uses
+three-epoch early stopping, finite-metric checks, and reserved-memory growth
+limits.
+
+### Verda CPU data generation
+
+Automatic profiles cover 4, 8, 16, 32, 64, 96, 120, 180, and 360 vCPU nodes.
+The scheduler reserves a small service allowance and assigns one persistent UCI
+teacher per remaining vCPU by default. It supports NUMA affinity, resumable
+ranges, exact per-legal-action common-budget labels, hash clearing, and complete
+engine/network/data/output provenance.
+
+```bash
+export PLAN=/data/unchessed/guide/plan.json
+export MANIFEST=/data/unchessed/guide/MANIFEST.json
+scripts/training/verda_unarchitectured_v1_datagen.sh
+```
+
+Human policy records are generated with the Rust data tool:
+
+```bash
+cargo run --release -p unchessed-datagen -- \
+  policy-v4 /data/human/train.aegis4 "$PRIVATE_128_BIT_HEX_KEY" \
+  5000000 0.25 /data/pgn/*.pgn
+```
+
+Use the same private pseudonym key across train/tune/final mining so leakage can
+be detected. Never commit the key or raw account identities.
+
+### Full training launcher
+
+```bash
+export TRAIN_V5='/nvme/data/train/*.aegis4'
+export TUNE_V5='/nvme/data/tune/*.aegis4'
+export FINAL_V5='/nvme/data/final/*.aegis4'
+export DATA_PROVENANCE=/nvme/data/provenance.json
+export OUTPUT_DIR=/nvme/checkpoints/unarchitectured-v1
+
+scripts/training/verda_unarchitectured_v1_train.sh
+```
+
+A provenance template is provided at
+`config/unarchitectured_v1_data_provenance.example.json`.
+
+## Production NNUE
+
+The shipped `unchessed-nnue.bin` is separate from Unarchitectured v1 research:
+
+```text
+format version:       3
+scheme:               HalfKAv2_hm
+inputs:               22,528
+accumulator:          256
+parameters:           5,767,937
+file size:            23,071,768 bytes
+runtime FT storage:   approximately 11.53 MiB int16
+```
+
+The v4 network was SPRT-validated at +26.1 ± 12.4 Elo over the prior network.
+The incremental mechanism was independently validated on main at +68.6 ± 21.0
+Elo in its f32 implementation. This branch combines incremental updates with
+int16/SIMD accumulation; that exact combined path retains a separate promotion
+gate.
+
+Inspect the shipped asset:
+
+```bash
+python tools/inspect_nnue.py unchessed-nnue.bin
+```
+
+## Adapter behavior and safety boundaries
+
+- Fixed strength has absolute precedence when `UCI_LimitStrength` is enabled.
+- Honest fixed-strength range is `UCI_Elo=100..2600`.
+- Opponent posterior support remains `100..3650`; one-point buckets are not
+  one-Elo accuracy, so decisions use credible intervals.
+- Known engine identity and observed playing strength remain separate.
+- Unknown opponents use conservative upper-strength evidence.
+- Timing can modulate independently ceiling-level evidence; it cannot classify
+  an opponent by itself.
+- Auto trolling requires affirmative human evidence and is disabled for known
+  engines.
+- FULL, PUNISH, DEFEND, engine/GM, uncertain, and missing-model cases use
+  authoritative alpha-beta.
+
+Core UCI options:
+
+| Option | Default | Meaning |
+|---|---:|---|
+| `Hash` | 128 | Transposition-table MiB |
+| `MultiPV` | 1 | Number of analysis lines |
+| `Adaptive` | true | Enable adapter opponent/persona logic |
+| `UCI_LimitStrength` | false | Enable fixed-strength mode |
+| `UCI_Elo` | 2400 | Fixed target, clamped to 100–2600 |
+| `Contempt` | 25 | Draw aversion used by CLINCH |
+| `Troll` | Auto | Off / evidence-gated Auto / forced On |
+| `OwnBook` | true | Use embedded/external opening book |
+| `BookFile` | — | Optional Polyglot book |
+| `BookDepth` | 40 | Maximum available book plies |
+| `PolicyFile` | auto | Optional `unchessed-maia.bin` sidecar |
+| `UCI_Opponent` | — | Standard opponent descriptor |
+| `RandomSeed` | 0 | Runtime entropy; nonzero is deterministic |
+
+## Build and test
+
+```bash
+cargo build --workspace --release
+cargo test --workspace --release
+cargo test --workspace --release -- --ignored --nocapture
+cargo clippy --workspace --release -- -D warnings
+python3 -m unittest discover -s tools -p 'test_*.py'
+```
+
+Latest full local audit:
+
+- 129 normal Rust tests passed;
+- 5 deep/ignored Rust tests passed separately;
+- 107 Python tests passed, with one A100 dependency-gated skip;
+- release build and Clippy `-D warnings` passed;
+- UCI smoke 9/9 passed;
+- adversarial UCI and persona suites passed;
+- 3,810 openings and all 500 ECO codes verified;
+- shipped NNUE inspection and release packaging passed.
+
+See [`docs/full-scale-bug-audit-2026-08-21.md`](docs/full-scale-bug-audit-2026-08-21.md).
+
+Black-box checks:
+
+```bash
+python tools/uci_smoke.py ./target/release/unchessed-adapter
+python tools/uci_edge_smoke.py ./target/release/unchessed-reviewer
+python tools/persona_smoke.py ./target/release/unchessed-adapter
+```
 
 ## Repository layout
 
-- `unchessed-core/` — shared eval, search, movegen, UCI protocol logic used
-  by both binaries.
-- `unchessed-adapter/`, `unchessed-reviewer/` — the two binary crates
-  (thin `main.rs` wrappers around `unchessed-core`).
-- `unchessed-datagen/` — training-data generation tooling.
-- `tools/` — auxiliary scripts (NNUE trainer, etc.).
-- `scripts/exhibition/` — the game-runner scripts used for exhibition
-  matches against reference engines (RubiChess).
-- `scripts/sprt-history/` — smoke-test/SPRT-launch scripts committed as a
-  record of specific past eval/search experiments (mix of passed and
-  reverted techniques — check project memory or `scripts/sprt-history/`
-  filenames for which).
-
-SPRT gate logs/PGNs and exhibition-series results themselves are not
-committed to git (they're large and regenerated per-run) — see the WSL
-build environment's `~/unchessed-ai/results/README.md` for that data.
-
-## En Croissant setup
-
-The engine has been registered in En Croissant's engine list automatically
-(`%APPDATA%\org.encroissant.app\engines\engines.json`). If you need to do it
-manually: **Engines → Add new → Local** and point it at
-`target\release\unchessed-adapter.exe`.
-
-- **Play vs it:** Board → New game → pick *Unchessed Game Adapter* as one side.
-- **Watch it think:** open the engine log panel — every adapter decision is
-  narrated via `info string [Unchessed] ...` lines (opponent estimate, persona
-  switches, book/troll choices).
-
-> If Windows **Smart App Control** blocks a freshly rebuilt exe (error 4551),
-> that's an OS policy on unsigned new binaries — the currently built release
-> exe passed it. If it ever triggers after a rebuild, re-run the build once
-> (reputation re-check) or run the test suite via WSL.
-
-## UCI options
-
-| Option | Default | Meaning |
-|---|---|---|
-| `Hash` | 128 | transposition table MB |
-| `MultiPV` | 1 | analysis lines shown |
-| `Adaptive` | true | the whole adapter brain; off = always best move |
-| `UCI_LimitStrength` / `UCI_Elo` | false / 2400 | hard cap on playing strength |
-| `Contempt` | 25 | drive to win drawish games (fuels CLINCH mode) |
-| `Troll` | Auto | `Off` / `Auto` (model-gated) / `On` (forced clowning) |
-| `OwnBook` | true | use the opening book in games |
-| `BookFile` | — | path to any Polyglot `.bin` book (e.g. built from Lichess masters) |
-| `BookDepth` | 16 | max plies to stay in book |
-| `PolicyFile` | auto | path to a policy weights file; default: `unchessed-maia.bin` next to the exe |
-| `UCI_Opponent` | — | standard GUI-supplied opponent info; seeds the model for engines |
-
-## How the adapter thinks
-
-1. **Pre-game:** if the GUI sends `UCI_Opponent`, known engines (Stockfish,
-   Leela, Komodo, …) seed the model at their real strength — trolling is
-   hard-locked off against strong engines. Humans always start neutral:
-   declared ratings are never trusted as truth.
-2. **Live model:** every opponent move is compared against the engine's own
-   analysis; centipawn loss (weighted by position difficulty, book moves
-   discounted) feeds a Bayesian running Elo estimate that converges in ~8–12
-   moves and keeps tracking.
-3. **Personas** (selection only — the search underneath always runs full
-   strength): **MATCH** blends to the opponent's level with human-plausible
-   moves; **PUNISH** snaps to forcing best moves the moment they blunder
-   (plays found mates immediately, prefers simplifying captures when far
-   ahead); **CLINCH** picks venomous, trap-laden lines in drawish late games
-   (narrow-safe-path metric, keeps queens on, and wires *contempt into the
-   search itself* so drawn lines score negative while chasing a win — but
-   neutral again when DEFENDing, because then a draw is a rescue); **DEFEND**
-   digs in when worse. Transitions have hysteresis (enter/exit thresholds)
-   so the engine commits to a plan instead of flapping, and every persona
-   change is logged: `persona MATCH -> PUNISH (eval 990 cp, opponent ~1011)`.
-4. **Engine-tell detection**: near-instant, near-perfect replies in positions
-   with real choice raise a suspicion score (fed by the opponent's clock usage
-   between moves). A suspected engine gets full-strength chess and zero
-   trolling, whatever the rating estimate says. Erratic play (brilliancies
-   mixed with blunders) widens the model's uncertainty instead of narrowing
-   it — the sandbagger pattern.
-5. **UCI_Elo semantics**: with `UCI_LimitStrength` on, the engine plays *at*
-   `UCI_Elo` in every mode, matching standard UCI behavior.
-6. **Book:** popularity-weighted theory with ECO names; a separately-tagged
-   troll tier (Bongcloud, Scholar's mate attempts, Stafford, Fried Liver, …)
-   gated by the live Elo model — big game detected → mainlines only, and a
-   bail-out guard eval-checks the position before continuing any troll line
-   (`troll line refuted — back to real chess`).
-
-## The human policy net
-
-MATCH-mode move selection is driven by Maia-style policy networks: one net per
-rating bucket (<1300, 1300–1599, 1600–1899, 1900+), each trained to predict
-*what a human of that rating actually plays*, on non-bullet rated games from
-the [Lichess open database](https://database.lichess.org) (CC0). At play time
-the engine blends the two buckets nearest its current target rating, so "play
-like a 1450" uses genuinely 1450-flavoured move preferences, not random noise
-on top of engine moves. If the weights file is missing, the engine falls back
-to the built-in heuristic priors and says so in the log.
-
-The v2 nets see the full special-rule state (castling rights + en-passant
-square as explicit inputs; en-passant and promotion samples oversampled in
-training). Validation top-1 accuracy predicting real human moves, per bucket:
-
-| Bucket | overall | castling | en passant | promotion |
-|---|---|---|---|---|
-| <1300 | 29.2% | 53.4% | 18.8% | 76.7% |
-| 1300–1599 | 31.0% | 60.7% | 44.7% | 79.3% |
-| 1600–1899 | 32.8% | 74.1% | 61.4% | 79.5% |
-| 1900+ | 33.5% | 81.5% | 67.4% | 75.8% |
-
-(That en-passant accuracy *rising with rating* is real human behavior — weaker
-players genuinely miss or decline en passant, and the per-bucket nets
-reproduce that.)
-
-Pipeline (reproducible):
-
-```
-cargo run --release -p unchessed-datagen -- samples 4000000 0.5 games1.pgn ...
-python tools/train_policy.py samples unchessed-maia.bin 3 256 4000000
-# put unchessed-maia.bin next to unchessed-adapter.exe
+```text
+unchessed-core/       movegen, search, evaluation, TT, UCI, adaptation
+unchessed-adapter/    adaptive UCI binary
+unchessed-reviewer/   full-strength UCI binary
+unchessed-datagen/    PGN/data-record generator
+config/               engine, architecture, safety, and hardware profiles
+tools/                validation, training, audit, packaging, and orchestration
+scripts/training/     Verda CPU/GPU launchers
+benchmarks/           calculated budgets and reproducible measured reports
+docs/                 canonical specification and experimental research history
+papers/                IEEE-style research guide
 ```
 
-Debug helper: type `policy 1200` (or any rating) into the engine's stdin to
-see the net's top human moves for the current position.
+## Experimental lineage
 
-## The NNUE evaluator
+The following are research history, not product versions:
 
-`unchessed-nnue.bin` (auto-loaded next to the exe if present, `EvalFile` UCI
-option to point elsewhere, falls back to HCE if absent/unreadable) is trained
-on 108M HCE-labeled self-play positions via `tools/train_nnue.py` — a small
-768-input/256-accumulator/SCReLU net (~197K params), 15 epochs, WDL-space loss
-with exponent 2.5 matching Stockfish's nnue-pytorch recipe. SPRT-validated
-+107.1 ± 27.0 Elo over the hand-crafted eval (532 games, LOS 100%) — the
-biggest single gain in this project's history, more than double the previous
-best (mobility, +52.3 Elo).
+- Hydra v1
+- Hydra Aegis v2
+- Hydra Aegis v3
+- Hydra Aegis v4
+- Hydra Apex v5
+- Apex v1 naming candidate
 
+Their configs, reports, and mathematics remain available for reproducibility.
+`config/architecture_registry.json` is authoritative for naming.
+
+## Known blockers
+
+The `UNARCHV1` binary tensor container, checkpoint exporter, package inspector,
+strict Rust package loader, and tensor reconstruction drift tool now exist.
+Engine readiness remains blocked on:
+
+```text
+accuracy/calibration gates over a representative deployment-position corpus
+safe asynchronous or clock-surplus search integration
+runtime mate/only-move safety suite
+integrated search NPS and paired-game SPRT
 ```
-python tools/train_nnue.py selfcheck              # format/gradient sanity check
-python tools/train_nnue.py unchessed-nnue.bin 15 shard0.bin shard1.bin ...
-```
 
-## Roadmap (next rounds)
+The mixed int16-activation/int8-weight Rust matrix backend, AVX2/FMA fallback
+kernels, real checkpoint, package loader, and all-exit Python reference gates now
+exist. The model is still unwired, and
+`config/unarchitectured_v1_runtime_capabilities.json` keeps readiness false
+until chess-level runtime safety and game gates are proven.
 
-- **Reviewer**: full-strength UCI engine + PGN review CLI (move classification,
-  accuracy %).
-- **NNUE**: quantization-aware training (int8/int16, ~5000x faster inference),
-  training on Lc0-distilled labels instead of the current HCE-labeled data
-  (shadow-streaming Lc0's training-data repository directly, deliberately
-  deferred pending this first result). Incremental accumulator updates
-  landed (v1/v3 update rows incrementally per move instead of a full
-  recompute; v2 still full-recomputes, kept loadable for reference only) --
-  measured ~1.6-1.9x faster wall-clock at matched depth/node-count on the
-  real v4 network with search behavior (nodes, PV, bestmove) unchanged, and
-  SPRT-validated at +68.6 ± 21.0 Elo (657 games, LOS 100%) at real game
-  time controls, where the speedup converts into real extra depth.
-- Deeper policy nets (conv/resnet) once GPU training is available; more data,
-  more buckets.
-- Lazy SMP threads, pondering, tablebases, adaptation tuning.
+## Research paper
 
-## Development verification tools
+The full IEEE-LaTeX-styled engineering guide and source are under
+[`papers/ieee-research-guide/`](papers/ieee-research-guide/).
 
-- `python tools/uci_smoke.py <engine>` — 9-step UCI protocol conformance test.
-- `python tools/selfplay.py <engine> [games] [movetime]` — self-play sanity run.
+## License and release note
+
+The opening corpus is documented as CC0. The repository-wide project license,
+tablebase distribution policy, and signing credentials remain owner decisions.
+Use `tools/package_release.py` to create checksummed local bundles; use
+`--require-policy` when heuristic policy fallback is unacceptable.

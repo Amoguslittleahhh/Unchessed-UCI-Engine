@@ -83,15 +83,15 @@ const fn build_pawn_attacks() -> [[Bitboard; 64]; 2] {
         let mut w = 0u64;
         let mut b = 0u64;
         if r + 1 < 8 {
-            if f - 1 >= 0 {
+            if f > 0 {
                 w |= 1u64 << ((r + 1) * 8 + f - 1);
             }
             if f + 1 < 8 {
                 w |= 1u64 << ((r + 1) * 8 + f + 1);
             }
         }
-        if r - 1 >= 0 {
-            if f - 1 >= 0 {
+        if r > 0 {
+            if f > 0 {
                 b |= 1u64 << ((r - 1) * 8 + f - 1);
             }
             if f + 1 < 8 {
@@ -167,12 +167,18 @@ fn ray_neg(d: usize, s: u8, occ: Bitboard) -> Bitboard {
 
 #[inline]
 fn bishop_att_classical(s: u8, occ: Bitboard) -> Bitboard {
-    ray_pos(DIR_NE, s, occ) | ray_pos(DIR_NW, s, occ) | ray_neg(DIR_SE, s, occ) | ray_neg(DIR_SW, s, occ)
+    ray_pos(DIR_NE, s, occ)
+        | ray_pos(DIR_NW, s, occ)
+        | ray_neg(DIR_SE, s, occ)
+        | ray_neg(DIR_SW, s, occ)
 }
 
 #[inline]
 fn rook_att_classical(s: u8, occ: Bitboard) -> Bitboard {
-    ray_pos(DIR_N, s, occ) | ray_pos(DIR_E, s, occ) | ray_neg(DIR_S, s, occ) | ray_neg(DIR_W, s, occ)
+    ray_pos(DIR_N, s, occ)
+        | ray_pos(DIR_E, s, occ)
+        | ray_neg(DIR_S, s, occ)
+        | ray_neg(DIR_W, s, occ)
 }
 
 // ---------------------------------------------------------------------------
@@ -310,25 +316,49 @@ fn find_magic(
 fn build_magics() -> MagicTables {
     let mut rng: u64 = 0x00C0_FFEE_D00D_2025;
     let mut table: Vec<Bitboard> = Vec::new();
-    let mut rook = [MagicEntry { mask: 0, magic: 0, shift: 0, offset: 0 }; 64];
-    let mut bishop = [MagicEntry { mask: 0, magic: 0, shift: 0, offset: 0 }; 64];
+    let mut rook = [MagicEntry {
+        mask: 0,
+        magic: 0,
+        shift: 0,
+        offset: 0,
+    }; 64];
+    let mut bishop = [MagicEntry {
+        mask: 0,
+        magic: 0,
+        shift: 0,
+        offset: 0,
+    }; 64];
 
     for s in 0u8..64 {
         let mask = relevant_rook_mask(s);
         let (magic, attacks) = find_magic(s, mask, rook_att_classical, &mut rng);
         let offset = table.len();
         table.extend_from_slice(&attacks);
-        rook[s as usize] = MagicEntry { mask, magic, shift: 64 - mask.count_ones(), offset };
+        rook[s as usize] = MagicEntry {
+            mask,
+            magic,
+            shift: 64 - mask.count_ones(),
+            offset,
+        };
     }
     for s in 0u8..64 {
         let mask = relevant_bishop_mask(s);
         let (magic, attacks) = find_magic(s, mask, bishop_att_classical, &mut rng);
         let offset = table.len();
         table.extend_from_slice(&attacks);
-        bishop[s as usize] = MagicEntry { mask, magic, shift: 64 - mask.count_ones(), offset };
+        bishop[s as usize] = MagicEntry {
+            mask,
+            magic,
+            shift: 64 - mask.count_ones(),
+            offset,
+        };
     }
 
-    MagicTables { rook, bishop, table }
+    MagicTables {
+        rook,
+        bishop,
+        table,
+    }
 }
 
 static MAGICS: OnceLock<MagicTables> = OnceLock::new();
@@ -414,8 +444,20 @@ const fn build_between() -> [[u64; 64]; 64] {
                 let df = bf - af;
                 let dr = br - ar;
                 if df == 0 || dr == 0 || df == dr || df == -dr {
-                    let step_f = if df == 0 { 0 } else if df > 0 { 1 } else { -1 };
-                    let step_r = if dr == 0 { 0 } else if dr > 0 { 1 } else { -1 };
+                    let step_f = if df == 0 {
+                        0
+                    } else if df > 0 {
+                        1
+                    } else {
+                        -1
+                    };
+                    let step_r = if dr == 0 {
+                        0
+                    } else if dr > 0 {
+                        1
+                    } else {
+                        -1
+                    };
                     let mut bb = 0u64;
                     let mut f = af + step_f;
                     let mut r = ar + step_r;
@@ -695,6 +737,8 @@ pub fn generate(pos: &Position, caps_only: bool, list: &mut MoveList) {
     if !caps_only {
         if let Color::White = us {
             if pos.castling & WK != 0
+                && pos.piece_on(4) == Some((Color::White, KING))
+                && pos.piece_on(7) == Some((Color::White, ROOK))
                 && occ & 0x60 == 0
                 && !attacked(pos, 4, them)
                 && !attacked(pos, 5, them)
@@ -703,6 +747,8 @@ pub fn generate(pos: &Position, caps_only: bool, list: &mut MoveList) {
                 list.push(Move::new(4, 6, MK_CASTLE));
             }
             if pos.castling & WQ != 0
+                && pos.piece_on(4) == Some((Color::White, KING))
+                && pos.piece_on(0) == Some((Color::White, ROOK))
                 && occ & 0x0E == 0
                 && !attacked(pos, 4, them)
                 && !attacked(pos, 3, them)
@@ -712,6 +758,8 @@ pub fn generate(pos: &Position, caps_only: bool, list: &mut MoveList) {
             }
         } else {
             if pos.castling & BK != 0
+                && pos.piece_on(60) == Some((Color::Black, KING))
+                && pos.piece_on(63) == Some((Color::Black, ROOK))
                 && occ & (0x60u64 << 56) == 0
                 && !attacked(pos, 60, them)
                 && !attacked(pos, 61, them)
@@ -720,6 +768,8 @@ pub fn generate(pos: &Position, caps_only: bool, list: &mut MoveList) {
                 list.push(Move::new(60, 62, MK_CASTLE));
             }
             if pos.castling & BQ != 0
+                && pos.piece_on(60) == Some((Color::Black, KING))
+                && pos.piece_on(56) == Some((Color::Black, ROOK))
                 && occ & (0x0Eu64 << 56) == 0
                 && !attacked(pos, 60, them)
                 && !attacked(pos, 59, them)
@@ -791,7 +841,13 @@ mod tests {
         let m = magics();
         let rook_entries: usize = m.rook.iter().map(|e| 1usize << (64 - e.shift)).sum();
         let bishop_entries: usize = m.bishop.iter().map(|e| 1usize << (64 - e.shift)).sum();
-        assert!(rook_entries >= 90_000 && rook_entries <= 110_000, "rook table size {rook_entries} out of expected range");
-        assert!(bishop_entries >= 4_000 && bishop_entries <= 6_000, "bishop table size {bishop_entries} out of expected range");
+        assert!(
+            rook_entries >= 90_000 && rook_entries <= 110_000,
+            "rook table size {rook_entries} out of expected range"
+        );
+        assert!(
+            bishop_entries >= 4_000 && bishop_entries <= 6_000,
+            "bishop table size {bishop_entries} out of expected range"
+        );
     }
 }

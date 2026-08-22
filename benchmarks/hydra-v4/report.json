@@ -1,0 +1,65 @@
+{
+  "chessformer": {
+    "calibration_parameters": 15,
+    "concept_parameters": 18432,
+    "dense_policy_dot_products": 4096,
+    "exit_budgets": {
+      "layer_2_width_128": {
+        "flops_approx": 46967296,
+        "mflops_approx": 46.967
+      },
+      "layer_4_width_192": {
+        "flops_approx": 171624576,
+        "mflops_approx": 171.625
+      },
+      "layer_8_width_256": {
+        "flops_approx": 551118592,
+        "mflops_approx": 551.119
+      }
+    },
+    "history_adapter_parameters": 13184,
+    "legal_only_policy_dot_products": 218,
+    "legal_regret_parameters": 16610,
+    "parameters": 4222905,
+    "policy_dot_reduction_factor": 18.788990825688074,
+    "private_adapter_parameters": 49152,
+    "runtime_int8_bytes_approx": 4222905,
+    "shared_policy_parameters": 196869,
+    "trunk_parameters": 3927872,
+    "value_parameters": 771
+  },
+  "data": {
+    "header_bytes": 64,
+    "legal_action_bytes": 436,
+    "legal_regret_bytes": 436,
+    "payload_expansion_over_v3": 6.8,
+    "record_bytes": 1088,
+    "records_per_gib": 986895,
+    "semantic_prefix_bytes": 160
+  },
+  "joint_loss_weight_sum": 1.0000000000000002,
+  "name": "Unchessed Hydra Aegis v4",
+  "schema": 4,
+  "search_interface": {
+    "candidate_minimum_coverage": 0.995,
+    "candidate_set_maximum": 16,
+    "full_legal_fallback_required": true,
+    "noncandidate_pruning_allowed": false
+  },
+  "warning": "calculated architecture budget only; not latency, accuracy, NPS, Elo, or SPRT evidence",
+  "xt_nnue": {
+    "calibration_bytes": 512,
+    "direct_padded_input": 1120,
+    "direct_semantic_input": 1094,
+    "fast_head_input": 1024,
+    "full_padded_input": 1184,
+    "full_semantic_input": 1158,
+    "head_parameters": 593208,
+    "incremental_state_bytes_per_ply": 1280,
+    "runtime_direct_threat_bytes": 1036800,
+    "runtime_pawn_topology_bytes": 65536,
+    "runtime_position_bytes": 11534336,
+    "runtime_total_bytes_approx": 13451576,
+    "runtime_xray_bytes": 221184
+  }
+}

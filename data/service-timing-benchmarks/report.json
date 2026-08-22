@@ -1,0 +1,251 @@
+{
+  "commercial_platform_coverage": {
+    "chess.com": "benchmarked from public archive PGNs; no affirmative BOT field, so threshold stress test only",
+    "chess24": "not benchmarked: playing service closed in 2024",
+    "fide_online_arena": "not benchmarked: no public bulk move-clock archive available locally",
+    "internet_chess_club": "not benchmarked: no public bulk clock archive and affirmative computer labels available locally",
+    "playchess_chessbase": "not benchmarked: no public bulk clock archive available locally"
+  },
+  "decision": "timing-only classification rejected across real-service benchmarks",
+  "feature": "lag-1 autocorrelation of log clock fraction over the last 32 positive observations",
+  "limitations": [
+    "Only Lichess supplies enough affirmative BOT labels for an AUC benchmark in this snapshot.",
+    "Chess.com and FICS unmarked traffic can include automation; threshold shares are stress tests, not verified-human false-positive rates.",
+    "Chess.com and FICS archives are account-centered samples, not natural-traffic samples.",
+    "No result is fabricated for a commercial service without a lawful public export or user-supplied licensed data."
+  ],
+  "primary_matched_lichess": {
+    "account_level": {
+      "auc": 0.413095,
+      "auc_bootstrap_95": [
+        0.259524,
+        0.575
+      ],
+      "bot": {
+        "count": 20,
+        "mean": 0.237882,
+        "median": 0.228435
+      },
+      "higher_is_bot_permutation_p": 0.864414,
+      "threshold": 0.45,
+      "threshold_false_positive_rate": 0.333333,
+      "threshold_false_positive_rate_bootstrap_95": [
+        0.190476,
+        0.47619
+      ],
+      "threshold_sensitivity": 0.2,
+      "threshold_sensitivity_bootstrap_95": [
+        0.05,
+        0.4
+      ],
+      "unmarked": {
+        "count": 42,
+        "mean": 0.338017,
+        "median": 0.331158
+      }
+    },
+    "decision": "reject-standalone-timing-classifier",
+    "matching": {
+      "bot_accounts": 20,
+      "elo_bin_width": 200,
+      "exact_time_control": true,
+      "max_records_per_account": 8,
+      "max_records_per_account_cell": 3,
+      "maximum_absolute_rating_difference": 137,
+      "median_absolute_rating_difference": 2.0,
+      "pairs": 42,
+      "unmarked_accounts": 42
+    }
+  },
+  "schema": 1,
+  "services": {
+    "chess.com": {
+      "auc_warning": "not reported: fewer than five affirmative BOT or unmarked accounts",
+      "bot": null,
+      "by_time_class": {
+        "blitz": {
+          "account_median_acf1": 0.316742,
+          "account_threshold_share": 0.290076,
+          "accounts": 131,
+          "perspective_median_acf1": 0.316742,
+          "perspective_threshold_share": 0.307692,
+          "perspectives": 273
+        },
+        "bullet": {
+          "account_median_acf1": 0.320158,
+          "account_threshold_share": 0.333333,
+          "accounts": 12,
+          "perspective_median_acf1": 0.293241,
+          "perspective_threshold_share": 0.333333,
+          "perspectives": 24
+        },
+        "rapid": {
+          "account_median_acf1": 0.160014,
+          "account_threshold_share": 0.130408,
+          "accounts": 1595,
+          "perspective_median_acf1": 0.163161,
+          "perspective_threshold_share": 0.141018,
+          "perspectives": 3340
+        }
+      },
+      "input": {
+        "bytes": 4501667,
+        "commit": "f7f1f88a812183557fa0fd3a9e2bf678901c9a6c",
+        "content_sha256": [
+          "fece4fb416bc29b981263735d721382fd067eb8c40559c6da33f48c7765b13c9"
+        ],
+        "excluded": {
+          "insufficient_perspective": 121,
+          "no_clocks": 4,
+          "time_control": 2
+        },
+        "files": 1,
+        "games_seen": 1885,
+        "kind": "public Chess.com archive PGN mirror",
+        "repository": "https://github.com/Himanshu01092005/Play-Against-Yourself-Personalized-Chess-AI"
+      },
+      "raw_account_auc_higher_is_bot": null,
+      "unmarked": {
+        "account_median_acf1": 0.169215,
+        "account_threshold_share": 0.144259,
+        "accounts": 1733,
+        "perspective_median_acf1": 0.171309,
+        "perspective_threshold_share": 0.154798,
+        "perspectives": 3637
+      }
+    },
+    "fics": {
+      "auc_warning": "not reported: fewer than five affirmative BOT or unmarked accounts",
+      "bot": {
+        "account_median_acf1": 1.0,
+        "account_threshold_share": 1.0,
+        "accounts": 1,
+        "perspective_median_acf1": 1.0,
+        "perspective_threshold_share": 1.0,
+        "perspectives": 1
+      },
+      "by_time_class": {
+        "blitz": {
+          "account_median_acf1": 0.183667,
+          "account_threshold_share": 0.227273,
+          "accounts": 22,
+          "perspective_median_acf1": 0.236003,
+          "perspective_threshold_share": 0.302326,
+          "perspectives": 43
+        },
+        "bullet": {
+          "account_median_acf1": 0.494787,
+          "account_threshold_share": 0.5,
+          "accounts": 2,
+          "perspective_median_acf1": 0.494787,
+          "perspective_threshold_share": 0.5,
+          "perspectives": 2
+        },
+        "rapid": {
+          "account_median_acf1": 0.159034,
+          "account_threshold_share": 0.135382,
+          "accounts": 1204,
+          "perspective_median_acf1": 0.16626,
+          "perspective_threshold_share": 0.150203,
+          "perspectives": 3209
+        }
+      },
+      "input": {
+        "bytes": 2855834,
+        "commit": "51aa2f45ca14f7630c0aaafff1587488b6ad9edb",
+        "content_sha256": [
+          "050bc7f6bbb65befe72a580b804eb2d93690eba91428a263485572267e74e01a",
+          "16af544137d24f0f2a75d37179b34f26c6b19c926a8f6c269187fe8b1b0ce9b5",
+          "21c8309d74526000cc4d4365ce7dc5a8e3dbedf3ed010c91f9c2428faec0fb78",
+          "390ca0754575f05860b70a5a4b0454bb57aae96a4bf47a9579892aa57fa4f975",
+          "7eb2b78561e11bd10ec04ce45c94f24833c816c2500c91ada0a885d6d502cfd3",
+          "985a1312662405ee3c5d6f3723163e9a60290b7509aa9bd06836efd7f82bac69",
+          "bb2cf2fc8a1bb118fe46c7d7681230561cc95e6e871f9b19a9cdb35d7b1db497"
+        ],
+        "excluded": {
+          "insufficient_perspective": 77,
+          "no_elapsed_times": 276,
+          "time_control": 3
+        },
+        "files": 7,
+        "games_seen": 1945,
+        "kind": "public FICS game archive with fractional-second elapsed times",
+        "repository": "https://github.com/jukey/chess"
+      },
+      "raw_account_auc_higher_is_bot": null,
+      "unmarked": {
+        "account_median_acf1": 0.15909,
+        "account_threshold_share": 0.137143,
+        "accounts": 1225,
+        "perspective_median_acf1": 0.166617,
+        "perspective_threshold_share": 0.152428,
+        "perspectives": 3254
+      }
+    },
+    "lichess": {
+      "auc_warning": "descriptive unmatched AUC; use the separately matched Lichess validation as primary",
+      "bot": {
+        "account_median_acf1": 0.212254,
+        "account_threshold_share": 0.205128,
+        "accounts": 39,
+        "perspective_median_acf1": 0.227618,
+        "perspective_threshold_share": 0.35641,
+        "perspectives": 390
+      },
+      "by_time_class": {
+        "blitz": {
+          "account_median_acf1": 0.30373,
+          "account_threshold_share": 0.287261,
+          "accounts": 1939,
+          "perspective_median_acf1": 0.305006,
+          "perspective_threshold_share": 0.289211,
+          "perspectives": 2002
+        },
+        "bullet": {
+          "account_median_acf1": 0.569063,
+          "account_threshold_share": 0.644068,
+          "accounts": 118,
+          "perspective_median_acf1": 0.569063,
+          "perspective_threshold_share": 0.644068,
+          "perspectives": 118
+        },
+        "classical": {
+          "account_median_acf1": 0.278409,
+          "account_threshold_share": 0.25,
+          "accounts": 4,
+          "perspective_median_acf1": 0.278409,
+          "perspective_threshold_share": 0.25,
+          "perspectives": 4
+        },
+        "rapid": {
+          "account_median_acf1": 0.155861,
+          "account_threshold_share": 0.2,
+          "accounts": 80,
+          "perspective_median_acf1": 0.155861,
+          "perspective_threshold_share": 0.2,
+          "perspectives": 80
+        }
+      },
+      "input": {
+        "bytes": 1193273,
+        "commit": null,
+        "content_sha256": [
+          "f6d577dd847a9d8fd7addfb3681d4d9822373e1b101b88d8d6628cb775c072d5"
+        ],
+        "files": 1,
+        "kind": "pseudonymous CC0 Lichess-derived records",
+        "repository": null
+      },
+      "raw_account_auc_higher_is_bot": 0.434748,
+      "unmarked": {
+        "account_median_acf1": 0.310336,
+        "account_threshold_share": 0.303596,
+        "accounts": 2141,
+        "perspective_median_acf1": 0.310949,
+        "perspective_threshold_share": 0.3049,
+        "perspectives": 2204
+      }
+    }
+  },
+  "threshold": 0.45
+}

@@ -162,7 +162,11 @@ impl PolicyNet {
         }
         let mut extra = Vec::new();
         if self.input == INPUT_V2 {
-            let (mk, mq, ok, oq) = if flip { (BK, BQ, WK, WQ) } else { (WK, WQ, BK, BQ) };
+            let (mk, mq, ok, oq) = if flip {
+                (BK, BQ, WK, WQ)
+            } else {
+                (WK, WQ, BK, BQ)
+            };
             if pos.castling & mk != 0 {
                 extra.push(768);
             }
@@ -259,15 +263,19 @@ impl PolicyNet {
         let mut lower: Option<usize> = None;
         let mut upper: Option<usize> = None;
         for (i, b) in self.buckets.iter().enumerate() {
-            if b.center() <= target_elo {
-                if lower.map(|l| self.buckets[l].center() < b.center()).unwrap_or(true) {
-                    lower = Some(i);
-                }
+            if b.center() <= target_elo
+                && lower
+                    .map(|l| self.buckets[l].center() < b.center())
+                    .unwrap_or(true)
+            {
+                lower = Some(i);
             }
-            if b.center() >= target_elo {
-                if upper.map(|u| self.buckets[u].center() > b.center()).unwrap_or(true) {
-                    upper = Some(i);
-                }
+            if b.center() >= target_elo
+                && upper
+                    .map(|u| self.buckets[u].center() > b.center())
+                    .unwrap_or(true)
+            {
+                upper = Some(i);
             }
         }
         match (lower, upper) {

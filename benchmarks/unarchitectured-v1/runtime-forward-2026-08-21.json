@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "architecture": "Unarchitectured v1 compact Chessformer student",
+  "date": "2026-08-21",
+  "host": {
+    "cpu": "Intel Xeon Processor @ 2.60GHz",
+    "visible_logical_cpus": 2,
+    "runtime_threads": 2,
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)"
+  },
+  "source_sha256": "159d066fb222fe52d15271c47d21ecf509de5258649a0e8a439752cbe80ee0fa",
+  "artifact_sha256": "5fd9fc3fbf47bd2620c2e832e24c98525b59feeea791abf1c7ae32b9d311b16d",
+  "baseline": {
+    "implementation": "naive scalar full 8-layer width-256 forward",
+    "milliseconds_per_call": 208.607349,
+    "calls": 200
+  },
+  "optimized": {
+    "full_8x256_single_thread_milliseconds": 23.041706,
+    "full_8x256_milliseconds": 14.922134,
+    "full_speedup": 13.979726,
+    "middle_4x192_milliseconds": 6.366315,
+    "middle_speedup_vs_naive_full": 32.76738,
+    "shallow_2x128_milliseconds": 2.661863,
+    "shallow_speedup_vs_naive_full": 78.36894
+  },
+  "correctness": {
+    "full_start_python_parity_tolerance": 0.005,
+    "full_midgame_python_parity_tolerance": 0.005,
+    "full_best_move_match": true,
+    "position_conversion_test": true,
+    "shallow_middle_independent_python_parity": false
+  },
+  "warning": "Standalone shared-sandbox latency. Shallow/middle exits are not integrated and require independent Python parity plus game gates before use."
+}

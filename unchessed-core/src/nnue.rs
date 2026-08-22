@@ -14,13 +14,12 @@
 //!       SFNNv5 output-head change was deliberately dropped for v3 so this
 //!       is a clean, single-variable test of the feature-scheme fix against
 //!       v1, not another bundle of changes).
-//! Inference is f32. v1 and v3 (the deployed default) update their
-//! accumulators incrementally on each move via `Eval::update_state`
-//! (add/remove only the feature rows a move actually changed; a full
-//! rebuild is used only when a perspective's own king moves, since every
-//! v3 feature is indexed relative to the king's bucket). v2 always takes
-//! the full-recompute path -- it's kept loadable for reference only and
-//! isn't worth the complexity for a scheme nothing ships as the default.
+//! Weight files remain f32, then the feature transformer is quantized at load
+//! time to int16 (scale 511) and accumulated with AVX-512BW, AVX2, or scalar
+//! dispatch. Active features and accumulators are stack-resident, removing the
+//! former two heap allocations per eval. Search carries a ply-indexed state;
+//! normal moves update changed rows incrementally and own-king bucket changes
+//! trigger a perspective refresh.
 //!
 //! Weights file format "UNCHNNUE" (little-endian):
 //!   magic "UNCHNNUE" (8 bytes)
@@ -95,21 +94,36 @@ const KING_BUCKETS: [i8; 64] = [
     -1, -1, -1, -1, 3, 2, 1, 0,
 ];
 
+#[derive(Clone, Copy)]
 enum Scheme {
     Flat768,
     HalfKa,
     HalfKav2Hm,
 }
 
+#[derive(Clone, Copy, Debug)]
+enum AccumulatorBackend {
+    Scalar,
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    Avx2,
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    Avx512,
+}
+
+const QA: f32 = 511.0;
+const MAX_ACTIVE_FEATURES: usize = 32;
+
 pub struct Nnue {
     scheme: Scheme,
-    /// [ft_in][ACC], row-major: one row of ACC weights per feature index
-    ft_w: Vec<f32>,
-    /// [ACC]
-    ft_b: Vec<f32>,
-    /// [mult * ACC]; mult=2 (v1, v3) or 4 (v2), see module doc for layout
+    /// Quantized [ft_in][ACC], row-major.
+    ft_w: Vec<i16>,
+    /// Quantized [ACC].
+    ft_b: [i16; ACC],
+    /// Output head remains f32; it is a tiny fraction of inference cost and
+    /// retaining scalar order avoids extra reassociation drift.
     out_w: Vec<f32>,
     out_b: f32,
+    backend: AccumulatorBackend,
 }
 
 fn read_u32(buf: &[u8], off: &mut usize) -> Result<u32, String> {
@@ -128,44 +142,104 @@ fn read_f32s(buf: &[u8], off: &mut usize, n: usize) -> Result<Vec<f32>, String> 
     let mut v = Vec::with_capacity(n);
     for i in 0..n {
         let s = *off + i * 4;
-        v.push(f32::from_le_bytes(buf[s..s + 4].try_into().unwrap()));
+        let value = f32::from_le_bytes(buf[s..s + 4].try_into().unwrap());
+        if !value.is_finite() {
+            return Err("UNCHNNUE contains a non-finite weight".into());
+        }
+        v.push(value);
     }
     *off += n * 4;
     Ok(v)
 }
 
-#[inline]
-fn add_row(acc: &mut [f32], ft_w: &[f32], idx: usize) {
-    let row = &ft_w[idx * ACC..(idx + 1) * ACC];
-    for (a, w) in acc.iter_mut().zip(row) {
-        *a += *w;
-    }
+fn quantize(value: f32) -> i16 {
+    (value * QA).round().clamp(i16::MIN as f32, i16::MAX as f32) as i16
 }
 
-#[inline]
-fn sub_row(acc: &mut [f32], ft_w: &[f32], idx: usize) {
-    let row = &ft_w[idx * ACC..(idx + 1) * ACC];
-    for (a, w) in acc.iter_mut().zip(row) {
-        *a -= *w;
+fn select_backend() -> AccumulatorBackend {
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    {
+        if std::is_x86_feature_detected!("avx512f") && std::is_x86_feature_detected!("avx512bw") {
+            return AccumulatorBackend::Avx512;
+        }
+        if std::is_x86_feature_detected!("avx2") {
+            return AccumulatorBackend::Avx2;
+        }
     }
+    AccumulatorBackend::Scalar
 }
 
-/// Per-perspective context needed to compute a single piece's feature-row
-/// index incrementally, without re-deriving it from scratch each time.
-/// Valid only as long as this perspective's OWN king hasn't moved since it
-/// was computed -- callers must full-rebuild instead when it has.
-/// v3 (HalfKAv2_hm) only -- v2 (HalfKa) always takes the full-recompute
-/// path in `update_state` instead of using this.
-#[derive(Clone, Copy)]
-struct KingFrame {
-    bucket: usize,
-    mirror: bool,
+fn accumulate_scalar(weights: &[i16], bias: &[i16; ACC], indices: &[usize]) -> [i16; ACC] {
+    let mut accumulator = *bias;
+    for &index in indices {
+        let row = &weights[index * ACC..(index + 1) * ACC];
+        for (value, weight) in accumulator.iter_mut().zip(row) {
+            *value += *weight;
+        }
+    }
+    accumulator
+}
+
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+#[target_feature(enable = "avx2")]
+unsafe fn accumulate_avx2(weights: &[i16], bias: &[i16; ACC], indices: &[usize]) -> [i16; ACC] {
+    #[cfg(target_arch = "x86")]
+    use std::arch::x86::*;
+    #[cfg(target_arch = "x86_64")]
+    use std::arch::x86_64::*;
+
+    let mut accumulator = *bias;
+    for &index in indices {
+        let row = weights.as_ptr().add(index * ACC);
+        for offset in (0..ACC).step_by(16) {
+            let a = _mm256_loadu_si256(accumulator.as_ptr().add(offset) as *const __m256i);
+            let w = _mm256_loadu_si256(row.add(offset) as *const __m256i);
+            _mm256_storeu_si256(
+                accumulator.as_mut_ptr().add(offset) as *mut __m256i,
+                _mm256_add_epi16(a, w),
+            );
+        }
+    }
+    accumulator
+}
+
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+#[target_feature(enable = "avx512f,avx512bw")]
+unsafe fn accumulate_avx512(weights: &[i16], bias: &[i16; ACC], indices: &[usize]) -> [i16; ACC] {
+    #[cfg(target_arch = "x86")]
+    use std::arch::x86::*;
+    #[cfg(target_arch = "x86_64")]
+    use std::arch::x86_64::*;
+
+    let mut accumulator = *bias;
+    for &index in indices {
+        let row = weights.as_ptr().add(index * ACC);
+        for offset in (0..ACC).step_by(32) {
+            let a = _mm512_loadu_si512(accumulator.as_ptr().add(offset) as *const __m512i);
+            let w = _mm512_loadu_si512(row.add(offset) as *const __m512i);
+            _mm512_storeu_si512(
+                accumulator.as_mut_ptr().add(offset) as *mut __m512i,
+                _mm512_add_epi16(a, w),
+            );
+        }
+    }
+    accumulator
 }
 
 impl Nnue {
     pub fn load(path: &str) -> Result<Nnue, String> {
         let buf = std::fs::read(path).map_err(|e| format!("open {}: {}", path, e))?;
         Nnue::from_bytes(&buf)
+    }
+
+    pub fn backend_name(&self) -> &'static str {
+        match self.backend {
+            AccumulatorBackend::Scalar => "int16-scalar",
+            #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+            AccumulatorBackend::Avx2 => "int16-avx2",
+            #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+            AccumulatorBackend::Avx512 => "int16-avx512bw",
+        }
     }
 
     fn from_bytes(buf: &[u8]) -> Result<Nnue, String> {
@@ -196,196 +270,290 @@ impl Nnue {
                 expected
             ));
         }
-        let ft_w = read_f32s(buf, &mut off, ft_in * ACC)?;
-        let ft_b = read_f32s(buf, &mut off, ACC)?;
+
+        let ft_w_f32 = read_f32s(buf, &mut off, ft_in * ACC)?;
+        let ft_b_f32 = read_f32s(buf, &mut off, ACC)?;
         let out_w = read_f32s(buf, &mut off, mult * ACC)?;
         let out_b = read_f32s(buf, &mut off, 1)?[0];
+        let max_weight = ft_w_f32.iter().map(|value| value.abs()).fold(0.0, f32::max);
+        let max_bias = ft_b_f32.iter().map(|value| value.abs()).fold(0.0, f32::max);
+        let conservative_bound = (max_bias + MAX_ACTIVE_FEATURES as f32 * max_weight) * QA;
+        if conservative_bound > i16::MAX as f32 {
+            return Err(format!(
+                "quantized accumulator may overflow i16 (bound {:.0} > {})",
+                conservative_bound,
+                i16::MAX
+            ));
+        }
+        let ft_w = ft_w_f32.into_iter().map(quantize).collect();
+        let ft_b_vec: Vec<i16> = ft_b_f32.into_iter().map(quantize).collect();
+        let ft_b: [i16; ACC] = ft_b_vec.try_into().map_err(|_| "bad FT bias length")?;
         Ok(Nnue {
             scheme,
             ft_w,
             ft_b,
             out_w,
             out_b,
+            backend: select_backend(),
         })
     }
 
-    /// Accumulator for one perspective: ft bias + sum of active feature rows.
-    fn accumulate(&self, pos: &Position, persp: Color) -> Vec<f32> {
-        let mut acc = self.ft_b.clone();
+    fn push_feature(indices: &mut [usize; MAX_ACTIVE_FEATURES], len: &mut usize, index: usize) {
+        debug_assert!(*len < MAX_ACTIVE_FEATURES);
+        indices[*len] = index;
+        *len += 1;
+    }
+
+    fn active_features(
+        &self,
+        pos: &Position,
+        persp: Color,
+    ) -> ([usize; MAX_ACTIVE_FEATURES], usize) {
+        let mut indices = [0usize; MAX_ACTIVE_FEATURES];
+        let mut len = 0usize;
         let white_persp = matches!(persp, Color::White);
         match self.scheme {
             Scheme::Flat768 => {
-                for c in 0..2 {
-                    let own = if c == persp.idx() { 0 } else { 1 };
-                    for p in 0..6 {
-                        let mut bb = pos.bb[c][p];
-                        while bb != 0 {
-                            let s = bb.trailing_zeros() as usize;
-                            bb &= bb - 1;
-                            let sq = if white_persp { s } else { s ^ 56 };
-                            let idx = own * 384 + p * 64 + sq;
-                            add_row(&mut acc, &self.ft_w, idx);
+                for color in 0..2 {
+                    let own = usize::from(color != persp.idx());
+                    for piece in 0..6 {
+                        let mut pieces = pos.bb[color][piece];
+                        while pieces != 0 {
+                            let square = pieces.trailing_zeros() as usize;
+                            pieces &= pieces - 1;
+                            let oriented = if white_persp { square } else { square ^ 56 };
+                            Self::push_feature(
+                                &mut indices,
+                                &mut len,
+                                own * 384 + piece * 64 + oriented,
+                            );
                         }
                     }
                 }
             }
             Scheme::HalfKa => {
-                let own_c = persp.idx();
-                let opp_c = 1 - own_c;
-                let king_raw = pos.bb[own_c][KING].trailing_zeros() as usize;
-                let king_sq = if white_persp { king_raw } else { king_raw ^ 56 };
-                let mut piece_idx = 0usize;
-                // own pieces first (skipping own king), then all opp pieces --
-                // matches the trainer's KEEP_PLANES order [0..4, 6..11].
-                for &(c, is_own) in &[(own_c, true), (opp_c, false)] {
-                    for p in 0..6 {
-                        if is_own && p == KING {
+                let own_color = persp.idx();
+                let opponent = 1 - own_color;
+                let king_raw = pos.bb[own_color][KING].trailing_zeros() as usize;
+                let king_square = if white_persp { king_raw } else { king_raw ^ 56 };
+                let mut piece_index = 0usize;
+                for &(color, is_own) in &[(own_color, true), (opponent, false)] {
+                    for piece in 0..6 {
+                        if is_own && piece == KING {
                             continue;
                         }
-                        let mut bb = pos.bb[c][p];
-                        while bb != 0 {
-                            let s = bb.trailing_zeros() as usize;
-                            bb &= bb - 1;
-                            let sq = if white_persp { s } else { s ^ 56 };
-                            let idx = king_sq * N_PIECE_SQ_V2 + piece_idx * 64 + sq;
-                            add_row(&mut acc, &self.ft_w, idx);
+                        let mut pieces = pos.bb[color][piece];
+                        while pieces != 0 {
+                            let square = pieces.trailing_zeros() as usize;
+                            pieces &= pieces - 1;
+                            let oriented = if white_persp { square } else { square ^ 56 };
+                            Self::push_feature(
+                                &mut indices,
+                                &mut len,
+                                king_square * N_PIECE_SQ_V2 + piece_index * 64 + oriented,
+                            );
                         }
-                        piece_idx += 1;
+                        piece_index += 1;
                     }
                 }
             }
             Scheme::HalfKav2Hm => {
-                let own_c = persp.idx();
-                let opp_c = 1 - own_c;
-                let king_raw = pos.bb[own_c][KING].trailing_zeros() as usize;
+                let own_color = persp.idx();
+                let opponent = 1 - own_color;
+                let king_raw = pos.bb[own_color][KING].trailing_zeros() as usize;
                 let king_oriented = if white_persp { king_raw } else { king_raw ^ 56 };
                 let mirror = (king_oriented % 8) < 4;
-                let king_final = if mirror { king_oriented ^ 7 } else { king_oriented };
-                let bucket = KING_BUCKETS[king_final] as usize; // always valid post-mirror
-
-                let orient_sq = |s: usize| -> usize {
-                    let o = if white_persp { s } else { s ^ 56 };
-                    if mirror { o ^ 7 } else { o }
+                let king_final = if mirror {
+                    king_oriented ^ 7
+                } else {
+                    king_oriented
                 };
-
-                // Non-king pieces: p_idx = piece_type*2 + (0 own, 1 opp),
-                // matching Stockfish's own/opp-interleaved PieceSquareIndex.
-                for p in 0..5 {
-                    for &(c, is_own) in &[(own_c, true), (opp_c, false)] {
-                        let mut bb = pos.bb[c][p];
-                        while bb != 0 {
-                            let s = bb.trailing_zeros() as usize;
-                            bb &= bb - 1;
-                            let sq = orient_sq(s);
-                            let p_idx = p * 2 + usize::from(!is_own);
-                            let idx = bucket * N_PIECE_SQ_V3 + p_idx * 64 + sq;
-                            add_row(&mut acc, &self.ft_w, idx);
+                let bucket = KING_BUCKETS[king_final] as usize;
+                let orient = |square: usize| {
+                    let oriented = if white_persp { square } else { square ^ 56 };
+                    if mirror {
+                        oriented ^ 7
+                    } else {
+                        oriented
+                    }
+                };
+                for piece in 0..5 {
+                    for &(color, is_own) in &[(own_color, true), (opponent, false)] {
+                        let mut pieces = pos.bb[color][piece];
+                        while pieces != 0 {
+                            let square = pieces.trailing_zeros() as usize;
+                            pieces &= pieces - 1;
+                            let piece_index = piece * 2 + usize::from(!is_own);
+                            Self::push_feature(
+                                &mut indices,
+                                &mut len,
+                                bucket * N_PIECE_SQ_V3 + piece_index * 64 + orient(square),
+                            );
                         }
                     }
                 }
-                // Merged king block (p_idx=10, features [640,703] within the
-                // bucket): opponent king at its own square, own king at its
-                // own (already-computed) square -- always two distinct rows.
-                let opp_king_raw = pos.bb[opp_c][KING].trailing_zeros() as usize;
-                let opp_king_sq = orient_sq(opp_king_raw);
-                add_row(&mut acc, &self.ft_w, bucket * N_PIECE_SQ_V3 + 640 + opp_king_sq);
-                add_row(&mut acc, &self.ft_w, bucket * N_PIECE_SQ_V3 + 640 + king_final);
+                let opponent_king = pos.bb[opponent][KING].trailing_zeros() as usize;
+                Self::push_feature(
+                    &mut indices,
+                    &mut len,
+                    bucket * N_PIECE_SQ_V3 + 640 + orient(opponent_king),
+                );
+                Self::push_feature(
+                    &mut indices,
+                    &mut len,
+                    bucket * N_PIECE_SQ_V3 + 640 + king_final,
+                );
             }
         }
-        acc
+        (indices, len)
     }
 
-    /// King-relative context for perspective `persp`, read from `pos`. Only
-    /// meaningful for schemes whose feature index depends on the king
-    /// square (v2, v3) -- callers of `feature_row` for v1 ignore it.
-    fn king_frame(&self, pos: &Position, persp: Color) -> KingFrame {
-        let white_persp = matches!(persp, Color::White);
-        let king_raw = pos.bb[persp.idx()][KING].trailing_zeros() as usize;
-        let king_oriented = if white_persp { king_raw } else { king_raw ^ 56 };
-        let mirror = (king_oriented % 8) < 4;
-        let king_final = if mirror { king_oriented ^ 7 } else { king_oriented };
-        KingFrame {
-            bucket: KING_BUCKETS[king_final] as usize,
-            mirror,
+    fn accumulate_indices(&self, indices: &[usize]) -> [i16; ACC] {
+        match self.backend {
+            AccumulatorBackend::Scalar => accumulate_scalar(&self.ft_w, &self.ft_b, indices),
+            #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+            AccumulatorBackend::Avx2 => unsafe { accumulate_avx2(&self.ft_w, &self.ft_b, indices) },
+            #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+            AccumulatorBackend::Avx512 => unsafe {
+                accumulate_avx512(&self.ft_w, &self.ft_b, indices)
+            },
         }
     }
 
-    /// Feature-row index for one (color, piece-type, square) contribution
-    /// from perspective `persp`, given `persp`'s current (unmoved-king)
-    /// `frame`. Mirrors `accumulate`'s per-scheme formulas exactly -- this
-    /// and `accumulate` must never be allowed to drift apart, since that
-    /// would silently desync incremental updates from a full recompute
-    /// without either one crashing. Only called for Flat768/HalfKAv2_hm;
-    /// v2 always takes the full-recompute path in `update_state` instead.
-    fn feature_row(&self, persp: Color, frame: KingFrame, c: usize, p: usize, sq: usize) -> usize {
-        let white_persp = matches!(persp, Color::White);
-        let own = c == persp.idx();
+    fn accumulate(&self, pos: &Position, perspective: Color) -> [i16; ACC] {
+        let (indices, len) = self.active_features(pos, perspective);
+        self.accumulate_indices(&indices[..len])
+    }
+
+    fn feature_index(
+        &self,
+        pos: &Position,
+        perspective: Color,
+        color: Color,
+        piece: usize,
+        square: usize,
+    ) -> Option<usize> {
+        let white = perspective == Color::White;
         match self.scheme {
             Scheme::Flat768 => {
-                let own_flag = if own { 0 } else { 1 };
-                let s = if white_persp { sq } else { sq ^ 56 };
-                own_flag * 384 + p * 64 + s
+                let own = usize::from(color != perspective);
+                let oriented = if white { square } else { square ^ 56 };
+                Some(own * 384 + piece * 64 + oriented)
+            }
+            Scheme::HalfKa => {
+                if color == perspective && piece == KING {
+                    return None;
+                }
+                let king_raw = pos.bb[perspective.idx()][KING].trailing_zeros() as usize;
+                let king_square = if white { king_raw } else { king_raw ^ 56 };
+                let piece_index = if color == perspective {
+                    piece
+                } else {
+                    5 + piece
+                };
+                let oriented = if white { square } else { square ^ 56 };
+                Some(king_square * N_PIECE_SQ_V2 + piece_index * 64 + oriented)
             }
             Scheme::HalfKav2Hm => {
-                let s0 = if white_persp { sq } else { sq ^ 56 };
-                let s = if frame.mirror { s0 ^ 7 } else { s0 };
-                if p == KING {
-                    // Both kings share the same merged block, keyed only by
-                    // their own oriented/mirrored square -- see
-                    // `accumulate`'s HalfKAv2_hm branch.
-                    frame.bucket * N_PIECE_SQ_V3 + 640 + s
+                let king_raw = pos.bb[perspective.idx()][KING].trailing_zeros() as usize;
+                let king_oriented = if white { king_raw } else { king_raw ^ 56 };
+                let mirror = king_oriented % 8 < 4;
+                let king_final = if mirror {
+                    king_oriented ^ 7
                 } else {
-                    let p_idx = p * 2 + usize::from(!own);
-                    frame.bucket * N_PIECE_SQ_V3 + p_idx * 64 + s
+                    king_oriented
+                };
+                let bucket = KING_BUCKETS[king_final] as usize;
+                let mut oriented = if white { square } else { square ^ 56 };
+                if mirror {
+                    oriented ^= 7;
                 }
-            }
-            Scheme::HalfKa => unreachable!("v2 uses full recompute, not incremental feature_row"),
-        }
-    }
-
-    /// Update `acc` in place for perspective `persp`, given the piece
-    /// bitboards changed from `before` to `after`. Diffing the bitboards
-    /// (rather than threading move-kind metadata through) means captures,
-    /// en passant, castling, and promotion all fall out correctly for
-    /// free: whatever squares actually gained or lost a piece get exactly
-    /// one row added or removed, regardless of why.
-    fn apply_diff(&self, before: &Position, after: &Position, persp: Color, acc: &mut [f32; ACC]) {
-        let frame = self.king_frame(after, persp);
-        for c in 0..2 {
-            for p in 0..6 {
-                let removed = before.bb[c][p] & !after.bb[c][p];
-                let added = after.bb[c][p] & !before.bb[c][p];
-                let mut bb = removed;
-                while bb != 0 {
-                    let sq = bb.trailing_zeros() as usize;
-                    bb &= bb - 1;
-                    sub_row(acc, &self.ft_w, self.feature_row(persp, frame, c, p, sq));
-                }
-                let mut bb = added;
-                while bb != 0 {
-                    let sq = bb.trailing_zeros() as usize;
-                    bb &= bb - 1;
-                    add_row(acc, &self.ft_w, self.feature_row(persp, frame, c, p, sq));
-                }
+                let piece_index = if piece == KING {
+                    10
+                } else {
+                    piece * 2 + usize::from(color != perspective)
+                };
+                Some(bucket * N_PIECE_SQ_V3 + piece_index * 64 + oriented)
             }
         }
     }
 
-    fn combine(&self, acc_stm: &[f32], acc_nstm: &[f32]) -> i32 {
+    fn apply_row(&self, accumulator: &mut [i16; ACC], index: usize, sign: i32) {
+        let row = &self.ft_w[index * ACC..(index + 1) * ACC];
+        for (value, &weight) in accumulator.iter_mut().zip(row) {
+            let updated = *value as i32 + sign * weight as i32;
+            debug_assert!((i16::MIN as i32..=i16::MAX as i32).contains(&updated));
+            *value = updated as i16;
+        }
+    }
+
+    fn update_accumulator(
+        &self,
+        before: &Position,
+        after: &Position,
+        perspective: Color,
+        parent: &[i16; ACC],
+    ) -> [i16; ACC] {
+        let own_king_moved = before.king_sq(perspective) != after.king_sq(perspective);
+        if own_king_moved && !matches!(self.scheme, Scheme::Flat768) {
+            return self.accumulate(after, perspective);
+        }
+
+        let mut accumulator = *parent;
+        for color in [Color::White, Color::Black] {
+            for piece in 0..6 {
+                let mut removed = before.bb[color.idx()][piece] & !after.bb[color.idx()][piece];
+                while removed != 0 {
+                    let square = removed.trailing_zeros() as usize;
+                    removed &= removed - 1;
+                    if let Some(index) =
+                        self.feature_index(before, perspective, color, piece, square)
+                    {
+                        self.apply_row(&mut accumulator, index, -1);
+                    }
+                }
+                let mut added = after.bb[color.idx()][piece] & !before.bb[color.idx()][piece];
+                while added != 0 {
+                    let square = added.trailing_zeros() as usize;
+                    added &= added - 1;
+                    if let Some(index) =
+                        self.feature_index(after, perspective, color, piece, square)
+                    {
+                        self.apply_row(&mut accumulator, index, 1);
+                    }
+                }
+            }
+        }
+        accumulator
+    }
+
+    fn evaluate_accumulators(
+        &self,
+        pos: &Position,
+        white_accumulator: &[i16; ACC],
+        black_accumulator: &[i16; ACC],
+    ) -> i32 {
+        let (stm, nstm) = if pos.side == Color::White {
+            (white_accumulator, black_accumulator)
+        } else {
+            (black_accumulator, white_accumulator)
+        };
         let mut out = self.out_b;
         match self.scheme {
             Scheme::Flat768 | Scheme::HalfKav2Hm => {
                 for i in 0..ACC {
-                    out += screlu(acc_stm[i]) * self.out_w[i];
-                    out += screlu(acc_nstm[i]) * self.out_w[ACC + i];
+                    out += screlu(stm[i] as f32 / QA) * self.out_w[i];
+                    out += screlu(nstm[i] as f32 / QA) * self.out_w[ACC + i];
                 }
             }
             Scheme::HalfKa => {
                 for i in 0..ACC {
-                    out += screlu(acc_stm[i]) * self.out_w[i];
-                    out += crelu(acc_stm[i]) * self.out_w[ACC + i];
-                    out += screlu(acc_nstm[i]) * self.out_w[2 * ACC + i];
-                    out += crelu(acc_nstm[i]) * self.out_w[3 * ACC + i];
+                    let stm_value = stm[i] as f32 / QA;
+                    let nstm_value = nstm[i] as f32 / QA;
+                    out += screlu(stm_value) * self.out_w[i];
+                    out += crelu(stm_value) * self.out_w[ACC + i];
+                    out += screlu(nstm_value) * self.out_w[2 * ACC + i];
+                    out += crelu(nstm_value) * self.out_w[3 * ACC + i];
                 }
             }
         }
@@ -408,19 +576,21 @@ fn crelu(x: f32) -> f32 {
 }
 
 impl Eval for Nnue {
-    /// Centipawns from the side-to-move's perspective (negamax-ready).
     fn eval(&self, pos: &Position) -> i32 {
-        let acc_stm = self.accumulate(pos, pos.side);
-        let acc_nstm = self.accumulate(pos, pos.side.flip());
-        self.combine(&acc_stm, &acc_nstm)
+        let white = self.accumulate(pos, Color::White);
+        let black = self.accumulate(pos, Color::Black);
+        self.evaluate_accumulators(pos, &white, &black)
     }
 
     fn initial_state(&self, pos: &Position) -> EvalState {
-        let mut acc = [[0.0f32; ACC]; 2];
-        acc[Color::White.idx()].copy_from_slice(&self.accumulate(pos, Color::White));
-        acc[Color::Black.idx()].copy_from_slice(&self.accumulate(pos, Color::Black));
         EvalState {
-            nnue: NnueEvalState { acc },
+            nnue: NnueEvalState {
+                accumulator: [
+                    self.accumulate(pos, Color::White),
+                    self.accumulate(pos, Color::Black),
+                ],
+            },
+            is_nnue: true,
         }
     }
 
@@ -431,36 +601,40 @@ impl Eval for Nnue {
         _mv: Move,
         state: &EvalState,
     ) -> EvalState {
-        if matches!(self.scheme, Scheme::HalfKa) {
-            // v2 (HalfKA, SPRT-failed, kept loadable for reference only)
-            // isn't worth incremental-update complexity for a scheme
-            // nothing ships as the default -- full recompute is correct
-            // and this path is never hot in practice.
+        if !state.is_nnue {
             return self.initial_state(after);
         }
-        let mut acc = state.nnue.acc;
-        for &persp in &[Color::White, Color::Black] {
-            let idx = persp.idx();
-            let own_king_moved = before.bb[persp.idx()][KING] != after.bb[persp.idx()][KING];
-            if matches!(self.scheme, Scheme::HalfKav2Hm) && own_king_moved {
-                // Every one of this perspective's active features is
-                // indexed relative to its own king's bucket, which just
-                // changed -- only a full rebuild is correct here.
-                acc[idx] = [0.0; ACC];
-                acc[idx].copy_from_slice(&self.accumulate(after, persp));
-                continue;
-            }
-            self.apply_diff(before, after, persp, &mut acc[idx]);
-        }
         EvalState {
-            nnue: NnueEvalState { acc },
+            nnue: NnueEvalState {
+                accumulator: [
+                    self.update_accumulator(
+                        before,
+                        after,
+                        Color::White,
+                        &state.nnue.accumulator[Color::White.idx()],
+                    ),
+                    self.update_accumulator(
+                        before,
+                        after,
+                        Color::Black,
+                        &state.nnue.accumulator[Color::Black.idx()],
+                    ),
+                ],
+            },
+            is_nnue: true,
         }
     }
 
     fn eval_with_state(&self, pos: &Position, state: &EvalState) -> i32 {
-        let acc_stm = &state.nnue.acc[pos.side.idx()];
-        let acc_nstm = &state.nnue.acc[pos.side.flip().idx()];
-        self.combine(acc_stm, acc_nstm)
+        if state.is_nnue {
+            self.evaluate_accumulators(
+                pos,
+                &state.nnue.accumulator[Color::White.idx()],
+                &state.nnue.accumulator[Color::Black.idx()],
+            )
+        } else {
+            self.eval(pos)
+        }
     }
 }
 
@@ -615,7 +789,13 @@ mod tests {
             let mir = fen::parse(&color_mirror_fen(f)).unwrap();
             let e1 = net.eval(&pos);
             let e2 = net.eval(&mir);
-            assert!((e1 - e2).abs() <= 1, "mirror mismatch for {}: {} vs {}", f, e1, e2);
+            assert!(
+                (e1 - e2).abs() <= 1,
+                "mirror mismatch for {}: {} vs {}",
+                f,
+                e1,
+                e2
+            );
         }
     }
 
@@ -627,7 +807,13 @@ mod tests {
             let mir = fen::parse(&color_mirror_fen(f)).unwrap();
             let e1 = net.eval(&pos);
             let e2 = net.eval(&mir);
-            assert!((e1 - e2).abs() <= 1, "mirror mismatch for {}: {} vs {}", f, e1, e2);
+            assert!(
+                (e1 - e2).abs() <= 1,
+                "mirror mismatch for {}: {} vs {}",
+                f,
+                e1,
+                e2
+            );
         }
     }
 
@@ -639,7 +825,13 @@ mod tests {
             let mir = fen::parse(&color_mirror_fen(f)).unwrap();
             let e1 = net.eval(&pos);
             let e2 = net.eval(&mir);
-            assert!((e1 - e2).abs() <= 1, "mirror mismatch for {}: {} vs {}", f, e1, e2);
+            assert!(
+                (e1 - e2).abs() <= 1,
+                "mirror mismatch for {}: {} vs {}",
+                f,
+                e1,
+                e2
+            );
         }
     }
 
@@ -656,8 +848,75 @@ mod tests {
                     .unwrap(),
             );
             let b = net.eval(&fen::startpos());
-            assert_ne!(a, b, "[{}] dummy net evals should differ across positions", tag);
+            assert_ne!(
+                a, b,
+                "[{}] dummy net evals should differ across positions",
+                tag
+            );
             assert!(a.abs() <= EVAL_CLAMP && b.abs() <= EVAL_CLAMP);
+        }
+    }
+
+    #[test]
+    fn incremental_accumulators_match_full_refresh_for_special_moves() {
+        let net = Nnue::from_bytes(&dummy_net_bytes_v3()).unwrap();
+        let mut pos = fen::startpos();
+        let mut state = net.initial_state(&pos);
+        for uci in [
+            "e2e4", "a7a6", "e4e5", "d7d5", "e5d6", // en passant
+            "e7d6", "g1f3", "b8c6", "f1e2", "g8f6", "e1g1", // castle
+        ] {
+            let mv = crate::movegen::parse_uci_move(&pos, uci).unwrap();
+            let next = pos.make(mv);
+            state = net.update_state(&pos, &next, mv, &state);
+            assert_eq!(
+                net.eval_with_state(&next, &state),
+                net.eval(&next),
+                "incremental mismatch after {}",
+                uci
+            );
+            pos = next;
+        }
+
+        let promo = fen::parse("7k/P7/8/8/8/8/8/7K w - - 0 1").unwrap();
+        let promo_state = net.initial_state(&promo);
+        let mv = crate::movegen::parse_uci_move(&promo, "a7a8q").unwrap();
+        let next = promo.make(mv);
+        let next_state = net.update_state(&promo, &next, mv, &promo_state);
+        assert_eq!(net.eval_with_state(&next, &next_state), net.eval(&next));
+    }
+
+    #[test]
+    fn incremental_accumulators_match_full_refresh_over_move_tree() {
+        fn walk(net: &Nnue, pos: &Position, state: EvalState, depth: u32) {
+            assert_eq!(net.eval_with_state(pos, &state), net.eval(pos));
+            if depth == 0 {
+                return;
+            }
+            let moves = crate::movegen::legal(pos);
+            for &mv in moves.as_slice() {
+                let next = pos.make(mv);
+                let next_state = net.update_state(pos, &next, mv, &state);
+                walk(net, &next, next_state, depth - 1);
+            }
+        }
+        let net = Nnue::from_bytes(&dummy_net_bytes_v3()).unwrap();
+        let pos = fen::startpos();
+        let state = net.initial_state(&pos);
+        walk(&net, &pos, state, 3);
+    }
+
+    #[test]
+    fn selected_simd_accumulator_matches_scalar_exactly() {
+        let net = Nnue::from_bytes(&dummy_net_bytes_v3()).unwrap();
+        for fen_text in MIRROR_FENS {
+            let pos = fen::parse(fen_text).unwrap();
+            for perspective in [Color::White, Color::Black] {
+                let (indices, len) = net.active_features(&pos, perspective);
+                let scalar = accumulate_scalar(&net.ft_w, &net.ft_b, &indices[..len]);
+                let selected = net.accumulate_indices(&indices[..len]);
+                assert_eq!(selected, scalar, "backend {}", net.backend_name());
+            }
         }
     }
 
@@ -665,7 +924,7 @@ mod tests {
     fn load_rejects_garbage() {
         assert!(Nnue::from_bytes(b"NOTANNUE").is_err());
         assert!(Nnue::from_bytes(b"UNCHNNUE").is_err()); // truncated header
-        // right magic, wrong dims
+                                                         // right magic, wrong dims
         let mut buf = Vec::new();
         buf.extend_from_slice(MAGIC);
         buf.extend_from_slice(&1u32.to_le_bytes());
@@ -687,129 +946,5 @@ mod tests {
         buf.extend_from_slice(&(FT_IN_V1 as u32).to_le_bytes());
         buf.extend_from_slice(&(ACC as u32).to_le_bytes());
         assert!(Nnue::from_bytes(&buf).is_err());
-    }
-
-    /// Asserts two states agree to within float-summation-order noise --
-    /// not bit-exact, since incremental add/remove and a from-scratch sum
-    /// aren't required to hit IEEE-754 float addition in the same order.
-    fn assert_states_close(a: &EvalState, b: &EvalState, tol: f32, ctx: &str) {
-        for persp in 0..2 {
-            for i in 0..ACC {
-                let (x, y) = (a.nnue.acc[persp][i], b.nnue.acc[persp][i]);
-                assert!(
-                    (x - y).abs() <= tol,
-                    "{}: perspective {} accumulator[{}] diverged: incremental {} vs full-refresh {}",
-                    ctx,
-                    persp,
-                    i,
-                    x,
-                    y
-                );
-            }
-        }
-    }
-
-    /// One (fen, uci move) pair, applied via update_state and compared
-    /// against a from-scratch initial_state on the resulting position.
-    fn check_incremental_step(net: &Nnue, fen: &str, uci: &str, ctx: &str) {
-        let before = fen::parse(fen).unwrap();
-        let mv = crate::movegen::parse_uci_move(&before, uci)
-            .unwrap_or_else(|| panic!("{}: '{}' illegal in '{}'", ctx, uci, fen));
-        let after = before.make(mv);
-        let before_state = net.initial_state(&before);
-        let incremental = net.update_state(&before, &after, mv, &before_state);
-        let full_refresh = net.initial_state(&after);
-        assert_states_close(&incremental, &full_refresh, 0.01, ctx);
-    }
-
-    /// CRITICAL correctness property: an incrementally-updated accumulator
-    /// must match a full recompute on the resulting position, for every
-    /// move-type special case (each of which changes feature rows for
-    /// different, easy-to-get-wrong reasons -- a capture removes an extra
-    /// row nowhere near the mover's destination, en passant removes a row
-    /// at neither the origin nor the destination, promotion changes which
-    /// piece-type row gets added, and castling moves two pieces at once
-    /// while also (for the mover's own perspective) invalidating the
-    /// entire king-bucket frame).
-    #[test]
-    fn incremental_accumulators_match_full_refresh_for_special_moves() {
-        let cases: &[(&str, &str, &str)] = &[
-            ("quiet move", fen::START_FEN, "e2e4"),
-            (
-                "capture",
-                "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3",
-                "f3e5",
-            ),
-            (
-                "en passant",
-                "rnbqkbnr/ppp1pppp/8/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 3",
-                "e5d6",
-            ),
-            (
-                "kingside castling",
-                "rnbqk2r/pppp1ppp/5n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
-                "e1g1",
-            ),
-            (
-                "queenside castling",
-                "r3k2r/pppqbppp/2np1n2/4p3/4P3/2NPBN2/PPPQ1PPP/R3K2R w KQkq - 6 7",
-                "e1c1",
-            ),
-            ("promotion (quiet)", "8/4P1k1/8/8/8/8/6K1/8 w - - 0 1", "e7e8q"),
-            (
-                "promotion + capture",
-                "4r2k/3P4/8/8/8/8/6K1/8 w - - 0 1",
-                "d7e8q",
-            ),
-            (
-                "king move (non-castling)",
-                "8/8/8/4k3/8/4K3/8/8 w - - 0 1",
-                "e3d3",
-            ),
-        ];
-        for (tag, bytes) in [
-            ("v1", dummy_net_bytes_v1()),
-            ("v3", dummy_net_bytes_v3()),
-        ] {
-            let net = Nnue::from_bytes(&bytes).unwrap();
-            for &(name, fen_str, uci) in cases {
-                check_incremental_step(&net, fen_str, uci, &format!("[{}] {}", tag, name));
-            }
-        }
-    }
-
-    /// The same property, but over a longer, non-trivial move sequence
-    /// (opening theory including a capture and castling both sides), state
-    /// carried incrementally the whole way rather than rebuilt each step
-    /// -- catches drift that a single-move test can't (e.g. an off-by-one
-    /// in which frame a later move should be diffed against).
-    #[test]
-    fn incremental_accumulators_match_full_refresh_over_move_tree() {
-        let moves = [
-            "e2e4", "e7e5", "g1f3", "b8c6", "f1b5", "a7a6", "b5a4", "g8f6", "e1g1", "f8e7",
-            "f1e1", "b7b5", "a4b3", "d7d6", "c2c3", "e8g8", "h2h3", "c6a5", "b3c2", "c7c5",
-        ];
-        for (tag, bytes) in [
-            ("v1", dummy_net_bytes_v1()),
-            ("v3", dummy_net_bytes_v3()),
-        ] {
-            let net = Nnue::from_bytes(&bytes).unwrap();
-            let mut pos = fen::startpos();
-            let mut state = net.initial_state(&pos);
-            for (i, uci) in moves.iter().enumerate() {
-                let mv = crate::movegen::parse_uci_move(&pos, uci)
-                    .unwrap_or_else(|| panic!("[{}] ply {}: '{}' illegal", tag, i, uci));
-                let next = pos.make(mv);
-                state = net.update_state(&pos, &next, mv, &state);
-                let full_refresh = net.initial_state(&next);
-                assert_states_close(
-                    &state,
-                    &full_refresh,
-                    0.01,
-                    &format!("[{}] after ply {} ({})", tag, i + 1, uci),
-                );
-                pos = next;
-            }
-        }
     }
 }
