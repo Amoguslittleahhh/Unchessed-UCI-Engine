@@ -18,6 +18,7 @@ pub mod policy;
 pub mod threat_features;
 pub mod chessformer;
 pub mod unarchitectured_v1;
+pub mod aegis_v4_runtime;
 mod polyglot_keys;
 pub mod adapt;
 pub mod uci;
