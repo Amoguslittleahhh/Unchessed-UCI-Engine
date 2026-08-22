@@ -35,11 +35,21 @@ def gpu_snapshot() -> dict:
 def terminate_group(process: subprocess.Popen, grace: float) -> None:
     if process.poll() is not None:
         return
-    os.killpg(process.pid, signal.SIGTERM)
+    if hasattr(os, "killpg"):
+        kill = lambda sig: os.killpg(process.pid, sig)
+    else:  # non-POSIX host, or a child not placed in its own process group
+        kill = lambda sig: process.send_signal(sig) if sig == signal.SIGTERM else process.kill()
+    try:
+        kill(signal.SIGTERM)
+    except ProcessLookupError:
+        return
     try:
         process.wait(timeout=grace)
     except subprocess.TimeoutExpired:
-        os.killpg(process.pid, signal.SIGKILL)
+        try:
+            kill(signal.SIGKILL if hasattr(signal, "SIGKILL") else signal.SIGTERM)
+        except ProcessLookupError:
+            pass
         process.wait()
 
 
