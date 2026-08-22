@@ -15,14 +15,14 @@ SPEC.loader.exec_module(MODULE)
 
 
 class V5RuntimeReadinessTests(unittest.TestCase):
-    def test_repository_reports_partial_package_but_missing_forward_runtime(self):
+    def test_repository_reports_forward_runtime_but_missing_safety_gate(self):
         report = MODULE.readiness()
         self.assertFalse(report["ready_for_engine_candidate_training"])
         self.assertTrue(all(value["exists"] for value in report["checks"].values()))
         self.assertTrue(report["capabilities"]["container_format"])
         self.assertTrue(report["capabilities"]["scalar_neural_forward"])
         self.assertTrue(report["capabilities"]["exported_reference_vectors"])
-        self.assertFalse(report["capabilities"]["quantized_neural_forward"])
+        self.assertTrue(report["capabilities"]["quantized_neural_forward"])
         self.assertFalse(report["capabilities"]["runtime_safety_suite"])
 
     def test_complete_fixture_becomes_ready(self):

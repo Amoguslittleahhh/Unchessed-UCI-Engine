@@ -83,8 +83,8 @@ def audit(root=ROOT):
         "scalar_forward_available": capabilities["scalar_neural_forward"] is True,
         "reference_vectors_available": capabilities["exported_reference_vectors"]
         is True,
-        "quantized_forward_still_blocked": capabilities["quantized_neural_forward"]
-        is False,
+        "quantized_forward_available": capabilities["quantized_neural_forward"]
+        is True,
     }
     for architecture_key, student_key in mapping.items():
         checks[f"student_{architecture_key}"] = (

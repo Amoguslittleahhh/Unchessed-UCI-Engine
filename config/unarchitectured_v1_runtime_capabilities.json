@@ -7,10 +7,10 @@
   "rust_package_loader": true,
   "tensor_quantization_drift": true,
   "scalar_neural_forward": true,
-  "quantized_neural_forward": false,
+  "quantized_neural_forward": true,
   "exported_reference_vectors": true,
   "simd_neural_forward": true,
   "runtime_safety_suite": false,
-  "notes": "Real checkpoint and full f32 scalar/SIMD forward are Python-parity validated. Shallow/middle parity, retained-int8 arithmetic, search integration, and chess runtime safety remain blocked.",
+  "notes": "Real checkpoint and all three exits are Python-parity validated. Dominant matrices retain int8 package weights and use dynamic int16 activations with i32 accumulation; complete-output drift is gated against the dequantized backend. Search integration, deployment calibration, tactical runtime safety, and paired-game gates remain blocked.",
   "runtime_package_tests": true
 }

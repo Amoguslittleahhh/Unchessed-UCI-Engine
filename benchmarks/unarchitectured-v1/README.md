@@ -10,6 +10,8 @@ python tools/unarchitectured_v1_architecture_report.py \
 ```
 
 The report also freezes autonomous-safety, efficient-epoch, and feature-schema
-contracts. `runtime-forward-2026-08-21.{json,md}` records the real-package Rust
-forward optimization and its remaining parity caveats. Architecture figures are
-calculations; the runtime file is a standalone measurement, not NPS or Elo.
+contracts. `runtime-forward-2026-08-21.{json,md}` records the first f32/SIMD
+round; `runtime-forward-2026-08-22.{json,md}` records the retained-int8 matrix
+backend, controlled dequantized comparison, and all-exit parity/drift gates.
+Architecture figures are calculations; runtime files are standalone
+measurements, not NPS or Elo.

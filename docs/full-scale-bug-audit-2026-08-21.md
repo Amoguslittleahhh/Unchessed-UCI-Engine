@@ -175,15 +175,14 @@ twice into memory.
 
 ## Open blockers and residual risks
 
-### O-01 — Critical: full f32 runtime exists, safe engine integration does not
+### O-01 — Critical: mixed-integer runtime exists, safe engine integration does not
 
-The real calibrated package, strict loader, complete full-exit f32 forward,
-independent Python vectors, AVX2/FMA kernels, and best-move parity now exist.
-Still missing:
+The real calibrated package, strict loader, complete mixed-integer forward,
+independent Python vectors for every exit, AVX2 f32/integer kernels, complete
+backend-drift gates, and best-move parity now exist. Still missing:
 
 ```text
-retained-int8/integer neural arithmetic
-independent shallow/middle reference vectors
+representative deployment-position calibration for every exit/backend
 nonblocking or clock-surplus search integration
 runtime mate/only-move safety suite
 integrated NPS and paired-game SPRT
@@ -256,13 +255,13 @@ claims.** This does not promote the Unarchitectured v1 neural path, which remain
 
 ## Required staged rollout
 
-1. Generate independent Python reference vectors for the 2/128 and 4/192 exits.
-2. Implement retained-int8 arithmetic and gate end-to-end output drift.
-3. Benchmark full and shallow paths on the actual deployment CPUs.
-4. Add a nonblocking or clock-surplus-only root integration behind an option.
-5. Run mate/only-move and exact-clock-budget safety suites.
-6. Measure integrated NPS/depth before game testing.
-7. Run isolated paired-game gates for each exit and routing policy.
+1. Calibrate all exits and the retained-int8 backend on representative,
+   disjoint deployment positions.
+2. Benchmark full and shallow paths on the actual deployment CPUs.
+3. Add a nonblocking or clock-surplus-only root integration behind an option.
+4. Run mate/only-move and exact-clock-budget safety suites.
+5. Measure integrated NPS/depth before game testing.
+6. Run isolated paired-game gates for each exit and routing policy.
 
 ## Reproduction commands
 

@@ -15,10 +15,10 @@ training pipeline: executed; calibrated checkpoint committed
 trained checkpoint: artifacts/unarchitectured-v1-final.unarchv1
 checkpoint SHA-256: 5fd9fc3fbf47bd2620c2e832e24c98525b59feeea791abf1c7ae32b9d311b16d
 tensor container/exporter/inspector: implemented
-Rust package loader and full f32 forward: implemented
-full-exit Python/Rust parity: passed within 5e-3
-AVX2/FMA runtime kernels: implemented
-retained-int8 neural forward: absent
+Rust package loader and mixed-integer forward: implemented
+full/middle/shallow Python/Rust parity: passed at documented tolerances
+AVX2/FMA and AVX2 i16×i8→i32 runtime kernels: implemented
+retained-int8 matrix forward: implemented; drift-gated against f32
 production enablement: default-off
 Elo/SPRT evidence: absent
 ```
@@ -47,7 +47,7 @@ UNARCHV1
 ```
 
 A real calibrated package now exists and is accepted by the strict loader. It
-remains unwired because integer arithmetic, shallow-exit reference parity,
+remains unwired because deployment calibration, clock-budget integration,
 chess-level runtime safety, and game gates are incomplete.
 
 ## Canonical files
@@ -184,26 +184,30 @@ The first engine-integration layer is implemented:
 - dependency-free Rust parser with bounds, alignment, shape, duplicate-name,
   UTF-8, and CRC validation.
 
-The package bridge now feeds a complete full-exit f32 Rust forward pass.
-Independent Python reference values match within `5e-3`, including identical
-best moves, and AVX2/FMA kernels preserve those tests. Capability flags remain
-false for retained-int8 forward and the runtime chess-safety suite, so the paid
-launcher remains fail-closed.
+The package bridge now feeds a complete mixed-integer Rust forward pass.
+Dominant matrix tensors remain int8; activations are dynamically quantized to
+int16, products accumulate into i32, and the tensor and activation scales are
+applied once per output. Independent Python reference values remain within the
+documented tolerances with identical best moves at every exit. The runtime
+chess-safety capability remains false, so the paid launcher remains fail-closed.
 
-Measured on the two-visible-CPU sandbox, the naive full forward fell from
-208.61ms to 14.92ms. The trained Matryoshka prefixes measure 6.37ms at 4/192 and
-2.66ms at 2/128. Full parity remains validated; shallow/middle parity is still a
-gate. See `benchmarks/unarchitectured-v1/runtime-forward-2026-08-21.md`.
+The first sandbox round reduced the naive full forward from 208.61ms to
+14.92ms. A round-two, same-process controlled benchmark measures the new
+retained-int8 backend at 15.45ms versus 21.49ms for the dequantized backend on
+one thread (1.39x), and 13.01ms versus 16.01ms on two threads (1.23x). The
+latest two-thread exit ladder measured 5.21ms at 4/192 and 2.43ms at 2/128.
+See `benchmarks/unarchitectured-v1/runtime-forward-2026-08-22.md`.
 
 ## Promotion gates
 
 Unarchitectured v1 becomes usable only after all of the following pass:
 
-1. generate and freeze independent Python vectors for shallow and middle exits;
-2. implement retained-int8/integer neural arithmetic and end-to-end drift gates;
+1. calibrate all exits and the integer backend on a representative, disjoint
+   deployment-position corpus;
+2. measure latency and search impact on the actual deployment CPUs;
 3. add a nonblocking or clock-surplus search integration;
 4. confirm player/game/future-disjoint holdout and calibration provenance;
-5. measure deployment CPU latency and integrated engine NPS;
+5. measure integrated engine depth and NPS under real clock budgets;
 6. pass forced-mate and only-move safety suites;
 7. pass separate paired-game gates for every exit/backend; and
 8. complete owner-approved packaging/licensing decisions.

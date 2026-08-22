@@ -78,21 +78,26 @@ Unarchitectured v1 includes:
 - mandatory full-legal alpha-beta fallback.
 
 Calling it v1 does **not** claim it is promoted. A real calibrated checkpoint,
-strict package, Python reference, and numerically validated Rust forward pass
-now exist; search integration, full quantized neural arithmetic, Elo, and SPRT
+strict package, Python reference, and numerically validated mixed-integer Rust
+forward pass now exist; search integration, tactical safety, Elo, and SPRT
 remain unpromoted.
 
 ### Runtime forward performance
 
-The validated full 8-layer/256-width Rust forward was reduced from 208.61 ms to
-14.92 ms on the two-visible-CPU sandbox through AVX2/FMA, four-token matrix
-microkernels, cache blocking, and scoped QKV/FFN/attention parallelism. The
-trained Matryoshka exits measure 6.37 ms at 4/192 and 2.66 ms at 2/128.
+The first optimization round reduced the validated full 8-layer/256-width Rust
+forward from 208.61 ms to 14.92 ms on the two-visible-CPU sandbox through
+AVX2/FMA, four-token matrix microkernels, cache blocking, and scoped
+QKV/FFN/attention parallelism. The retained-int8 round now dynamically
+quantizes activations to int16, performs the dominant matrix products as
+AVX2 i16×i8→i32 arithmetic, and vectorizes activation quantization. In a
+same-process controlled benchmark on this host it reduced one-thread latency
+from 21.49 ms to 15.45 ms (1.39x) and two-thread latency from 16.01 ms to
+13.01 ms (1.23x) versus the dequantized-f32 backend.
 
-Full-exit Python/Rust parity and identical best-move tests still pass. Shallow
-and middle exits are not integrated and still require independent Python parity,
-calibration, and SPRT. See
-[`benchmarks/unarchitectured-v1/runtime-forward-2026-08-21.md`](benchmarks/unarchitectured-v1/runtime-forward-2026-08-21.md)
+Full, middle, and shallow Python/Rust parity and best-move gates pass. The exits
+remain unwired and still require deployment calibration, clock-budget,
+tactical-safety, integrated NPS, and paired-game gates. See
+[`benchmarks/unarchitectured-v1/runtime-forward-2026-08-22.md`](benchmarks/unarchitectured-v1/runtime-forward-2026-08-22.md)
 and [`docs/unarchitectured-v1-runtime-optimization.md`](docs/unarchitectured-v1-runtime-optimization.md).
 
 ## Autonomous fail-closed safety
@@ -327,17 +332,17 @@ strict Rust package loader, and tensor reconstruction drift tool now exist.
 Engine readiness remains blocked on:
 
 ```text
-retained-int8/integer neural arithmetic
-independent shallow/middle Python parity vectors
+accuracy/calibration gates over a representative deployment-position corpus
 safe asynchronous or clock-surplus search integration
 runtime mate/only-move safety suite
 integrated search NPS and paired-game SPRT
 ```
 
-The full f32 Rust forward, AVX2/FMA kernels, real checkpoint, package loader, and
-full-exit Python reference equality now exist. The model is still unwired, and
+The mixed int16-activation/int8-weight Rust matrix backend, AVX2/FMA fallback
+kernels, real checkpoint, package loader, and all-exit Python reference gates now
+exist. The model is still unwired, and
 `config/unarchitectured_v1_runtime_capabilities.json` keeps readiness false
-until quantized arithmetic and chess-level runtime safety are proven.
+until chess-level runtime safety and game gates are proven.
 
 ## Research paper
 
