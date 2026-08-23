@@ -9,6 +9,56 @@ work is not an invitation to revert to or resume development on any of
 them. Any follow-on architecture or training work belongs on top of
 Unarchitectured v1, not as a parallel track exploring an earlier one.
 
+## Status update — round 6
+
+Your fifth pass (`2b3677a` "Wire default-off Unarchitectured v1 UCI
+candidate") was reviewed, independently re-verified, and merged onto `main`
+at `d0e5666`. This closes step 1 of round 5's list — it's the first commit
+since round 0 to actually touch the live UCI path, so it got the most
+thorough verification of any round yet: reading the diff, running the unit
+tests, and separately driving the real compiled binary by hand over stdin.
+
+Verified independently, not just trusted:
+
+- Read the full `uci.rs` diff line by line: `unarchitectured_hint` defaults
+  to `false`, is only ever set `true` inside the `setoption` handler for
+  exactly `UnarchitecturedHint value true`, and every other code path
+  (`ucinewgame` with the option still off, a failed model load) resets it
+  to `false` and logs why rather than silently leaving stale state.
+- **Ran the actual compiled `unchessed-adapter.exe` over stdin, three ways,
+  on the reviewer's machine:**
+  - No `setoption` at all: zero `Unarchitectured` info strings, identical
+    `bestmove` behavior to before this round.
+  - Enabled, real checkpoint, `wtime`/`btime` 5000ms (below the 30s
+    `UnarchitecturedMinTime` default): `info string [Unchessed]
+    Unarchitectured hint skipped-low-time actions=0 charged=0ms` — the
+    exact fix for round 0's root cause, confirmed live, not just in a test.
+  - Enabled, real checkpoint, 60000ms clock: `info string [Unchessed]
+    Unarchitectured hint exact actions=20 charged=3ms`, legitimate
+    `bestmove` returned.
+  - Also ran their own `tools/smoke_unarchitectured_v1_uci.py` against the
+    real exported checkpoint — passed.
+- Grepped every construction site again on the merged tree: still zero
+  references to the hint worker outside the gated `setoption`/`go` paths
+  and tests.
+- The new safety tests (adversarial back-rank mate for both colors, a
+  stalemate position ignoring a hostile fake hint, an out-of-range/NaN hint
+  entry that can't corrupt legal root-move handling) pass and, read
+  individually, actually test the scenario their names claim.
+- Full workspace build clean, `unchessed-core` 82/82, `tools/` Python suite
+  25/25.
+- The SPRT launcher script added this round
+  (`scripts/sprt-history/sprt_unarchitectured_v1_hint.sh`) is correctly
+  configured to actually stress the risk, not pass trivially: it sets
+  `UnarchitecturedMinTime=1000` (the floor, not the comfortable 30s
+  default) at `tc=5+0.05` — the same fast time control that caught round
+  0's failure — so a real run of this script would be a genuine test, not
+  a softball. It wasn't run (no `cutechess-cli` in either sandbox), which
+  was disclosed honestly rather than faked.
+
+**Step 1 is done and verified. Step 2 — provenance-disjoint calibration —
+is now the clear next blocker, and everything else below still stands.**
+
 ## Status update — round 5
 
 Your fourth pass (`896066e` "Add fail-closed Chessformer root-hint
@@ -312,54 +362,51 @@ a severe strength loss. The wiring was reverted (nothing broken landed on
 
 ## What's needed
 
-Round 4's infrastructure (`UnarchitecturedHintWorker`, `go_with_root_hints`,
-the mate/only-move tests) is real and merged, but it changed what's actually
-missing — the ask below is now concrete rather than a strategy sketch. **None
-of the previous rounds' work, including this trial, has produced anything an
-SPRT run could actually test**, because nothing enables the path from a real
-UCI session. This is the honest, complete list of what has to exist before a
-paired-game SPRT on this feature is even *possible*, not just advisable —
-work through it in order, and don't skip to the SPRT step because the
-earlier ones look done from the trial's numbers:
+The UCI candidate from round 5's list (step 1) is done, verified, and
+merged. **Calibration is now the headline ask** — it's the step most likely
+to change the outcome, since the only numbers that exist so far (top-1
+policy accuracy 0.50–0.625, barely above chance) came from 8 hand-picked
+positions labeled by this engine's own HCE search at depth 4, not real
+teacher labels. Everything else on this list still has to happen before an
+SPRT gate is possible, but calibration is the one worth doing first because
+a bad result there could mean the whole feature isn't worth SPRT-testing at
+all, and that's worth learning cheaply before spending a 5000-round paired
+run on it:
 
-1. **A default-off UCI candidate that actually wires the trial in.** Right
-   now `UnarchitecturedHintWorker::new` and `go_with_root_hints` are called
-   from nowhere except tests. Add a UCI option (off by default, matching
-   this project's existing pattern for experimental features) that, when
-   explicitly enabled, constructs the worker once per game and threads its
-   hints into `go()`'s real call site in `uci.rs`. Until this exists, there
-   is no build a game-play test could even run against.
-2. **Provenance-disjoint calibration on a real corpus, not 8 fixture
-   positions.** The round-4 trial's own numbers (top-1 policy accuracy
-   0.50–0.625, barely above chance at the shallow exits) came from 8
-   hand-picked positions labeled by this engine's own HCE search at depth
-   4 — explicitly *not* production teacher labels per your own doc. Before
-   trusting this signal in a real game, calibrate against hundreds+ of
-   positions sampled disjoint from whatever corpus trained the model, with
-   real Stockfish-teacher labels (or equivalent), and report whether the
-   policy signal is actually informative at real game strength or just
-   noise that happens to agree with HCE-depth-4 sometimes. If it's closer
-   to noise, say so — that's a legitimate reason not to proceed, not a
-   result to bury.
-3. **Benchmark on the actual deployment CPU.** Every round so far has been
+1. **Provenance-disjoint calibration on a real corpus.** Sample hundreds+
+   of positions disjoint from whatever corpus trained the model (openings,
+   middlegames, endgames, tactics — matching the spread the 8-position
+   smoke test aimed for, just at real scale), label them with real
+   Stockfish-teacher output (or an equivalent independent oracle, not this
+   engine's own HCE), and report policy top-1/top-3, regret MAE, and WDL
+   Brier the same way the smoke calibration already does — just at a scale
+   that could actually inform a threshold. If the signal turns out to be
+   close to noise at real scale, report that plainly; a documented "this
+   isn't informative enough to be worth SPRT-testing" is a legitimate,
+   useful outcome, not a failure to hide.
+2. **Benchmark on the actual deployment CPU.** Every round so far has been
    sandbox-only (2-logical-CPU Xeon). If the real deployment target isn't
-   known or reachable from your environment, say so explicitly in the
-   commit/doc rather than letting the sandbox number stand in for it.
-4. **Complete the mate/only-move safety suite.** The two new tests this
-   round are good but your own doc says plainly `runtime_safety_suite`
-   remains false — this isn't a full suite yet. Broaden it: more mate
-   patterns, stalemate-adjacent positions, positions with exactly one
-   legal move under check, and cases where the hint and the correct move
-   actively disagree (not just the adversarial-ranking case already
-   covered).
-5. **Measure integrated depth/NPS across a real, larger position set**
-   once the UCI candidate from step 1 exists — not the 8-position smoke
-   test, a broad sample. This is the step that would have caught round 0's
+   known or reachable from your environment, keep saying so explicitly
+   rather than letting the sandbox number stand in for it.
+3. **Broaden the mate/only-move safety suite further.** Round 5 added
+   adversarial back-rank mate (both colors), stalemate, and invalid-hint
+   coverage — real progress, but your own doc still calls
+   `runtime_safety_suite` false. Keep adding cases: more mate patterns,
+   positions with exactly one legal move under check from a different
+   attacker type, and — now that calibration data from step 1 will exist —
+   real positions where the hint and the objectively correct move actively
+   disagree, not just synthetic adversarial rankings.
+4. **Measure integrated depth/NPS across a real, larger position set**
+   using the now-existing UCI candidate — not the 8-position smoke test,
+   a broad sample. This is the step that would have caught round 0's
    failure in isolation, before it ever reached a full game.
-6. **Only then, an isolated paired-game SPRT** — same non-negotiable gate
-   as every prior round. No exception for "it's just a hint," "it's async
-   now," or "the trial numbers looked good" — those are exactly the kinds
-   of reasoning that failed at round 0.
+5. **Only then, an isolated paired-game SPRT.** The launcher script added
+   this round (`scripts/sprt-history/sprt_unarchitectured_v1_hint.sh`) is
+   already correctly configured for this — reuse it once `cutechess-cli`
+   and a real opening book are available in your environment, don't
+   rebuild it. Same non-negotiable gate as every prior round: no exception
+   for "it's just a hint," "it's async now," or "the trial numbers looked
+   good" — those are exactly the kinds of reasoning that failed at round 0.
 
 If you'd rather keep pushing raw speed instead this round, the doc's own
 "Remaining performance work" list is honest about what's left and none of
