@@ -6,7 +6,7 @@ This work optimizes the canonical Unarchitectured v1 compact student. It does
 not resume Hydra/Apex predecessor development and does not wire the model into
 search.
 
-Baseline source: validated `AegisV4Chessformer` Rust full forward from main.
+Baseline source: validated `UnarchitecturedV1Student` Rust full forward from main.
 Package SHA-256:
 
 ```text

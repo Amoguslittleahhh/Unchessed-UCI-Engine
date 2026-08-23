@@ -22,9 +22,9 @@ from pathlib import Path
 from typing import Iterator
 
 from a100_common import sha256_file
-from aegis_v3_data import FLAG_TEACHER
-from aegis_v4_data import (
-    AegisV4Record,
+from unarchitectured_v1_base_data import FLAG_TEACHER
+from unarchitectured_v1_data import (
+    UnarchitecturedV1Record,
     HEADER_BYTES,
     LEGAL_FLAG_REGRETS,
     MAX_LEGAL_ACTIONS,
@@ -51,7 +51,7 @@ def action_to_uci(action: int) -> str:
     return square_name(source) + square_name(target) + suffix
 
 
-def record_to_fen(record: AegisV4Record) -> str:
+def record_to_fen(record: UnarchitecturedV1Record) -> str:
     pieces = "PNBRQKpnbrqk"
     board = ["" for _ in range(64)]
     for plane, bitboard in enumerate(record.base.bitboards):
@@ -220,7 +220,7 @@ class UciEngine:
         self.close()
 
 
-def read_record_range(path: str | Path, start: int, count: int | None) -> Iterator[AegisV4Record]:
+def read_record_range(path: str | Path, start: int, count: int | None) -> Iterator[UnarchitecturedV1Record]:
     path = Path(path)
     with path.open("rb") as handle:
         total = parse_header(handle.read(HEADER_BYTES))
@@ -231,12 +231,12 @@ def read_record_range(path: str | Path, start: int, count: int | None) -> Iterat
         for index in range(start, end):
             payload = handle.read(RECORD_BYTES)
             try:
-                yield AegisV4Record.unpack(payload)
+                yield UnarchitecturedV1Record.unpack(payload)
             except ValueError as error:
                 raise ValueError(f"{path}: record {index}: {error}") from error
 
 
-def annotate_record(record: AegisV4Record, engine: UciEngine, nodes: int) -> AegisV4Record:
+def annotate_record(record: UnarchitecturedV1Record, engine: UciEngine, nodes: int) -> UnarchitecturedV1Record:
     fen = record_to_fen(record)
     actions = record.legal_actions[: record.legal_count]
     scores = [engine.analyse_action(fen, action_to_uci(action), nodes) for action in actions]

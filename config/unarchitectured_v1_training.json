@@ -97,7 +97,7 @@
   "lineage": {
     "canonical_generation": 1,
     "canonical_name": "Unarchitectured v1",
-    "supersedes": "config/apex_v1_training.json"
+    "supersedes": "experimental Hydra/Apex lineage"
   },
   "safety_config": "config/unarchitectured_v1_safety.json"
 }

@@ -19,8 +19,6 @@ import json
 import time
 from pathlib import Path
 
-import torch
-
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -36,6 +34,12 @@ def parse_args():
     parser.add_argument("--skip-oracle", action="store_true")
     parser.add_argument("--skip-student", action="store_true")
     return parser.parse_args()
+
+
+if __name__ == "__main__" and any(arg in ("-h", "--help") for arg in sys.argv[1:]):
+    parse_args()
+
+import torch
 
 
 def time_steps(label, step_fn, warmup, steps, microbatch):
@@ -71,8 +75,8 @@ def project(rate, effective_batch, minimum_steps_per_epoch, epochs):
 
 
 def calibrate_oracle(root, device, steps, warmup):
-    from train_hydra_oracle_v5_a100 import (
-        HydraOracleV5,
+    from train_unarchitectured_v1_a100 import (
+        UnarchitecturedV1Oracle,
         make_optimizer,
         oracle_loss,
         prepare_oracle_batch,
@@ -81,7 +85,7 @@ def calibrate_oracle(root, device, steps, warmup):
 
     config = root["oracle"]
     microbatch = config["micro_batch_initial"]
-    model = HydraOracleV5(config).to(device)
+    model = UnarchitecturedV1Oracle(config).to(device)
     optimizer = make_optimizer(model, config["learning_rate"], config["weight_decay"], device)
     records = synthetic_records(microbatch)
     print(f"oracle: parameters={model_parameter_count(model):,} (config expects {config['expected_parameters']:,})")
@@ -102,8 +106,8 @@ def calibrate_oracle(root, device, steps, warmup):
 
 
 def calibrate_student(root, device, steps, warmup):
-    from train_chessformer_v4_a100 import (
-        AegisV4Chessformer,
+    from train_unarchitectured_v1_student_a100 import (
+        UnarchitecturedV1Student,
         make_optimizer,
         prepare_batch,
         synthetic_records,
@@ -114,7 +118,7 @@ def calibrate_student(root, device, steps, warmup):
     student_arch = json.loads(Path(student_config_path).read_text())["chessformer"]
     distill_config = root["student_distillation"]
     microbatch = distill_config["micro_batch_initial"]
-    model = AegisV4Chessformer(student_arch).to(device)
+    model = UnarchitecturedV1Student(student_arch).to(device)
     optimizer = make_optimizer(model, student_arch, device)
     records = synthetic_records(microbatch)
     print(f"student: parameters={model_parameter_count(model):,}")

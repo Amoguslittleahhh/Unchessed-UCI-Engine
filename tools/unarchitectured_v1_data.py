@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Hydra Aegis v4 legal-set data ABI and leakage validator.
+"""Unarchitectured v1 legal-set data ABI and leakage validator.
 
-V4 extends each validated v3 semantic record with all legal promotion-aware
-actions and an optional common-budget regret for every action.  This makes the
+The frozen wire format (version 4) extends each validated base semantic record
+with all legal promotion-aware actions and an optional common-budget regret for
+every action. This makes the
 policy loss and runtime head genuinely legal-only: no dense 4,096/20,480-class
 surrogate and no collapsed underpromotions.
 
@@ -24,15 +25,15 @@ from pathlib import Path
 from typing import Iterable, Iterator, Sequence
 
 try:
-    from aegis_v3_data import (
-        AegisV3Record,
+    from unarchitectured_v1_base_data import (
+        UnarchitecturedV1BaseRecord,
         FLAG_TEACHER,
         FormatError,
         RECORD as V3_RECORD,
     )
-except ModuleNotFoundError:  # imported as tools.aegis_v4_data in unit tests
-    from tools.aegis_v3_data import (
-        AegisV3Record,
+except ModuleNotFoundError:  # imported as tools.unarchitectured_v1_data in unit tests
+    from tools.unarchitectured_v1_base_data import (
+        UnarchitecturedV1BaseRecord,
         FLAG_TEACHER,
         FormatError,
         RECORD as V3_RECORD,
@@ -52,6 +53,8 @@ POLICY_HUMAN = 0
 POLICY_GUIDE = 1
 LEGAL_FLAG_REGRETS = 1 << 0
 
+# Frozen predecessor-era descriptor: changing it would invalidate existing
+# UNCHD4R0 shards. It identifies the wire ABI, not the canonical architecture.
 SCHEMA_DESCRIPTOR = """Unchessed Hydra Aegis data record v4;little-endian;header=magic:8,version:u16,header_bytes:u16,record_bytes:u16,flags:u16,endian:u32,records:u64,schema_sha256:32,crc32:u32;record=v3_semantics:160,legal_count:u16,target_action:u16,teacher_best_action:u16,policy_kind:u8,legal_flags:u8,legal_actions:218xu16,legal_regrets:218xi16,reserved:48"""
 SCHEMA_SHA256 = hashlib.sha256(SCHEMA_DESCRIPTOR.encode("ascii")).digest()
 HEADER_PREFIX = struct.Struct("<8sHHHHIQ32s")
@@ -70,15 +73,15 @@ def encode_action(move: int, promotion: int) -> int:
 
 def mirror_action(action: int) -> int:
     if not 0 <= action < ACTION_VOCABULARY:
-        raise FormatError("action outside v4 vocabulary")
+        raise FormatError("action outside Unarchitectured v1 vocabulary")
     source = (action & 63) ^ 7
     target = ((action >> 6) & 63) ^ 7
     return source | (target << 6) | (action & 0xF000)
 
 
 @dataclasses.dataclass(frozen=True)
-class AegisV4Record:
-    base: AegisV3Record
+class UnarchitecturedV1Record:
+    base: UnarchitecturedV1BaseRecord
     legal_count: int
     target_action: int
     teacher_best_action: int
@@ -133,7 +136,7 @@ class AegisV4Record:
         if any(regret != REGRET_SENTINEL for regret in self.legal_regrets[self.legal_count :]):
             raise FormatError("unused regret slots must contain 0x7fff")
         if self.reserved != bytes(48):
-            raise FormatError("reserved v4 tail bytes must be zero")
+            raise FormatError("reserved Unarchitectured v1 tail bytes must be zero")
 
     def pack(self) -> bytes:
         self.validate()
@@ -149,10 +152,10 @@ class AegisV4Record:
         )
 
     @classmethod
-    def unpack(cls, payload: bytes) -> "AegisV4Record":
+    def unpack(cls, payload: bytes) -> "UnarchitecturedV1Record":
         if len(payload) != RECORD_BYTES:
             raise FormatError(f"record has {len(payload)} bytes, expected {RECORD_BYTES}")
-        base = AegisV3Record.unpack(payload[: V3_RECORD.size])
+        base = UnarchitecturedV1BaseRecord.unpack(payload[: V3_RECORD.size])
         values = TAIL.unpack(payload[V3_RECORD.size :])
         record = cls(
             base=base,
@@ -192,7 +195,7 @@ def parse_header(payload: bytes) -> int:
     if magic != MAGIC:
         raise FormatError(f"bad data magic {magic!r}")
     if (version, header_bytes, record_bytes) != (VERSION, HEADER_BYTES, RECORD_BYTES):
-        raise FormatError("unsupported v4 version/header/record width")
+        raise FormatError("unsupported Unarchitectured v1 wire version/header/record width")
     if flags != MANDATORY_FLAGS:
         raise FormatError(f"unsupported mandatory semantic flags 0x{flags:04x}")
     if endian != ENDIAN_MARKER:
@@ -204,7 +207,7 @@ def parse_header(payload: bytes) -> int:
     return count
 
 
-def write_shard(path: str | Path, records: Iterable[AegisV4Record]) -> int:
+def write_shard(path: str | Path, records: Iterable[UnarchitecturedV1Record]) -> int:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary: Path | None = None
@@ -240,14 +243,14 @@ def shard_record_count(path: str | Path) -> int:
     return count
 
 
-def iter_shard(path: str | Path) -> Iterator[AegisV4Record]:
+def iter_shard(path: str | Path) -> Iterator[UnarchitecturedV1Record]:
     path = Path(path)
     count = shard_record_count(path)
     with path.open("rb") as handle:
         handle.seek(HEADER_BYTES)
         for index in range(count):
             try:
-                yield AegisV4Record.unpack(handle.read(RECORD_BYTES))
+                yield UnarchitecturedV1Record.unpack(handle.read(RECORD_BYTES))
             except FormatError as error:
                 raise FormatError(f"{path}: record {index}: {error}") from error
 

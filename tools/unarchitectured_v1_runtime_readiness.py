@@ -9,6 +9,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
 REQUIREMENTS = {
+    "canonical_data_module": "tools/unarchitectured_v1_data.py",
+    "canonical_student_trainer": "tools/train_unarchitectured_v1_student_a100.py",
+    "canonical_oracle_trainer": "tools/train_unarchitectured_v1_a100.py",
+    "canonical_teacher_worker": "tools/unarchitectured_v1_uci_teacher_worker.py",
     "checkpoint_exporter": "tools/export_unarchitectured_v1.py",
     "package_inspector": "tools/inspect_unarchitectured_v1.py",
     "rust_package_loader": "unchessed-core/src/unarchitectured_v1.rs",

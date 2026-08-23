@@ -7,14 +7,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
-MODULE_PATH = Path(__file__).with_name("v5_runtime_readiness.py")
-SPEC = importlib.util.spec_from_file_location("v5_runtime_readiness", MODULE_PATH)
+MODULE_PATH = Path(__file__).with_name("unarchitectured_v1_runtime_readiness.py")
+SPEC = importlib.util.spec_from_file_location("unarchitectured_v1_runtime_readiness", MODULE_PATH)
 MODULE = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = MODULE
 SPEC.loader.exec_module(MODULE)
 
 
-class V5RuntimeReadinessTests(unittest.TestCase):
+class UnarchitecturedV1RuntimeReadinessTests(unittest.TestCase):
     def test_repository_reports_forward_runtime_but_missing_safety_gate(self):
         report = MODULE.readiness()
         self.assertFalse(report["ready_for_engine_candidate_training"])

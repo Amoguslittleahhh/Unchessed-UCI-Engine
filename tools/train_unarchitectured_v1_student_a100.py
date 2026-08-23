@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Train Aegis v4's elastic, legal-only Chessformer on an A100 80GB.
+"""Train the canonical Unarchitectured v1 elastic runtime student on A100.
 
 Implemented paths:
 - nested 2/128, 4/192, and 8/256 width/depth exits;
@@ -11,8 +11,8 @@ Implemented paths:
 - full-to-shallow policy/value/representation distillation; and
 - separate train, calibration, and final holdout shards.
 
-Input is the fixed 64-byte-header/1088-byte `UNCHD4R0` format. Checkpoints are
-research artifacts, not production `UNCHAEG4` packages.
+Input is the frozen 64-byte-header/1088-byte `UNCHD4R0` wire format.
+Checkpoints are training artifacts; production export uses `UNARCHV1`.
 """
 
 from __future__ import annotations
@@ -20,8 +20,29 @@ from __future__ import annotations
 import argparse
 import contextlib
 import math
+import sys
 import time
 from pathlib import Path
+
+
+def argument_parser():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("command", choices=("train", "selfcheck"))
+    parser.add_argument("--config", default="config/unarchitectured_v1_student.json")
+    parser.add_argument("--train", nargs="+", default=[])
+    parser.add_argument("--calibration", nargs="+", default=[])
+    parser.add_argument("--validation", nargs="+", default=[])
+    parser.add_argument("--output", type=Path, default=Path("unarchitectured-v1-student.pt"))
+    parser.add_argument("--resume", type=Path)
+    parser.add_argument("--calibration-records", type=int, default=200_000)
+    parser.add_argument("--validation-records", type=int, default=200_000)
+    parser.add_argument("--no-compile", action="store_true")
+    parser.add_argument("--deterministic", action="store_true")
+    return parser
+
+
+if __name__ == "__main__" and any(arg in ("-h", "--help") for arg in sys.argv[1:]):
+    argument_parser().parse_args()
 
 import numpy as np
 import torch
@@ -37,7 +58,7 @@ from a100_common import (
     numpy_to_device,
     sha256_file,
 )
-from aegis_v4_data import (
+from unarchitectured_v1_data import (
     ACTION_SENTINEL,
     HEADER_BYTES,
     LEGAL_FLAG_REGRETS,
@@ -52,8 +73,8 @@ from aegis_v4_data import (
 )
 
 
-class V4RecordShards:
-    """Header-validated random access over fixed Aegis v4 records."""
+class UnarchitecturedV1RecordShards:
+    """Header-validated random access over frozen Unarchitectured v1 records."""
 
     def __init__(self, paths):
         self.paths = [Path(path) for path in paths]
@@ -77,7 +98,7 @@ class V4RecordShards:
                 self.active_paths.append(path)
                 self.counts.append(count)
         if not self.shards:
-            raise ValueError("no non-empty Aegis v4 shards")
+            raise ValueError("no non-empty Unarchitectured v1 shards")
         self.cumulative = np.cumsum(self.counts)
         self.total = int(self.cumulative[-1])
 
@@ -242,7 +263,7 @@ class PersonaProjection(nn.Module):
         return base + torch.einsum("btr,bwr->btw", low, b) / self.rank
 
 
-class AegisV4Chessformer(nn.Module):
+class UnarchitecturedV1Student(nn.Module):
     def __init__(self, config):
         super().__init__()
         d = config["d_model"]
@@ -472,13 +493,13 @@ def prepare_batch(records, device, augment=False):
     safe_actions = torch.where(legal_mask, actions, torch.zeros_like(actions))
     target_matches = (safe_actions == target_action[:, None]) & legal_mask
     if not bool(target_matches.any(1).all()):
-        raise RuntimeError("v4 record target action is absent from legal action set")
+        raise RuntimeError("Unarchitectured v1 target action is absent from legal action set")
     target_index = target_matches.long().argmax(1)
     teacher_mask = ((legal_flags & LEGAL_FLAG_REGRETS) != 0)[:, None] & legal_mask
     teacher_matches = (safe_actions == teacher_best_action[:, None]) & teacher_mask
     labelled_rows = teacher_mask.any(1)
     if labelled_rows.any() and not bool(teacher_matches[labelled_rows].any(1).all()):
-        raise RuntimeError("v4 teacher-best action is absent from labelled legal set")
+        raise RuntimeError("Unarchitectured v1 teacher-best action is absent from labelled legal set")
     teacher_best_index = teacher_matches.long().argmax(1)
     return {
         "pieces": pieces,
@@ -691,13 +712,13 @@ def make_optimizer(model, config, device):
 def train(args):
     config, hardware = load_config(args.config, "chessformer")
     if abs(sum(config["loss_weights"].values()) - 1.0) > 1e-12:
-        raise ValueError("v4 Chessformer loss weights must sum to one")
+        raise ValueError("Unarchitectured v1 student loss weights must sum to one")
     device = configure_torch(config["seed"], args.deterministic)
-    train_data = V4RecordShards(args.train)
-    calibration_data = V4RecordShards(args.calibration)
-    validation_data = V4RecordShards(args.validation)
+    train_data = UnarchitecturedV1RecordShards(args.train)
+    calibration_data = UnarchitecturedV1RecordShards(args.calibration)
+    validation_data = UnarchitecturedV1RecordShards(args.validation)
     rng = np.random.default_rng(config["seed"])
-    raw_model = AegisV4Chessformer(config).to(device)
+    raw_model = UnarchitecturedV1Student(config).to(device)
     optimizer = make_optimizer(raw_model, config, device)
     global_step = start_epoch = 0
     best_nll = float("inf")
@@ -764,7 +785,7 @@ def train(args):
             flush=True,
         )
         payload = {
-            "format": "UNCHAEG4_CHESSFORMER_TRAINING_V1",
+            "format": "UNARCHV1_STUDENT_TRAINING_V1",
             "config": config,
             "epoch": epoch + 1,
             "global_step": global_step,
@@ -832,7 +853,7 @@ def selfcheck(args):
         "validation_batch_size": 16,
     }
     device = configure_torch(config["seed"], True)
-    model = AegisV4Chessformer(config).to(device)
+    model = UnarchitecturedV1Student(config).to(device)
     optimizer = make_optimizer(model, config, device)
     records = synthetic_records(16)
     for step in range(2):
@@ -853,19 +874,7 @@ def selfcheck(args):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("train", "selfcheck"))
-    parser.add_argument("--config", default="config/a100_hydra_v4_training.json")
-    parser.add_argument("--train", nargs="+", default=[])
-    parser.add_argument("--calibration", nargs="+", default=[])
-    parser.add_argument("--validation", nargs="+", default=[])
-    parser.add_argument("--output", type=Path, default=Path("chessformer-v4.pt"))
-    parser.add_argument("--resume", type=Path)
-    parser.add_argument("--calibration-records", type=int, default=200_000)
-    parser.add_argument("--validation-records", type=int, default=200_000)
-    parser.add_argument("--no-compile", action="store_true")
-    parser.add_argument("--deterministic", action="store_true")
-    return parser.parse_args()
+    return argument_parser().parse_args()
 
 
 if __name__ == "__main__":
@@ -874,5 +883,5 @@ if __name__ == "__main__":
         selfcheck(arguments)
     else:
         if not arguments.train or not arguments.calibration or not arguments.validation:
-            raise SystemExit("train requires separate --train, --calibration, and --validation v4 shards")
+            raise SystemExit("train requires separate --train, --calibration, and --validation Unarchitectured v1 shards")
         train(arguments)

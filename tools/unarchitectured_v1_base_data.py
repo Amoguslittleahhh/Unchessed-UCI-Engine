@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Read, write, inspect, and leakage-audit the fixed Hydra Aegis v3 data ABI.
+"""Read, write, inspect, and leakage-audit Unarchitectured v1 base records.
 
-The format deliberately has a shard header.  Raw 104-byte v2 files could be
-silently confused between policy and NNUE records and had no schema identity.
-V3 uses a 64-byte header, a canonical schema SHA-256, and 160-byte records with
+The frozen wire format is version 3 for compatibility with already-generated
+shards; that wire version is not an architecture/product version. The format
+uses a 64-byte header, a canonical schema SHA-256, and 160-byte records with
 promotion identity, WDL, recent moves, privacy-preserving game/player hashes,
 time class, and optional common-budget teacher regret labels.
 
@@ -35,6 +35,7 @@ UNKNOWN_EP = 0xFF
 UNKNOWN_CLOCK = 0xFFFFFFFF
 
 # The string, not Python implementation details, defines field order and width.
+# Its predecessor-era label is frozen wire identity and must not be rewritten.
 SCHEMA_DESCRIPTOR = """Unchessed Hydra Aegis data record v3;little-endian;header=magic:8,version:u16,header_bytes:u16,record_bytes:u16,flags:u16,endian:u32,records:u64,schema_sha256:32,crc32:u32;record=bitboards:12xu64,move:u16,promotion:u8,wdl:u8,rating:u16,castling:u8,ep_file:u8,halfmove:u8,time_class:u8,flags:u8,history_len:u8,history:8xu16,game_hash:u64,player_hash:u64,teacher_score:i16,best_move:u16,best_score:i16,move_score:i16,ply:u16,remaining_ms:u32,increment_ms:u32,reserved:u16"""
 SCHEMA_SHA256 = hashlib.sha256(SCHEMA_DESCRIPTOR.encode("ascii")).digest()
 
@@ -64,7 +65,7 @@ class FormatError(ValueError):
 
 
 @dataclasses.dataclass(frozen=True)
-class AegisV3Record:
+class UnarchitecturedV1BaseRecord:
     bitboards: tuple[int, ...]
     move: int
     promotion: int
@@ -178,7 +179,7 @@ class AegisV3Record:
         )
 
     @classmethod
-    def unpack(cls, payload: bytes) -> "AegisV3Record":
+    def unpack(cls, payload: bytes) -> "UnarchitecturedV1BaseRecord":
         if len(payload) != RECORD_BYTES:
             raise FormatError(f"record has {len(payload)} bytes, expected {RECORD_BYTES}")
         values = RECORD.unpack(payload)
@@ -246,7 +247,7 @@ def parse_header(payload: bytes) -> int:
     return count
 
 
-def write_shard(path: str | Path, records: Iterable[AegisV3Record]) -> int:
+def write_shard(path: str | Path, records: Iterable[UnarchitecturedV1BaseRecord]) -> int:
     """Atomically write a shard and return its record count."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -283,7 +284,7 @@ def shard_record_count(path: str | Path) -> int:
     return count
 
 
-def iter_shard(path: str | Path) -> Iterator[AegisV3Record]:
+def iter_shard(path: str | Path) -> Iterator[UnarchitecturedV1BaseRecord]:
     path = Path(path)
     count = shard_record_count(path)
     with path.open("rb") as handle:
@@ -291,7 +292,7 @@ def iter_shard(path: str | Path) -> Iterator[AegisV3Record]:
         for index in range(count):
             payload = handle.read(RECORD_BYTES)
             try:
-                yield AegisV3Record.unpack(payload)
+                yield UnarchitecturedV1BaseRecord.unpack(payload)
             except FormatError as error:
                 raise FormatError(f"{path}: record {index}: {error}") from error
         if handle.read(1):

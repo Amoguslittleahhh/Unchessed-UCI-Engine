@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Ground-truth reference forward pass for AegisV4Chessformer, computed from
+"""Ground-truth reference forward pass for UnarchitecturedV1Student, computed from
 the real exported UNARCHV1 package, for validating the Rust port against.
 
 Usage:
-  python3 tools/reference_forward_aegis_v4.py artifacts/unarchitectured-v1-final.unarchv1
-  python3 tools/reference_forward_aegis_v4.py artifacts/unarchitectured-v1-final.unarchv1 --all-exits
+  python3 tools/reference_forward_unarchitectured_v1.py artifacts/unarchitectured-v1-final.unarchv1
+  python3 tools/reference_forward_unarchitectured_v1.py artifacts/unarchitectured-v1-final.unarchv1 --all-exits
 """
 import json
 import math
@@ -12,6 +12,10 @@ import struct
 import sys
 import zlib
 from pathlib import Path
+
+if any(arg in ("-h", "--help") for arg in sys.argv[1:]):
+    print(__doc__)
+    raise SystemExit(0)
 
 import numpy as np
 import torch

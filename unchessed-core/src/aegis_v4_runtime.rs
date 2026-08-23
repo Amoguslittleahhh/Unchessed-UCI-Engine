@@ -1,12 +1,12 @@
 //! Pure-Rust inference forward pass for the canonical Unarchitectured v1
-//! compact student (training class `AegisV4Chessformer`), exported to a
+//! compact student (training class `UnarchitecturedV1Student`), exported to a
 //! UNARCHV1 package (see `unarchitectured_v1.rs` for the container format).
 //! It executes all three trained Matryoshka exits (2/128, 4/192, and 8/256).
 //! Dominant package-int8 matrices use dynamically quantized int16 activations
 //! and i32 accumulation; non-x86 targets retain a scalar integer fallback.
 //!
-//! Ported line-for-line from `tools/train_chessformer_v4_a100.py`'s
-//! `AegisV4Chessformer.forward_path` / `history_context`, and cross-checked
+//! Ported line-for-line from `tools/train_unarchitectured_v1_student_a100.py`'s
+//! `UnarchitecturedV1Student.forward_path` / `history_context`, and cross-checked
 //! against a Python reference run on the same exported weights.
 
 #![allow(
@@ -737,7 +737,7 @@ impl ChessformerWeights {
 /// vertically flipped to White-at-bottom when the mover is Black -- callers
 /// are responsible for that transform, matching `unchessed-datagen`'s
 /// `write_sample`), plus its legal move list encoded the same way as
-/// `aegis_v4_data.encode_action` (source | target<<6 | promotion<<12, with
+/// `unarchitectured_v1_data.encode_action` (source | target<<6 | promotion<<12, with
 /// promotion in 0..=4 for none/N/B/R/Q).
 #[derive(Clone)]
 pub struct PositionInput {
@@ -2370,7 +2370,7 @@ mod tests {
         ChessformerWeights::from_package(&pkg).expect("build weights")
     }
 
-    /// Cross-checked against tools/reference_forward_aegis_v4.py run on the
+    /// Cross-checked against tools/reference_forward_unarchitectured_v1.py run on the
     /// same real exported checkpoint (artifacts/unarchitectured-v1-final.unarchv1):
     ///   legal_count 20
     ///   logits[:20] = [-1.94899, -1.53363, -1.711539, -0.696044, -1.576939,
@@ -2683,7 +2683,7 @@ mod tests {
         }
     }
 
-    /// Cross-checked against `tools/reference_forward_aegis_v4.py
+    /// Cross-checked against `tools/reference_forward_unarchitectured_v1.py
     /// artifacts/unarchitectured-v1-final.unarchv1 --all-exits` on the same
     /// real checkpoint. `elastic_exit_shapes_and_finiteness` above only
     /// checked shape/finiteness and would not have caught the real bug this

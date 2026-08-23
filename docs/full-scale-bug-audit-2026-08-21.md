@@ -273,7 +273,7 @@ cargo clippy --workspace --release -- -D warnings
 python3 -m unittest discover -s tools -p 'test_*.py'
 python3 -m py_compile tools/*.py
 bash -n scripts/training/*.sh scripts/sprt-history/*.sh
-python3 tools/v5_runtime_readiness.py --strict
+python3 tools/unarchitectured_v1_runtime_readiness.py --strict
 ```
 
 The last command is expected to fail until the runtime pipeline is genuinely

@@ -1,4 +1,4 @@
-# Engineering request: make the AegisV4Chessformer runtime forward pass fast enough to actually use
+# Engineering request: make the Unarchitectured v1 runtime forward pass fast enough to actually use
 
 ## Scope note
 
@@ -180,7 +180,7 @@ Two things from that pass to know about:
    machine. Fixed by slicing `pooled[..width]` at both call sites (final
    pooling, value head). A new test, `narrow_exits_match_python_reference`,
    locks this in against real Python-reference numbers (`--all-exits` on
-   `reference_forward_aegis_v4.py`) so it can't silently regress — go run it
+   `reference_forward_unarchitectured_v1.py`) so it can't silently regress — go run it
    before building on top of this area. Its evidence/representation checks
    use an intentionally wider tolerance (2e-2 vs. the usual 5e-3) because
    those two are both derived from the same 64-term sequential pooled sum,
@@ -211,7 +211,7 @@ that caught the first attempt's catastrophic failure.
 Unchessed AI is a from-scratch Rust UCI chess engine
 (github.com/Amoguslittleahhh/Unchessed-UCI-Engine). Its main evaluator is a
 small NNUE. Separately, a much larger transformer architecture
-("Unarchitectured v1" / `AegisV4Chessformer`, 4.2M-param student distilled
+("Unarchitectured v1" / `UnarchitecturedV1Student`, 4.2M-param student distilled
 from a 58M-param oracle) was trained end-to-end on real Lichess data this
 session and produces a real, calibrated, quantized checkpoint (student's
 architecture: 8 layers, d_model=256, 8 heads, per-layer learned geometric
@@ -224,7 +224,7 @@ This prompt is about the *runtime* side: a pure-Rust inference forward pass
 for that architecture now exists (`unchessed-core/src/aegis_v4_runtime.rs`,
 committed on `main` at `cfd33ef`), and it is **numerically correct** —
 cross-checked against an independent Python reference
-(`tools/reference_forward_aegis_v4.py`) run on the same real exported
+(`tools/reference_forward_unarchitectured_v1.py`) run on the same real exported
 checkpoint, on two different real positions, matching within 5e-3 on every
 output value and picking the identical best move both times. There's also
 an end-to-end test confirming the real `Position → PositionInput` converter
@@ -322,7 +322,7 @@ tests (`start_position_matches_python_reference`,
 end-to-end test (`position_to_input_matches_hand_built_start_position`).
 Those are the only thing currently proving this port is numerically
 correct; don't trade correctness for speed without re-validating against
-the same Python reference (`tools/reference_forward_aegis_v4.py`, which
+the same Python reference (`tools/reference_forward_unarchitectured_v1.py`, which
 loads the same real exported checkpoint at
 `artifacts/unarchitectured-v1-final.unarchv1` and computes the identical
 forward pass independently in PyTorch — regenerate its printed numbers and
@@ -333,13 +333,13 @@ changes them beyond the current 5e-3 tolerance).
 
 - `unchessed-core/src/aegis_v4_runtime.rs` — the module itself, including
   the benchmark test and all correctness tests.
-- `tools/reference_forward_aegis_v4.py` — the independent Python reference
+- `tools/reference_forward_unarchitectured_v1.py` — the independent Python reference
   implementation used to validate correctness. Keep it in sync with any
   intentional behavior change.
 - `unchessed-core/src/unarchitectured_v1.rs` — the binary package format
   this reads tensors from (already solid, byte-for-byte verified against
   its Python packer earlier this session — not in scope for this prompt).
-- `tools/train_chessformer_v4_a100.py` — the original PyTorch reference
-  architecture this was ported from (`AegisV4Chessformer.forward_path`),
+- `tools/train_unarchitectured_v1_student_a100.py` — the original PyTorch reference
+  architecture this was ported from (`UnarchitecturedV1Student.forward_path`),
   useful if any part of the port's correctness needs re-deriving from
   first principles while restructuring for speed.

@@ -55,25 +55,35 @@ chess-level runtime safety, and game gates are incomplete.
 ```text
 config/unarchitectured_v1.json
 config/unarchitectured_v1_training.json
-config/architecture_registry.json
+config/unarchitectured_v1_student.json
+config/unarchitectured_v1_safety.json
 docs/unarchitectured-v1.md
-benchmarks/unarchitectured-v1/
-scripts/training/verda_unarchitectured_v1_train.sh
-tools/unarchitectured_v1_architecture_report.py
+tools/unarchitectured_v1_base_data.py
+tools/unarchitectured_v1_data.py
+tools/unarchitectured_v1_uci_teacher_worker.py
+tools/train_unarchitectured_v1_student_a100.py
+tools/train_unarchitectured_v1_a100.py
+tools/calibrate_unarchitectured_v1_throughput.py
+tools/reference_forward_unarchitectured_v1.py
+tools/unarchitectured_v1_dataset_gate.py
+tools/unarchitectured_v1_runtime_readiness.py
 tools/unarchitectured_v1_safety.py
 tools/unarchitectured_v1_watchdog.py
-tools/unarchitectured_v1_dataset_gate.py
-tools/unarchitectured_v1_feature_audit.py
 ```
 
-Legacy implementation filenames containing `v4` or `v5` remain internal until
-a compatibility-preserving code migration is worthwhile. Canonical wrappers
-and registry metadata determine product naming; filenames do not promote an
-experimental predecessor.
+Current data, teacher-label, student, Oracle/distillation, calibration,
+reference-forward, and readiness entry points now use canonical Unarchitectured
+v1 names. The trainers, throughput calibrator, and Python reference require
+NumPy/PyTorch; data, teacher, readiness, safety, and package tools remain
+standalone on CPU ingestion hosts. Frozen `UNCHD3R0`/`UNCHD4R0` descriptors
+retain predecessor-era text
+because those bytes are wire identity. The Rust runtime filename
+`aegis_v4_runtime.rs` remains an internal compatibility name, not a second
+architecture.
 
 ## Experimental lineage
 
-| Experimental label | Contribution carried into Apex v1 |
+| Experimental label | Contribution carried into Unarchitectured v1 |
 |---|---|
 | Hydra v1 | compact XT/Chessformer split and parameter accounting |
 | Hydra Aegis v2 | x-rays, pawn topology, elastic exits, evidential WDL |
@@ -163,10 +173,10 @@ then requires:
 - exact game, player, and board-state separation across train/tune/final; and
 - chronologically ordered provenance manifests.
 
-`tools/unarchitectured_v1_feature_audit.py` hashes and cross-checks the canonical
-config, Rust direct/x-ray/topology extractor, GPU trainer constants, topology
-hash multiplier, and exact-delta requirements before CUDA is allocated. Dirty
-feature optimization may not ship unless it equals the full-refresh oracle.
+`tools/unarchitectured_v1_architecture_audit.py` checks the canonical config,
+package/runtime contracts, and current script entry points without importing
+GPU-only dependencies. Dirty feature optimization may not ship unless it equals
+the full-refresh oracle.
 
 ## Runtime package bridge
 
@@ -217,13 +227,8 @@ to use authoritative alpha-beta.
 
 ## Detailed engineering history
 
-The complete derivations remain available in:
-
-- `docs/unchessed-hydra-mathematics.md`
-- `docs/unchessed-hydra-v2-mathematics.md`
-- `docs/unchessed-hydra-v3-mathematics.md`
-- `docs/unchessed-hydra-v4-mathematics.md`
-- `docs/hydra-apex-v5-180core-a100.md`
-
-Those documents are research history. This document and the architecture
-registry define the canonical version name.
+The retained runtime optimization and fail-closed integration evidence is in
+`docs/unarchitectured-v1-runtime-optimization.md` and
+`docs/unarchitectured-v1-integration-trial.md`. Experimental predecessor names
+remain historical lineage only; this document and the canonical configs above
+define the current architecture.

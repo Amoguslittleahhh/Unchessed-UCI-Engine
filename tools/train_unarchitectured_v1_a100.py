@@ -3,7 +3,7 @@
 
 The oracle is never loaded by the chess engine. It spends A100 compute on a
 16-layer board trunk and four legal-action decoder layers, then teaches the
-compact Aegis v4/v5 runtime student. `--auto-batch` probes real forward,
+canonical Unarchitectured v1 runtime student. `--auto-batch` probes real forward,
 backward, and fused-AdamW allocation and selects the largest microbatch below
 the configured 92% VRAM ceiling, retaining an 8% fragmentation/safety reserve.
 """
@@ -16,10 +16,47 @@ import datetime
 import json
 import math
 import os
+import sys
 import time
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+
+
+def argument_parser():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "command",
+        choices=(
+            "selfcheck",
+            "train-oracle",
+            "distill-student",
+            "calibrate-student",
+            "evaluate-oracle",
+            "evaluate-student",
+        ),
+    )
+    parser.add_argument("--config", default="config/unarchitectured_v1_training.json")
+    parser.add_argument("--student-config")
+    parser.add_argument("--train", nargs="+", default=[])
+    parser.add_argument("--validation", nargs="+", default=[])
+    parser.add_argument("--oracle", type=Path)
+    parser.add_argument("--student", type=Path)
+    parser.add_argument("--output", type=Path, default=Path("unarchitectured-v1-oracle.pt"))
+    parser.add_argument("--metrics-json", type=Path)
+    parser.add_argument("--heartbeat", type=Path)
+    parser.add_argument("--incident", type=Path)
+    parser.add_argument("--resume", type=Path)
+    parser.add_argument("--micro-batch", type=int)
+    parser.add_argument("--auto-batch", action="store_true")
+    parser.add_argument("--validation-records", type=int, default=200_000)
+    parser.add_argument("--no-compile", action="store_true")
+    parser.add_argument("--deterministic", action="store_true")
+    return parser
+
+
+if __name__ == "__main__" and any(arg in ("-h", "--help") for arg in sys.argv[1:]):
+    argument_parser().parse_args()
 
 import numpy as np
 import torch
@@ -36,11 +73,11 @@ from a100_common import (
     load_config,
     model_parameter_count,
 )
-from aegis_v4_data import LEGAL_FLAG_REGRETS, POLICY_GUIDE, POLICY_HUMAN
+from unarchitectured_v1_data import LEGAL_FLAG_REGRETS, POLICY_GUIDE, POLICY_HUMAN
 from unarchitectured_v1_safety import TrainingSafetyController, atomic_json, write_heartbeat
-from train_chessformer_v4_a100 import (
-    AegisV4Chessformer,
-    V4RecordShards,
+from train_unarchitectured_v1_student_a100 import (
+    UnarchitecturedV1Student,
+    UnarchitecturedV1RecordShards,
     evidential_loss,
     masked_mean,
     prepare_batch,
@@ -55,7 +92,7 @@ class DistributedContext:
         configure_torch(seed + self.rank, deterministic)
         if self.world_size > 1:
             if not torch.cuda.is_available():
-                raise RuntimeError("multi-GPU Apex training requires CUDA/NCCL")
+                raise RuntimeError("multi-GPU Unarchitectured v1 training requires CUDA/NCCL")
             torch.cuda.set_device(self.local_rank)
             dist.init_process_group(
                 backend="nccl",
@@ -269,7 +306,7 @@ class LegalDecoderBlock(nn.Module):
         return actions * legal_mask[:, :, None]
 
 
-class HydraOracleV5(nn.Module):
+class UnarchitecturedV1Oracle(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.config = dict(config)
@@ -463,7 +500,7 @@ def oracle_loss(output, batch, config, global_step):
     guide_policy = masked_mean(guide_ce, guide_rows)
 
     # The teacher's regret label is uncapped up to near-MATE_SCORE magnitude
-    # (v5_uci_teacher_worker.py caps it at 32766, not at a normal-eval range) --
+    # (unarchitectured_v1_uci_teacher_worker.py caps it at 32766, not at a normal-eval range) --
     # a single legal move that walks into or avoids forced mate produces a
     # regret difference orders of magnitude larger than a normal blunder, and
     # squaring that unclamped in the NLL below destabilizes training from cold
@@ -679,7 +716,7 @@ def probe_microbatch(config, hardware, records, device, precision):
         try:
             torch.cuda.empty_cache()
             torch.cuda.reset_peak_memory_stats(device)
-            model = HydraOracleV5(config).to(device)
+            model = UnarchitecturedV1Oracle(config).to(device)
             optimizer = make_optimizer(
                 model, config["learning_rate"], config["weight_decay"], device
             )
@@ -725,7 +762,7 @@ def probe_distillation_microbatch(
         try:
             torch.cuda.empty_cache()
             torch.cuda.reset_peak_memory_stats(device)
-            student = AegisV4Chessformer(student_config).to(device)
+            student = UnarchitecturedV1Student(student_config).to(device)
             optimizer = make_optimizer(
                 student,
                 distill_config["learning_rate"],
@@ -920,21 +957,21 @@ def train_oracle(args):
     if abs(sum(config["loss_weights"].values()) - 1.0) > 1e-12:
         raise ValueError("oracle loss weights must sum to one")
     if config.get("epoch_mode") != "without_replacement":
-        raise ValueError("Apex v5 requires without-replacement epoch semantics")
+        raise ValueError("Unarchitectured v1 requires without-replacement epoch semantics")
     require_distinct_shards(args.train, args.validation)
     configure_compiler_safety(hardware)
     distributed_context = DistributedContext(config["seed"], args.deterministic)
     device = distributed_context.device
     precision = resolve_precision(device, hardware)
-    train_data = V4RecordShards(args.train)
-    validation_data = V4RecordShards(args.validation)
+    train_data = UnarchitecturedV1RecordShards(args.train)
+    validation_data = UnarchitecturedV1RecordShards(args.validation)
     minimum_records = (
         config["effective_batch_records"]
         * config["minimum_optimizer_steps_per_epoch"]
     )
     if train_data.total < minimum_records:
         raise ValueError(
-            f"training set has {train_data.total:,} records; Apex requires at least "
+            f"training set has {train_data.total:,} records; Unarchitectured v1 requires at least "
             f"{minimum_records:,} before allocating the full Oracle"
         )
     if validation_data.total < config["minimum_validation_records"]:
@@ -963,7 +1000,7 @@ def train_oracle(args):
     )
     records_per_epoch = optimizer_steps_per_epoch * effective_batch
 
-    raw_model = HydraOracleV5(config).to(device)
+    raw_model = UnarchitecturedV1Oracle(config).to(device)
     parameter_count = model_parameter_count(raw_model)
     if config.get("expected_parameters") and parameter_count != config["expected_parameters"]:
         raise RuntimeError(
@@ -1305,7 +1342,7 @@ def distill_student(args):
     oracle_config = root["oracle"]
     distill_config = root["student_distillation"]
     if distill_config.get("epoch_mode") != "without_replacement":
-        raise ValueError("Apex v5 distillation requires without-replacement epochs")
+        raise ValueError("Unarchitectured v1 distillation requires without-replacement epochs")
     require_distinct_shards(args.train, args.validation)
     configure_compiler_safety(root["hardware"])
     student_config, hardware = load_config(
@@ -1316,8 +1353,8 @@ def distill_student(args):
     )
     device = distributed_context.device
     precision = resolve_precision(device, root["hardware"])
-    train_data = V4RecordShards(args.train)
-    validation_data = V4RecordShards(args.validation)
+    train_data = UnarchitecturedV1RecordShards(args.train)
+    validation_data = UnarchitecturedV1RecordShards(args.validation)
     minimum_records = (
         distill_config["effective_batch_records"]
         * distill_config["minimum_optimizer_steps_per_epoch"]
@@ -1333,7 +1370,7 @@ def distill_student(args):
             f"{distill_config['minimum_validation_records']:,} are required"
         )
     oracle_checkpoint = torch.load(args.oracle, map_location=device, weights_only=False)
-    oracle = HydraOracleV5(oracle_checkpoint["config"]).to(device)
+    oracle = UnarchitecturedV1Oracle(oracle_checkpoint["config"]).to(device)
     oracle.load_state_dict(oracle_checkpoint["model"])
     oracle.eval()
     oracle.requires_grad_(False)
@@ -1354,7 +1391,7 @@ def distill_student(args):
             precision,
         )
     microbatch = distributed_context.minimum_int(microbatch)
-    student = AegisV4Chessformer(student_config).to(device)
+    student = UnarchitecturedV1Student(student_config).to(device)
     optimizer = make_optimizer(
         student,
         distill_config["learning_rate"],
@@ -1620,12 +1657,12 @@ def calibrate_student_checkpoint(args):
     root = json.loads(Path(args.config).read_text())
     oracle_config = root["oracle"]
     device = configure_torch(oracle_config["seed"], args.deterministic)
-    data = V4RecordShards(args.validation)
+    data = UnarchitecturedV1RecordShards(args.validation)
     checkpoint_data = torch.load(args.student, map_location=device, weights_only=False)
     config = checkpoint_data["student_config"]
-    model = AegisV4Chessformer(config).to(device)
+    model = UnarchitecturedV1Student(config).to(device)
     model.load_state_dict(checkpoint_data["model"])
-    from train_chessformer_v4_a100 import fit_regret_calibration
+    from train_unarchitectured_v1_student_a100 import fit_regret_calibration
 
     calibration = fit_regret_calibration(
         model,
@@ -1663,7 +1700,7 @@ def evaluate_checkpoint(args, student=False):
     root = json.loads(Path(args.config).read_text())
     oracle_config = root["oracle"]
     device = configure_torch(oracle_config["seed"], args.deterministic)
-    data = V4RecordShards(args.validation)
+    data = UnarchitecturedV1RecordShards(args.validation)
     checkpoint_data = torch.load(
         args.student if student else args.oracle,
         map_location=device,
@@ -1671,9 +1708,9 @@ def evaluate_checkpoint(args, student=False):
     )
     if student:
         config = checkpoint_data["student_config"]
-        model = AegisV4Chessformer(config).to(device)
+        model = UnarchitecturedV1Student(config).to(device)
         model.load_state_dict(checkpoint_data["model"])
-        from train_chessformer_v4_a100 import evaluate
+        from train_unarchitectured_v1_student_a100 import evaluate
 
         calibration = checkpoint_data.get("calibration")
         metrics = evaluate(
@@ -1691,7 +1728,7 @@ def evaluate_checkpoint(args, student=False):
             metrics["regret_calibration"] = calibration
     else:
         config = checkpoint_data["config"]
-        model = HydraOracleV5(config).to(device)
+        model = UnarchitecturedV1Oracle(config).to(device)
         model.load_state_dict(checkpoint_data["model"])
         metrics = evaluate_oracle(
             model, data, device, config, args.validation_records
@@ -1706,9 +1743,9 @@ def evaluate_checkpoint(args, student=False):
 
 
 def synthetic_records(count, seed=11):
-    from train_chessformer_v4_a100 import synthetic_records as v4_synthetic
+    from train_unarchitectured_v1_student_a100 import synthetic_records as student_synthetic
 
-    records = v4_synthetic(count, seed)
+    records = student_synthetic(count, seed)
     for index in range(count):
         if index % 2:
             records["teacher_score"][index] = 100
@@ -1736,7 +1773,7 @@ def selfcheck(args):
         "activation_checkpointing": False,
     }
     device = configure_torch(config["seed"], True)
-    model = HydraOracleV5(config).to(device)
+    model = UnarchitecturedV1Oracle(config).to(device)
     optimizer = make_optimizer(model, config["learning_rate"], config["weight_decay"], device)
     records = synthetic_records(8)
     for step in range(2):
@@ -1756,35 +1793,7 @@ def selfcheck(args):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "command",
-        choices=(
-            "selfcheck",
-            "train-oracle",
-            "distill-student",
-            "calibrate-student",
-            "evaluate-oracle",
-            "evaluate-student",
-        ),
-    )
-    parser.add_argument("--config", default="config/unarchitectured_v1_training.json")
-    parser.add_argument("--student-config")
-    parser.add_argument("--train", nargs="+", default=[])
-    parser.add_argument("--validation", nargs="+", default=[])
-    parser.add_argument("--oracle", type=Path)
-    parser.add_argument("--student", type=Path)
-    parser.add_argument("--output", type=Path, default=Path("hydra-apex-v5.pt"))
-    parser.add_argument("--metrics-json", type=Path)
-    parser.add_argument("--heartbeat", type=Path)
-    parser.add_argument("--incident", type=Path)
-    parser.add_argument("--resume", type=Path)
-    parser.add_argument("--micro-batch", type=int)
-    parser.add_argument("--auto-batch", action="store_true")
-    parser.add_argument("--validation-records", type=int, default=200_000)
-    parser.add_argument("--no-compile", action="store_true")
-    parser.add_argument("--deterministic", action="store_true")
-    return parser.parse_args()
+    return argument_parser().parse_args()
 
 
 if __name__ == "__main__":
@@ -1793,7 +1802,7 @@ if __name__ == "__main__":
         selfcheck(arguments)
     elif arguments.command == "train-oracle":
         if not arguments.train or not arguments.validation:
-            raise SystemExit("train-oracle requires --train and --validation v4 guide/human shards")
+            raise SystemExit("train-oracle requires --train and --validation Unarchitectured v1 guide/human shards")
         train_oracle(arguments)
     elif arguments.command == "distill-student":
         if not arguments.oracle or not arguments.train or not arguments.validation:

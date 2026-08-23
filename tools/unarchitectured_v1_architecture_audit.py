@@ -19,6 +19,25 @@ SAFETY = "config/unarchitectured_v1_safety.json"
 CAPABILITIES = "config/unarchitectured_v1_runtime_capabilities.json"
 RUNTIME = "unchessed-core/src/aegis_v4_runtime.rs"
 ARTIFACT = "artifacts/unarchitectured-v1-final.unarchv1"
+CANONICAL_SCRIPTS = (
+    "tools/unarchitectured_v1_base_data.py",
+    "tools/unarchitectured_v1_data.py",
+    "tools/unarchitectured_v1_uci_teacher_worker.py",
+    "tools/train_unarchitectured_v1_student_a100.py",
+    "tools/train_unarchitectured_v1_a100.py",
+    "tools/calibrate_unarchitectured_v1_throughput.py",
+    "tools/reference_forward_unarchitectured_v1.py",
+    "tools/unarchitectured_v1_runtime_readiness.py",
+)
+LEGACY_ENTRYPOINTS = (
+    "tools/aegis_v3_data.py",
+    "tools/aegis_v4_data.py",
+    "tools/v5_uci_teacher_worker.py",
+    "tools/train_chessformer_v4_a100.py",
+    "tools/train_hydra_oracle_v5_a100.py",
+    "tools/reference_forward_aegis_v4.py",
+    "tools/v5_runtime_readiness.py",
+)
 
 
 def load_json(root: Path, relative_path: str):
@@ -63,6 +82,12 @@ def audit(root=ROOT):
         is False,
         "runtime_source_present": (root / RUNTIME).is_file(),
         "real_artifact_present": (root / ARTIFACT).is_file(),
+        "canonical_scripts_present": all(
+            (root / path).is_file() for path in CANONICAL_SCRIPTS
+        ),
+        "legacy_entrypoints_absent": all(
+            not (root / path).exists() for path in LEGACY_ENTRYPOINTS
+        ),
     }
     return {
         "schema": 1,
