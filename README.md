@@ -53,12 +53,15 @@ quantizes activations to int16, performs the dominant matrix products as
 AVX2 i16×i8→i32 arithmetic, and vectorizes activation quantization. In a
 same-process controlled benchmark on this host it reduced one-thread latency
 from 21.49 ms to 15.45 ms (1.39x) and two-thread latency from 16.01 ms to
-13.01 ms (1.23x) versus the dequantized-f32 backend.
+13.01 ms (1.23x) versus the dequantized-f32 backend. A third cache/reduction
+round then measured another host-local **1.077x** at one thread and **1.076x**
+at two threads versus round 2's merged `main`, using alternating three-run
+medians.
 
 Full, middle, and shallow Python/Rust parity and best-move gates pass. The exits
 remain unwired and still require deployment calibration, clock-budget,
 tactical-safety, integrated NPS, and paired-game gates. See
-[`benchmarks/unarchitectured-v1/runtime-forward-2026-08-22.md`](benchmarks/unarchitectured-v1/runtime-forward-2026-08-22.md)
+[`benchmarks/unarchitectured-v1/runtime-forward-2026-08-23.md`](benchmarks/unarchitectured-v1/runtime-forward-2026-08-23.md)
 and [`docs/unarchitectured-v1-runtime-optimization.md`](docs/unarchitectured-v1-runtime-optimization.md).
 
 ## Repository layout

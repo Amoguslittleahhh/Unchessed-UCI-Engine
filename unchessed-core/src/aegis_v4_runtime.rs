@@ -77,6 +77,7 @@ fn dot_four(rows: &[f32], row_stride: usize, weights: &[f32]) -> [f32; 4] {
     DOT4_KERNEL.get_or_init(select_dot4_kernel)(rows, row_stride, weights)
 }
 
+#[cfg(test)]
 #[inline]
 fn dot_four_two_i16_i8(
     rows: &[i16],
@@ -91,6 +92,7 @@ fn dot_four_two_i16_i8(
     )
 }
 
+#[cfg(test)]
 #[inline]
 fn dot_four_three_i16_i8(
     rows: &[i16],
@@ -105,12 +107,6 @@ fn dot_four_three_i16_i8(
     DOT4X3_I16_I8_KERNEL.get_or_init(select_dot4x3_i16_i8_kernel)(
         rows, row_stride, weights_0, weights_1, weights_2,
     )
-}
-
-#[inline]
-fn scaled_add(scale: f32, source: &[f32], destination: &mut [f32]) {
-    debug_assert_eq!(source.len(), destination.len());
-    AXPY_KERNEL.get_or_init(select_axpy_kernel)(scale, source, destination)
 }
 
 fn select_dot_kernel() -> DotKernel {
@@ -268,6 +264,30 @@ fn axpy_scalar(scale: f32, source: &[f32], destination: &mut [f32]) {
     }
 }
 
+#[cfg(target_arch = "x86_64")]
+#[target_feature(enable = "avx2")]
+unsafe fn horizontal_sum_i32x8(value: std::arch::x86_64::__m256i) -> i32 {
+    use std::arch::x86_64::*;
+    let low = _mm256_castsi256_si128(value);
+    let high = _mm256_extracti128_si256(value, 1);
+    let sum = _mm_add_epi32(low, high);
+    let sum = _mm_hadd_epi32(sum, sum);
+    let sum = _mm_hadd_epi32(sum, sum);
+    _mm_cvtsi128_si32(sum)
+}
+
+#[cfg(target_arch = "x86")]
+#[target_feature(enable = "avx2")]
+unsafe fn horizontal_sum_i32x8(value: std::arch::x86::__m256i) -> i32 {
+    use std::arch::x86::*;
+    let low = _mm256_castsi256_si128(value);
+    let high = _mm256_extracti128_si256(value, 1);
+    let sum = _mm_add_epi32(low, high);
+    let sum = _mm_hadd_epi32(sum, sum);
+    let sum = _mm_hadd_epi32(sum, sum);
+    _mm_cvtsi128_si32(sum)
+}
+
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 #[target_feature(enable = "avx2")]
 unsafe fn dot4x3_i16_i8_avx2(
@@ -312,9 +332,7 @@ unsafe fn dot4x3_i16_i8_avx2(
             _ => weights_2,
         };
         for row in 0..4 {
-            let mut lanes = [0i32; 8];
-            _mm256_storeu_si256(lanes.as_mut_ptr().cast(), accumulators[output_index][row]);
-            output[output_index][row] = lanes.into_iter().sum();
+            output[output_index][row] = horizontal_sum_i32x8(accumulators[output_index][row]);
             for tail in index..weights.len() {
                 output[output_index][row] +=
                     i32::from(rows[row * row_stride + tail]) * i32::from(weights[tail]);
@@ -363,9 +381,7 @@ unsafe fn dot4x2_i16_i8_avx2(
             weights_1
         };
         for row in 0..4 {
-            let mut lanes = [0i32; 8];
-            _mm256_storeu_si256(lanes.as_mut_ptr().cast(), accumulators[output_index][row]);
-            output[output_index][row] = lanes.into_iter().sum();
+            output[output_index][row] = horizontal_sum_i32x8(accumulators[output_index][row]);
             for tail in index..weights.len() {
                 output[output_index][row] +=
                     i32::from(rows[row * row_stride + tail]) * i32::from(weights[tail]);
@@ -423,6 +439,30 @@ unsafe fn quantize_i16_avx2(source: &[f32], destination: &mut [i16]) -> f32 {
     max_abs / QMAX
 }
 
+#[cfg(target_arch = "x86_64")]
+#[target_feature(enable = "avx2")]
+unsafe fn horizontal_sum_f32x8(value: std::arch::x86_64::__m256) -> f32 {
+    use std::arch::x86_64::*;
+    let low = _mm256_castps256_ps128(value);
+    let high = _mm256_extractf128_ps(value, 1);
+    let sum = _mm_add_ps(low, high);
+    let sum = _mm_hadd_ps(sum, sum);
+    let sum = _mm_hadd_ps(sum, sum);
+    _mm_cvtss_f32(sum)
+}
+
+#[cfg(target_arch = "x86")]
+#[target_feature(enable = "avx2")]
+unsafe fn horizontal_sum_f32x8(value: std::arch::x86::__m256) -> f32 {
+    use std::arch::x86::*;
+    let low = _mm256_castps256_ps128(value);
+    let high = _mm256_extractf128_ps(value, 1);
+    let sum = _mm_add_ps(low, high);
+    let sum = _mm_hadd_ps(sum, sum);
+    let sum = _mm_hadd_ps(sum, sum);
+    _mm_cvtss_f32(sum)
+}
+
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 #[target_feature(enable = "avx2,fma")]
 unsafe fn dot4_avx2_fma(rows: &[f32], row_stride: usize, weights: &[f32]) -> [f32; 4] {
@@ -443,9 +483,7 @@ unsafe fn dot4_avx2_fma(rows: &[f32], row_stride: usize, weights: &[f32]) -> [f3
     }
     let mut output = [0.0f32; 4];
     for row in 0..4 {
-        let mut lanes = [0.0f32; 8];
-        _mm256_storeu_ps(lanes.as_mut_ptr(), accumulators[row]);
-        output[row] = lanes.into_iter().sum();
+        output[row] = horizontal_sum_f32x8(accumulators[row]);
         let mut tail = index;
         while tail < weights.len() {
             output[row] += rows[row * row_stride + tail] * weights[tail];
@@ -472,9 +510,7 @@ unsafe fn dot_avx2_fma(left: &[f32], right: &[f32]) -> f32 {
         accumulator = _mm256_fmadd_ps(a, b, accumulator);
         index += 8;
     }
-    let mut lanes = [0.0f32; 8];
-    _mm256_storeu_ps(lanes.as_mut_ptr(), accumulator);
-    let mut sum = lanes.into_iter().sum::<f32>();
+    let mut sum = horizontal_sum_f32x8(accumulator);
     while index < left.len() {
         sum += left[index] * right[index];
         index += 1;
@@ -767,8 +803,8 @@ fn width_of_table(_table: &Tensor, width: usize) -> usize {
     width
 }
 
-fn rmsnorm(values: &[f32], scale: &Tensor, width: usize, out: &mut [f32]) {
-    let mean_sq = dot_product(&values[..width], &values[..width]) / width as f32;
+fn rmsnorm(values: &[f32], scale: &Tensor, width: usize, out: &mut [f32], dot_kernel: DotKernel) {
+    let mean_sq = dot_kernel(&values[..width], &values[..width]) / width as f32;
     let inv = 1.0 / (mean_sq + 1e-6).sqrt();
     for i in 0..width {
         out[i] = values[i] * inv * scale.get(i);
@@ -910,49 +946,71 @@ fn linear_quantized_sequential(
     bias: Option<&Tensor>,
     out: &mut [f32],
 ) {
+    let dot_four_two = *DOT4X2_I16_I8_KERNEL.get_or_init(select_dot4x2_i16_i8_kernel);
+
     const TOKEN_BLOCK: usize = 4;
-    for token_start in (0..tokens).step_by(TOKEN_BLOCK) {
-        let token_end = (token_start + TOKEN_BLOCK).min(tokens);
-        for output_start in (0..out_width).step_by(2) {
-            let output_end = (output_start + 2).min(out_width);
-            let first_weight_start = output_start * weight_stride;
-            let first_weight = &weight.data[first_weight_start..first_weight_start + in_width];
-            if output_end - output_start == 2 && token_end - token_start == TOKEN_BLOCK {
-                let second_weight_start = (output_start + 1) * weight_stride;
-                let second_weight =
-                    &weight.data[second_weight_start..second_weight_start + in_width];
-                let sums = dot_four_two_i16_i8(
-                    &values[token_start * in_width..],
-                    in_width,
-                    first_weight,
-                    second_weight,
-                );
-                for output_lane in 0..2 {
-                    let output_index = output_start + output_lane;
-                    let initial = bias.map(|values| values.get(output_index)).unwrap_or(0.0);
+    for output_start in (0..out_width).step_by(2) {
+        let output_end = (output_start + 2).min(out_width);
+        let first_weight_start = output_start * weight_stride;
+        let first_weight = &weight.data[first_weight_start..first_weight_start + in_width];
+        if output_end - output_start == 2 {
+            let second_weight_start = (output_start + 1) * weight_stride;
+            let second_weight = &weight.data[second_weight_start..second_weight_start + in_width];
+            let initial_0 = bias.map(|values| values.get(output_start)).unwrap_or(0.0);
+            let initial_1 = bias
+                .map(|values| values.get(output_start + 1))
+                .unwrap_or(0.0);
+            for token_start in (0..tokens).step_by(TOKEN_BLOCK) {
+                let token_end = (token_start + TOKEN_BLOCK).min(tokens);
+                if token_end - token_start == TOKEN_BLOCK {
+                    let sums = dot_four_two(
+                        &values[token_start * in_width..],
+                        in_width,
+                        first_weight,
+                        second_weight,
+                    );
                     for token_lane in 0..TOKEN_BLOCK {
-                        out[(token_start + token_lane) * out_width + output_index] = initial
-                            + sums[output_lane][token_lane] as f32
-                                * activation_scales[token_start + token_lane]
-                                * weight.scale;
+                        let scale = activation_scales[token_start + token_lane] * weight.scale;
+                        out[(token_start + token_lane) * out_width + output_start] =
+                            initial_0 + sums[0][token_lane] as f32 * scale;
+                        out[(token_start + token_lane) * out_width + output_start + 1] =
+                            initial_1 + sums[1][token_lane] as f32 * scale;
                     }
-                }
-            } else {
-                for output_index in output_start..output_end {
-                    let weight_start = output_index * weight_stride;
-                    let weight_row = &weight.data[weight_start..weight_start + in_width];
-                    let initial = bias.map(|values| values.get(output_index)).unwrap_or(0.0);
+                } else {
                     for token in token_start..token_end {
                         let input = &values[token * in_width..(token + 1) * in_width];
-                        let sum = input
-                            .iter()
-                            .zip(weight_row)
-                            .map(|(&activation, &weight)| i32::from(activation) * i32::from(weight))
-                            .sum::<i32>();
-                        out[token * out_width + output_index] =
-                            initial + sum as f32 * activation_scales[token] * weight.scale;
+                        for (output_lane, weight_row) in
+                            [first_weight, second_weight].into_iter().enumerate()
+                        {
+                            let sum = input
+                                .iter()
+                                .zip(weight_row)
+                                .map(|(&activation, &weight)| {
+                                    i32::from(activation) * i32::from(weight)
+                                })
+                                .sum::<i32>();
+                            let initial = if output_lane == 0 {
+                                initial_0
+                            } else {
+                                initial_1
+                            };
+                            out[token * out_width + output_start + output_lane] =
+                                initial + sum as f32 * activation_scales[token] * weight.scale;
+                        }
                     }
                 }
+            }
+        } else {
+            let initial = bias.map(|values| values.get(output_start)).unwrap_or(0.0);
+            for token in 0..tokens {
+                let input = &values[token * in_width..(token + 1) * in_width];
+                let sum = input
+                    .iter()
+                    .zip(first_weight)
+                    .map(|(&activation, &weight)| i32::from(activation) * i32::from(weight))
+                    .sum::<i32>();
+                out[token * out_width + output_start] =
+                    initial + sum as f32 * activation_scales[token] * weight.scale;
             }
         }
     }
@@ -1045,6 +1103,8 @@ fn project_qkv_quantized(
     k: &mut [f32],
     v: &mut [f32],
 ) {
+    let dot_four_three = *DOT4X3_I16_I8_KERNEL.get_or_init(select_dot4x3_i16_i8_kernel);
+
     const TOKEN_BLOCK: usize = 4;
     for token_start in (0..tokens).step_by(TOKEN_BLOCK) {
         let token_end = (token_start + TOKEN_BLOCK).min(tokens);
@@ -1057,7 +1117,7 @@ fn project_qkv_quantized(
             let weight_v = &weights.data[v_start..v_start + width];
             if token_end - token_start == TOKEN_BLOCK {
                 let rows = &activations.data[token_start * width..];
-                let results = dot_four_three_i16_i8(rows, width, weight_q, weight_k, weight_v);
+                let results = dot_four_three(rows, width, weight_q, weight_k, weight_v);
                 for lane in 0..TOKEN_BLOCK {
                     let scale = activations.scales[token_start + lane] * weights.scale;
                     q[(token_start + lane) * width + output_index] =
@@ -1146,6 +1206,8 @@ fn project_up_quantized(
     hidden: &mut [f32],
     gate: &mut [f32],
 ) {
+    let dot_four_two = *DOT4X2_I16_I8_KERNEL.get_or_init(select_dot4x2_i16_i8_kernel);
+
     const TOKEN_BLOCK: usize = 4;
     for token_start in (0..tokens).step_by(TOKEN_BLOCK) {
         let token_end = (token_start + TOKEN_BLOCK).min(tokens);
@@ -1156,7 +1218,7 @@ fn project_up_quantized(
             let weight_gate = &weights.data[gate_start..gate_start + width];
             if token_end - token_start == TOKEN_BLOCK {
                 let rows = &activations.data[token_start * width..];
-                let results = dot_four_two_i16_i8(rows, width, weight_hidden, weight_gate);
+                let results = dot_four_two(rows, width, weight_hidden, weight_gate);
                 for lane in 0..TOKEN_BLOCK {
                     let scale = activations.scales[token_start + lane] * weights.scale;
                     hidden[(token_start + lane) * width + output_index] =
@@ -1186,6 +1248,58 @@ fn project_up_quantized(
     }
 }
 
+fn project_regret_quantized(
+    normalized: &[f32],
+    tokens: usize,
+    width: usize,
+    from: &QuantizedTensor,
+    to: &QuantizedTensor,
+    source_out: &mut [f32],
+    target_out: &mut [f32],
+) {
+    const TOKEN_BLOCK: usize = 4;
+    let activations = quantize_activation_rows(normalized, tokens, width, width);
+    let dot_four_two = *DOT4X2_I16_I8_KERNEL.get_or_init(select_dot4x2_i16_i8_kernel);
+    for token_start in (0..tokens).step_by(TOKEN_BLOCK) {
+        let token_end = (token_start + TOKEN_BLOCK).min(tokens);
+        for output_index in 0..REGRET_WIDTH {
+            let row_start = output_index * D_MODEL;
+            let weight_from = &from.data[row_start..row_start + width];
+            let weight_to = &to.data[row_start..row_start + width];
+            if token_end - token_start == TOKEN_BLOCK {
+                let sums = dot_four_two(
+                    &activations.data[token_start * width..],
+                    width,
+                    weight_from,
+                    weight_to,
+                );
+                for lane in 0..TOKEN_BLOCK {
+                    let activation_scale = activations.scales[token_start + lane];
+                    source_out[(token_start + lane) * REGRET_WIDTH + output_index] =
+                        sums[0][lane] as f32 * activation_scale * from.scale;
+                    target_out[(token_start + lane) * REGRET_WIDTH + output_index] =
+                        sums[1][lane] as f32 * activation_scale * to.scale;
+                }
+            } else {
+                for token in token_start..token_end {
+                    let input = &activations.data[token * width..(token + 1) * width];
+                    let dot = |weight_row: &[i8], weight_scale: f32| {
+                        input
+                            .iter()
+                            .zip(weight_row)
+                            .map(|(&activation, &weight)| i32::from(activation) * i32::from(weight))
+                            .sum::<i32>() as f32
+                            * activations.scales[token]
+                            * weight_scale
+                    };
+                    source_out[token * REGRET_WIDTH + output_index] = dot(weight_from, from.scale);
+                    target_out[token * REGRET_WIDTH + output_index] = dot(weight_to, to.scale);
+                }
+            }
+        }
+    }
+}
+
 fn attention_heads(
     q: &[f32],
     k: &[f32],
@@ -1200,6 +1314,8 @@ fn attention_heads(
     let scale = 1.0 / (head_dim as f32).sqrt();
     let mut output = vec![0.0f32; (head_end - head_start) * tokens * head_dim];
     let mut scores = [0.0f32; 64];
+    let dot = *DOT_KERNEL.get_or_init(select_dot_kernel);
+    let axpy = *AXPY_KERNEL.get_or_init(select_axpy_kernel);
     for h in head_start..head_end {
         let bias_base = h * 64 * 64;
         let local_head = h - head_start;
@@ -1208,7 +1324,7 @@ fn attention_heads(
             let mut max_score = f32::NEG_INFINITY;
             for j in 0..tokens {
                 let kj = &k[j * width + h * head_dim..j * width + h * head_dim + head_dim];
-                let score = dot_product(qi, kj) * scale + geometric_bias[bias_base + i * 64 + j];
+                let score = dot(qi, kj) * scale + geometric_bias[bias_base + i * 64 + j];
                 scores[j] = score;
                 max_score = max_score.max(score);
             }
@@ -1222,7 +1338,7 @@ fn attention_heads(
             let inverse_sum = 1.0 / sum;
             for j in 0..tokens {
                 let value_base = j * width + h * head_dim;
-                scaled_add(
+                axpy(
                     scores[j] * inverse_sum,
                     &v[value_base..value_base + head_dim],
                     row,
@@ -1252,6 +1368,118 @@ fn copy_attention_heads(
     }
 }
 
+struct LayerTensorNames {
+    coefficients: &'static str,
+    norm_attention: &'static str,
+    qkv: &'static str,
+    project: &'static str,
+    project_bias: &'static str,
+    norm_ffn: &'static str,
+    up: &'static str,
+    up_bias: &'static str,
+    down: &'static str,
+    down_bias: &'static str,
+}
+
+const LAYER_TENSOR_NAMES: [LayerTensorNames; LAYERS] = [
+    LayerTensorNames {
+        coefficients: "gab.coefficients.0.weight",
+        norm_attention: "blocks.0.norm_attention.scale",
+        qkv: "blocks.0.qkv",
+        project: "blocks.0.project",
+        project_bias: "blocks.0.project_bias",
+        norm_ffn: "blocks.0.norm_ffn.scale",
+        up: "blocks.0.up",
+        up_bias: "blocks.0.up_bias",
+        down: "blocks.0.down",
+        down_bias: "blocks.0.down_bias",
+    },
+    LayerTensorNames {
+        coefficients: "gab.coefficients.1.weight",
+        norm_attention: "blocks.1.norm_attention.scale",
+        qkv: "blocks.1.qkv",
+        project: "blocks.1.project",
+        project_bias: "blocks.1.project_bias",
+        norm_ffn: "blocks.1.norm_ffn.scale",
+        up: "blocks.1.up",
+        up_bias: "blocks.1.up_bias",
+        down: "blocks.1.down",
+        down_bias: "blocks.1.down_bias",
+    },
+    LayerTensorNames {
+        coefficients: "gab.coefficients.2.weight",
+        norm_attention: "blocks.2.norm_attention.scale",
+        qkv: "blocks.2.qkv",
+        project: "blocks.2.project",
+        project_bias: "blocks.2.project_bias",
+        norm_ffn: "blocks.2.norm_ffn.scale",
+        up: "blocks.2.up",
+        up_bias: "blocks.2.up_bias",
+        down: "blocks.2.down",
+        down_bias: "blocks.2.down_bias",
+    },
+    LayerTensorNames {
+        coefficients: "gab.coefficients.3.weight",
+        norm_attention: "blocks.3.norm_attention.scale",
+        qkv: "blocks.3.qkv",
+        project: "blocks.3.project",
+        project_bias: "blocks.3.project_bias",
+        norm_ffn: "blocks.3.norm_ffn.scale",
+        up: "blocks.3.up",
+        up_bias: "blocks.3.up_bias",
+        down: "blocks.3.down",
+        down_bias: "blocks.3.down_bias",
+    },
+    LayerTensorNames {
+        coefficients: "gab.coefficients.4.weight",
+        norm_attention: "blocks.4.norm_attention.scale",
+        qkv: "blocks.4.qkv",
+        project: "blocks.4.project",
+        project_bias: "blocks.4.project_bias",
+        norm_ffn: "blocks.4.norm_ffn.scale",
+        up: "blocks.4.up",
+        up_bias: "blocks.4.up_bias",
+        down: "blocks.4.down",
+        down_bias: "blocks.4.down_bias",
+    },
+    LayerTensorNames {
+        coefficients: "gab.coefficients.5.weight",
+        norm_attention: "blocks.5.norm_attention.scale",
+        qkv: "blocks.5.qkv",
+        project: "blocks.5.project",
+        project_bias: "blocks.5.project_bias",
+        norm_ffn: "blocks.5.norm_ffn.scale",
+        up: "blocks.5.up",
+        up_bias: "blocks.5.up_bias",
+        down: "blocks.5.down",
+        down_bias: "blocks.5.down_bias",
+    },
+    LayerTensorNames {
+        coefficients: "gab.coefficients.6.weight",
+        norm_attention: "blocks.6.norm_attention.scale",
+        qkv: "blocks.6.qkv",
+        project: "blocks.6.project",
+        project_bias: "blocks.6.project_bias",
+        norm_ffn: "blocks.6.norm_ffn.scale",
+        up: "blocks.6.up",
+        up_bias: "blocks.6.up_bias",
+        down: "blocks.6.down",
+        down_bias: "blocks.6.down_bias",
+    },
+    LayerTensorNames {
+        coefficients: "gab.coefficients.7.weight",
+        norm_attention: "blocks.7.norm_attention.scale",
+        qkv: "blocks.7.qkv",
+        project: "blocks.7.project",
+        project_bias: "blocks.7.project_bias",
+        norm_ffn: "blocks.7.norm_ffn.scale",
+        up: "blocks.7.up",
+        up_bias: "blocks.7.up_bias",
+        down: "blocks.7.down",
+        down_bias: "blocks.7.down_bias",
+    },
+];
+
 struct ElasticBlockWeights<'a> {
     norm_attention: &'a Tensor,
     qkv: &'a Tensor,
@@ -1271,6 +1499,8 @@ fn elastic_block(
     w: &ElasticBlockWeights,
 ) {
     let tokens = 64;
+    let dot_kernel = *DOT_KERNEL.get_or_init(select_dot_kernel);
+    let axpy_kernel = *AXPY_KERNEL.get_or_init(select_axpy_kernel);
     let mut normalized = [0f32; 64 * D_MODEL];
     for tok in 0..tokens {
         rmsnorm(
@@ -1278,6 +1508,7 @@ fn elastic_block(
             w.norm_attention,
             width,
             &mut normalized[tok * D_MODEL..tok * D_MODEL + width],
+            dot_kernel,
         );
     }
 
@@ -1348,7 +1579,7 @@ fn elastic_block(
         &mut delta,
     );
     for tok in 0..tokens {
-        scaled_add(
+        axpy_kernel(
             1.0,
             &delta[tok * width..(tok + 1) * width],
             &mut values[tok * D_MODEL..tok * D_MODEL + width],
@@ -1363,6 +1594,7 @@ fn elastic_block(
             w.norm_ffn,
             width,
             &mut normalized2[tok * width..tok * width + width],
+            dot_kernel,
         );
     }
     // up: shape (2, D_MODEL, D_MODEL) sliced to (2, width, width), reshaped (2*width, width)
@@ -1421,7 +1653,7 @@ fn elastic_block(
         &mut ffn_out,
     );
     for tok in 0..tokens {
-        scaled_add(
+        axpy_kernel(
             1.0,
             &ffn_out[tok * width..(tok + 1) * width],
             &mut values[tok * D_MODEL..tok * D_MODEL + width],
@@ -1462,6 +1694,8 @@ pub fn forward_at_exit(
     exit: InferenceExit,
 ) -> ForwardOutput {
     validate_input(input).expect("invalid Chessformer runtime input");
+    let dot_kernel = *DOT_KERNEL.get_or_init(select_dot_kernel);
+    let axpy_kernel = *AXPY_KERNEL.get_or_init(select_axpy_kernel);
     let width = exit.width();
     let layers = exit.layers();
     let tokens = 64;
@@ -1507,7 +1741,7 @@ pub fn forward_at_exit(
     for sq in 0..64 {
         for o in 0..GAB_TOKEN_PROJECTION {
             let row = o * D_MODEL;
-            projected[sq * GAB_TOKEN_PROJECTION + o] = dot_product(
+            projected[sq * GAB_TOKEN_PROJECTION + o] = dot_kernel(
                 &values[sq * D_MODEL..sq * D_MODEL + width],
                 &token_projection.data[row..row + width],
             );
@@ -1522,13 +1756,13 @@ pub fn forward_at_exit(
         let row = o * flat_width;
         compressed[o] = gelu(
             compress_bias.get(o)
-                + dot_product(&projected, &compress_weight.data[row..row + flat_width]),
+                + dot_kernel(&projected, &compress_weight.data[row..row + flat_width]),
         );
     }
     let mut context = [0f32; GAB_HIDDEN];
     let gab_norm = weights.t("gab.norm");
     {
-        let mean_sq = dot_product(&compressed, &compressed) / GAB_HIDDEN as f32;
+        let mean_sq = dot_kernel(&compressed, &compressed) / GAB_HIDDEN as f32;
         let inv = 1.0 / (mean_sq + 1e-6).sqrt();
         for i in 0..GAB_HIDDEN {
             context[i] = compressed[i] * inv * gab_norm.get(i);
@@ -1537,12 +1771,12 @@ pub fn forward_at_exit(
 
     let templates = weights.t("gab.templates"); // (GAB_TEMPLATES, 64, 64)
 
-    for layer in 0..layers {
-        let coeff_weight = weights.t(&format!("gab.coefficients.{layer}.weight")); // (HEADS*GAB_TEMPLATES, GAB_HIDDEN)
+    for layer_names in LAYER_TENSOR_NAMES.iter().take(layers) {
+        let coeff_weight = weights.t(layer_names.coefficients); // (HEADS*GAB_TEMPLATES, GAB_HIDDEN)
         let mut coefficients = [0f32; HEADS * GAB_TEMPLATES];
         for o in 0..HEADS * GAB_TEMPLATES {
             let row = o * GAB_HIDDEN;
-            coefficients[o] = dot_product(&context, &coeff_weight.data[row..row + GAB_HIDDEN]);
+            coefficients[o] = dot_kernel(&context, &coeff_weight.data[row..row + GAB_HIDDEN]);
         }
         let mut geometric_bias = vec![0f32; HEADS * 64 * 64].into_boxed_slice();
         for h in 0..HEADS {
@@ -1553,7 +1787,7 @@ pub fn forward_at_exit(
                 }
                 let tmpl_base = t * 64 * 64;
                 let out_base = h * 64 * 64;
-                scaled_add(
+                axpy_kernel(
                     c,
                     &templates.data[tmpl_base..tmpl_base + 64 * 64],
                     &mut geometric_bias[out_base..out_base + 64 * 64],
@@ -1561,15 +1795,15 @@ pub fn forward_at_exit(
             }
         }
         let block = ElasticBlockWeights {
-            norm_attention: weights.t(&format!("blocks.{layer}.norm_attention.scale")),
-            qkv: weights.t(&format!("blocks.{layer}.qkv")),
-            project: weights.t(&format!("blocks.{layer}.project")),
-            project_bias: weights.t(&format!("blocks.{layer}.project_bias")),
-            norm_ffn: weights.t(&format!("blocks.{layer}.norm_ffn.scale")),
-            up: weights.t(&format!("blocks.{layer}.up")),
-            up_bias: weights.t(&format!("blocks.{layer}.up_bias")),
-            down: weights.t(&format!("blocks.{layer}.down")),
-            down_bias: weights.t(&format!("blocks.{layer}.down_bias")),
+            norm_attention: weights.t(layer_names.norm_attention),
+            qkv: weights.t(layer_names.qkv),
+            project: weights.t(layer_names.project),
+            project_bias: weights.t(layer_names.project_bias),
+            norm_ffn: weights.t(layer_names.norm_ffn),
+            up: weights.t(layer_names.up),
+            up_bias: weights.t(layer_names.up_bias),
+            down: weights.t(layer_names.down),
+            down_bias: weights.t(layer_names.down_bias),
         };
         elastic_block(&mut values, &geometric_bias, width, &block);
     }
@@ -1582,11 +1816,12 @@ pub fn forward_at_exit(
             weights.t("final_norm.scale"),
             width,
             &mut normalized[tok * width..tok * width + width],
+            dot_kernel,
         );
     }
     let mut pooled = [0f32; D_MODEL];
     for tok in 0..tokens {
-        scaled_add(
+        axpy_kernel(
             1.0,
             &normalized[tok * width..(tok + 1) * width],
             &mut pooled[..width],
@@ -1603,7 +1838,7 @@ pub fn forward_at_exit(
     for o in 0..3 {
         let row = o * D_MODEL;
         evidence[o] = softplus(
-            value_bias.get(o) + dot_product(&pooled[..width], &value_weight.data[row..row + width]),
+            value_bias.get(o) + dot_kernel(&pooled[..width], &value_weight.data[row..row + width]),
         );
     }
 
@@ -1627,7 +1862,7 @@ pub fn forward_at_exit(
     for o in 0..D_MODEL {
         let row = o * HISTORY_WIDTH;
         history_full[o] = history_project_b.get(o)
-            + dot_product(
+            + dot_kernel(
                 &history_vec,
                 &history_project_w.data[row..row + HISTORY_WIDTH],
             );
@@ -1687,7 +1922,7 @@ pub fn forward_at_exit(
         let promotion = ((action >> 12) as usize).min(4);
         let source = &source_values[source_sq * width..(source_sq + 1) * width];
         let target = &target_values[target_sq * width..(target_sq + 1) * width];
-        logits[idx] = dot_product(source, target) * scale + promotion_bias.get(promotion);
+        logits[idx] = dot_kernel(source, target) * scale + promotion_bias.get(promotion);
     }
 
     // --- Regret head ---
@@ -1699,14 +1934,28 @@ pub fn forward_at_exit(
 
     let mut regret_source_all = vec![0f32; 64 * REGRET_WIDTH];
     let mut regret_target_all = vec![0f32; 64 * REGRET_WIDTH];
-    for o in 0..REGRET_WIDTH {
-        let row = o * D_MODEL;
-        let weight_from = &regret_from.data[row..row + width];
-        let weight_to = &regret_to.data[row..row + width];
-        for sq in 0..64 {
-            let input = &normalized[sq * width..(sq + 1) * width];
-            regret_source_all[sq * REGRET_WIDTH + o] = dot_product(input, weight_from);
-            regret_target_all[sq * REGRET_WIDTH + o] = dot_product(input, weight_to);
+    if let (Some(quantized_from), Some(quantized_to)) =
+        (&regret_from.quantized, &regret_to.quantized)
+    {
+        project_regret_quantized(
+            &normalized,
+            64,
+            width,
+            quantized_from,
+            quantized_to,
+            &mut regret_source_all,
+            &mut regret_target_all,
+        );
+    } else {
+        for o in 0..REGRET_WIDTH {
+            let row = o * D_MODEL;
+            let weight_from = &regret_from.data[row..row + width];
+            let weight_to = &regret_to.data[row..row + width];
+            for sq in 0..64 {
+                let input = &normalized[sq * width..(sq + 1) * width];
+                regret_source_all[sq * REGRET_WIDTH + o] = dot_kernel(input, weight_from);
+                regret_target_all[sq * REGRET_WIDTH + o] = dot_kernel(input, weight_to);
+            }
         }
     }
     let mut regret_mean = vec![0f32; legal_count];
@@ -1723,9 +1972,9 @@ pub fn forward_at_exit(
             .tanh();
         }
         let raw0 =
-            regret_output_b.get(0) + dot_product(&hidden, &regret_output_w.data[..REGRET_WIDTH]);
+            regret_output_b.get(0) + dot_kernel(&hidden, &regret_output_w.data[..REGRET_WIDTH]);
         let raw1 = regret_output_b.get(1)
-            + dot_product(
+            + dot_kernel(
                 &hidden,
                 &regret_output_w.data[REGRET_WIDTH..2 * REGRET_WIDTH],
             );
@@ -1757,12 +2006,15 @@ fn persona_full(
     adapter_b: &Tensor,
     out: &mut [f32],
 ) {
+    let dot_kernel = *DOT_KERNEL.get_or_init(select_dot_kernel);
+    let dot_four_kernel = *DOT4_KERNEL.get_or_init(select_dot4_kernel);
+    let axpy_kernel = *AXPY_KERNEL.get_or_init(select_axpy_kernel);
     linear_full(values, tokens, width, weight, D_MODEL, width, bias, out);
     let a_base = policy_kind * POLICY_ADAPTER_RANK * D_MODEL;
     let b_base = policy_kind * D_MODEL * POLICY_ADAPTER_RANK;
     let mut adapter_input = values.to_vec();
     for tok in 0..tokens {
-        scaled_add(
+        axpy_kernel(
             1.0,
             &history[..width],
             &mut adapter_input[tok * width..(tok + 1) * width],
@@ -1776,14 +2028,14 @@ fn persona_full(
             let row = a_base + r * D_MODEL;
             let adapter = &adapter_a.data[row..row + width];
             if token_end - token_start == 4 {
-                let result = dot_four(&adapter_input[token_start * width..], width, adapter);
+                let result = dot_four_kernel(&adapter_input[token_start * width..], width, adapter);
                 for lane in 0..4 {
                     low[(token_start + lane) * POLICY_ADAPTER_RANK + r] = result[lane];
                 }
             } else {
                 for tok in token_start..token_end {
                     low[tok * POLICY_ADAPTER_RANK + r] =
-                        dot_product(&adapter_input[tok * width..(tok + 1) * width], adapter);
+                        dot_kernel(&adapter_input[tok * width..(tok + 1) * width], adapter);
                 }
             }
         }
@@ -1793,7 +2045,7 @@ fn persona_full(
         for o in 0..width {
             let row = b_base + o * POLICY_ADAPTER_RANK;
             out[tok * width + o] +=
-                dot_product(low_row, &adapter_b.data[row..row + POLICY_ADAPTER_RANK])
+                dot_kernel(low_row, &adapter_b.data[row..row + POLICY_ADAPTER_RANK])
                     / POLICY_ADAPTER_RANK as f32;
         }
     }
