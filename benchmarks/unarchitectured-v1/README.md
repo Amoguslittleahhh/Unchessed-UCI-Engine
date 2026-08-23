@@ -7,6 +7,8 @@ names are experimental history only.
   backend, dequantized comparison, and all-exit parity/drift gates.
 - `runtime-forward-2026-08-23.{json,md}` records the cache/reduction round using
   alternating measurements against the merged round-two `main` worktree.
+- `integration-trial-2026-08-23.json` records the fixture-disjoint calibration
+  smoke and precharged, default-unreachable shallow-hint search trial.
 
-These files contain host-specific standalone latency measurements. They are not
-integrated search NPS, clock-safety, Elo, or SPRT evidence.
+All figures are host-specific instrumentation. The integration trial is not UCI
+reachable and is not clock-safety, Elo, or SPRT evidence.

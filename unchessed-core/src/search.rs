@@ -173,6 +173,15 @@ pub struct Line {
     pub pv: Vec<Move>,
 }
 
+/// Optional policy-only root ordering signal. It can change only the order of
+/// the first iterative-deepening pass: every legal move is still searched and
+/// all completed alpha-beta scores remain authoritative.
+#[derive(Clone, Copy, Debug)]
+pub struct RootHint {
+    pub mv: Move,
+    pub policy_score: f32,
+}
+
 pub struct InfoEvent<'a> {
     pub depth: i32,
     pub multipv: usize,
@@ -758,7 +767,34 @@ pub fn go(
     start_depth: i32,
     info: &mut dyn FnMut(&InfoEvent),
 ) -> Vec<Line> {
-    let start = Instant::now();
+    go_with_root_hints(
+        pos, eval, limits, multipv, tt, stop, history, draw_score, params,
+        start_depth, &[], std::time::Duration::ZERO, info,
+    )
+}
+
+/// Experimental, default-unreachable root-hint trial entry point.
+///
+/// `preprocessing_elapsed` is charged against the same soft/hard deadline as
+/// search. This prevents a synchronous caller from treating neural inference
+/// as free time. The normal UCI path calls [`go`] and supplies no hints.
+pub fn go_with_root_hints(
+    pos: &Position,
+    eval: &dyn Eval,
+    limits: &Limits,
+    multipv: usize,
+    tt: &TT,
+    stop: &AtomicBool,
+    history: &[u64],
+    draw_score: i32,
+    params: SearchParams,
+    start_depth: i32,
+    root_hints: &[RootHint],
+    preprocessing_elapsed: std::time::Duration,
+    info: &mut dyn FnMut(&InfoEvent),
+) -> Vec<Line> {
+    let now = Instant::now();
+    let start = now.checked_sub(preprocessing_elapsed).unwrap_or(now);
     let (base_soft, hard_ms) = limits.budget(pos.side);
     let max_depth = limits.depth.unwrap_or(MAX_PLY as i32 - 1).clamp(1, MAX_PLY as i32 - 1);
 
@@ -784,6 +820,7 @@ pub fn go(
     struct RootMove {
         mv: Move,
         score: i32,
+        policy_hint: f32,
         pv: Vec<Move>,
         depth: i32,
     }
@@ -793,6 +830,11 @@ pub fn go(
         .map(|&m| RootMove {
             mv: m,
             score: -MATE,
+            policy_hint: root_hints
+                .iter()
+                .find(|hint| hint.mv == m && hint.policy_score.is_finite())
+                .map(|hint| hint.policy_score)
+                .unwrap_or(f32::NEG_INFINITY),
             pv: vec![m],
             depth: 0,
         })
@@ -829,8 +871,13 @@ pub fn go(
 
     let start_depth = start_depth.clamp(1, max_depth);
     'deepening: for depth in start_depth..=max_depth {
-        // order by previous scores, best first
-        roots.sort_by_key(|r| -r.score);
+        // A policy hint can order only the first pass. From the second pass
+        // onward completed alpha-beta scores are the sole ordering signal.
+        if depth == start_depth && !root_hints.is_empty() {
+            roots.sort_by(|left, right| right.policy_hint.total_cmp(&left.policy_hint));
+        } else {
+            roots.sort_by_key(|root| -root.score);
+        }
         let mut chosen: Vec<Move> = Vec::new();
 
         for pv_idx in 0..multipv {
@@ -1033,6 +1080,44 @@ mod tests {
         assert_eq!(mv, "a1a8");
         assert!(is_mate_score(sc), "score {}", sc);
         assert_eq!(mate_in(sc), 1);
+    }
+
+    #[test]
+    fn root_hints_cannot_override_a_forced_mate() {
+        let pos = fen::parse("6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1").unwrap();
+        let moves = legal(&pos);
+        let hints = moves.as_slice().iter().map(|&mv| RootHint {
+            mv,
+            // Deliberately put Ra8# last.
+            policy_score: if mv.uci() == "a1a8" { -1000.0 } else { 1000.0 },
+        }).collect::<Vec<_>>();
+        let tt = TT::new(4);
+        let stop = AtomicBool::new(false);
+        let lines = go_with_root_hints(
+            &pos, &Hce::default(), &Limits::depth(4), 1, &tt, &stop, &[], 0,
+            SearchParams::default(), 1, &hints, std::time::Duration::ZERO,
+            &mut |_| {},
+        );
+        assert_eq!(lines[0].mv.uci(), "a1a8");
+        assert!(is_mate_score(lines[0].score));
+    }
+
+    #[test]
+    fn precharged_root_hints_keep_only_move_legal_and_bounded() {
+        let pos = fen::parse("R5k1/6pp/8/8/8/8/8/6K1 b - - 0 1").unwrap();
+        let moves = legal(&pos);
+        assert_eq!(moves.len, 1);
+        let tt = TT::new(4);
+        let stop = AtomicBool::new(false);
+        let started = Instant::now();
+        let lines = go_with_root_hints(
+            &pos, &Hce::default(), &Limits::movetime(10), 1, &tt, &stop, &[], 0,
+            SearchParams::default(), 1,
+            &[RootHint { mv: moves.as_slice()[0], policy_score: -1000.0 }],
+            std::time::Duration::from_millis(20), &mut |_| {},
+        );
+        assert_eq!(lines[0].mv, moves.as_slice()[0]);
+        assert!(started.elapsed() < std::time::Duration::from_secs(1));
     }
 
     #[test]

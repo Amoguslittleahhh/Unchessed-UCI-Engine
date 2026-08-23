@@ -58,10 +58,12 @@ round then measured another host-local **1.077x** at one thread and **1.076x**
 at two threads versus round 2's merged `main`, using alternating three-run
 medians.
 
-Full, middle, and shallow Python/Rust parity and best-move gates pass. The exits
-remain unwired and still require deployment calibration, clock-budget,
-tactical-safety, integrated NPS, and paired-game gates. See
-[`benchmarks/unarchitectured-v1/runtime-forward-2026-08-23.md`](benchmarks/unarchitectured-v1/runtime-forward-2026-08-23.md)
+Full, middle, and shallow Python/Rust parity and best-move gates pass. A
+nonblocking exact-key worker and precharged root-ordering trial now exist, but
+remain unreachable from normal UCI play. The eight-position smoke corpus is
+fixture-disjoint, not training-provenance-disjoint, and does not promote the
+feature. See
+[`docs/unarchitectured-v1-integration-trial.md`](docs/unarchitectured-v1-integration-trial.md)
 and [`docs/unarchitectured-v1-runtime-optimization.md`](docs/unarchitectured-v1-runtime-optimization.md).
 
 ## Repository layout
@@ -209,15 +211,15 @@ python tools/train_nnue.py unchessed-nnue.bin 15 shard0.bin shard1.bin ...
 The `UNARCHV1` binary tensor container, checkpoint exporter, package inspector,
 strict Rust package loader, and mixed int16-activation/int8-weight AVX2/FMA
 Rust matrix backend now exist and pass their Python-cross-check parity gates.
-The model is still unwired into search, and
-`config/unarchitectured_v1_runtime_capabilities.json` keeps readiness false
+The model remains unwired from normal UCI play; only a default-unreachable,
+precharged search harness exists. The capability manifest keeps readiness false
 until these remain proven:
 
 ```text
-accuracy/calibration gates over a representative deployment-position corpus
-safe asynchronous or clock-surplus search integration
-runtime mate/only-move safety suite
-integrated search NPS and paired-game SPRT
+provenance-disjoint calibration on a representative deployment corpus
+controlled measurements on the actual deployment CPU
+default-off UCI candidate plus complete mate/only-move safety suite
+isolated paired-game SPRT before any enablement
 ```
 
 ## Roadmap (next rounds)

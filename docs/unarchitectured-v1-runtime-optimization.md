@@ -147,21 +147,29 @@ calibration.
 
 ## Integration decision
 
-No search integration was enabled. The earlier synchronous full-forward hint
-lost 0-20 because inference consumed the move clock.
+Normal UCI play still has no neural integration. The earlier synchronous
+full-forward hint lost 0-20 because inference consumed the move clock.
 
-The next safe sequence is:
+Round four added only a default-unreachable trial layer:
 
-1. benchmark on the actual deployment CPU with controlled thread counts;
-2. calibrate all exits and the integer backend over disjoint deployment
-   positions, not only the frozen parity fixtures;
-3. trial shallow inference only behind a clock-surplus or asynchronous option;
-4. charge all synchronous preprocessing to the move deadline;
-5. measure integrated depth/NPS and mate/only-move safety; and
-6. run an isolated paired-game SPRT.
+- a bounded nonblocking worker whose results require an exact position/persona/
+  legal-action/exit key;
+- a root-hint search entry point that keeps every legal move, uses policy only
+  on the first pass, and charges synchronous preprocessing to the same deadline;
+- an eight-position fixture-disjoint calibration smoke;
+- three precharged `movetime 75` integrated depth/NPS trials; and
+- adversarial mate, only-move, and stale-key tests.
 
-The 2.43ms two-thread shallow path meets the requested low-millisecond
-standalone target on this host, but it is not a strength claim.
+The smoke corpus lacks training-membership provenance and uses depth-4 HCE
+labels. The sandbox is not identified deployment hardware. One of eight best
+moves differed in every time-limited trial. Therefore no UCI option was added,
+`runtime_safety_suite` remains false, and no SPRT was attempted. See
+`docs/unarchitectured-v1-integration-trial.md` for measurements and limitations.
+
+The next safe sequence is now owner-dependent: supply the deployment CPU and a
+representative provenance-disjoint teacher-labelled corpus, promote the harness
+to a default-off UCI candidate, run the complete tactical/depth gate, and only
+then run an isolated paired-game SPRT.
 
 ## Remaining performance work
 
@@ -170,10 +178,12 @@ standalone target on this host, but it is not a strength claim.
 - prepack/transcode matrices for wider deployment microkernels;
 - stop materializing duplicate f32 copies for matrices once all fallback and
   non-x86 deployment constraints are settled;
-- use a persistent inference worker rather than scoped threads if integration
-  demonstrates enough call volume;
-- cache only exact full-position results keyed by state/model/persona; and
-- evaluate asynchronous root hints that never block the move clock.
+- evaluate whether the new persistent outer inference worker reduces real UCI
+  latency once an owner-gated candidate exists (inner matrix scopes remain);
+- extend exact-key caching only if real repeated-position hit rates justify it;
+  and
+- keep asynchronous root hints default-off until deployment calibration,
+  tactical/depth gates, and paired-game SPRT all pass.
 
 Per-node use remains unrealistic for this 4.22M-parameter transformer without a
 much smaller distilled evaluator.

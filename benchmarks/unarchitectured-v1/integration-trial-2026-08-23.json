@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "architecture": "Unarchitectured v1 compact Chessformer student",
+  "date": "2026-08-23",
+  "promotion_status": "default-unreachable trial only",
+  "runtime_source_sha256": "2f74bf378007244e169d63dff8af604aec204a78c126436fa3bafc93038811a8",
+  "search_source_sha256": "d9c0c841ed72667bcffb92ca6a30abe550fb8728c2e7df34c837a6c159093001",
+  "artifact_sha256": "5fd9fc3fbf47bd2620c2e832e24c98525b59feeea791abf1c7ae32b9d311b16d",
+  "deployment_cpu_available": false,
+  "host": {
+    "cpu": "Intel Xeon Processor @ 2.60GHz",
+    "visible_logical_cpus": 2,
+    "inference_threads": 2
+  },
+  "calibration": {
+    "positions": 8,
+    "parity_fixture_disjoint": true,
+    "training_provenance_disjoint": false,
+    "teacher": "Unchessed HCE alpha-beta depth 4 over all legal root moves",
+    "warning": "Smoke instrumentation only; tiny corpus and non-production teacher",
+    "exits": {
+      "2x128": {
+        "policy_top1": 0.5,
+        "policy_top3": 0.5,
+        "mean_teacher_best_rank": 4.375,
+        "regret_mae": 0.530366,
+        "wdl_brier": 0.714232
+      },
+      "4x192": {
+        "policy_top1": 0.5,
+        "policy_top3": 0.625,
+        "mean_teacher_best_rank": 4.375,
+        "regret_mae": 0.545688,
+        "wdl_brier": 0.742925
+      },
+      "8x256": {
+        "policy_top1": 0.625,
+        "policy_top3": 0.75,
+        "mean_teacher_best_rank": 6.0,
+        "regret_mae": 0.675764,
+        "wdl_brier": 0.72453
+      }
+    }
+  },
+  "integrated_trial": {
+    "positions": 8,
+    "limits": "movetime 75",
+    "exit": "2x128",
+    "preprocessing_charged_to_deadline": true,
+    "runs": [
+      {
+        "baseline_mean_depth": 9.0,
+        "hinted_mean_depth": 9.875,
+        "baseline_nps": 1043625,
+        "hinted_nps": 1849800,
+        "inference_ms_per_position": 3.243,
+        "best_move_agreement": "7/8"
+      },
+      {
+        "baseline_mean_depth": 8.75,
+        "hinted_mean_depth": 9.75,
+        "baseline_nps": 769410,
+        "hinted_nps": 1453673,
+        "inference_ms_per_position": 3.854,
+        "best_move_agreement": "7/8"
+      },
+      {
+        "baseline_mean_depth": 9.0,
+        "hinted_mean_depth": 9.75,
+        "baseline_nps": 1040276,
+        "hinted_nps": 1433117,
+        "inference_ms_per_position": 3.205,
+        "best_move_agreement": "7/8"
+      }
+    ],
+    "warning": "Tiny host-specific instrumentation; NPS is tree-dependent and no strength conclusion is valid"
+  },
+  "safety_tests": {
+    "adversarial_hint_forced_mate": true,
+    "precharged_only_move": true,
+    "async_nonblocking_exact_key": true,
+    "complete_runtime_safety_suite": false
+  },
+  "uci_enabled": false,
+  "sprt_run": false,
+  "sprt_blockers": [
+    "trial intentionally has no UCI enablement",
+    "cutechess-cli unavailable",
+    "fastchess unavailable"
+  ]
+}

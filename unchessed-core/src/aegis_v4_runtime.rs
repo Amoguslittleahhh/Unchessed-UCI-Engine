@@ -18,7 +18,9 @@
 use crate::board::{file_of, Move, Position, BISHOP, BK, BQ, KNIGHT, NO_EP, QUEEN, ROOK, WK, WQ};
 use crate::unarchitectured_v1::TensorPackage;
 use std::collections::HashMap;
-use std::sync::OnceLock;
+use std::sync::atomic::{AtomicBool, Ordering as AtomicOrdering};
+use std::sync::mpsc::{sync_channel, SyncSender, TrySendError};
+use std::sync::{Arc, Mutex, OnceLock};
 
 pub const D_MODEL: usize = 256;
 pub const HEADS: usize = 8;
@@ -737,6 +739,7 @@ impl ChessformerWeights {
 /// `write_sample`), plus its legal move list encoded the same way as
 /// `aegis_v4_data.encode_action` (source | target<<6 | promotion<<12, with
 /// promotion in 0..=4 for none/N/B/R/Q).
+#[derive(Clone)]
 pub struct PositionInput {
     /// Piece value per square 0..63: 0=empty, 1..6=own P/N/B/R/Q/K,
     /// 7..12=opponent P/N/B/R/Q/K.
@@ -788,6 +791,144 @@ pub struct ForwardOutput {
     /// normalize to get win/draw/loss probabilities.
     pub evidence: [f32; 3],
     pub representation: [f32; D_MODEL],
+}
+
+/// Exact identity for a background hint. Legal actions are part of the key so
+/// callers cannot accidentally consume a result produced for a different
+/// position, promotion set, persona, rating, time class, or elastic exit.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct HintKey {
+    pub position_hash: u64,
+    pub rating: i64,
+    pub time_class: usize,
+    pub policy_kind: usize,
+    pub exit: InferenceExit,
+    pub legal_actions: Vec<u16>,
+}
+
+impl HintKey {
+    fn new(position_hash: u64, input: &PositionInput, exit: InferenceExit) -> Self {
+        Self {
+            position_hash,
+            rating: input.rating,
+            time_class: input.time_class,
+            policy_kind: input.policy_kind,
+            exit,
+            legal_actions: input.legal_actions.clone(),
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct AsyncHint {
+    pub key: HintKey,
+    pub output: Arc<ForwardOutput>,
+    pub elapsed: std::time::Duration,
+}
+
+struct HintRequest {
+    key: HintKey,
+    input: PositionInput,
+    exit: InferenceExit,
+}
+
+/// Persistent, bounded, nonblocking inference worker for controlled trials.
+///
+/// Submission uses `try_send`: a move-clock thread never waits for queue space.
+/// Results are usable only through an exact [`HintKey`] match. Nothing in the
+/// UCI/search path constructs this worker yet; promotion still requires the
+/// documented calibration, tactical, integrated-NPS, and paired-game gates.
+pub struct UnarchitecturedHintWorker {
+    sender: Option<SyncSender<HintRequest>>,
+    latest: Arc<Mutex<Option<AsyncHint>>>,
+    shutdown: Arc<AtomicBool>,
+    worker: Option<std::thread::JoinHandle<()>>,
+}
+
+impl UnarchitecturedHintWorker {
+    pub fn new(weights: ChessformerWeights) -> Result<Self, String> {
+        let (sender, receiver) = sync_channel::<HintRequest>(1);
+        let latest = Arc::new(Mutex::new(None));
+        let shutdown = Arc::new(AtomicBool::new(false));
+        let latest_for_worker = Arc::clone(&latest);
+        let shutdown_for_worker = Arc::clone(&shutdown);
+        let worker = std::thread::Builder::new()
+            .name("unchessed-unarchitectured-hint".into())
+            .spawn(move || {
+                while !shutdown_for_worker.load(AtomicOrdering::Acquire) {
+                    let request = match receiver.recv_timeout(std::time::Duration::from_millis(10))
+                    {
+                        Ok(request) => request,
+                        Err(std::sync::mpsc::RecvTimeoutError::Timeout) => continue,
+                        Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
+                    };
+                    let started = std::time::Instant::now();
+                    let output = forward_at_exit(&weights, &request.input, request.exit);
+                    let completed = AsyncHint {
+                        key: request.key,
+                        output: Arc::new(output),
+                        elapsed: started.elapsed(),
+                    };
+                    *latest_for_worker
+                        .lock()
+                        .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(completed);
+                }
+            })
+            .map_err(|error| format!("spawn Unarchitectured hint worker: {error}"))?;
+        Ok(Self {
+            sender: Some(sender),
+            latest,
+            shutdown,
+            worker: Some(worker),
+        })
+    }
+
+    /// Return `(exact_key, accepted)`. A full one-request queue reports
+    /// `accepted=false` immediately instead of blocking the caller.
+    pub fn try_submit(
+        &self,
+        position_hash: u64,
+        input: PositionInput,
+        exit: InferenceExit,
+    ) -> Result<(HintKey, bool), String> {
+        validate_input(&input)?;
+        let key = HintKey::new(position_hash, &input, exit);
+        let request = HintRequest {
+            key: key.clone(),
+            input,
+            exit,
+        };
+        let sender = self
+            .sender
+            .as_ref()
+            .ok_or("Unarchitectured hint worker is stopped")?;
+        match sender.try_send(request) {
+            Ok(()) => Ok((key, true)),
+            Err(TrySendError::Full(_)) => Ok((key, false)),
+            Err(TrySendError::Disconnected(_)) => {
+                Err("Unarchitectured hint worker disconnected".into())
+            }
+        }
+    }
+
+    pub fn latest_exact(&self, key: &HintKey) -> Option<AsyncHint> {
+        self.latest
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .as_ref()
+            .filter(|hint| hint.key == *key)
+            .cloned()
+    }
+}
+
+impl Drop for UnarchitecturedHintWorker {
+    fn drop(&mut self) {
+        self.shutdown.store(true, AtomicOrdering::Release);
+        self.sender.take();
+        if let Some(worker) = self.worker.take() {
+            let _ = worker.join();
+        }
+    }
 }
 
 fn embed(table: &Tensor, index: usize, width: usize, out: &mut [f32]) {
@@ -2154,10 +2295,31 @@ pub fn position_to_input(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::eval::Hce;
+    use crate::search::{self, Limits, RootHint, SearchParams};
+    use crate::tt::TT;
     use crate::unarchitectured_v1::TensorPackage;
+    use std::collections::HashMap;
+    use std::sync::atomic::AtomicBool;
     use std::sync::Mutex;
 
     static BENCHMARK_LOCK: Mutex<()> = Mutex::new(());
+
+    // Deliberately excludes both frozen Python parity fixtures. These positions
+    // exercise opening, castled middlegame, tactical, endgame, and promotion-
+    // adjacent states. They are fixture-disjoint, but no training-corpus
+    // provenance manifest exists locally, so this is not claimed as a
+    // training-disjoint production calibration set.
+    const TRIAL_FENS: &[&str] = &[
+        "r1bqkbnr/1ppp1ppp/p1n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 4",
+        "rnbqkbnr/pp2pppp/2p5/3p4/3PP3/8/PPP2PPP/RNBQKBNR w KQkq - 0 3",
+        "r3k2r/p1ppqpb1/bn2pnp1/2pP4/1p2P3/2N2N2/PPQBBPPP/R3K2R w KQkq - 0 1",
+        "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+        "4rrk1/pp1b1ppp/2n1p3/2qpP3/3N4/2P1B3/PPQ2PPP/R4RK1 w - - 0 16",
+        "2r3k1/5ppp/p3p3/1p1q4/3P4/P2Q4/1P3PPP/2R3K1 w - - 0 24",
+        "8/5pk1/6p1/3p4/3P1P2/5KP1/8/8 w - - 0 40",
+        "4k3/1P6/8/8/8/8/6p1/4K3 w - - 0 1",
+    ];
 
     fn start_position_input() -> PositionInput {
         let mut pieces = [0u8; 64];
@@ -2260,6 +2422,41 @@ mod tests {
                 "quantized activation {index}: got {got}, expected {expected}"
             );
         }
+    }
+
+    #[test]
+    fn asynchronous_hint_worker_is_nonblocking_and_exact_keyed() {
+        let weights = load_reference_weights();
+        let worker = UnarchitecturedHintWorker::new(weights).expect("start hint worker");
+        let input = start_position_input();
+        let submitted = std::time::Instant::now();
+        let (key, accepted) = worker
+            .try_submit(0x1234_5678, input, InferenceExit::Layer2Width128)
+            .expect("submit hint");
+        assert!(accepted);
+        assert!(
+            submitted.elapsed() < std::time::Duration::from_millis(100),
+            "nonblocking submission took {:?}",
+            submitted.elapsed()
+        );
+
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+        let hint = loop {
+            if let Some(hint) = worker.latest_exact(&key) {
+                break hint;
+            }
+            assert!(
+                std::time::Instant::now() < deadline,
+                "hint worker timed out"
+            );
+            std::thread::sleep(std::time::Duration::from_millis(1));
+        };
+        assert_eq!(hint.output.logits.len(), key.legal_actions.len());
+        assert!(hint.elapsed < std::time::Duration::from_secs(1));
+
+        let mut wrong_key = key.clone();
+        wrong_key.position_hash ^= 1;
+        assert!(worker.latest_exact(&wrong_key).is_none());
     }
 
     #[test]
@@ -2755,6 +2952,240 @@ mod tests {
                 elapsed / calls,
             );
         }
+    }
+
+    #[test]
+    #[ignore]
+    fn benchmark_fixture_disjoint_exit_calibration() {
+        let _guard = BENCHMARK_LOCK.lock().unwrap();
+        let weights = load_reference_weights();
+        let exits = [
+            InferenceExit::Layer2Width128,
+            InferenceExit::Layer4Width192,
+            InferenceExit::Layer8Width256,
+        ];
+        #[derive(Default)]
+        struct Metrics {
+            positions: usize,
+            top1: usize,
+            top3: usize,
+            best_rank_sum: usize,
+            regret_absolute_error: f64,
+            regret_samples: usize,
+            wdl_brier: f64,
+        }
+        let mut metrics = [Metrics::default(), Metrics::default(), Metrics::default()];
+
+        for fen_text in TRIAL_FENS {
+            let pos = crate::fen::parse(fen_text).expect("valid trial FEN");
+            let legal_moves = crate::movegen::legal(&pos);
+            let input = position_to_input(&pos, legal_moves.as_slice(), 2700, 2, POLICY_GUIDE);
+            let tt = TT::new(8);
+            let stop = AtomicBool::new(false);
+            let teacher = search::go(
+                &pos,
+                &Hce::default(),
+                &Limits::depth(4),
+                legal_moves.len,
+                &tt,
+                &stop,
+                &[],
+                0,
+                SearchParams::default(),
+                1,
+                &mut |_| {},
+            );
+            assert_eq!(
+                teacher.len(),
+                legal_moves.len,
+                "teacher must label every legal root move"
+            );
+            let teacher_best = teacher[0].mv;
+            let teacher_best_score = teacher[0].score;
+            let teacher_scores = teacher
+                .iter()
+                .map(|line| (line.mv.0, line.score))
+                .collect::<HashMap<_, _>>();
+
+            for (exit_index, exit) in exits.into_iter().enumerate() {
+                let output = forward_at_exit(&weights, &input, exit);
+                let mut policy_order = (0..output.logits.len()).collect::<Vec<_>>();
+                policy_order
+                    .sort_by(|&left, &right| output.logits[right].total_cmp(&output.logits[left]));
+                let teacher_index = legal_moves
+                    .as_slice()
+                    .iter()
+                    .position(|&mv| mv == teacher_best)
+                    .expect("teacher move in legal list");
+                let rank = policy_order
+                    .iter()
+                    .position(|&index| index == teacher_index)
+                    .expect("teacher move in policy order");
+                let metric = &mut metrics[exit_index];
+                metric.positions += 1;
+                metric.top1 += usize::from(rank == 0);
+                metric.top3 += usize::from(rank < 3);
+                metric.best_rank_sum += rank + 1;
+
+                for (move_index, &mv) in legal_moves.as_slice().iter().enumerate() {
+                    let Some(&score) = teacher_scores.get(&mv.0) else {
+                        continue;
+                    };
+                    if search::is_mate_score(score) || search::is_mate_score(teacher_best_score) {
+                        continue;
+                    }
+                    let target_regret = (teacher_best_score - score).max(0) as f64 / 400.0;
+                    metric.regret_absolute_error +=
+                        (output.regret_mean[move_index] as f64 - target_regret).abs();
+                    metric.regret_samples += 1;
+                }
+
+                let evidence_sum = output.evidence.iter().sum::<f32>() + 3.0;
+                let probabilities = [
+                    (output.evidence[0] + 1.0) / evidence_sum,
+                    (output.evidence[1] + 1.0) / evidence_sum,
+                    (output.evidence[2] + 1.0) / evidence_sum,
+                ];
+                let outcome = if teacher_best_score > 50 {
+                    0
+                } else if teacher_best_score < -50 {
+                    2
+                } else {
+                    1
+                };
+                metric.wdl_brier += probabilities
+                    .iter()
+                    .enumerate()
+                    .map(|(index, &probability)| {
+                        let target = if index == outcome { 1.0 } else { 0.0 };
+                        f64::from((probability - target).powi(2))
+                    })
+                    .sum::<f64>();
+            }
+        }
+
+        for (exit, metric) in exits.into_iter().zip(metrics) {
+            println!(
+                "CALIBRATION {exit:?}: positions={} top1={:.4} top3={:.4} \
+                 mean_teacher_best_rank={:.4} regret_mae={:.6} wdl_brier={:.6}",
+                metric.positions,
+                metric.top1 as f64 / metric.positions as f64,
+                metric.top3 as f64 / metric.positions as f64,
+                metric.best_rank_sum as f64 / metric.positions as f64,
+                metric.regret_absolute_error / metric.regret_samples.max(1) as f64,
+                metric.wdl_brier / metric.positions as f64,
+            );
+        }
+    }
+
+    #[test]
+    #[ignore]
+    fn benchmark_precharged_shallow_root_hint_search() {
+        let _guard = BENCHMARK_LOCK.lock().unwrap();
+        let weights = load_reference_weights();
+        #[derive(Default)]
+        struct Metrics {
+            depth: u64,
+            nodes: u64,
+            elapsed: std::time::Duration,
+        }
+        let mut baseline = Metrics::default();
+        let mut hinted = Metrics::default();
+        let mut inference_elapsed = std::time::Duration::ZERO;
+        let mut best_move_agreement = 0usize;
+
+        for (position_index, fen_text) in TRIAL_FENS.iter().enumerate() {
+            let pos = crate::fen::parse(fen_text).expect("valid trial FEN");
+            let stop = AtomicBool::new(false);
+            let limits = Limits::movetime(75);
+            let run_baseline = || {
+                let tt = TT::new(8);
+                let started = std::time::Instant::now();
+                let mut nodes = 0u64;
+                let lines = search::go(
+                    &pos,
+                    &Hce::default(),
+                    &limits,
+                    1,
+                    &tt,
+                    &stop,
+                    &[],
+                    0,
+                    SearchParams::default(),
+                    1,
+                    &mut |event| nodes = event.nodes,
+                );
+                (lines, nodes, started.elapsed())
+            };
+            let run_hinted = || {
+                let preprocessing_started = std::time::Instant::now();
+                let legal_moves = crate::movegen::legal(&pos);
+                let input = position_to_input(&pos, legal_moves.as_slice(), 2700, 2, POLICY_GUIDE);
+                let output = forward_at_exit(&weights, &input, InferenceExit::Layer2Width128);
+                let preprocessing = preprocessing_started.elapsed();
+                let hints = legal_moves
+                    .as_slice()
+                    .iter()
+                    .zip(output.logits.iter())
+                    .map(|(&mv, &policy_score)| RootHint { mv, policy_score })
+                    .collect::<Vec<_>>();
+                let tt = TT::new(8);
+                let mut nodes = 0u64;
+                let lines = search::go_with_root_hints(
+                    &pos,
+                    &Hce::default(),
+                    &limits,
+                    1,
+                    &tt,
+                    &stop,
+                    &[],
+                    0,
+                    SearchParams::default(),
+                    1,
+                    &hints,
+                    preprocessing,
+                    &mut |event| nodes = event.nodes,
+                );
+                (lines, nodes, preprocessing_started.elapsed(), preprocessing)
+            };
+
+            let (
+                (baseline_lines, baseline_nodes, baseline_time),
+                (hinted_lines, hinted_nodes, hinted_time, inference_time),
+            ) = if position_index.is_multiple_of(2) {
+                (run_baseline(), run_hinted())
+            } else {
+                let hinted_result = run_hinted();
+                let baseline_result = run_baseline();
+                (baseline_result, hinted_result)
+            };
+            assert!(!baseline_lines.is_empty() && !hinted_lines.is_empty());
+            baseline.depth += baseline_lines[0].depth as u64;
+            baseline.nodes += baseline_nodes;
+            baseline.elapsed += baseline_time;
+            hinted.depth += hinted_lines[0].depth as u64;
+            hinted.nodes += hinted_nodes;
+            hinted.elapsed += hinted_time;
+            inference_elapsed += inference_time;
+            best_move_agreement += usize::from(baseline_lines[0].mv == hinted_lines[0].mv);
+        }
+
+        let positions = TRIAL_FENS.len() as f64;
+        let nps = |metrics: &Metrics| metrics.nodes as f64 / metrics.elapsed.as_secs_f64();
+        println!(
+            "INTEGRATED baseline: mean_depth={:.3} nodes={} nps={:.0}; \
+             precharged_shallow_hint: mean_depth={:.3} nodes={} nps={:.0}; \
+             inference_ms={:.3}/position bestmove_agreement={}/{}",
+            baseline.depth as f64 / positions,
+            baseline.nodes,
+            nps(&baseline),
+            hinted.depth as f64 / positions,
+            hinted.nodes,
+            nps(&hinted),
+            inference_elapsed.as_secs_f64() * 1000.0 / positions,
+            best_move_agreement,
+            TRIAL_FENS.len(),
+        );
     }
 
     /// Confirms `position_to_input` (real movegen + real board state) agrees
