@@ -9,6 +9,115 @@ work is not an invitation to revert to or resume development on any of
 them. Any follow-on architecture or training work belongs on top of
 Unarchitectured v1, not as a parallel track exploring an earlier one.
 
+## Status update — round 3
+
+Your second pass (`cff6083` "Add retained-int8 Chessformer matrix inference",
+`d152fdc` "Document rejected int8 activation prototype") was reviewed,
+independently re-benchmarked, and merged onto `main` at `c97dd0b`. This is
+exactly the untried angle round 2's status update called out — retaining the
+package's symmetric int8 weights instead of dequantizing to `f32` on load,
+dynamically quantizing each activation row to int16, and doing the dominant
+matmuls as AVX2 i16×i8→i32 integer products.
+
+Verified independently (not just trusted from the commit/doc):
+
+- Full workspace build clean, `unchessed-core` test suite 74/74 (the 71
+  pre-existing tests plus the three new ones this round added:
+  `integer_microkernels_match_scalar`, `activation_quantizer_matches_scalar`,
+  `integer_matrix_path_stays_close_to_dequantized_path`).
+- Reproduced the backend speedup on the reviewer's own machine: **1.22x**
+  (your sandbox reported 1.23x–1.39x depending on thread count — same
+  ballpark, different host, consistent with how round 1's numbers also
+  didn't transfer 1:1 across hosts).
+- The new `integer_matrix_path_stays_close_to_dequantized_path` gate (int8
+  path vs. the existing f32 path, 5e-4 max drift across every exit's logits,
+  regret mean/log-scale, evidence, and representation) passed on the
+  reviewer's machine with deltas in the same range as reported.
+- Good discipline worth continuing: you tried quantizing *activations* to
+  int8 too, it failed the existing Python parity gate (about 1.01e-2 drift
+  vs. the required 5e-3), and instead of loosening the tolerance to make it
+  pass, you reverted it and documented the rejected experiment in
+  `docs/unarchitectured-v1-runtime-optimization.md`. Keep doing exactly
+  that — a documented rejection is more valuable than a quietly-passing
+  gate that got weakened to let broken work through.
+
+Two things fixed or dropped on adoption, not blocking, but worth knowing:
+
+1. `tools/unarchitectured_v1_architecture_audit.py` (also adopted this
+   round, minor 4-line change) imports a `verda_gpu_profile` module that
+   does not exist anywhere in this repository — it could not be run on the
+   reviewer's machine. It's a peripheral Python safety-gate script, not part
+   of the Rust runtime work, so it wasn't a blocker for adopting the real
+   change, but it means that script has never actually been executed
+   end-to-end outside your sandbox. If you touch it again, either commit the
+   missing module or drop the import if it's dead weight.
+2. The round-1 and round-2 commits on your branch carried a much larger
+   README rewrite (new "Architecture summary," "Runtime forward
+   performance," "Autonomous fail-closed safety," "Efficient data-centre
+   training," "Production NNUE," etc. sections, plus links to
+   `config/architecture_registry.json` and
+   `docs/unarchitectured-v1-safety-integrity-report.md`) that was never
+   adopted onto `main` and doesn't match `main`'s actual current README
+   structure — several of those linked files don't exist in this tree at
+   all. On merge, that whole block was dropped except the one paragraph of
+   verified-true runtime-performance numbers (relocated into `main`'s
+   existing README structure) and one factual "known blockers" paragraph.
+   This is not a request to resubmit that README rewrite — see the
+   pre-flight checklist below for why.
+
+## Before you start — pre-flight checklist
+
+This is what the reviewer actually had to check by hand this round, in
+order to trust and merge your work rather than just paste-and-push it. Doing
+these yourself before reporting a round done will make review faster and
+reduce how much gets dropped on adoption:
+
+- [ ] **Diff against `main`, not just your own branch's history.** Your
+  branch has accumulated commits/docs across multiple rounds that were
+  never actually merged onto `main` (see the README point above). Before
+  writing a commit message that says something like "X now exists" or
+  "the existing gates still pass," check whether `main` actually has the
+  file/section you're referring to — `git diff main...HEAD --stat` from a
+  fresh checkout, not from memory of your own branch's state.
+- [ ] **Don't add README/doc content that references files outside this
+  round's own commit.** If a doc links to
+  `config/architecture_registry.json` or similar, either that file is part
+  of the same commit or the link will 404 the moment it's merged onto a
+  tree that doesn't have it. Grep for every path you reference in prose and
+  confirm it resolves in the tree you're actually committing, not just the
+  sandbox's broader (unmerged) state.
+- [ ] **Run the full existing test suite fresh, not just the new tests
+  you added.** `cargo test --workspace --release` from a clean state.
+  Report the actual number your run produced, not a number carried over
+  from an earlier round's report or your sandbox's cumulative branch state
+  (round 2 caught a test-count mismatch this way; keep it from recurring).
+- [ ] **Verify every Python tool you touch or add actually runs standalone
+  in this repo** — `python <script>.py --help` or equivalent from a fresh
+  clone, not just inside your own sandbox where extra internal-only modules
+  might be importable. If it needs something not in this repo, say so in
+  the commit message rather than silently shipping a script that can't run.
+- [ ] **Benchmark numbers are host-specific — say so explicitly.** Report
+  your sandbox's absolute numbers, but don't imply they'll transfer 1:1 to
+  another machine (round 1 and round 2 both saw real but non-identical
+  speedup ratios on the reviewer's machine vs. your sandbox — that's
+  expected and fine, just don't frame a sandbox ratio as a guaranteed
+  result elsewhere).
+- [ ] **If an experiment fails a correctness gate, document the rejection
+  instead of loosening the gate.** This round did this well (the int8
+  activation prototype) — keep it up. A tolerance should only widen when
+  there's a specific, understood, legitimate reason (e.g. the documented
+  float-accumulation-order noise on the pooled/evidence values), never
+  just because a change needs it to pass.
+- [ ] **Still no search integration without a fresh SPRT gate.** This
+  keeps being restated every round because it's the one rule that's already
+  caught a real catastrophic failure (round 0's 0-20-0). The bar doesn't
+  lower as the forward pass gets faster.
+- [ ] **Push what you want reviewed.** A commit that only exists locally
+  or only on your own branch's unpushed history can't be verified — make
+  sure `git log origin/<your-branch>` actually shows what you think it
+  shows before reporting a round as done (this was a real bug caught after
+  round 1: a commit was made but never pushed).
+
 ## Status update — round 2
 
 Your first pass (`c91937e`, "Accelerate Unarchitectured v1 Chessformer
@@ -124,10 +233,14 @@ Either (or both) of:
      projection, the FFN up/down projections, and the policy/regret head
      linear layers dominate the cost (8 layers × several 256×256 matmuls
      each, all on 64 board-square tokens).
-   - Actually exploiting the int8 quantization at inference time (integer
-     dot products) instead of dequantizing everything to f32 immediately on
-     load and never touching int8 arithmetic again — this is probably the
-     single biggest win available and hasn't been attempted at all yet.
+   - ~~Exploiting int8 quantization at inference time~~ — done as of round 3
+     (retained-int8 weights, dynamic int16 activations, AVX2 i16×i8→i32
+     products): 1.22x–1.39x backend speedup depending on host/thread count.
+     Calibrated int8 *activations* (not just weights) remain untried in a
+     way that passes the parity gate — the first attempt failed at 1.01e-2
+     vs. the required 5e-3; a per-channel or per-group calibration scheme
+     (rather than the rejected per-token symmetric one) might close that
+     gap, if it's worth the complexity.
    - Cache-friendlier loop ordering / blocking for the 64-token × 256-width
      attention and FFN computations.
    - Consider whether an existing pure-Rust linear-algebra crate (with no
