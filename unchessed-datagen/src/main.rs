@@ -161,6 +161,10 @@ fn main() {
         run_nnue(&args);
         return;
     }
+    if args.len() >= 2 && args[1] == "nnue-stream" {
+        run_nnue_stream(&args);
+        return;
+    }
     if args.len() >= 2 && args[1] == "book" {
         run_book(&args);
         return;
@@ -432,6 +436,136 @@ fn run_nnue(args: &[String]) {
         secs,
         samples as f64 / secs
     );
+}
+
+/// Same labeling as `nnue`, but decompresses/reads the PGN exactly ONCE
+/// (from stdin, meant to be fed by a single `pzstd -dc file.pgn.zst`) and
+/// distributes games round-robin to worker THREADS instead of having each
+/// of N worker PROCESSES independently re-read (or re-decompress) the
+/// whole file. `nnue`'s per-process self-sharding (`games % n_workers ==
+/// worker_id`) was simple and correct, but at 28 workers means either
+/// 28x redundant disk reads of a materialized file, or (if fed via 28
+/// independent decompression streams) 28x redundant decompression of the
+/// same source -- both wasteful when the real bottleneck turned out to be
+/// disk I/O, not CPU (measured: ~120% CPU during decompression of a
+/// 14-core box, i.e. barely more than one core busy). One decompression
+/// pass + in-process thread fan-out avoids both.
+///
+/// Usage: unchessed-datagen nnue-stream <out_dir> <n_workers>
+///                                      <max_positions_per_worker>
+///   pzstd -dc file.pgn.zst | unchessed-datagen nnue-stream out_dir 28 500000
+fn run_nnue_stream(args: &[String]) {
+    if args.len() < 5 {
+        eprintln!(
+            "usage: {} nnue-stream <out_dir> <n_workers> <max_positions_per_worker>",
+            args[0]
+        );
+        eprintln!("  reads PGN from stdin, e.g.:");
+        eprintln!("  pzstd -dc file.pgn.zst | {} nnue-stream out_dir 28 500000", args[0]);
+        std::process::exit(1);
+    }
+    let out_dir = args[2].clone();
+    let n_workers: usize = args[3].parse().expect("n_workers");
+    let max_positions_per_worker: u64 = args[4].parse().expect("max_positions_per_worker");
+    assert!(n_workers > 0, "need at least 1 worker");
+    std::fs::create_dir_all(&out_dir).unwrap_or_else(|e| panic!("create {}: {}", out_dir, e));
+
+    let mut senders = Vec::with_capacity(n_workers);
+    let mut handles = Vec::with_capacity(n_workers);
+    // one flag per worker, set once that worker hits its position cap --
+    // lets the main reader stop early instead of parsing the rest of a
+    // 90M-game file after every worker is already done.
+    let done: std::sync::Arc<Vec<std::sync::atomic::AtomicBool>> = std::sync::Arc::new(
+        (0..n_workers).map(|_| std::sync::atomic::AtomicBool::new(false)).collect(),
+    );
+
+    for i in 0..n_workers {
+        // bounded channel: backpressures the reader if workers (doing real
+        // 5000-node searches) fall behind, instead of buffering unboundedly
+        // many parsed games in memory ahead of the workers.
+        let (tx, rx) = std::sync::mpsc::sync_channel::<(Headers, String)>(1000);
+        senders.push(tx);
+        let out_path = format!("{}/w{}.bin", out_dir, i);
+        let done = done.clone();
+        let handle = std::thread::spawn(move || {
+            let mut out = BufWriter::new(
+                File::create(&out_path).unwrap_or_else(|e| panic!("create {}: {}", out_path, e)),
+            );
+            let tt = TT::new(64);
+            let mut rng = Rng(0x5EED_CAFE_2024_0720 ^ (i as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15));
+            let start = Instant::now();
+            let mut samples = 0u64;
+            let mut used_games = 0u64;
+            while let Ok((h, movetext)) = rx.recv() {
+                process_nnue_game(
+                    &h, &movetext, &mut out, &tt, &mut rng, &mut samples,
+                    max_positions_per_worker, &mut used_games, &start,
+                );
+                if samples >= max_positions_per_worker {
+                    done[i].store(true, std::sync::atomic::Ordering::Relaxed);
+                    break;
+                }
+            }
+            out.flush().unwrap();
+            let secs = start.elapsed().as_secs_f64().max(1e-9);
+            eprintln!(
+                "worker {}: {} samples from {} games ({:.0} samples/s)",
+                i, samples, used_games, samples as f64 / secs
+            );
+        });
+        handles.push(handle);
+    }
+
+    // main thread: read PGN from stdin exactly once, parse game boundaries,
+    // dispatch round-robin. Mirrors run_nnue's own line-parsing exactly.
+    let stdin = std::io::stdin();
+    let mut r = BufReader::with_capacity(1 << 20, stdin.lock());
+    let mut line = String::new();
+    let mut headers = Headers::default();
+    let mut movetext = String::new();
+    let mut in_moves = false;
+    let mut game_idx: usize = 0;
+    let mut games_since_check = 0u32;
+
+    'read: loop {
+        line.clear();
+        if r.read_line(&mut line).unwrap() == 0 {
+            break;
+        }
+        let t = line.trim();
+        if t.starts_with('[') {
+            if in_moves {
+                let worker = game_idx % n_workers;
+                let h = std::mem::take(&mut headers);
+                let mt = std::mem::take(&mut movetext);
+                let _ = senders[worker].send((h, mt)); // Err = that worker already exited (capped); fine to drop
+                game_idx += 1;
+                in_moves = false;
+
+                games_since_check += 1;
+                if games_since_check >= 5000 {
+                    games_since_check = 0;
+                    if done.iter().all(|d| d.load(std::sync::atomic::Ordering::Relaxed)) {
+                        break 'read;
+                    }
+                }
+            }
+            parse_header(t, &mut headers);
+        } else if !t.is_empty() {
+            in_moves = true;
+            movetext.push_str(t);
+            movetext.push(' ');
+        }
+    }
+    if in_moves {
+        let worker = game_idx % n_workers;
+        let _ = senders[worker].send((headers, movetext));
+    }
+
+    drop(senders); // closes the channels so any still-running worker's recv() loop ends
+    for h in handles {
+        h.join().unwrap();
+    }
 }
 
 #[allow(clippy::too_many_arguments)]
