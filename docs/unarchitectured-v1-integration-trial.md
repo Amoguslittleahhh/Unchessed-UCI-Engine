@@ -2,10 +2,12 @@
 
 ## Promotion status
 
-This is a **default-unreachable engineering trial**, not a production feature.
-The normal UCI path still calls `search::go` with no neural hints and does not
-load the Unarchitectured checkpoint. There is no UCI option enabling this path.
-No strength, Elo, clock-safety, or SPRT claim is made.
+This is now a **default-off UCI candidate**, not a production feature. Normal
+UCI play still uses `search::go` with no neural hints and does not load the
+Unarchitectured checkpoint. Only an explicit `setoption name
+UnarchitecturedHint value true` loads the package and reaches
+`search::go_with_root_hints`. No strength, Elo, clock-safety, or SPRT claim is
+made.
 
 The actual deployment CPU is not known or reachable from this environment.
 All latency and integrated-search figures below are from the sandbox's
@@ -23,7 +25,20 @@ All latency and integrated-search figures below are from the sandbox's
 - Background results require an exact key match over position hash, legal
   actions, rating, time class, policy persona, and elastic exit. A stale result
   cannot be consumed for a different position.
-- Nothing constructs the worker or hint-search entry point in normal UCI play.
+- The UCI candidate constructs one worker per game, submits only on `go` for
+  fixed-depth/node/analysis searches or clocks above `UnarchitecturedMinTime`,
+  and waits at most 100ms for the exact result. The full elapsed inference time
+  is charged to every main and Lazy-SMP helper deadline.
+- Short clocks neither submit nor wait, preventing background inference from
+  stealing CPU while time-critical search is already running.
+
+Candidate options:
+
+```text
+UnarchitecturedHint   check, default false
+UnarchitecturedFile   string, default next to executable
+UnarchitecturedMinTime spin, default 30000ms
+```
 
 ## Fixture-disjoint calibration trial
 
@@ -68,26 +83,34 @@ search-tree-dependent and is reported only as instrumentation, not strength.
 
 ## Tactical checks
 
-New non-ignored tests verify that:
+Non-ignored tests now verify that:
 
-- an adversarial policy ordering cannot suppress a forced mate in one;
-- a precharged hint preserves the only legal move and returns within a bounded
-  wall time; and
+- adversarial ordering cannot suppress white or black back-rank mates;
+- a precharged hint preserves the only legal move while in check and returns
+  within a bounded wall time;
+- stalemate returns no move even with a hostile fake hint;
+- illegal and non-finite hints cannot remove or change legal search results;
 - asynchronous submission is nonblocking and exact-key lookup rejects stale
-  results.
+  results; and
+- the real UCI candidate produces one finite hint for every legal start-position
+  move from the exported checkpoint.
 
-This is not a full mate/only-move suite, so `runtime_safety_suite` remains false.
+This is broader but still not a production tactical suite, so
+`runtime_safety_suite` remains false.
 
 ## Unavailable gates
 
 - Deployment-CPU benchmarking: target hardware was not supplied or reachable.
 - Production calibration: no provenance-disjoint labeled corpus is available.
-- Paired-game SPRT: neither `cutechess-cli` nor `fastchess` is installed, and
-  the trial intentionally has no UCI enablement to test.
+- Broad integrated depth/NPS: no owner-supplied 100+ position corpus is present.
+- Paired-game SPRT execution: neither `cutechess-cli` nor `fastchess` is
+  installed. `scripts/sprt-history/sprt_unarchitectured_v1_hint.sh` now defines
+  the isolated same-binary baseline/candidate gate, but no result is claimed.
 
-The next promotion step belongs on owner-supplied deployment hardware and data,
-followed by a default-off UCI candidate, integrated depth/NPS and tactical suite,
-and only then an isolated paired-game SPRT.
+The next promotion step belongs on owner-supplied deployment hardware, a
+provenance-disjoint Stockfish-labelled corpus, and the paired-game runner. The
+candidate must remain default-off until those calibration, broad depth/NPS,
+tactical, and SPRT gates pass.
 
 ## Reproduction
 
@@ -97,4 +120,8 @@ cargo test -p unchessed-core --release \
 
 UNCHESSED_INFERENCE_THREADS=2 cargo test -p unchessed-core --release \
   benchmark_precharged_shallow_root_hint_search -- --ignored --nocapture
+
+# Real default-off UCI candidate
+setoption name UnarchitecturedFile value /path/to/unarchitectured-v1-final.unarchv1
+setoption name UnarchitecturedHint value true
 ```

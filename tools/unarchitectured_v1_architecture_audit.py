@@ -27,6 +27,7 @@ CANONICAL_SCRIPTS = (
     "tools/train_unarchitectured_v1_a100.py",
     "tools/calibrate_unarchitectured_v1_throughput.py",
     "tools/reference_forward_unarchitectured_v1.py",
+    "tools/smoke_unarchitectured_v1_uci.py",
     "tools/unarchitectured_v1_runtime_readiness.py",
 )
 LEGACY_ENTRYPOINTS = (

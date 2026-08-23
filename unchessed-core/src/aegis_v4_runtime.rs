@@ -807,7 +807,7 @@ pub struct HintKey {
 }
 
 impl HintKey {
-    fn new(position_hash: u64, input: &PositionInput, exit: InferenceExit) -> Self {
+    pub fn new(position_hash: u64, input: &PositionInput, exit: InferenceExit) -> Self {
         Self {
             position_hash,
             rating: input.rating,
@@ -847,6 +847,10 @@ pub struct UnarchitecturedHintWorker {
 
 impl UnarchitecturedHintWorker {
     pub fn new(weights: ChessformerWeights) -> Result<Self, String> {
+        Self::new_shared(Arc::new(weights))
+    }
+
+    pub fn new_shared(weights: Arc<ChessformerWeights>) -> Result<Self, String> {
         let (sender, receiver) = sync_channel::<HintRequest>(1);
         let latest = Arc::new(Mutex::new(None));
         let shutdown = Arc::new(AtomicBool::new(false));
@@ -863,7 +867,7 @@ impl UnarchitecturedHintWorker {
                         Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
                     };
                     let started = std::time::Instant::now();
-                    let output = forward_at_exit(&weights, &request.input, request.exit);
+                    let output = forward_at_exit(weights.as_ref(), &request.input, request.exit);
                     let completed = AsyncHint {
                         key: request.key,
                         output: Arc::new(output),

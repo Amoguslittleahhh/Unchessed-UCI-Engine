@@ -1103,6 +1103,65 @@ mod tests {
     }
 
     #[test]
+    fn root_hints_cannot_override_black_back_rank_mate() {
+        let pos = fen::parse("r5k1/5ppp/8/8/8/8/5PPP/6K1 b - - 0 1").unwrap();
+        let moves = legal(&pos);
+        let hints = moves.as_slice().iter().map(|&mv| RootHint {
+            mv,
+            policy_score: if mv.uci() == "a8a1" { -1000.0 } else { 1000.0 },
+        }).collect::<Vec<_>>();
+        let tt = TT::new(4);
+        let stop = AtomicBool::new(false);
+        let lines = go_with_root_hints(
+            &pos, &Hce::default(), &Limits::depth(4), 1, &tt, &stop, &[], 0,
+            SearchParams::default(), 1, &hints, std::time::Duration::ZERO,
+            &mut |_| {},
+        );
+        assert_eq!(lines[0].mv.uci(), "a8a1");
+        assert!(is_mate_score(lines[0].score));
+    }
+
+    #[test]
+    fn stale_or_nonfinite_hints_cannot_remove_legal_moves() {
+        let pos = fen::startpos();
+        let stop = AtomicBool::new(false);
+        let baseline_tt = TT::new(4);
+        let baseline = go(
+            &pos, &Hce::default(), &Limits::depth(3), 1, &baseline_tt, &stop,
+            &[], 0, SearchParams::default(), 1, &mut |_| {},
+        );
+        let hinted_tt = TT::new(4);
+        let hinted = go_with_root_hints(
+            &pos, &Hce::default(), &Limits::depth(3), 1, &hinted_tt, &stop,
+            &[], 0, SearchParams::default(), 1,
+            &[
+                RootHint { mv: Move(0xffff), policy_score: 1000.0 },
+                RootHint { mv: legal(&pos).as_slice()[0], policy_score: f32::NAN },
+            ],
+            std::time::Duration::ZERO,
+            &mut |_| {},
+        );
+        assert_eq!(hinted[0].mv, baseline[0].mv);
+        assert_eq!(hinted[0].score, baseline[0].score);
+    }
+
+    #[test]
+    fn stalemate_position_ignores_root_hints() {
+        let pos = fen::parse("7k/5Q2/6K1/8/8/8/8/8 b - - 0 1").unwrap();
+        assert_eq!(legal(&pos).len, 0);
+        let tt = TT::new(4);
+        let stop = AtomicBool::new(false);
+        let lines = go_with_root_hints(
+            &pos, &Hce::default(), &Limits::depth(4), 1, &tt, &stop, &[], 0,
+            SearchParams::default(), 1,
+            &[RootHint { mv: Move(0xffff), policy_score: 1000.0 }],
+            std::time::Duration::ZERO,
+            &mut |_| {},
+        );
+        assert!(lines.is_empty());
+    }
+
+    #[test]
     fn precharged_root_hints_keep_only_move_legal_and_bounded() {
         let pos = fen::parse("R5k1/6pp/8/8/8/8/8/6K1 b - - 0 1").unwrap();
         let moves = legal(&pos);

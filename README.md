@@ -58,11 +58,11 @@ round then measured another host-local **1.077x** at one thread and **1.076x**
 at two threads versus round 2's merged `main`, using alternating three-run
 medians.
 
-Full, middle, and shallow Python/Rust parity and best-move gates pass. A
-nonblocking exact-key worker and precharged root-ordering trial now exist, but
-remain unreachable from normal UCI play. The eight-position smoke corpus is
-fixture-disjoint, not training-provenance-disjoint, and does not promote the
-feature. See
+Full, middle, and shallow Python/Rust parity and best-move gates pass. A real
+UCI candidate now connects the nonblocking exact-key worker to precharged root
+ordering, but `UnarchitecturedHint` is default-off. The eight-position smoke
+corpus is fixture-disjoint, not training-provenance-disjoint, and does not
+promote the feature. See
 [`docs/unarchitectured-v1-integration-trial.md`](docs/unarchitectured-v1-integration-trial.md)
 and [`docs/unarchitectured-v1-runtime-optimization.md`](docs/unarchitectured-v1-runtime-optimization.md).
 
@@ -117,6 +117,9 @@ manually: **Engines → Add new → Local** and point it at
 | `BookDepth` | 16 | max plies to stay in book |
 | `PolicyFile` | auto | path to a policy weights file; default: `unchessed-maia.bin` next to the exe |
 | `UCI_Opponent` | — | standard GUI-supplied opponent info; seeds the model for engines |
+| `UnarchitecturedHint` | false | experimental root-ordering candidate; remains off until calibration, safety, and SPRT gates pass |
+| `UnarchitecturedFile` | — | explicit `UNARCHV1` model package for the candidate |
+| `UnarchitecturedMinTime` | 30000 | minimum remaining clock in ms before the candidate may submit and wait up to 100ms for a shallow exact-position hint |
 
 ## How the adapter thinks
 
@@ -211,14 +214,14 @@ python tools/train_nnue.py unchessed-nnue.bin 15 shard0.bin shard1.bin ...
 The `UNARCHV1` binary tensor container, checkpoint exporter, package inspector,
 strict Rust package loader, and mixed int16-activation/int8-weight AVX2/FMA
 Rust matrix backend now exist and pass their Python-cross-check parity gates.
-The model remains unwired from normal UCI play; only a default-unreachable,
-precharged search harness exists. The capability manifest keeps readiness false
-until these remain proven:
+The model remains disabled in normal UCI play. An explicitly enabled,
+precharged candidate exists for external testing, while the capability manifest
+keeps readiness false until these remain proven:
 
 ```text
 provenance-disjoint calibration on a representative deployment corpus
 controlled measurements on the actual deployment CPU
-default-off UCI candidate plus complete mate/only-move safety suite
+broad integrated depth/NPS and complete tactical safety suites
 isolated paired-game SPRT before any enablement
 ```
 

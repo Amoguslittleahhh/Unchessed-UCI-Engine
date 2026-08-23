@@ -147,8 +147,9 @@ calibration.
 
 ## Integration decision
 
-Normal UCI play still has no neural integration. The earlier synchronous
-full-forward hint lost 0-20 because inference consumed the move clock.
+Normal UCI play still has no neural integration because the candidate option is
+default-off. The earlier synchronous full-forward hint lost 0-20 because
+inference consumed the move clock.
 
 Round four added only a default-unreachable trial layer:
 
@@ -162,14 +163,16 @@ Round four added only a default-unreachable trial layer:
 
 The smoke corpus lacks training-membership provenance and uses depth-4 HCE
 labels. The sandbox is not identified deployment hardware. One of eight best
-moves differed in every time-limited trial. Therefore no UCI option was added,
-`runtime_safety_suite` remains false, and no SPRT was attempted. See
-`docs/unarchitectured-v1-integration-trial.md` for measurements and limitations.
+moves differed in every time-limited trial. A real default-off UCI candidate now
+constructs the exact-key worker and routes the main search through
+`go_with_root_hints` only when explicitly enabled. It submits only on eligible
+large-clock/fixed-budget `go` commands; short clocks neither submit nor wait.
+All candidate preprocessing is charged to main and helper deadlines.
 
-The next safe sequence is now owner-dependent: supply the deployment CPU and a
-representative provenance-disjoint teacher-labelled corpus, promote the harness
-to a default-off UCI candidate, run the complete tactical/depth gate, and only
-then run an isolated paired-game SPRT.
+`runtime_safety_suite` remains false and no SPRT result exists. The next safe
+sequence is owner-dependent: supply the deployment CPU, a representative
+provenance-disjoint teacher-labelled corpus, a broad integrated position set,
+and a paired-game runner. See `docs/unarchitectured-v1-integration-trial.md`.
 
 ## Remaining performance work
 
@@ -178,8 +181,8 @@ then run an isolated paired-game SPRT.
 - prepack/transcode matrices for wider deployment microkernels;
 - stop materializing duplicate f32 copies for matrices once all fallback and
   non-x86 deployment constraints are settled;
-- evaluate whether the new persistent outer inference worker reduces real UCI
-  latency once an owner-gated candidate exists (inner matrix scopes remain);
+- measure whether the persistent outer inference worker reduces latency on the
+  actual deployment UCI host (inner matrix scopes remain);
 - extend exact-key caching only if real repeated-position hit rates justify it;
   and
 - keep asynchronous root hints default-off until deployment calibration,

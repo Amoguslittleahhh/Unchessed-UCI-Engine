@@ -11,6 +11,10 @@ use crate::adapt::{
     decide_mode, difficulty_weight, select_move, AdaptConfig, HeuristicPrior, MaiaPrior, Mode,
     MovePrior, OpponentModel, Rng,
 };
+use crate::aegis_v4_runtime::{
+    position_to_input, ChessformerWeights, HintKey, InferenceExit, UnarchitecturedHintWorker,
+    POLICY_GUIDE,
+};
 use crate::policy::PolicyNet;
 use crate::board::*;
 use crate::book::{Book, BookEntry, Tier};
@@ -20,6 +24,7 @@ use crate::nnue::Nnue;
 use crate::movegen::{legal, parse_uci_move};
 use crate::search::{self, InfoEvent, Limits, Line, SearchParams};
 use crate::tt::TT;
+use crate::unarchitectured_v1::TensorPackage;
 
 pub struct EngineIdent {
     pub name: &'static str,
@@ -50,6 +55,11 @@ struct Options {
     search: SearchParams,
     threads: usize,
     eval_params: EvalParams,
+    /// Experimental Unarchitectured v1 root ordering candidate. Default-off;
+    /// alpha-beta remains authoritative and every legal move remains searched.
+    unarchitectured_hint: bool,
+    unarchitectured_file: String,
+    unarchitectured_min_time_ms: u64,
 }
 
 impl Default for Options {
@@ -67,6 +77,9 @@ impl Default for Options {
             search: SearchParams::default(),
             threads: 1,
             eval_params: EvalParams::default(),
+            unarchitectured_hint: false,
+            unarchitectured_file: String::new(),
+            unarchitectured_min_time_ms: 30_000,
         }
     }
 }
@@ -80,6 +93,37 @@ impl Options {
             contempt: self.contempt,
         }
     }
+}
+
+struct UnarchitecturedCandidate {
+    worker: UnarchitecturedHintWorker,
+}
+
+impl UnarchitecturedCandidate {
+    fn from_weights(weights: Arc<ChessformerWeights>) -> Result<Self, String> {
+        let worker = UnarchitecturedHintWorker::new_shared(weights)?;
+        Ok(Self { worker })
+    }
+}
+
+fn unarchitectured_path(option: &str) -> Result<std::path::PathBuf, String> {
+    if !option.is_empty() {
+        return Ok(std::path::PathBuf::from(option));
+    }
+    let directory = std::env::current_exe()
+        .map_err(|error| format!("locate executable: {error}"))?
+        .parent()
+        .ok_or("executable has no parent directory")?
+        .to_path_buf();
+    Ok(directory.join("unarchitectured-v1-final.unarchv1"))
+}
+
+fn load_unarchitectured_candidate(option: &str) -> Result<UnarchitecturedCandidate, String> {
+    let path = unarchitectured_path(option)?;
+    let bytes = TensorPackage::load(&path)?;
+    let package = TensorPackage::parse(&bytes)?;
+    let weights = Arc::new(ChessformerWeights::from_package(&package)?);
+    UnarchitecturedCandidate::from_weights(weights)
 }
 
 /// One opponent move we have not yet fed to the model.
@@ -128,6 +172,8 @@ pub fn run(ident: EngineIdent) {
     let model = Arc::new(Mutex::new(OpponentModel::new()));
     let policy: Arc<Mutex<Option<Arc<PolicyNet>>>> =
         Arc::new(Mutex::new(load_default_policy()));
+    let unarchitectured_candidate: Arc<Mutex<Option<UnarchitecturedCandidate>>> =
+        Arc::new(Mutex::new(None));
     let (mut eval_impl, mut eval_desc, mut eval_is_hce): (Arc<dyn Eval>, String, bool) =
         load_default_eval(opt.eval_params);
     let stop = Arc::new(AtomicBool::new(false));
@@ -166,6 +212,11 @@ pub fn run(ident: EngineIdent) {
                 println!("option name MultiPV type spin default {} min 1 max 8",
                     if ident.adaptive_engine { 1 } else { 3 });
                 println!("option name EvalFile type string default ");
+                println!("option name UnarchitecturedHint type check default false");
+                println!("option name UnarchitecturedFile type string default ");
+                println!(
+                    "option name UnarchitecturedMinTime type spin default 30000 min 1000 max 600000"
+                );
                 if ident.adaptive_engine {
                     println!("option name Adaptive type check default true");
                     println!("option name UCI_LimitStrength type check default false");
@@ -231,6 +282,7 @@ pub fn run(ident: EngineIdent) {
                     &book,
                     &model,
                     &policy,
+                    &unarchitectured_candidate,
                     &mut eval_impl,
                     &mut eval_desc,
                     &mut eval_is_hce,
@@ -243,6 +295,20 @@ pub fn run(ident: EngineIdent) {
                 *persona.lock().unwrap() = Mode::Match;
                 last_opp_clock = None;
                 game = Game::new();
+                if opt.unarchitectured_hint {
+                    match load_unarchitectured_candidate(&opt.unarchitectured_file) {
+                        Ok(candidate) => {
+                            *unarchitectured_candidate.lock().unwrap() = Some(candidate);
+                        }
+                        Err(error) => {
+                            opt.unarchitectured_hint = false;
+                            *unarchitectured_candidate.lock().unwrap() = None;
+                            println!(
+                                "info string [Unchessed] Unarchitectured new-game reload failed: {error} — hint disabled"
+                            );
+                        }
+                    }
+                }
             }
             "position" => {
                 join_worker(&mut worker, &stop);
@@ -281,6 +347,7 @@ pub fn run(ident: EngineIdent) {
                     out_of_book_logged: game.out_of_book_logged,
                     policy: policy.lock().unwrap().clone(),
                     eval: Arc::clone(&eval_impl),
+                    unarchitectured_candidate: Arc::clone(&unarchitectured_candidate),
                     opp_time_used,
                 };
                 // the worker decides book state transitions; mirror the flag
@@ -383,6 +450,7 @@ fn handle_setoption(
     book: &Arc<Mutex<Book>>,
     model: &Arc<Mutex<OpponentModel>>,
     policy: &Arc<Mutex<Option<Arc<PolicyNet>>>>,
+    unarchitectured_candidate: &Arc<Mutex<Option<UnarchitecturedCandidate>>>,
     eval_impl: &mut Arc<dyn Eval>,
     eval_desc: &mut String,
     eval_is_hce: &mut bool,
@@ -414,6 +482,54 @@ fn handle_setoption(
         "multipv" => {
             if let Ok(n) = value.parse::<usize>() {
                 opt.multipv = n.clamp(1, 8);
+            }
+        }
+        "unarchitecturedhint" => {
+            let enabled = value.eq_ignore_ascii_case("true");
+            if !enabled {
+                opt.unarchitectured_hint = false;
+                *unarchitectured_candidate.lock().unwrap() = None;
+                println!("info string [Unchessed] Unarchitectured root hint disabled");
+            } else {
+                match load_unarchitectured_candidate(&opt.unarchitectured_file) {
+                    Ok(candidate) => {
+                        *unarchitectured_candidate.lock().unwrap() = Some(candidate);
+                        opt.unarchitectured_hint = true;
+                        println!(
+                            "info string [Unchessed] Unarchitectured root hint candidate enabled (experimental, default-off)"
+                        );
+                    }
+                    Err(error) => {
+                        opt.unarchitectured_hint = false;
+                        *unarchitectured_candidate.lock().unwrap() = None;
+                        println!(
+                            "info string [Unchessed] Unarchitectured model load failed: {error} — hint remains off"
+                        );
+                    }
+                }
+            }
+        }
+        "unarchitecturedfile" => {
+            opt.unarchitectured_file = value.to_string();
+            if opt.unarchitectured_hint {
+                match load_unarchitectured_candidate(&opt.unarchitectured_file) {
+                    Ok(candidate) => {
+                        *unarchitectured_candidate.lock().unwrap() = Some(candidate);
+                        println!("info string [Unchessed] Unarchitectured model reloaded");
+                    }
+                    Err(error) => {
+                        opt.unarchitectured_hint = false;
+                        *unarchitectured_candidate.lock().unwrap() = None;
+                        println!(
+                            "info string [Unchessed] Unarchitectured model reload failed: {error} — hint disabled"
+                        );
+                    }
+                }
+            }
+        }
+        "unarchitecturedmintime" => {
+            if let Ok(milliseconds) = value.parse::<u64>() {
+                opt.unarchitectured_min_time_ms = milliseconds.clamp(1_000, 600_000);
             }
         }
         "adaptive" => opt.adaptive = value.eq_ignore_ascii_case("true"),
@@ -755,6 +871,123 @@ fn collect_pending(game: &mut Game) -> Vec<PendingObs> {
     out
 }
 
+fn unarchitectured_input(pos: &Position, legal_moves: &[Move], rating: i32) -> crate::aegis_v4_runtime::PositionInput {
+    position_to_input(
+        pos,
+        legal_moves,
+        i64::from(rating),
+        2, // fixed rapid-like class for the experimental guide-policy candidate
+        POLICY_GUIDE,
+    )
+}
+
+#[cfg(test)]
+fn submit_unarchitectured_request(
+    candidate: &Arc<Mutex<Option<UnarchitecturedCandidate>>>,
+    pos: &Position,
+    rating: i32,
+) {
+    let legal_moves = legal(pos);
+    if legal_moves.len == 0 {
+        return;
+    }
+    let input = unarchitectured_input(pos, legal_moves.as_slice(), rating);
+    if let Some(candidate) = candidate.lock().unwrap().as_ref() {
+        let _ = candidate
+            .worker
+            .try_submit(pos.hash, input, InferenceExit::Layer2Width128);
+    }
+}
+
+fn unarchitectured_wait_allowed(limits: &Limits, side: Color, minimum_time_ms: u64) -> bool {
+    limits.infinite
+        || limits.depth.is_some()
+        || limits.nodes.is_some()
+        || limits.movetime.map(|time| time >= 1_000).unwrap_or(false)
+        || limits
+            .my_time(side)
+            .map(|time| time >= minimum_time_ms)
+            .unwrap_or(false)
+}
+
+struct PreparedRootHints {
+    hints: Vec<search::RootHint>,
+    elapsed: std::time::Duration,
+    source: &'static str,
+}
+
+fn prepare_unarchitectured_root_hints(
+    candidate: &Arc<Mutex<Option<UnarchitecturedCandidate>>>,
+    pos: &Position,
+    legal_moves: &[Move],
+    rating: i32,
+    limits: &Limits,
+    minimum_time_ms: u64,
+) -> PreparedRootHints {
+    if !unarchitectured_wait_allowed(limits, pos.side, minimum_time_ms) {
+        return PreparedRootHints {
+            hints: Vec::new(),
+            elapsed: std::time::Duration::ZERO,
+            source: "skipped-low-time",
+        };
+    }
+    let started = std::time::Instant::now();
+    let input = unarchitectured_input(pos, legal_moves, rating);
+    let key = HintKey::new(pos.hash, &input, InferenceExit::Layer2Width128);
+
+    let exact = {
+        let guard = candidate.lock().unwrap();
+        guard
+            .as_ref()
+            .and_then(|candidate| candidate.worker.latest_exact(&key))
+    };
+    let hint = if exact.is_some() {
+        exact
+    } else {
+        {
+            let guard = candidate.lock().unwrap();
+            if let Some(candidate) = guard.as_ref() {
+                let _ = candidate
+                    .worker
+                    .try_submit(pos.hash, input, InferenceExit::Layer2Width128);
+            }
+        }
+        let deadline = std::time::Instant::now() + std::time::Duration::from_millis(100);
+        loop {
+            let ready = {
+                let guard = candidate.lock().unwrap();
+                guard
+                    .as_ref()
+                    .and_then(|candidate| candidate.worker.latest_exact(&key))
+            };
+            if ready.is_some() || std::time::Instant::now() >= deadline {
+                break ready;
+            }
+            std::thread::yield_now();
+        }
+    };
+
+    let Some(hint) = hint else {
+        return PreparedRootHints {
+            hints: Vec::new(),
+            elapsed: started.elapsed(),
+            source: "timeout",
+        };
+    };
+    let hints = legal_moves
+        .iter()
+        .zip(hint.output.logits.iter())
+        .map(|(&mv, &policy_score)| search::RootHint { mv, policy_score })
+        .collect();
+    PreparedRootHints {
+        hints,
+        // Charge both request/wait overhead and at least the complete neural
+        // forward to the real search deadline.
+        elapsed: started.elapsed().max(hint.elapsed),
+        source: "exact",
+    }
+}
+
 struct GoJob {
     ident_adaptive: bool,
     pos: Position,
@@ -767,6 +1000,7 @@ struct GoJob {
     policy: Option<Arc<PolicyNet>>,
     /// static evaluator (NNUE or HCE) for every search this job runs
     eval: Arc<dyn Eval>,
+    unarchitectured_candidate: Arc<Mutex<Option<UnarchitecturedCandidate>>>,
     /// milliseconds the opponent spent on their last move, if known
     opp_time_used: Option<u64>,
 }
@@ -1029,6 +1263,25 @@ fn run_go(
     } else {
         0
     };
+    let prepared_hint = if job.opt.unarchitectured_hint {
+        let prepared = prepare_unarchitectured_root_hints(
+            &job.unarchitectured_candidate,
+            &pos,
+            legal_moves.as_slice(),
+            job.opt.elo,
+            &job.limits,
+            job.opt.unarchitectured_min_time_ms,
+        );
+        println!(
+            "info string [Unchessed] Unarchitectured hint {} actions={} charged={}ms",
+            prepared.source,
+            prepared.hints.len(),
+            prepared.elapsed.as_millis()
+        );
+        Some(prepared)
+    } else {
+        None
+    };
     // Lazy SMP: helper threads share this TT (lock-free, see tt.rs) and each
     // run a single-PV search of their own, staggered to a different starting
     // depth so they diverge from the main thread's tree sooner rather than
@@ -1043,38 +1296,75 @@ fn run_go(
     let search_params = job.opt.search;
     let limits_ref = &job.limits;
     let stop_ref: &AtomicBool = &stop;
+    let prepared_ref = prepared_hint.as_ref();
     let lines = std::thread::scope(|scope| {
         for i in 0..n_helpers {
             let offset = 1 + (i % 3) as i32; // stagger: 1,2,3,1,2,3,...
             scope.spawn(move || {
-                let _ = search::go(
-                    &pos,
-                    eval_ref,
-                    limits_ref,
-                    1,
-                    tt,
-                    stop_ref,
-                    history_ref,
-                    draw_score,
-                    search_params,
-                    offset,
-                    &mut |_| {},
-                );
+                if let Some(prepared) = prepared_ref {
+                    let _ = search::go_with_root_hints(
+                        &pos,
+                        eval_ref,
+                        limits_ref,
+                        1,
+                        tt,
+                        stop_ref,
+                        history_ref,
+                        draw_score,
+                        search_params,
+                        offset,
+                        &[],
+                        prepared.elapsed,
+                        &mut |_| {},
+                    );
+                } else {
+                    let _ = search::go(
+                        &pos,
+                        eval_ref,
+                        limits_ref,
+                        1,
+                        tt,
+                        stop_ref,
+                        history_ref,
+                        draw_score,
+                        search_params,
+                        offset,
+                        &mut |_| {},
+                    );
+                }
             });
         }
-        search::go(
-            &pos,
-            eval_ref,
-            limits_ref,
-            multipv_search,
-            tt,
-            stop_ref,
-            history_ref,
-            draw_score,
-            search_params,
-            1,
-            &mut |ev| print_info(ev, multipv_shown),
-        )
+        if let Some(prepared) = prepared_ref {
+            search::go_with_root_hints(
+                &pos,
+                eval_ref,
+                limits_ref,
+                multipv_search,
+                tt,
+                stop_ref,
+                history_ref,
+                draw_score,
+                search_params,
+                1,
+                &prepared.hints,
+                prepared.elapsed,
+                &mut |event| print_info(event, multipv_shown),
+            )
+        } else {
+            search::go(
+                &pos,
+                eval_ref,
+                limits_ref,
+                multipv_search,
+                tt,
+                stop_ref,
+                history_ref,
+                draw_score,
+                search_params,
+                1,
+                &mut |event| print_info(event, multipv_shown),
+            )
+        }
     });
     if lines.is_empty() {
         println!("bestmove 0000");
@@ -1269,6 +1559,88 @@ mod tests {
         let pending = collect_pending(&mut g2);
         assert_eq!(pending.len(), 1, "must not re-observe already-seen moves");
         assert_eq!(pending[0].mv.uci(), "e7e5");
+    }
+
+    #[test]
+    fn unarchitectured_candidate_is_default_off_and_clock_gated() {
+        let options = Options::default();
+        assert!(!options.unarchitectured_hint);
+        assert!(!unarchitectured_wait_allowed(
+            &Limits {
+                wtime: Some(5_000),
+                btime: Some(5_000),
+                ..Default::default()
+            },
+            Color::White,
+            options.unarchitectured_min_time_ms,
+        ));
+        assert!(unarchitectured_wait_allowed(
+            &Limits {
+                wtime: Some(60_000),
+                btime: Some(60_000),
+                ..Default::default()
+            },
+            Color::White,
+            options.unarchitectured_min_time_ms,
+        ));
+        let pos = fen::startpos();
+        let moves = legal(&pos);
+        let skipped = prepare_unarchitectured_root_hints(
+            &Arc::new(Mutex::new(None)),
+            &pos,
+            moves.as_slice(),
+            2700,
+            &Limits {
+                wtime: Some(5_000),
+                btime: Some(5_000),
+                ..Default::default()
+            },
+            options.unarchitectured_min_time_ms,
+        );
+        assert_eq!(skipped.source, "skipped-low-time");
+        assert!(skipped.hints.is_empty());
+        assert_eq!(skipped.elapsed, std::time::Duration::ZERO);
+    }
+
+    #[test]
+    fn unarchitectured_candidate_produces_exact_real_root_hints() {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../artifacts/unarchitectured-v1-final.unarchv1"
+        );
+        let candidate = Arc::new(Mutex::new(Some(
+            load_unarchitectured_candidate(path).expect("load candidate"),
+        )));
+        let pos = fen::startpos();
+        let moves = legal(&pos);
+        submit_unarchitectured_request(&candidate, &pos, 2700);
+        let input = unarchitectured_input(&pos, moves.as_slice(), 2700);
+        let key = HintKey::new(pos.hash, &input, InferenceExit::Layer2Width128);
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+        loop {
+            let ready = candidate
+                .lock()
+                .unwrap()
+                .as_ref()
+                .and_then(|candidate| candidate.worker.latest_exact(&key))
+                .is_some();
+            if ready {
+                break;
+            }
+            assert!(std::time::Instant::now() < deadline, "candidate timed out");
+            std::thread::sleep(std::time::Duration::from_millis(1));
+        }
+        let prepared = prepare_unarchitectured_root_hints(
+            &candidate,
+            &pos,
+            moves.as_slice(),
+            2700,
+            &Limits::depth(2),
+            30_000,
+        );
+        assert_eq!(prepared.source, "exact");
+        assert_eq!(prepared.hints.len(), moves.len);
+        assert!(prepared.hints.iter().all(|hint| hint.policy_score.is_finite()));
     }
 
     #[test]
