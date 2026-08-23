@@ -9,6 +9,12 @@ import sys
 import unittest
 from pathlib import Path
 
+try:
+    import numpy  # noqa: F401
+    import torch  # noqa: F401
+except ImportError as error:
+    raise unittest.SkipTest(f"A100 trainer dependencies unavailable: {error}")
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # for a100_common
 MODULE_PATH = Path(__file__).with_name("train_nnue_xt_a100.py")
 SPEC = importlib.util.spec_from_file_location("train_nnue_xt_a100_tested", MODULE_PATH)
