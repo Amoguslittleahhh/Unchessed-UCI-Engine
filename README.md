@@ -43,6 +43,24 @@ Produces `target\release\unchessed-adapter.exe` (standalone, no dependencies).
 Tests (perft suite, search, book, model): `cargo test`. Deep perft:
 `cargo test --release -- --ignored`.
 
+### Unarchitectured v1 runtime forward performance
+
+The first optimization round reduced the validated full 8-layer/256-width Rust
+forward from 208.61 ms to 14.92 ms on the two-visible-CPU sandbox through
+AVX2/FMA, four-token matrix microkernels, cache blocking, and scoped
+QKV/FFN/attention parallelism. The retained-int8 round now dynamically
+quantizes activations to int16, performs the dominant matrix products as
+AVX2 i16×i8→i32 arithmetic, and vectorizes activation quantization. In a
+same-process controlled benchmark on this host it reduced one-thread latency
+from 21.49 ms to 15.45 ms (1.39x) and two-thread latency from 16.01 ms to
+13.01 ms (1.23x) versus the dequantized-f32 backend.
+
+Full, middle, and shallow Python/Rust parity and best-move gates pass. The exits
+remain unwired and still require deployment calibration, clock-budget,
+tactical-safety, integrated NPS, and paired-game gates. See
+[`benchmarks/unarchitectured-v1/runtime-forward-2026-08-22.md`](benchmarks/unarchitectured-v1/runtime-forward-2026-08-22.md)
+and [`docs/unarchitectured-v1-runtime-optimization.md`](docs/unarchitectured-v1-runtime-optimization.md).
+
 ## Repository layout
 
 - `unchessed-core/` — shared eval, search, movegen, UCI protocol logic used
@@ -181,6 +199,22 @@ best (mobility, +52.3 Elo).
 ```
 python tools/train_nnue.py selfcheck              # format/gradient sanity check
 python tools/train_nnue.py unchessed-nnue.bin 15 shard0.bin shard1.bin ...
+```
+
+## Unarchitectured v1 known blockers
+
+The `UNARCHV1` binary tensor container, checkpoint exporter, package inspector,
+strict Rust package loader, and mixed int16-activation/int8-weight AVX2/FMA
+Rust matrix backend now exist and pass their Python-cross-check parity gates.
+The model is still unwired into search, and
+`config/unarchitectured_v1_runtime_capabilities.json` keeps readiness false
+until these remain proven:
+
+```text
+accuracy/calibration gates over a representative deployment-position corpus
+safe asynchronous or clock-surplus search integration
+runtime mate/only-move safety suite
+integrated search NPS and paired-game SPRT
 ```
 
 ## Roadmap (next rounds)
