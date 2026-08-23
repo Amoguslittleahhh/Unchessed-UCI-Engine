@@ -9,6 +9,48 @@ work is not an invitation to revert to or resume development on any of
 them. Any follow-on architecture or training work belongs on top of
 Unarchitectured v1, not as a parallel track exploring an earlier one.
 
+## Status update — round 4
+
+Your third pass (`b556f13` "Reduce Chessformer runtime dispatch and cache
+overhead", `3485789` "Make adopted runtime audits standalone") was reviewed,
+independently re-benchmarked, and merged onto `main` at `1d6da41`.
+
+Verified independently:
+
+- Full workspace build clean, `unchessed-core` test suite still 74/74 (no
+  new tests this round, none removed).
+- Reproduced a real speedup on the reviewer's own machine: **13.15ms →
+  10.92ms (~1.2x)** on the full 8/256 forward pass, in the same direction as
+  your reported ~1.08x (different host, expected — same pattern as every
+  prior round).
+- The complete integer-vs-dequantized drift gate got *tighter*, not looser:
+  max observed component 9.4e-5 this round vs. 5e-4 allowed (round 3 was
+  already well inside the bound; this is an improvement in the same
+  direction, not a regression risk).
+- The `verda_gpu_profile` missing-module issue flagged in round 3's status
+  update is fixed: `tools/unarchitectured_v1_architecture_audit.py` now runs
+  standalone (`python tools/unarchitectured_v1_architecture_audit.py
+  --strict` passes cleanly on the reviewer's machine with no internal-only
+  imports), and a new regression test
+  (`tools/test_unarchitectured_v1_architecture_audit.py`) locks in that it
+  stays that way. Full `tools/` Python suite: 21/21 passing.
+- Good discipline continued: you tried the pairwise-summation idea from
+  round 2's status update (to tighten the narrow-exit Python tolerance),
+  found it didn't materially help, and said so plainly in the rejected-
+  experiments section instead of quietly dropping it or claiming it worked.
+  Also rejected AVX-512 VNNI (slower — frequency throttling) and a reduced-
+  degree exponential approximation (passed parity, regressed latency) for
+  the same honest reason: measured, didn't help, said so.
+
+**Speed is hitting diminishing returns, and that changes what's worth
+asking for next.** Round 2 was ~5.2x, round 3 was ~1.2-1.4x, round 4 is
+~1.2x again but now firmly in cache/dispatch micro-optimization territory.
+The full path is around 11-13ms on the reviewer's machine — much better
+than the original 89ms, but still not "cheap enough to pay every move," and
+another round of kernel tuning is unlikely to close that gap by itself. See
+"What's needed" below for the resulting change in priority: this round's
+ask leads with the *integration* work, not more raw speed.
+
 ## Status update — round 3
 
 Your second pass (`cff6083` "Add retained-int8 Chessformer matrix inference",
@@ -218,46 +260,60 @@ a severe strength loss. The wiring was reverted (nothing broken landed on
 
 ## What's needed
 
-Either (or both) of:
+Priority order has flipped from earlier rounds: speed gains are now
+incremental (round 3 was the last big jump), so the headline ask is the
+integration path, not another kernel-tuning pass. Your own analysis in
+`docs/unarchitectured-v1-runtime-optimization.md`'s "Integration decision"
+section already lays out the right sequence — this prompt is asking you to
+actually execute it, not re-derive it:
 
-1. **A large (roughly 20-90x) speedup of the forward pass itself**, so it
-   becomes cheap enough to pay once per move (ideally under a few ms) or
-   even eventually per-node (ideally sub-millisecond, though that's a much
-   higher bar and may not be realistic for a model this size). The current
-   implementation is genuinely naive — plain triple-nested loops for every
-   matmul, no cache blocking, no vectorization, dequantizing to `f32` once
-   at load but doing all arithmetic in scalar `f32` after that. Concrete
-   angles worth investigating, roughly in order of expected effort-to-payoff:
-   - SIMD (portable `std::simd` nightly, or stable via `wide`/manual AVX2
-     intrinsics with a scalar fallback) for the matmul-heavy paths: the QKV
-     projection, the FFN up/down projections, and the policy/regret head
-     linear layers dominate the cost (8 layers × several 256×256 matmuls
-     each, all on 64 board-square tokens).
-   - ~~Exploiting int8 quantization at inference time~~ — done as of round 3
-     (retained-int8 weights, dynamic int16 activations, AVX2 i16×i8→i32
-     products): 1.22x–1.39x backend speedup depending on host/thread count.
-     Calibrated int8 *activations* (not just weights) remain untried in a
-     way that passes the parity gate — the first attempt failed at 1.01e-2
-     vs. the required 5e-3; a per-channel or per-group calibration scheme
-     (rather than the rejected per-token symmetric one) might close that
-     gap, if it's worth the complexity.
-   - Cache-friendlier loop ordering / blocking for the 64-token × 256-width
-     attention and FFN computations.
-   - Consider whether an existing pure-Rust linear-algebra crate (with no
-     heavyweight dependencies, matching this project's existing
-     zero-framework style — see how `unchessed-core/src/nnue.rs` and
-     `policy.rs` are implemented) is worth pulling in vs. hand-rolling.
-
-2. **A cost-amortizing integration strategy** that doesn't require the
-   forward pass to be cheap on every move: e.g. compute it once at the
-   start of a game/search session and reuse it as a static bias for several
-   moves (accepting staleness as the position evolves), or run it
+1. **Benchmark on the actual deployment CPU** with controlled thread
+   counts, not just the sandbox host. If the deployment target isn't known
+   or reachable, say so explicitly rather than silently substituting the
+   sandbox number as if it transfers.
+2. **Calibrate all exits and the integer backend over a disjoint
+   deployment-position corpus** — not just the frozen Python parity
+   fixtures (a handful of hand-picked/start/midgame positions). The parity
+   tests prove the port matches its Python reference; they don't prove the
+   model's outputs are actually useful signal on a representative spread of
+   real game positions. This is a real gap: nothing so far has looked at
+   accuracy/calibration on positions the model wasn't specifically checked
+   against.
+3. **Design and trial a cost-amortizing integration strategy** that doesn't
+   require the forward pass to be cheap on every move — e.g. computing it
+   once at the start of a game/search session and reusing it as a static
+   root bias for several moves (accepting staleness), running it
    asynchronously in a background thread that updates a shared hint without
-   blocking the move clock, or restrict its use to specific slow-anyway
-   situations (first move of a session, or only when there's a large clock
-   surplus). Any such strategy needs its own SPRT gate before being trusted
-   — the same discipline that caught the first attempt's failure — since
-   "seems obviously safe" was already wrong once here.
+   ever blocking the move clock, or restricting its use to specific
+   slow-anyway situations (first move of a session, or a large clock
+   surplus). Whatever preprocessing happens synchronously must be charged
+   to the move deadline honestly — don't let it hide as "free" background
+   work if it isn't.
+4. **Measure integrated depth/NPS impact and mate/only-move safety** once
+   something is wired, before it goes anywhere near an SPRT gate — the
+   original catastrophic failure (round 0, 0-20-0) came from skipping
+   straight to a full game-play test without first checking the obvious
+   "does this tank search depth" question in isolation.
+5. **Run an isolated paired-game SPRT** — still the same non-negotiable
+   gate as every prior round, still the thing that caught the one real
+   catastrophic failure so far. No exception for "it's just a hint" or
+   "it's async now" — those were exactly the kind of reasoning that failed
+   last time.
+
+If you'd rather keep pushing raw speed instead this round, the doc's own
+"Remaining performance work" list is honest about what's left and none of
+it is likely to be another 5x:
+
+   - calibrated int8 *activations* (not just weights) via per-channel or
+     per-group scaling — the per-token symmetric attempt failed parity at
+     1.01e-2 vs. the required 5e-3; a different calibration scheme might
+     close that gap, but it's unproven;
+   - prepack/transcode matrices for wider deployment microkernels;
+   - stop materializing duplicate f32 matrix copies once fallback/non-x86
+     deployment constraints are settled;
+   - a persistent inference worker instead of scoped per-call threads, if
+     integration work demonstrates enough call volume to matter; and
+   - caching exact full-position results keyed by state/model/persona.
 
 Whichever direction: **any change to `aegis_v4_runtime.rs` must keep
 passing its existing test suite** — the two Python-cross-check parity
