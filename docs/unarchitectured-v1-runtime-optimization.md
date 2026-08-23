@@ -162,17 +162,22 @@ Round four added only a default-unreachable trial layer:
 - adversarial mate, only-move, and stale-key tests.
 
 The smoke corpus lacks training-membership provenance and uses depth-4 HCE
-labels. The sandbox is not identified deployment hardware. One of eight best
-moves differed in every time-limited trial. A real default-off UCI candidate now
+labels; round 6 superseded it with a 600-position over-the-board corpus labelled
+by Stockfish 17.1 (see `docs/unarchitectured-v1-calibration.md`), which found
+real but modest policy signal — full-exit top-1 0.255 against a 0.050 random
+baseline and a 0.157 static-heuristic baseline. The sandbox is not identified
+deployment hardware. One of eight best moves differed in every time-limited
+trial. A real default-off UCI candidate now
 constructs the exact-key worker and routes the main search through
 `go_with_root_hints` only when explicitly enabled. It submits only on eligible
 large-clock/fixed-budget `go` commands; short clocks neither submit nor wait.
 All candidate preprocessing is charged to main and helper deadlines.
 
-`runtime_safety_suite` remains false and no SPRT result exists. The next safe
-sequence is owner-dependent: supply the deployment CPU, a representative
-provenance-disjoint teacher-labelled corpus, a broad integrated position set,
-and a paired-game runner. See `docs/unarchitectured-v1-integration-trial.md`.
+`runtime_safety_suite` remains false and no SPRT result exists. Round 6 supplied
+the representative teacher-labelled corpus; the remaining dependencies are the
+deployment CPU, a broad integrated depth/NPS run over that corpus, and a
+paired-game runner. See `docs/unarchitectured-v1-integration-trial.md` and
+`docs/unarchitectured-v1-calibration.md`.
 
 ## Remaining performance work
 

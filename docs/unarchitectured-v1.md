@@ -65,6 +65,9 @@ tools/train_unarchitectured_v1_student_a100.py
 tools/train_unarchitectured_v1_a100.py
 tools/calibrate_unarchitectured_v1_throughput.py
 tools/reference_forward_unarchitectured_v1.py
+tools/unarchitectured_v1_position_encoding.py
+tools/build_unarchitectured_v1_calibration_corpus.py
+tools/calibrate_unarchitectured_v1_policy.py
 tools/smoke_unarchitectured_v1_uci.py
 tools/unarchitectured_v1_dataset_gate.py
 tools/unarchitectured_v1_runtime_readiness.py
@@ -214,7 +217,10 @@ See `benchmarks/unarchitectured-v1/runtime-forward-2026-08-22.md`.
 Unarchitectured v1 becomes usable only after all of the following pass:
 
 1. calibrate all exits and the integer backend on a representative, disjoint
-   deployment-position corpus;
+   deployment-position corpus (**done for the policy head in round 6** on 600
+   over-the-board positions labelled by Stockfish 17.1, replicated on a further
+   300; real but modest signal, and the WDL/regret heads calibrate poorly — see
+   `docs/unarchitectured-v1-calibration.md`);
 2. measure latency and search impact on the actual deployment CPUs;
 3. validate the default-off nonblocking/clock-surplus UCI candidate;
 4. confirm player/game/future-disjoint holdout and calibration provenance;
@@ -228,8 +234,9 @@ to use authoritative alpha-beta.
 
 ## Detailed engineering history
 
-The retained runtime optimization and fail-closed integration evidence is in
-`docs/unarchitectured-v1-runtime-optimization.md` and
-`docs/unarchitectured-v1-integration-trial.md`. Experimental predecessor names
+The retained runtime optimization, fail-closed integration, and teacher-labelled
+calibration evidence is in `docs/unarchitectured-v1-runtime-optimization.md`,
+`docs/unarchitectured-v1-integration-trial.md`, and
+`docs/unarchitectured-v1-calibration.md`. Experimental predecessor names
 remain historical lineage only; this document and the canonical configs above
 define the current architecture.

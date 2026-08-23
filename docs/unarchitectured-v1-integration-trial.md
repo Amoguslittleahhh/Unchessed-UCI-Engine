@@ -61,6 +61,17 @@ Eight positions are far too few to set a deployment threshold. These figures
 prove the harness executes and expose why representative, provenance-disjoint
 calibration remains a real promotion blocker.
 
+**Superseded by round 6.** This smoke calibration is retained only as harness
+evidence. Real calibration now exists: 600 over-the-board positions (plus a
+300-position replication) labelled by Stockfish 17.1 at 400k nodes over every
+legal root move. The full 8/256 exit reaches top-1 0.255 (random 0.050, static
+MVV-LVA heuristic 0.157) and mean top-choice centipawn loss 118.7 versus the
+heuristic's 260.2, paired McNemar p = 1.8e-9. The signal is real and worth
+SPRT-testing, but it is a move-ordering prior only — p90 centipawn loss is 422,
+and the WDL/regret heads calibrate poorly. Note also that the 2/128 exit this
+trial harness uses is materially worse than 8/256. See
+`docs/unarchitectured-v1-calibration.md`.
+
 ## Precharged integrated search trial
 
 The controlled harness compares ordinary HCE search with a shallow 2/128 policy
@@ -101,16 +112,19 @@ This is broader but still not a production tactical suite, so
 ## Unavailable gates
 
 - Deployment-CPU benchmarking: target hardware was not supplied or reachable.
-- Production calibration: no provenance-disjoint labeled corpus is available.
 - Broad integrated depth/NPS: no owner-supplied 100+ position corpus is present.
+  The 600- and 300-position corpora committed in round 6 are directly reusable
+  for this gate once a Rust toolchain is available.
 - Paired-game SPRT execution: neither `cutechess-cli` nor `fastchess` is
   installed. `scripts/sprt-history/sprt_unarchitectured_v1_hint.sh` now defines
   the isolated same-binary baseline/candidate gate, but no result is claimed.
 
-The next promotion step belongs on owner-supplied deployment hardware, a
-provenance-disjoint Stockfish-labelled corpus, and the paired-game runner. The
-candidate must remain default-off until those calibration, broad depth/NPS,
-tactical, and SPRT gates pass.
+Round 6 supplied the provenance-disjoint Stockfish-labelled corpus. The next
+promotion steps belong on owner-supplied deployment hardware, a broad integrated
+depth/NPS measurement over that corpus, and the paired-game runner. The
+candidate must remain default-off until the depth/NPS, tactical, and SPRT gates
+pass. Any SPRT should test the full 8/256 exit rather than the 2/128 exit used
+by this trial harness, since the two calibrate differently.
 
 ## Reproduction
 
