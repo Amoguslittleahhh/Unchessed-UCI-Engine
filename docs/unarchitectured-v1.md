@@ -65,6 +65,7 @@ tools/train_unarchitectured_v1_student_a100.py
 tools/train_unarchitectured_v1_a100.py
 tools/calibrate_unarchitectured_v1_throughput.py
 tools/reference_forward_unarchitectured_v1.py
+tools/smoke_unarchitectured_v1_uci.py
 tools/unarchitectured_v1_dataset_gate.py
 tools/unarchitectured_v1_runtime_readiness.py
 tools/unarchitectured_v1_safety.py
@@ -215,7 +216,7 @@ Unarchitectured v1 becomes usable only after all of the following pass:
 1. calibrate all exits and the integer backend on a representative, disjoint
    deployment-position corpus;
 2. measure latency and search impact on the actual deployment CPUs;
-3. add a nonblocking or clock-surplus search integration;
+3. validate the default-off nonblocking/clock-surplus UCI candidate;
 4. confirm player/game/future-disjoint holdout and calibration provenance;
 5. measure integrated engine depth and NPS under real clock budgets;
 6. pass forced-mate and only-move safety suites;

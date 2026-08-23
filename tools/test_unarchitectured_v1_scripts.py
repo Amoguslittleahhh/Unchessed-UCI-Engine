@@ -19,6 +19,7 @@ CANONICAL = (
     "train_unarchitectured_v1_a100.py",
     "calibrate_unarchitectured_v1_throughput.py",
     "reference_forward_unarchitectured_v1.py",
+    "smoke_unarchitectured_v1_uci.py",
     "unarchitectured_v1_runtime_readiness.py",
 )
 LEGACY = (
@@ -103,6 +104,7 @@ class UnarchitecturedV1ScriptNamingTests(unittest.TestCase):
             "train_unarchitectured_v1_a100.py",
             "calibrate_unarchitectured_v1_throughput.py",
             "reference_forward_unarchitectured_v1.py",
+            "smoke_unarchitectured_v1_uci.py",
         ):
             result = subprocess.run(
                 [sys.executable, str(TOOLS / name), "--help"],
