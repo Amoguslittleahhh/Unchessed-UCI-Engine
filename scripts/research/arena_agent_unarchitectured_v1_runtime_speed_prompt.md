@@ -9,6 +9,58 @@ work is not an invitation to revert to or resume development on any of
 them. Any follow-on architecture or training work belongs on top of
 Unarchitectured v1, not as a parallel track exploring an earlier one.
 
+## Status update — round 5
+
+Your fourth pass (`896066e` "Add fail-closed Chessformer root-hint
+integration trial", `6115dcf` "Canonicalize Unarchitectured v1 training
+scripts") was reviewed, independently re-verified, and merged onto `main`
+at `9ced983`. This is the most consequential change reviewed so far — it's
+the first one that touches `search.rs` since round 0's catastrophic
+failure — so it got the most careful review of any round.
+
+Verified independently, not just trusted:
+
+- `go()`'s signature and behavior are provably unchanged: it calls the new
+  `go_with_root_hints` with an empty hint slice, and the root-ordering sort
+  only takes the policy-hint branch when `!root_hints.is_empty()` — with no
+  hints, it's the exact same `sort_by_key(|r| -r.score)` as before. Checked
+  by reading the diff line by line, not by trusting the "fail-closed"
+  framing in the commit message.
+- Grepped `unchessed-adapter/`, `unchessed-reviewer/`, and `uci.rs` for
+  `UnarchitecturedHintWorker::new` and `go_with_root_hints` — zero matches.
+  Nothing in either shipped binary or the UCI layer constructs the worker
+  or calls the new entry point. It is genuinely unreachable, not just
+  claimed to be.
+- New tests pass and test what they claim: `root_hints_cannot_override_a_
+  forced_mate` (an adversarial hint ranking the mating move dead last still
+  finds and plays the mate) and `precharged_root_hints_keep_only_move_
+  legal_and_bounded` (a forced-single-legal-move position stays correct
+  under a hostile hint and returns well within its time budget).
+- `UnarchitecturedHintWorker` is a real nonblocking design: bounded
+  one-request `try_send` queue (a full queue reports `accepted=false`
+  immediately, never blocks the calling thread), and `latest_exact` only
+  returns a result on an exact key match over position hash + legal
+  actions + rating + time class + persona + exit — a stale result from a
+  different position can't leak into a decision.
+- Reproduced their two benchmark claims on the reviewer's machine: the
+  fixture-disjoint calibration numbers matched exactly (deterministic —
+  fixed positions, fixed weights), and the integrated-search trial
+  reproduced the same 7/8 best-move-agreement figure with depth/NPS
+  numbers in the same range as reported.
+- The `config/a100_hydra_v5_training.json` deletion in the canonicalize
+  commit was checked, not just accepted: confirmed it was a genuinely
+  stale duplicate (dangling reference to a `a100_hydra_v4_training.json`
+  that doesn't exist anywhere in this repo, and a fixed `steps_per_epoch`
+  the project's own docs call forbidden) with a functioning canonical
+  replacement (`config/unarchitectured_v1_training.json`) already present
+  — not silent data loss.
+- Full workspace build clean, `unchessed-core` 77/77, `tools/` Python
+  suite 25/25.
+
+**This is good, disciplined work, but it does not get us any closer to an
+actual SPRT gate on its own** — see the full list below of what's still
+missing before one is even possible, not just advisable.
+
 ## Status update — round 4
 
 Your third pass (`b556f13` "Reduce Chessformer runtime dispatch and cache
@@ -260,45 +312,54 @@ a severe strength loss. The wiring was reverted (nothing broken landed on
 
 ## What's needed
 
-Priority order has flipped from earlier rounds: speed gains are now
-incremental (round 3 was the last big jump), so the headline ask is the
-integration path, not another kernel-tuning pass. Your own analysis in
-`docs/unarchitectured-v1-runtime-optimization.md`'s "Integration decision"
-section already lays out the right sequence — this prompt is asking you to
-actually execute it, not re-derive it:
+Round 4's infrastructure (`UnarchitecturedHintWorker`, `go_with_root_hints`,
+the mate/only-move tests) is real and merged, but it changed what's actually
+missing — the ask below is now concrete rather than a strategy sketch. **None
+of the previous rounds' work, including this trial, has produced anything an
+SPRT run could actually test**, because nothing enables the path from a real
+UCI session. This is the honest, complete list of what has to exist before a
+paired-game SPRT on this feature is even *possible*, not just advisable —
+work through it in order, and don't skip to the SPRT step because the
+earlier ones look done from the trial's numbers:
 
-1. **Benchmark on the actual deployment CPU** with controlled thread
-   counts, not just the sandbox host. If the deployment target isn't known
-   or reachable, say so explicitly rather than silently substituting the
-   sandbox number as if it transfers.
-2. **Calibrate all exits and the integer backend over a disjoint
-   deployment-position corpus** — not just the frozen Python parity
-   fixtures (a handful of hand-picked/start/midgame positions). The parity
-   tests prove the port matches its Python reference; they don't prove the
-   model's outputs are actually useful signal on a representative spread of
-   real game positions. This is a real gap: nothing so far has looked at
-   accuracy/calibration on positions the model wasn't specifically checked
-   against.
-3. **Design and trial a cost-amortizing integration strategy** that doesn't
-   require the forward pass to be cheap on every move — e.g. computing it
-   once at the start of a game/search session and reusing it as a static
-   root bias for several moves (accepting staleness), running it
-   asynchronously in a background thread that updates a shared hint without
-   ever blocking the move clock, or restricting its use to specific
-   slow-anyway situations (first move of a session, or a large clock
-   surplus). Whatever preprocessing happens synchronously must be charged
-   to the move deadline honestly — don't let it hide as "free" background
-   work if it isn't.
-4. **Measure integrated depth/NPS impact and mate/only-move safety** once
-   something is wired, before it goes anywhere near an SPRT gate — the
-   original catastrophic failure (round 0, 0-20-0) came from skipping
-   straight to a full game-play test without first checking the obvious
-   "does this tank search depth" question in isolation.
-5. **Run an isolated paired-game SPRT** — still the same non-negotiable
-   gate as every prior round, still the thing that caught the one real
-   catastrophic failure so far. No exception for "it's just a hint" or
-   "it's async now" — those were exactly the kind of reasoning that failed
-   last time.
+1. **A default-off UCI candidate that actually wires the trial in.** Right
+   now `UnarchitecturedHintWorker::new` and `go_with_root_hints` are called
+   from nowhere except tests. Add a UCI option (off by default, matching
+   this project's existing pattern for experimental features) that, when
+   explicitly enabled, constructs the worker once per game and threads its
+   hints into `go()`'s real call site in `uci.rs`. Until this exists, there
+   is no build a game-play test could even run against.
+2. **Provenance-disjoint calibration on a real corpus, not 8 fixture
+   positions.** The round-4 trial's own numbers (top-1 policy accuracy
+   0.50–0.625, barely above chance at the shallow exits) came from 8
+   hand-picked positions labeled by this engine's own HCE search at depth
+   4 — explicitly *not* production teacher labels per your own doc. Before
+   trusting this signal in a real game, calibrate against hundreds+ of
+   positions sampled disjoint from whatever corpus trained the model, with
+   real Stockfish-teacher labels (or equivalent), and report whether the
+   policy signal is actually informative at real game strength or just
+   noise that happens to agree with HCE-depth-4 sometimes. If it's closer
+   to noise, say so — that's a legitimate reason not to proceed, not a
+   result to bury.
+3. **Benchmark on the actual deployment CPU.** Every round so far has been
+   sandbox-only (2-logical-CPU Xeon). If the real deployment target isn't
+   known or reachable from your environment, say so explicitly in the
+   commit/doc rather than letting the sandbox number stand in for it.
+4. **Complete the mate/only-move safety suite.** The two new tests this
+   round are good but your own doc says plainly `runtime_safety_suite`
+   remains false — this isn't a full suite yet. Broaden it: more mate
+   patterns, stalemate-adjacent positions, positions with exactly one
+   legal move under check, and cases where the hint and the correct move
+   actively disagree (not just the adversarial-ranking case already
+   covered).
+5. **Measure integrated depth/NPS across a real, larger position set**
+   once the UCI candidate from step 1 exists — not the 8-position smoke
+   test, a broad sample. This is the step that would have caught round 0's
+   failure in isolation, before it ever reached a full game.
+6. **Only then, an isolated paired-game SPRT** — same non-negotiable gate
+   as every prior round. No exception for "it's just a hint," "it's async
+   now," or "the trial numbers looked good" — those are exactly the kinds
+   of reasoning that failed at round 0.
 
 If you'd rather keep pushing raw speed instead this round, the doc's own
 "Remaining performance work" list is honest about what's left and none of
