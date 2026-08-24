@@ -9,6 +9,87 @@ work is not an invitation to revert to or resume development on any of
 them. Any follow-on architecture or training work belongs on top of
 Unarchitectured v1, not as a parallel track exploring an earlier one.
 
+## Status update — round 7
+
+This round was done directly by the project owner and reviewer on real
+deployment hardware (a Core Ultra 9 285H with a working local Rust
+toolchain, WSL2/Ubuntu, and a real `cutechess-cli` + opening book already
+present from this project's earlier SPRT history), not by arena. It answers
+round 6's items 2 and 5 (deployment-CPU benchmark, SPRT) directly, plus
+fixes a real bug found along the way.
+
+**Bug found and fixed first: the inference-thread default was actively
+harmful.** `aegis_v4_runtime.rs`'s internal matmul parallelism
+(`UNCHESSED_INFERENCE_THREADS`) spawns fresh OS threads per call via
+`std::thread::scope` rather than reusing a pool, and one forward pass makes
+dozens of such calls across 8 layers — that spawn/join cost was never
+amortized. Measured directly on this real hardware, sweeping 1-8 threads:
+**1 thread (sequential) was fastest at 7.92ms, and every higher count was
+monotonically slower**, up to 16.42ms at 8 threads. The previous default
+(`available_parallelism().min(4)`) measured 11.01ms — already worse than no
+internal splitting at all. Fixed by defaulting to 1
+(`5d5a36e`, already pushed to `main`); full 8/256 exit went from 12.67ms to
+9.72ms on this machine as a result. A regression test
+(`inference_threads_defaults_to_sequential`) locks the default in.
+
+**Also measured real NPU dispatch latency** on this machine's actual `Intel
+AI Boost` NPU via OpenVINO (`4ab1c20`, also pushed) — not requested by this
+prompt, but relevant context: real NPU dispatch is ~0.3-0.6ms (lower than
+the doc's old ~1ms literature guess), CPU still wins by 11-20x at
+NNUE/small-model scale, and the gap narrows to ~1.5x at ~4.2M-param scale.
+Doesn't change any conclusion here, but `docs/npu-viability-285h.md` now
+has measured numbers instead of estimates throughout, including a corrected
+forward-pass figure (12.67ms measured vs. the doc's old "~3-4ms est.").
+
+**Then, on the corrected build, a real (non-formal) SPRT-style batch was
+run** using the exact config `scripts/sprt-history/sprt_unarchitectured_v1_hint.sh`
+already specifies (`tc=5+0.05`, `UnarchitecturedMinTime=1000`, `elo0=0
+elo1=5 alpha=0.05 beta=0.05`), against the real exported checkpoint, same
+binary for both sides (`option.UnarchitecturedHint=true/false`):
+
+- A 20-game smoke test first (matching round 0's original scale, same
+  discipline that caught round 0's catastrophic failure): 0.425 score,
+  **not** a collapse like round 0's 0-20-0 — cleared the cheap sanity check.
+- A 600-game batch followed (300 rounds, concurrency 12): **Hint scored
+  172-217-211 (0.463) against Baseline. Elo difference -26.1 ± 22.4 (95% CI
+  roughly [-48.5, -3.7]). LOS 1.1%. SPRT llr -1.1, trending toward the
+  reject bound (-2.94) but not formally crossed** — this was 600 games, not
+  the script's full 5000-round/10000-game run, so it's a real, well-powered
+  pilot with a CI that excludes zero, not a formally concluded gate.
+
+**This is not round 0's catastrophic failure, but it is a real, measurable
+strength regression, not a neutral or positive result.** Even with the
+faster forward pass, real clock-gating, and genuine calibration signal
+(top-1 0.255 vs. random 0.050) all working exactly as designed, using this
+hint as a move-ordering prior at `UnarchitecturedMinTime=1000` measurably
+hurts play. The likely mechanism: the calibration report already showed
+this signal is weak (p90 centipawn loss 422) — the occasional cost of a
+misleading first-move ordering, plus the real clock tax paid on every
+triggering move, outweighs the benefit often enough to net negative at this
+aggressive threshold.
+
+**Recommendation for round 8 — two honest paths, pick one rather than
+re-litigating whether this result is real:**
+
+1. **Retest at a conservative threshold.** Everything so far has used
+   `UnarchitecturedMinTime=1000` (the aggressive stress config, correctly
+   chosen to surface a problem if one exists — and one did). Rerun the same
+   600-game-scale pilot at the shipped default, `UnarchitecturedMinTime=30000`
+   (only fires on genuine clock surplus, not near-every-move), to see
+   whether the regression is specific to paying the tax too often, or
+   whether it persists even when rare.
+2. **If it persists at a conservative threshold too, or if you'd rather not
+   spend more paired games chasing it, retire the feature as tested.** A
+   real, replicated negative SPRT-style result is exactly the kind of
+   outcome this whole multi-round process exists to produce — reporting
+   "we tested it properly and it doesn't help" is a legitimate, complete
+   answer, not a failure to push past.
+
+Either way: **do not enable `UnarchitecturedHint` by default.** Nothing
+about this result changes that; if anything it reinforces it. `main`'s
+default remains `false`, no code changed to enable it, and this status
+update itself is not a request to remove the default-off protection.
+
 ## Status update — round 6
 
 Your fifth pass (`2b3677a` "Wire default-off Unarchitectured v1 UCI
@@ -362,51 +443,41 @@ a severe strength loss. The wiring was reverted (nothing broken landed on
 
 ## What's needed
 
-The UCI candidate from round 5's list (step 1) is done, verified, and
-merged. **Calibration is now the headline ask** — it's the step most likely
-to change the outcome, since the only numbers that exist so far (top-1
-policy accuracy 0.50–0.625, barely above chance) came from 8 hand-picked
-positions labeled by this engine's own HCE search at depth 4, not real
-teacher labels. Everything else on this list still has to happen before an
-SPRT gate is possible, but calibration is the one worth doing first because
-a bad result there could mean the whole feature isn't worth SPRT-testing at
-all, and that's worth learning cheaply before spending a 5000-round paired
-run on it:
+Rounds 5-7 closed the whole prior checklist: the UCI candidate exists
+(round 5), calibration exists and shows real-but-weak signal (round 6), and
+a real deployment-CPU-benchmarked, real-SPRT-style test now exists too
+(round 7, see the status update above) — and it came back **negative**
+(-26.1 ± 22.4 Elo, LOS 1.1%, 600 games at the aggressive
+`UnarchitecturedMinTime=1000` config). The ask this round is narrow and
+follows directly from that result:
 
-1. **Provenance-disjoint calibration on a real corpus.** Sample hundreds+
-   of positions disjoint from whatever corpus trained the model (openings,
-   middlegames, endgames, tactics — matching the spread the 8-position
-   smoke test aimed for, just at real scale), label them with real
-   Stockfish-teacher output (or an equivalent independent oracle, not this
-   engine's own HCE), and report policy top-1/top-3, regret MAE, and WDL
-   Brier the same way the smoke calibration already does — just at a scale
-   that could actually inform a threshold. If the signal turns out to be
-   close to noise at real scale, report that plainly; a documented "this
-   isn't informative enough to be worth SPRT-testing" is a legitimate,
-   useful outcome, not a failure to hide.
-2. **Benchmark on the actual deployment CPU.** Every round so far has been
-   sandbox-only (2-logical-CPU Xeon). If the real deployment target isn't
-   known or reachable from your environment, keep saying so explicitly
-   rather than letting the sandbox number stand in for it.
-3. **Broaden the mate/only-move safety suite further.** Round 5 added
-   adversarial back-rank mate (both colors), stalemate, and invalid-hint
-   coverage — real progress, but your own doc still calls
-   `runtime_safety_suite` false. Keep adding cases: more mate patterns,
-   positions with exactly one legal move under check from a different
-   attacker type, and — now that calibration data from step 1 will exist —
-   real positions where the hint and the objectively correct move actively
-   disagree, not just synthetic adversarial rankings.
-4. **Measure integrated depth/NPS across a real, larger position set**
-   using the now-existing UCI candidate — not the 8-position smoke test,
-   a broad sample. This is the step that would have caught round 0's
-   failure in isolation, before it ever reached a full game.
-5. **Only then, an isolated paired-game SPRT.** The launcher script added
-   this round (`scripts/sprt-history/sprt_unarchitectured_v1_hint.sh`) is
-   already correctly configured for this — reuse it once `cutechess-cli`
-   and a real opening book are available in your environment, don't
-   rebuild it. Same non-negotiable gate as every prior round: no exception
-   for "it's just a hint," "it's async now," or "the trial numbers looked
-   good" — those are exactly the kinds of reasoning that failed at round 0.
+1. **Retest at the conservative threshold.** Every test so far used
+   `UnarchitecturedMinTime=1000` (correctly aggressive, to surface a
+   problem if one exists — and one did). Run the same scale of paired
+   games (a few hundred is enough to see a similarly-sized effect; the
+   round-7 pilot used 600) at `UnarchitecturedMinTime=30000` — the actual
+   shipped default, which only fires on genuine clock surplus instead of
+   near-every-move — and report the result plainly whichever way it goes.
+   `scripts/sprt-history/sprt_unarchitectured_v1_hint.sh` is already
+   correctly built for this; only the `UnarchitecturedMinTime` value passed
+   to the `Hint` engine needs to change.
+2. **If the regression persists at the conservative threshold too, retire
+   the feature as tested rather than keep iterating on it.** A real,
+   replicated negative result from a properly-run pilot is a complete,
+   legitimate answer — this multi-round process exists to produce exactly
+   that outcome when it's the true one, not just to eventually find a
+   config that passes.
+3. **Broaden the mate/only-move safety suite further** if more rounds
+   continue regardless of the above — round 5 added adversarial back-rank
+   mate (both colors), stalemate, and invalid-hint coverage, but your own
+   doc still calls `runtime_safety_suite` false. This is no longer
+   blocking further testing (round 7's pilot ran without it, safely, since
+   the existing mate/legality tests already prevent unsound play), but it's
+   still incomplete.
+
+Do not enable `UnarchitecturedHint` by default under any outcome here — that
+decision requires a positive, formally-concluded SPRT at whatever config is
+eventually tested, which does not exist yet in either direction.
 
 If you'd rather keep pushing raw speed instead this round, the doc's own
 "Remaining performance work" list is honest about what's left and none of
