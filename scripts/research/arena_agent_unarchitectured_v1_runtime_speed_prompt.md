@@ -52,38 +52,73 @@ binary for both sides (`option.UnarchitecturedHint=true/false`):
   **not** a collapse like round 0's 0-20-0 — cleared the cheap sanity check.
 - A 600-game batch followed (300 rounds, concurrency 12): **Hint scored
   172-217-211 (0.463) against Baseline. Elo difference -26.1 ± 22.4 (95% CI
-  roughly [-48.5, -3.7]). LOS 1.1%. SPRT llr -1.1, trending toward the
-  reject bound (-2.94) but not formally crossed** — this was 600 games, not
-  the script's full 5000-round/10000-game run, so it's a real, well-powered
-  pilot with a CI that excludes zero, not a formally concluded gate.
+  roughly [-48.5, -3.7]). LOS 1.1%. SPRT llr -1.1**, trending toward the
+  reject bound (-2.94) but not formally crossed.
 
-**This is not round 0's catastrophic failure, but it is a real, measurable
-strength regression, not a neutral or positive result.** Even with the
-faster forward pass, real clock-gating, and genuine calibration signal
-(top-1 0.255 vs. random 0.050) all working exactly as designed, using this
-hint as a move-ordering prior at `UnarchitecturedMinTime=1000` measurably
-hurts play. The likely mechanism: the calibration report already showed
-this signal is weak (p90 centipawn loss 422) — the occasional cost of a
-misleading first-move ordering, plus the real clock tax paid on every
-triggering move, outweighs the benefit often enough to net negative at this
-aggressive threshold.
+**A data-integrity check on that first batch, done honestly rather than
+skipped:** the model path used was `/tmp/model.unarchv1`, and a later,
+unrelated `wsl` session found that file missing — worth investigating
+before trusting the result, since a silently-failed model load would make
+`Hint` behaviorally identical to `Baseline` and turn the whole test into
+noise, not a real measurement. Root cause: `/tmp` in this environment is
+tmpfs-backed and gets wiped whenever the WSL2 VM cycles between separate
+invocations, but the smoke test and the 600-game batch each ran as one
+continuous process from a single script invocation, so the VM never went
+idle mid-run — the file should have persisted throughout. To resolve this
+with certainty rather than trust the reasoning, **the entire 600-game batch
+was replicated** with the model referenced from a stable path inside the
+repo checkout instead of `/tmp` (eliminating the risk entirely), same
+config, same book, freshly rebuilt binary:
+
+- **Replication (600 games): Hint scored 184-210-206 (0.478) against
+  Baseline. Elo difference -15.1 ± 22.5 (95% CI roughly [-37.6, +7.4], now
+  includes zero). LOS 9.5%. SPRT llr -0.665**, well short of either bound —
+  not significant on its own.
+
+**Both runs point the same direction — negative, never positive — across
+1,200 total games, which is what actually matters here.** The replication's
+smaller magnitude and zero-inclusive CI are consistent with ordinary
+run-to-run variance for an effect this size at this sample size, not with
+the original result being a measurement artifact: a genuinely broken/inert
+`Hint` (identical to `Baseline`) would have produced a result centered on
+0.500 with no consistent direction, not two independent 600-game samples
+that both landed 2-3.5 points below it. **This is not round 0's
+catastrophic failure, but the combined evidence is a real, if modest,
+strength regression — not neutral, and never positive in either run.**
+
+**A live depth/time calibration was also run** (new tool,
+`tools/unarchitectured_v1_depth_time_calibration.py` — this is the
+"integrated depth/NPS across a real position set" item from round 6's
+checklist, now actually done) across 3 positions and 8 remaining-clock
+values from 500ms to 120s, comparing achieved search depth and wall time
+with the hint on vs. off. **Depth loss from the hint was negligible: mostly
+0, occasionally +1 (hint reaches deeper), rarely -1**, and the hint's own
+charged inference cost was tiny (0-2ms) at this exit. This means the
+**"clock tax reduces depth" mechanism proposed in the first version of this
+status update is not well supported** — the regression's actual cause is
+still unexplained by anything measured so far. It may be the move-ordering
+itself occasionally steering the first pass toward a worse line that costs
+more to refute even at equal nominal depth, or it may need more than 1,200
+games to characterize properly. Either is a legitimate answer; don't treat
+the earlier "clock tax" explanation as settled — it wasn't well-supported by
+this round's own follow-up data.
 
 **Recommendation for round 8 — two honest paths, pick one rather than
 re-litigating whether this result is real:**
 
-1. **Retest at a conservative threshold.** Everything so far has used
-   `UnarchitecturedMinTime=1000` (the aggressive stress config, correctly
-   chosen to surface a problem if one exists — and one did). Rerun the same
-   600-game-scale pilot at the shipped default, `UnarchitecturedMinTime=30000`
-   (only fires on genuine clock surplus, not near-every-move), to see
-   whether the regression is specific to paying the tax too often, or
-   whether it persists even when rare.
+1. **Retest at a conservative threshold.** Everything so far (1,200 games
+   across two independent batches) has used `UnarchitecturedMinTime=1000`
+   (the aggressive stress config, correctly chosen to surface a problem if
+   one exists — and one did, twice). Rerun at the shipped default,
+   `UnarchitecturedMinTime=30000` (only fires on genuine clock surplus, not
+   near-every-move), to see whether the regression is specific to paying
+   the tax too often, or whether it persists even when rare.
 2. **If it persists at a conservative threshold too, or if you'd rather not
    spend more paired games chasing it, retire the feature as tested.** A
-   real, replicated negative SPRT-style result is exactly the kind of
-   outcome this whole multi-round process exists to produce — reporting
-   "we tested it properly and it doesn't help" is a legitimate, complete
-   answer, not a failure to push past.
+   real, twice-replicated negative result across 1,200 games is exactly the
+   kind of outcome this whole multi-round process exists to produce —
+   reporting "we tested it properly, twice, and it doesn't help" is a
+   legitimate, complete answer, not a failure to push past.
 
 Either way: **do not enable `UnarchitecturedHint` by default.** Nothing
 about this result changes that; if anything it reinforces it. `main`'s
@@ -446,9 +481,11 @@ a severe strength loss. The wiring was reverted (nothing broken landed on
 Rounds 5-7 closed the whole prior checklist: the UCI candidate exists
 (round 5), calibration exists and shows real-but-weak signal (round 6), and
 a real deployment-CPU-benchmarked, real-SPRT-style test now exists too
-(round 7, see the status update above) — and it came back **negative**
-(-26.1 ± 22.4 Elo, LOS 1.1%, 600 games at the aggressive
-`UnarchitecturedMinTime=1000` config). The ask this round is narrow and
+(round 7, see the status update above) — run twice (600 games, then
+replicated with a corrected model path, another 600 games) and **both runs
+came back negative**: -26.1 ± 22.4 Elo (LOS 1.1%) then -15.1 ± 22.5 Elo (LOS
+9.5%), 1,200 games total at the aggressive `UnarchitecturedMinTime=1000`
+config, never positive in either run. The ask this round is narrow and
 follows directly from that result:
 
 1. **Retest at the conservative threshold.** Every test so far used
