@@ -1,0 +1,38 @@
+# Python dependencies for the tools/ scripts and their test suite.
+#
+# Rebuild a working environment from a fresh clone with:
+#
+#     python3 -m venv .venv
+#     .venv/bin/pip install -r tools/requirements-dev.txt
+#     .venv/bin/python -m pytest tools/ -q
+#
+# Takes a few seconds. These are deliberately NOT vendored into the repo as
+# wheels: they are ~23 MB of platform-specific binaries that would be carried
+# in git history forever, and a numpy wheel built for this interpreter and
+# libc is not portable to another machine anyway. Reinstalling from an index
+# is both faster and more correct than committing binaries.
+#
+# Versions are lower bounds, not pins. The scripts here use long-stable APIs,
+# so pinning exact builds would cause more breakage (on a different Python or
+# platform) than it prevents. If a future incompatibility appears, pin the
+# specific offending package then, with a comment saying why.
+#
+# Last verified working together on Python 3.11:
+#   numpy 2.4.6, chess 1.11.2, pytest 9.1.1
+
+numpy>=1.24
+chess>=1.10
+pytest>=7.4
+
+# NOT listed, on purpose:
+#
+# torch -- imported only by the A100 training scripts
+# (train_unarchitectured_v1_a100.py and friends), which are meant to run on a
+# training host with a GPU, not in a dev checkout. It is a multi-gigabyte
+# dependency and nothing in the tools/ test suite needs it; the tests that
+# would touch it skip when it is absent. Install it separately on the machine
+# that actually trains.
+#
+# A Rust toolchain is a hard requirement for building and testing the engine
+# itself (cargo test --workspace --release) but cannot be expressed here. See
+# docs/dev-environment.md for what to do when cargo is unavailable.
