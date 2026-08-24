@@ -9,6 +9,63 @@ work is not an invitation to revert to or resume development on any of
 them. Any follow-on architecture or training work belongs on top of
 Unarchitectured v1, not as a parallel track exploring an earlier one.
 
+## Status update — round 8
+
+Your sixth pass (`fac25a5` "Add dev environment setup: requirements file
+and Rust bracket checker", `bd80e1a` "Close the last named safety gap:
+real-checkpoint hint disagreements") was reviewed, independently
+re-verified, and merged onto `main` at `ffffc29`. This directly answers the
+one item round 7 left explicitly open: a hint-vs-correct-move disagreement
+test using the real checkpoint on a real position, not a synthetic
+adversarial ranking.
+
+Verified independently:
+
+- Full workspace build clean (this closes the loop on something you
+  couldn't check yourselves — you'd never compiled these two new Rust
+  tests, correctly disclosed as "NOT COMPILED" in the commit message).
+  `unchessed-core` 95/95, `tools/` Python suite 59/59, both matching your
+  claimed counts exactly.
+- **Regenerated `tools/find_unarchitectured_v1_hint_disagreements.py`'s
+  report from the real exported checkpoint independently** (not just
+  trusted the committed JSON) — every logit, rank, and gap value in the
+  output matched what's transcribed into `search.rs` and the committed
+  artifact exactly, including the headline finding: the real checkpoint
+  ranks a forced back-rank mate **10th of 17** legal moves.
+- The generator-bug catch in your own commit message (`queen_sac_smothered`
+  wasn't actually mate — `Rxe8` refutes it) is real and matches what the
+  regenerated tool reports now: it's gone, replaced by
+  `back_rank_mate_with_own_pawns`, and the tool's "derive every mate claim
+  itself" fix (playing the move, checking mate, separately enumerating all
+  mates so a claimed-unique mate can't quietly have two) is exactly the
+  kind of self-verification this whole process has been asking for.
+- The two new Rust tests do what they claim: `real_checkpoint_ranking_
+  cannot_suppress_back_rank_mate` includes its own "sanity-check the
+  premise" assertion (fails loudly if the model ever stops disagreeing,
+  so the fixture can't silently rot into testing nothing) — genuinely good
+  practice, not something asked for.
+- `tools/rust_bracket_check.py --all` runs clean against all 21 tracked
+  `.rs` files, and the dev-environment tooling (`requirements-dev.txt`,
+  documented rationale for not vendoring wheels or a Rust toolchain) is a
+  reasonable, well-justified addition — solves a real problem (work
+  redone from scratch each session because it lived in ephemeral `/tmp`)
+  without overreaching into something this project doesn't need.
+
+**This closes the loop on everything round 7 named as open.** The safety
+suite now covers: adversarial synthetic hints (round 5), broader
+attacker-type/mate-pattern coverage (round 7's own safety-suite work,
+knight/bishop/queen checks and a second mate pattern), and now real-model
+disagreement (this round). `runtime_safety_suite` correctly stays `false`
+in the capability manifest — your own commit message says it plainly: this
+closes the last *named* gap in the suite, not the flag, and flipping the
+flag would wrongly imply the runtime is cleared for integration when round
+7's SPRT evidence says the opposite.
+
+**Nothing here changes the standing conclusion**: `UnarchitecturedHint`
+stays default-off. No configuration tested across three real SPRT batches
+(round 7) ever trended positive. This round adds real safety-net depth, not
+a reason to revisit that.
+
 ## Status update — round 7
 
 This round was done directly by the project owner and reviewer on real
@@ -500,43 +557,40 @@ a severe strength loss. The wiring was reverted (nothing broken landed on
 
 ## What's needed
 
-Round 7 (see the status update above, done directly on real hardware by the
-project owner/reviewer, not arena) closed the entire prior checklist and
-ran three real batches: the aggressive stress config twice (-26.1 Elo, then
--15.1 Elo replicated, both negative, 1,200 games) and the actual
-shipped-default config once (-5.8 Elo, statistically neutral, 300 games).
-The safety suite was also broadened in the same round (`480f90e`): knight,
-bishop, and queen single-legal-move-under-check cases, plus a second mate
-pattern (king+queen) beyond the existing rook back-rank mates — every new
-FEN verified against the real engine, not hand-derived and trusted.
+Rounds 7 and 8 together closed the entire checklist that has accumulated
+since round 5. Round 7 (done directly on real hardware by the project
+owner/reviewer, not arena) ran three real SPRT batches: the aggressive
+stress config twice (-26.1 Elo, then -15.1 Elo replicated, both negative,
+1,200 games) and the actual shipped-default config once (-5.8 Elo,
+statistically neutral, 300 games), plus broadened the safety suite with
+knight/bishop/queen single-legal-move-under-check cases and a second mate
+pattern. Round 8 (your work, verified above) closed the one item that was
+still explicitly named as open: real-checkpoint hint disagreement — not a
+synthetic adversarial ranking, the actual model's own confidently-wrong
+opinion on a real tactical position (a forced mate ranked 10th of 17).
 
-**The open items are narrow and optional, not blocking:**
+**What's left is genuinely optional, not blocking, and this is a
+legitimate stopping point for the feature itself if you'd rather not
+pursue it further:**
 
 1. **A cleanly isolated retest, if there's appetite for more precision.**
-   The conservative-config result changed both `UnarchitecturedMinTime`
-   *and* the time control at once (`tc=60+0.6` instead of `tc=5+0.05`,
-   since the conservative threshold is physically unreachable at the
-   original fast control) — so it proves the shipped config looks safe,
-   but not cleanly *why*. Isolating the two variables (same `tc=60+0.6`,
-   compare `MinTime=1000` vs `MinTime=30000` directly) would settle that,
-   but it's polish on an already-actionable result, not a prerequisite.
-2. **`runtime_safety_suite` can now genuinely be marked closer to complete**
-   given round 7's additions — worth a pass confirming there's no remaining
-   gap (e.g. hint-vs-correct-move disagreement on a real, non-synthetic
-   tactical position using the actual checkpoint, which round 6/7 both
-   mentioned but never built) before calling it fully done.
-3. **This is a legitimate stopping point for the feature itself.** No
-   configuration tested — aggressive or conservative — ever trended
-   positive. The conservative config's neutral result means it's *not
+   Round 7's conservative-config result changed both
+   `UnarchitecturedMinTime` *and* the time control at once (the
+   conservative threshold is physically unreachable at the original fast
+   time control) — so it proves the shipped config looks safe, but not
+   cleanly *why*. Isolating the two variables (same `tc=60+0.6`, compare
+   `MinTime=1000` vs `MinTime=30000` directly) would settle that.
+2. **No configuration has ever trended positive across four real SPRT
+   batches now.** The conservative config's neutral result means it's *not
    measurably harmful*, which is worth knowing, but it is not evidence the
    feature helps. Enabling it by default would need a real positive result,
    which doesn't exist at any tested config. Retiring the feature as
-   "tested at multiple configs, never shown to help, occasionally shown to
-   hurt" is a complete, legitimate answer.
+   "tested thoroughly at multiple configs, safety-net closed, never shown
+   to help" is a complete, legitimate answer — this multi-round process
+   exists to produce exactly that outcome when it's the true one.
 
 Do not enable `UnarchitecturedHint` by default under any outcome here —
-nothing in round 7's results, including the neutral conservative-config
-result, changes that.
+nothing across rounds 7 or 8 changes that.
 
 If you'd rather keep pushing raw speed instead this round, the doc's own
 "Remaining performance work" list is honest about what's left and none of
