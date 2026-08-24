@@ -859,6 +859,42 @@ pub fn go(
 /// `preprocessing_elapsed` is charged against the same soft/hard deadline as
 /// search. This prevents a synchronous caller from treating neural inference
 /// as free time. The normal UCI path calls [`go`] and supplies no hints.
+/// Static evaluation and quiescence evaluation of `pos`, from the side to
+/// move's perspective.
+///
+/// Exposed for training-data generation. Tan & Watkinson Medina,
+/// *Study of the Proper NNUE Dataset* (arXiv:2412.17948), define a "quiet"
+/// position partly as one where these two values agree closely: a large gap
+/// means a capture sequence is available that will swing the evaluation, so
+/// the static score is not a label worth training on.
+///
+/// Runs no search bookkeeping beyond quiescence itself -- no time limit, no
+/// node limit, no repetition path -- so it is deterministic and cheap.
+pub fn static_and_quiescence(pos: &Position, eval: &dyn Eval, tt: &TT) -> (i32, i32) {
+    let stop = AtomicBool::new(false);
+    let mut searcher = Searcher {
+        tt,
+        eval,
+        params: SearchParams::default(),
+        stop: &stop,
+        start: Instant::now(),
+        hard_ms: None,
+        node_limit: None,
+        nodes: 0,
+        abort: false,
+        root_draw: 0,
+        killers: [[Move::NONE; 2]; MAX_PLY],
+        history: [[[0; 64]; 64]; 2],
+        path: Vec::new(),
+        pv_table: [[Move::NONE; MAX_PLY]; MAX_PLY],
+        pv_len: [0; MAX_PLY],
+        eval_states: vec![eval.initial_state(pos); MAX_PLY + 1],
+    };
+    let static_eval = eval.eval_with_state(pos, &searcher.eval_states[0]);
+    let quiet_eval = searcher.qsearch(pos, -MATE, MATE, 0);
+    (static_eval, quiet_eval)
+}
+
 pub fn go_with_root_hints(
     pos: &Position,
     eval: &dyn Eval,
@@ -1198,6 +1234,30 @@ mod tests {
                 );
             }
         }
+    }
+
+    /// `static_and_quiescence` must actually separate quiet from noisy
+    /// positions -- that is the entire basis of the arXiv:2412.17948 filter.
+    #[test]
+    fn static_and_quiescence_separates_quiet_from_hanging_positions() {
+        let tt = TT::new(1);
+        let hce = Hce::default();
+
+        // Start position: nothing to capture, so quiescence has nothing to
+        // resolve and must agree with the static evaluation exactly.
+        let quiet = fen::parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap();
+        let (s, q) = static_and_quiescence(&quiet, &hce, &tt);
+        assert_eq!(s, q, "a position with no captures must be its own qsearch");
+
+        // Black queen en prise to a pawn with no compensation: quiescence
+        // must find the win and diverge sharply from the static score.
+        let hanging = fen::parse("4k3/8/8/3q4/4P3/8/8/4K3 w - - 0 1").unwrap();
+        let (s2, q2) = static_and_quiescence(&hanging, &hce, &tt);
+        assert!(
+            (s2 - q2).abs() > 60,
+            "hanging queen must exceed the 60cp quiet margin: static={s2} qsearch={q2}"
+        );
+        assert!(q2 > s2, "winning the queen must improve the score");
     }
 
     fn best_move(fen: &str, depth: i32) -> (String, i32) {

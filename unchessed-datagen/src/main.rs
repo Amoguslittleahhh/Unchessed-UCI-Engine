@@ -340,6 +340,48 @@ const NNUE_PLY_GAP: usize = 4;
 const NNUE_ACCEPT: f64 = 0.9;
 const NNUE_LABEL_NODES: u64 = 5000;
 const NNUE_MAX_ABS_SCORE: i32 = 2000;
+/// Quiet-position margins from Tan & Watkinson Medina, *Study of the Proper
+/// NNUE Dataset* (arXiv:2412.17948).
+///
+/// The paper's core finding is that a position is only worth training on if
+/// its *static* evaluation already reflects its true value. Two checks:
+///
+/// - `M1`: `|static - quiescence|`. A large gap means a capture sequence is
+///   available that swings the score (e.g. a rook hanging), so the static
+///   value is a lie.
+/// - `M2`: `|static - search|`. A large gap means a forcing tactical or
+///   mating sequence exists that a capture-only quiescence cannot see (e.g. a
+///   knight fork winning material).
+///
+/// Training on such positions is not merely wasteful: the paper reports the
+/// network failing to converge, higher MSE, and engines that "randomly
+/// sacrifice pieces for no good reason". The published values are 60 and 70
+/// centipawns; both are exposed as CLI flags so they can be retuned for this
+/// engine's evaluation scale rather than assumed to transfer.
+const NNUE_QUIET_MARGIN_STATIC_VS_QSEARCH: i32 = 60;
+const NNUE_QUIET_MARGIN_STATIC_VS_SEARCH: i32 = 70;
+
+/// Read the quiet-position margins, allowing env overrides so they can be
+/// retuned without a rebuild.
+///
+/// Defaults are the published values from arXiv:2412.17948 (60 and 70
+/// centipawns). They were tuned on a Xiangqi engine, so they are a starting
+/// point for this engine's evaluation scale, not a transferred constant --
+/// hence the override. Setting either to 0 disables that filter, which is the
+/// way to generate a baseline dataset for an A/B comparison.
+fn quiet_margins() -> (i32, i32) {
+    let read = |name: &str, default: i32| {
+        std::env::var(name)
+            .ok()
+            .and_then(|v| v.parse::<i32>().ok())
+            .filter(|v| *v >= 0)
+            .unwrap_or(default)
+    };
+    (
+        read("UNCHESSED_QUIET_MARGIN_QSEARCH", NNUE_QUIET_MARGIN_STATIC_VS_QSEARCH),
+        read("UNCHESSED_QUIET_MARGIN_SEARCH", NNUE_QUIET_MARGIN_STATIC_VS_SEARCH),
+    )
+}
 
 fn run_nnue(args: &[String]) {
     if args.len() < 7 {
@@ -368,6 +410,9 @@ fn run_nnue(args: &[String]) {
     let mut samples = 0u64;
     let mut games = 0u64;
     let mut used_games = 0u64;
+    let mut noisy_qsearch = 0u64;
+    let mut noisy_search = 0u64;
+    let (quiet_margin_qsearch, quiet_margin_search) = quiet_margins();
 
     'files: for path in &args[6..] {
         let f = File::open(path).unwrap_or_else(|e| panic!("open {}: {}", path, e));
@@ -390,6 +435,8 @@ fn run_nnue(args: &[String]) {
                         process_nnue_game(
                             &headers, &movetext, &mut out, &tt, &mut rng, &mut samples,
                             max_positions, &mut used_games, &start,
+                            quiet_margin_qsearch, quiet_margin_search,
+                            &mut noisy_qsearch, &mut noisy_search,
                         );
                     }
                     games += 1;
@@ -412,13 +459,23 @@ fn run_nnue(args: &[String]) {
                 process_nnue_game(
                     &headers, &movetext, &mut out, &tt, &mut rng, &mut samples,
                     max_positions, &mut used_games, &start,
+                    quiet_margin_qsearch, quiet_margin_search,
+                    &mut noisy_qsearch, &mut noisy_search,
                 );
             }
             games += 1;
         }
         eprintln!(
-            "worker {}: done {}: {} samples so far ({} games seen)",
-            worker_id, path, samples, games
+            "worker {}: done {}: {} samples so far ({} games seen); \
+             quiet-filter rejects: qsearch={} search={} (margins {}/{}cp)",
+            worker_id,
+            path,
+            samples,
+            games,
+            noisy_qsearch,
+            noisy_search,
+            quiet_margin_qsearch,
+            quiet_margin_search
         );
         if samples >= max_positions {
             break;
@@ -467,6 +524,7 @@ fn run_nnue_stream(args: &[String]) {
     let out_dir = args[2].clone();
     let n_workers: usize = args[3].parse().expect("n_workers");
     let max_positions_per_worker: u64 = args[4].parse().expect("max_positions_per_worker");
+    let (quiet_margin_qsearch, quiet_margin_search) = quiet_margins();
     assert!(n_workers > 0, "need at least 1 worker");
     std::fs::create_dir_all(&out_dir).unwrap_or_else(|e| panic!("create {}: {}", out_dir, e));
 
@@ -496,10 +554,14 @@ fn run_nnue_stream(args: &[String]) {
             let start = Instant::now();
             let mut samples = 0u64;
             let mut used_games = 0u64;
+            let mut noisy_qsearch = 0u64;
+            let mut noisy_search = 0u64;
             while let Ok((h, movetext)) = rx.recv() {
                 process_nnue_game(
                     &h, &movetext, &mut out, &tt, &mut rng, &mut samples,
                     max_positions_per_worker, &mut used_games, &start,
+                    quiet_margin_qsearch, quiet_margin_search,
+                    &mut noisy_qsearch, &mut noisy_search,
                 );
                 if samples >= max_positions_per_worker {
                     done[i].store(true, std::sync::atomic::Ordering::Relaxed);
@@ -509,8 +571,14 @@ fn run_nnue_stream(args: &[String]) {
             out.flush().unwrap();
             let secs = start.elapsed().as_secs_f64().max(1e-9);
             eprintln!(
-                "worker {}: {} samples from {} games ({:.0} samples/s)",
-                i, samples, used_games, samples as f64 / secs
+                "worker {}: {} samples from {} games ({:.0} samples/s); \
+                 quiet-filter rejects: qsearch={} search={}",
+                i,
+                samples,
+                used_games,
+                samples as f64 / secs,
+                noisy_qsearch,
+                noisy_search
             );
         });
         handles.push(handle);
@@ -579,6 +647,10 @@ fn process_nnue_game(
     max_positions: u64,
     used_games: &mut u64,
     start: &Instant,
+    quiet_margin_qsearch: i32,
+    quiet_margin_search: i32,
+    noisy_qsearch: &mut u64,
+    noisy_search: &mut u64,
 ) {
     if *samples >= max_positions {
         return;
@@ -661,6 +733,18 @@ fn process_nnue_game(
             continue;
         }
 
+        // Quiet filter M1 (arXiv:2412.17948): reject when the static
+        // evaluation disagrees with quiescence, i.e. a capture sequence is
+        // available that would swing the score. Done BEFORE the labelling
+        // search because quiescence is far cheaper than a 5000-node search,
+        // so this rejects the majority of noisy positions for almost nothing.
+        let (static_eval, quiet_eval) =
+            search::static_and_quiescence(p, &Hce::default(), tt);
+        if quiet_margin_qsearch > 0 && (static_eval - quiet_eval).abs() > quiet_margin_qsearch {
+            *noisy_qsearch += 1;
+            continue;
+        }
+
         // label with a shallow fixed-node HCE search
         let limits = Limits {
             nodes: Some(NNUE_LABEL_NODES),
@@ -694,6 +778,16 @@ fn process_nnue_game(
         // skip tactical best moves: captures, en passant, promotions
         let m = l.mv;
         if p.board[m.to() as usize] != NO_PIECE || m.kind() == MK_EP || m.is_promo() {
+            continue;
+        }
+
+        // Quiet filter M2 (arXiv:2412.17948): reject when the static
+        // evaluation disagrees with the search score. Quiescence only
+        // resolves captures, so it cannot see a quiet forcing sequence --
+        // a knight fork winning material, or a mating attack. Those
+        // positions are exactly the ones whose static value is misleading.
+        if quiet_margin_search > 0 && (static_eval - l.score).abs() > quiet_margin_search {
+            *noisy_search += 1;
             continue;
         }
 
