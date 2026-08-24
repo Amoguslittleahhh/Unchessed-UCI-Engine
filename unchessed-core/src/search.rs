@@ -1387,6 +1387,92 @@ mod tests {
         assert!(started.elapsed() < std::time::Duration::from_secs(1));
     }
 
+    /// Only-legal-move-under-check, broadened past the rook check already
+    /// covered above to a knight check (which, unlike a rook/bishop/queen
+    /// check, can never be blocked -- only captured or escaped), with a
+    /// hostile hint trying to rank the sole legal move last.
+    #[test]
+    fn precharged_root_hints_keep_only_move_under_knight_check() {
+        let pos = fen::parse("k7/1p6/1N6/8/5B2/8/8/7K b - - 0 1").unwrap();
+        let moves = legal(&pos);
+        assert_eq!(moves.len, 1, "expected exactly one legal move under this knight check");
+        let tt = TT::new(4);
+        let stop = AtomicBool::new(false);
+        let started = Instant::now();
+        let lines = go_with_root_hints(
+            &pos, &Hce::default(), &Limits::movetime(10), 1, &tt, &stop, &[], 0,
+            SearchParams::default(), 1,
+            &[RootHint { mv: moves.as_slice()[0], policy_score: -1000.0 }],
+            std::time::Duration::from_millis(20), &mut |_| {},
+        );
+        assert_eq!(lines[0].mv, moves.as_slice()[0]);
+        assert!(started.elapsed() < std::time::Duration::from_secs(1));
+    }
+
+    /// Same as above, but the checking piece is a bishop (a sliding check
+    /// that theoretically could be blocked, unlike the knight case, but
+    /// isn't here because nothing can reach the checking diagonal in time).
+    #[test]
+    fn precharged_root_hints_keep_only_move_under_bishop_check() {
+        let pos = fen::parse("7k/8/8/8/8/2B5/8/1K4R1 b - - 0 1").unwrap();
+        let moves = legal(&pos);
+        assert_eq!(moves.len, 1, "expected exactly one legal move under this bishop check");
+        let tt = TT::new(4);
+        let stop = AtomicBool::new(false);
+        let started = Instant::now();
+        let lines = go_with_root_hints(
+            &pos, &Hce::default(), &Limits::movetime(10), 1, &tt, &stop, &[], 0,
+            SearchParams::default(), 1,
+            &[RootHint { mv: moves.as_slice()[0], policy_score: -1000.0 }],
+            std::time::Duration::from_millis(20), &mut |_| {},
+        );
+        assert_eq!(lines[0].mv, moves.as_slice()[0]);
+        assert!(started.elapsed() < std::time::Duration::from_secs(1));
+    }
+
+    /// Same again, checking piece is a queen (the piece with the widest
+    /// attack coverage, so the widest range of squares a hostile hint could
+    /// plausibly try to steer toward instead of the one legal escape).
+    #[test]
+    fn precharged_root_hints_keep_only_move_under_queen_check() {
+        let pos = fen::parse("7k/8/8/8/8/8/8/QK4R1 b - - 0 1").unwrap();
+        let moves = legal(&pos);
+        assert_eq!(moves.len, 1, "expected exactly one legal move under this queen check");
+        let tt = TT::new(4);
+        let stop = AtomicBool::new(false);
+        let started = Instant::now();
+        let lines = go_with_root_hints(
+            &pos, &Hce::default(), &Limits::movetime(10), 1, &tt, &stop, &[], 0,
+            SearchParams::default(), 1,
+            &[RootHint { mv: moves.as_slice()[0], policy_score: -1000.0 }],
+            std::time::Duration::from_millis(20), &mut |_| {},
+        );
+        assert_eq!(lines[0].mv, moves.as_slice()[0]);
+        assert!(started.elapsed() < std::time::Duration::from_secs(1));
+    }
+
+    /// A mate pattern using a different mating piece (queen, edge-supported
+    /// by its own king) than the rook back-rank mates already covered above,
+    /// with a hostile hint ranking the mating move last.
+    #[test]
+    fn root_hints_cannot_override_king_and_queen_mate() {
+        let pos = fen::parse("7k/5K2/Q7/8/8/8/8/8 w - - 0 1").unwrap();
+        let moves = legal(&pos);
+        let hints = moves.as_slice().iter().map(|&mv| RootHint {
+            mv,
+            policy_score: if mv.uci() == "a6h6" { -1000.0 } else { 1000.0 },
+        }).collect::<Vec<_>>();
+        let tt = TT::new(4);
+        let stop = AtomicBool::new(false);
+        let lines = go_with_root_hints(
+            &pos, &Hce::default(), &Limits::depth(4), 1, &tt, &stop, &[], 0,
+            SearchParams::default(), 1, &hints, std::time::Duration::ZERO,
+            &mut |_| {},
+        );
+        assert_eq!(lines[0].mv.uci(), "a6h6");
+        assert!(is_mate_score(lines[0].score));
+    }
+
     #[test]
     fn finds_mate_in_two() {
         // Classic: 1.Qh7+!? no — use a known M2: white Qg7#? Position:
