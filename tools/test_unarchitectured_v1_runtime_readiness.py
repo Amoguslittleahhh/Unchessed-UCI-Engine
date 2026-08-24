@@ -45,6 +45,56 @@ class UnarchitecturedV1RuntimeReadinessTests(unittest.TestCase):
             )
             self.assertTrue(MODULE.readiness(root)["ready_for_engine_candidate_training"])
 
+    def test_npu_dispatch_is_flagged_experimental_and_off(self):
+        """NPU dispatch is unimplemented; the flag must say so."""
+        report = MODULE.readiness()
+        self.assertIn("npu_dispatch", MODULE.EXPERIMENTAL_CAPABILITIES)
+        self.assertFalse(report["experimental_capabilities"]["npu_dispatch"])
+        self.assertEqual(report["experimental_violations"], [])
+
+        capabilities = json.loads(
+            (Path(MODULE.ROOT) / MODULE.CAPABILITIES).read_text(encoding="utf-8")
+        )
+        self.assertFalse(capabilities["npu_dispatch"])
+        self.assertEqual(
+            capabilities["npu_dispatch_status"], "experimental-unimplemented"
+        )
+        # The rationale must travel with the flag, so nobody re-litigates it
+        # from scratch or flips it on assuming it just needs wiring up.
+        self.assertIn("NOT IMPLEMENTED", capabilities["npu_dispatch_notes"])
+
+    def test_enabling_npu_dispatch_without_implementation_fails_closed(self):
+        """Flipping the flag on must break readiness, not silently pass.
+
+        This is the actual protection: even with every required capability
+        forced true, an unimplemented experimental capability keeps the tree
+        from reporting itself ready.
+        """
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for path in MODULE.REQUIREMENTS.values():
+                target = root / path
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text("fixture", encoding="utf-8")
+            capability_path = root / MODULE.CAPABILITIES
+            capability_path.parent.mkdir(parents=True, exist_ok=True)
+            capability_path.write_text(
+                json.dumps(
+                    {
+                        "schema": 1,
+                        **{name: True for name in MODULE.REQUIRED_CAPABILITIES},
+                        "npu_dispatch": True,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            report = MODULE.readiness(root)
+            self.assertFalse(
+                report["ready_for_engine_candidate_training"],
+                "an unimplemented experimental capability must fail closed",
+            )
+            self.assertEqual(report["experimental_violations"], ["npu_dispatch"])
+
 
 if __name__ == "__main__":
     unittest.main()

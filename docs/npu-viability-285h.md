@@ -99,6 +99,32 @@ If the ordering hint ever *does* pass an SPRT, revisit this note: at that point
 the contention and thermal arguments become real, and the model's int8/static
 shape profile means the port would be relatively clean.
 
+## Status flag
+
+NPU dispatch is recorded as an **experimental, unimplemented** capability in
+`config/unarchitectured_v1_runtime_capabilities.json`:
+
+```json
+"npu_dispatch": false,
+"npu_dispatch_status": "experimental-unimplemented"
+```
+
+There is **no NPU code path anywhere in this repository** — inference is
+CPU-only. The flag exists so the state is explicit rather than merely absent,
+and it is *enforced*, not decorative: `tools/unarchitectured_v1_runtime_readiness.py`
+treats it as an experimental capability that must stay false, and readiness
+fails closed if it is ever flipped on without an implementation behind it —
+even when every other required capability is true. Two regression tests in
+`tools/test_unarchitectured_v1_runtime_readiness.py` lock that in.
+
+If NPU work is ever started, it must:
+
+1. keep the flag false until a real implementation and a paired-game SPRT exist;
+2. remain default-off, like every other neural candidate in this tree; and
+3. treat **silent CPU fallback as a failure**, not graceful degradation — a
+   documented footgun with vendor NPU runtimes, and one that would otherwise
+   make a "working" NPU path indistinguishable from a broken one.
+
 ## Caveats
 
 - **No NPU is present in this sandbox**, so the ~1 ms dispatch figure is a

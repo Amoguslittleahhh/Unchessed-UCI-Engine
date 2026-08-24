@@ -30,6 +30,11 @@ REQUIRED_CAPABILITIES = (
     "exported_reference_vectors",
     "runtime_safety_suite",
 )
+# Capabilities that must remain FALSE until the corresponding work is actually
+# implemented and gated. These are experimental placeholders: flipping one on
+# without the implementation (and its SPRT) is a regression, so readiness
+# reports it explicitly rather than leaving it unmentioned.
+EXPERIMENTAL_CAPABILITIES = ("npu_dispatch",)
 
 
 def readiness(root=ROOT):
@@ -47,8 +52,19 @@ def readiness(root=ROOT):
     capability_checks = {
         name: bool(capabilities.get(name)) for name in REQUIRED_CAPABILITIES
     }
-    ready = all(item["exists"] for item in checks.values()) and all(
-        capability_checks.values()
+    # Experimental capabilities are asserted false. If one is ever flipped true
+    # without an implementation behind it, readiness fails closed rather than
+    # silently reporting the engine as ready.
+    experimental = {
+        name: bool(capabilities.get(name)) for name in EXPERIMENTAL_CAPABILITIES
+    }
+    experimental_violations = sorted(
+        name for name, enabled in experimental.items() if enabled
+    )
+    ready = (
+        all(item["exists"] for item in checks.values())
+        and all(capability_checks.values())
+        and not experimental_violations
     )
     return {
         "schema": 1,
@@ -56,9 +72,13 @@ def readiness(root=ROOT):
         "checks": checks,
         "capability_file": CAPABILITIES,
         "capabilities": capability_checks,
+        "experimental_capabilities": experimental,
+        "experimental_violations": experimental_violations,
         "warning": (
             "Package and neural-forward infrastructure are insufficient until "
-            "the runtime safety capability also passes."
+            "the runtime safety capability also passes. Experimental "
+            "capabilities (e.g. npu_dispatch) must remain false until a real, "
+            "SPRT-gated implementation exists."
         ),
     }
 
