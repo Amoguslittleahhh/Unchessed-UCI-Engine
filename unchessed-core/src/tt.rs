@@ -84,6 +84,33 @@ impl TT {
         }
     }
 
+    /// Ask the CPU to start pulling this hash's slot into cache.
+    ///
+    /// The table is megabytes wide, so `probe` is a near-guaranteed cache
+    /// miss taken at the very top of a node. Issuing this right after the
+    /// child position is made overlaps that memory latency with the
+    /// legality/accumulator work that runs before the child actually
+    /// probes.
+    ///
+    /// This is a pure hint: prefetch has no architectural effect, cannot
+    /// fault, and does not change what `probe` returns.
+    #[inline]
+    pub fn prefetch(&self, hash: u64) {
+        #[cfg(target_arch = "x86_64")]
+        {
+            use std::arch::x86_64::{_mm_prefetch, _MM_HINT_T0};
+            let slot = &self.table[(hash as usize) & self.mask] as *const Slot as *const i8;
+            // SAFETY: `slot` is derived from a live element of `self.table`,
+            // and `_mm_prefetch` only issues a cache hint -- it never
+            // dereferences the pointer in an observable way.
+            unsafe { _mm_prefetch(slot, _MM_HINT_T0) };
+        }
+        #[cfg(not(target_arch = "x86_64"))]
+        {
+            let _ = hash;
+        }
+    }
+
     #[inline]
     pub fn probe(&self, hash: u64) -> Option<Entry> {
         let slot = &self.table[(hash as usize) & self.mask];
@@ -133,6 +160,37 @@ impl TT {
         );
         slot.data.store(data, Ordering::Relaxed);
         slot.xor_key.store(hash ^ data, Ordering::Relaxed);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// `prefetch` is a cache hint and must be observationally inert: it may
+    /// not fault for any hash, and may not change what a later probe sees.
+    #[test]
+    fn prefetch_is_side_effect_free() {
+        let tt = TT::new(1);
+        let hash = 0x0123_4567_89ab_cdef;
+
+        tt.prefetch(hash);
+        assert!(tt.probe(hash).is_none(), "prefetch must not create entries");
+
+        tt.store(hash, Move(0x1234), 42, 7, BOUND_EXACT);
+        let before = tt.probe(hash).expect("stored entry");
+
+        // Prefetching arbitrary hashes, including ones never stored and the
+        // extremes of the index space, must not disturb existing data.
+        for probe in [0u64, u64::MAX, hash, hash ^ 0xffff, 1] {
+            tt.prefetch(probe);
+        }
+
+        let after = tt.probe(hash).expect("entry survives prefetch");
+        assert_eq!(before.mv, after.mv);
+        assert_eq!(before.score, after.score);
+        assert_eq!(before.depth, after.depth);
+        assert_eq!(before.bound, after.bound);
     }
 }
 

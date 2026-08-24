@@ -244,6 +244,9 @@ pub fn run(ident: EngineIdent) {
                 println!("option name ProbCutMinDepth type spin default 5 min 3 max 10");
                 println!("option name FutilityMargin type spin default 150 min 30 max 400");
                 println!("option name FutilityMaxDepth type spin default 8 min 1 max 12");
+                // Default-off tree-changing pruning rule, exposed so it can
+                // be SPRT-gated as baseline-vs-candidate on one binary.
+                println!("option name ProbcutSeeFilter type check default false");
                 // tunable HCE eval constants (0 = feature off); 100/100 is the
                 // SPRT-validated default (+25.7 Elo, 2026-08-02) after the
                 // safe/blocked-conditioned rewrite -- kept tunable for future
@@ -621,6 +624,9 @@ fn handle_setoption(
             if let Ok(v) = value.parse::<i32>() {
                 opt.search.futility_max_depth = v.clamp(1, 12);
             }
+        }
+        "probcutseefilter" => {
+            opt.search.probcut_see_filter = value.eq_ignore_ascii_case("true");
         }
         "passedpawnmgpct" => {
             if let Ok(v) = value.parse::<i32>() {

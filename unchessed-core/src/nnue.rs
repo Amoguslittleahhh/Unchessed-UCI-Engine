@@ -134,20 +134,211 @@ fn read_f32s(buf: &[u8], off: &mut usize, n: usize) -> Result<Vec<f32>, String> 
     Ok(v)
 }
 
+// ---------------------------------------------------------------------------
+// SIMD kernels
+//
+// The accumulator update (`add_row`/`sub_row`) and the output layer
+// (`combine`) are the two hot spots: the former runs on every make, the
+// latter on essentially every search node. Both are pure elementwise
+// float work, so AVX2+FMA vectorizes them exactly -- the only difference
+// from the scalar path is float summation order in `combine`'s reduction,
+// which is why the existing 1cp-tolerance parity tests still gate this.
+//
+// Dispatch is resolved once into a `bool` at load time rather than per
+// call, and the scalar paths below remain the behavioral reference (and
+// the only path on non-x86).
+// ---------------------------------------------------------------------------
+
+#[cfg(target_arch = "x86_64")]
 #[inline]
-fn add_row(acc: &mut [f32], ft_w: &[f32], idx: usize) {
-    let row = &ft_w[idx * ACC..(idx + 1) * ACC];
+fn have_avx2() -> bool {
+    use std::sync::OnceLock;
+    static AVX2: OnceLock<bool> = OnceLock::new();
+    *AVX2.get_or_init(|| {
+        std::is_x86_feature_detected!("avx2") && std::is_x86_feature_detected!("fma")
+    })
+}
+
+#[cfg(not(target_arch = "x86_64"))]
+#[inline]
+fn have_avx2() -> bool {
+    false
+}
+
+#[inline]
+fn add_row_scalar(acc: &mut [f32], row: &[f32]) {
     for (a, w) in acc.iter_mut().zip(row) {
         *a += *w;
     }
 }
 
 #[inline]
-fn sub_row(acc: &mut [f32], ft_w: &[f32], idx: usize) {
-    let row = &ft_w[idx * ACC..(idx + 1) * ACC];
+fn sub_row_scalar(acc: &mut [f32], row: &[f32]) {
     for (a, w) in acc.iter_mut().zip(row) {
         *a -= *w;
     }
+}
+
+#[cfg(target_arch = "x86_64")]
+#[target_feature(enable = "avx2")]
+unsafe fn add_row_avx2(acc: &mut [f32], row: &[f32]) {
+    use std::arch::x86_64::*;
+    let n = acc.len().min(row.len());
+    let a = acc.as_mut_ptr();
+    let w = row.as_ptr();
+    let mut i = 0usize;
+    while i + 8 <= n {
+        let v = _mm256_add_ps(_mm256_loadu_ps(a.add(i)), _mm256_loadu_ps(w.add(i)));
+        _mm256_storeu_ps(a.add(i), v);
+        i += 8;
+    }
+    while i < n {
+        *a.add(i) += *w.add(i);
+        i += 1;
+    }
+}
+
+#[cfg(target_arch = "x86_64")]
+#[target_feature(enable = "avx2")]
+unsafe fn sub_row_avx2(acc: &mut [f32], row: &[f32]) {
+    use std::arch::x86_64::*;
+    let n = acc.len().min(row.len());
+    let a = acc.as_mut_ptr();
+    let w = row.as_ptr();
+    let mut i = 0usize;
+    while i + 8 <= n {
+        let v = _mm256_sub_ps(_mm256_loadu_ps(a.add(i)), _mm256_loadu_ps(w.add(i)));
+        _mm256_storeu_ps(a.add(i), v);
+        i += 8;
+    }
+    while i < n {
+        *a.add(i) -= *w.add(i);
+        i += 1;
+    }
+}
+
+#[inline]
+fn add_row(acc: &mut [f32], ft_w: &[f32], idx: usize) {
+    let row = &ft_w[idx * ACC..(idx + 1) * ACC];
+    #[cfg(target_arch = "x86_64")]
+    if have_avx2() {
+        // SAFETY: guarded by a runtime AVX2+FMA check; the kernel only
+        // touches `acc`/`row` within their shared length.
+        unsafe {
+            add_row_avx2(acc, row);
+        }
+        return;
+    }
+    add_row_scalar(acc, row);
+}
+
+#[inline]
+fn sub_row(acc: &mut [f32], ft_w: &[f32], idx: usize) {
+    let row = &ft_w[idx * ACC..(idx + 1) * ACC];
+    #[cfg(target_arch = "x86_64")]
+    if have_avx2() {
+        // SAFETY: as above.
+        unsafe {
+            sub_row_avx2(acc, row);
+        }
+        return;
+    }
+    sub_row_scalar(acc, row);
+}
+
+/// Horizontal sum of an AVX2 register.
+#[cfg(target_arch = "x86_64")]
+#[target_feature(enable = "avx2")]
+unsafe fn hsum256(v: std::arch::x86_64::__m256) -> f32 {
+    use std::arch::x86_64::*;
+    let lo = _mm256_castps256_ps128(v);
+    let hi = _mm256_extractf128_ps(v, 1);
+    let s = _mm_add_ps(lo, hi);
+    let s = _mm_add_ps(s, _mm_movehl_ps(s, s));
+    let s = _mm_add_ss(s, _mm_shuffle_ps(s, s, 0x55));
+    _mm_cvtss_f32(s)
+}
+
+/// `sum(screlu(acc[i]) * w[i])` over `ACC` lanes.
+#[cfg(target_arch = "x86_64")]
+#[target_feature(enable = "avx2,fma")]
+unsafe fn screlu_dot_avx2(acc: &[f32], w: &[f32]) -> f32 {
+    use std::arch::x86_64::*;
+    let zero = _mm256_setzero_ps();
+    let one = _mm256_set1_ps(1.0);
+    let mut sum = _mm256_setzero_ps();
+    let a = acc.as_ptr();
+    let p = w.as_ptr();
+    let n = acc.len().min(w.len());
+    let mut i = 0usize;
+    while i + 8 <= n {
+        let v = _mm256_loadu_ps(a.add(i));
+        let c = _mm256_min_ps(_mm256_max_ps(v, zero), one);
+        sum = _mm256_fmadd_ps(_mm256_mul_ps(c, c), _mm256_loadu_ps(p.add(i)), sum);
+        i += 8;
+    }
+    let mut out = hsum256(sum);
+    while i < n {
+        out += screlu(*a.add(i)) * *p.add(i);
+        i += 1;
+    }
+    out
+}
+
+/// `sum(crelu(acc[i]) * w[i])` over `ACC` lanes.
+#[cfg(target_arch = "x86_64")]
+#[target_feature(enable = "avx2,fma")]
+unsafe fn crelu_dot_avx2(acc: &[f32], w: &[f32]) -> f32 {
+    use std::arch::x86_64::*;
+    let zero = _mm256_setzero_ps();
+    let one = _mm256_set1_ps(1.0);
+    let mut sum = _mm256_setzero_ps();
+    let a = acc.as_ptr();
+    let p = w.as_ptr();
+    let n = acc.len().min(w.len());
+    let mut i = 0usize;
+    while i + 8 <= n {
+        let v = _mm256_loadu_ps(a.add(i));
+        let c = _mm256_min_ps(_mm256_max_ps(v, zero), one);
+        sum = _mm256_fmadd_ps(c, _mm256_loadu_ps(p.add(i)), sum);
+        i += 8;
+    }
+    let mut out = hsum256(sum);
+    while i < n {
+        out += crelu(*a.add(i)) * *p.add(i);
+        i += 1;
+    }
+    out
+}
+
+#[inline]
+fn screlu_dot(acc: &[f32], w: &[f32]) -> f32 {
+    #[cfg(target_arch = "x86_64")]
+    if have_avx2() {
+        // SAFETY: guarded by a runtime AVX2+FMA check.
+        return unsafe { screlu_dot_avx2(acc, w) };
+    }
+    let n = acc.len().min(w.len());
+    let mut out = 0.0;
+    for i in 0..n {
+        out += screlu(acc[i]) * w[i];
+    }
+    out
+}
+
+#[inline]
+fn crelu_dot(acc: &[f32], w: &[f32]) -> f32 {
+    #[cfg(target_arch = "x86_64")]
+    if have_avx2() {
+        // SAFETY: guarded by a runtime AVX2+FMA check.
+        return unsafe { crelu_dot_avx2(acc, w) };
+    }
+    let n = acc.len().min(w.len());
+    let mut out = 0.0;
+    for i in 0..n {
+        out += crelu(acc[i]) * w[i];
+    }
+    out
 }
 
 /// Per-perspective context needed to compute a single piece's feature-row
@@ -375,18 +566,14 @@ impl Nnue {
         let mut out = self.out_b;
         match self.scheme {
             Scheme::Flat768 | Scheme::HalfKav2Hm => {
-                for i in 0..ACC {
-                    out += screlu(acc_stm[i]) * self.out_w[i];
-                    out += screlu(acc_nstm[i]) * self.out_w[ACC + i];
-                }
+                out += screlu_dot(&acc_stm[..ACC], &self.out_w[..ACC]);
+                out += screlu_dot(&acc_nstm[..ACC], &self.out_w[ACC..2 * ACC]);
             }
             Scheme::HalfKa => {
-                for i in 0..ACC {
-                    out += screlu(acc_stm[i]) * self.out_w[i];
-                    out += crelu(acc_stm[i]) * self.out_w[ACC + i];
-                    out += screlu(acc_nstm[i]) * self.out_w[2 * ACC + i];
-                    out += crelu(acc_nstm[i]) * self.out_w[3 * ACC + i];
-                }
+                out += screlu_dot(&acc_stm[..ACC], &self.out_w[..ACC]);
+                out += crelu_dot(&acc_stm[..ACC], &self.out_w[ACC..2 * ACC]);
+                out += screlu_dot(&acc_nstm[..ACC], &self.out_w[2 * ACC..3 * ACC]);
+                out += crelu_dot(&acc_nstm[..ACC], &self.out_w[3 * ACC..4 * ACC]);
             }
         }
         ((out * SCALE) as i32).clamp(-EVAL_CLAMP, EVAL_CLAMP)
@@ -468,6 +655,78 @@ impl Eval for Nnue {
 mod tests {
     use super::*;
     use crate::fen;
+
+    /// The SIMD kernels must agree with the scalar reference they replaced.
+    ///
+    /// `add_row`/`sub_row` are elementwise and must be *bit-exact*.
+    /// `screlu_dot`/`crelu_dot` reduce, so they may differ from the scalar
+    /// sum only by float accumulation order -- bounded here well below the
+    /// 1cp tolerance the eval parity tests already allow.
+    #[test]
+    fn simd_kernels_match_scalar_reference() {
+        let acc_a = xorshift_weights(ACC, 0x1234_5678_9abc_def1);
+        let acc_b = xorshift_weights(ACC, 0x0fed_cba9_8765_4321);
+        let weights = xorshift_weights(4 * ACC, 0xdead_beef_cafe_0001);
+
+        // Elementwise add/sub must be exact.
+        let mut simd_acc = acc_a.clone();
+        let mut scalar_acc = acc_a.clone();
+        let row = &weights[..ACC];
+        add_row_scalar(&mut scalar_acc, row);
+        {
+            let mut tmp = simd_acc.clone();
+            #[cfg(target_arch = "x86_64")]
+            if have_avx2() {
+                unsafe { add_row_avx2(&mut tmp, row) };
+            } else {
+                add_row_scalar(&mut tmp, row);
+            }
+            #[cfg(not(target_arch = "x86_64"))]
+            add_row_scalar(&mut tmp, row);
+            simd_acc = tmp;
+        }
+        for i in 0..ACC {
+            assert_eq!(
+                simd_acc[i].to_bits(),
+                scalar_acc[i].to_bits(),
+                "add_row lane {i} must be bit-exact"
+            );
+        }
+        sub_row_scalar(&mut scalar_acc, row);
+        {
+            let mut tmp = simd_acc.clone();
+            #[cfg(target_arch = "x86_64")]
+            if have_avx2() {
+                unsafe { sub_row_avx2(&mut tmp, row) };
+            } else {
+                sub_row_scalar(&mut tmp, row);
+            }
+            #[cfg(not(target_arch = "x86_64"))]
+            sub_row_scalar(&mut tmp, row);
+            simd_acc = tmp;
+        }
+        for i in 0..ACC {
+            assert_eq!(
+                simd_acc[i].to_bits(),
+                scalar_acc[i].to_bits(),
+                "sub_row lane {i} must be bit-exact"
+            );
+        }
+
+        // Reductions: allow only summation-order noise.
+        let scalar_screlu: f32 = (0..ACC).map(|i| screlu(acc_a[i]) * weights[i]).sum();
+        let scalar_crelu: f32 = (0..ACC).map(|i| crelu(acc_b[i]) * weights[ACC + i]).sum();
+        let got_screlu = screlu_dot(&acc_a[..ACC], &weights[..ACC]);
+        let got_crelu = crelu_dot(&acc_b[..ACC], &weights[ACC..2 * ACC]);
+        assert!(
+            (got_screlu - scalar_screlu).abs() < 1e-3,
+            "screlu_dot {got_screlu} vs scalar {scalar_screlu}"
+        );
+        assert!(
+            (got_crelu - scalar_crelu).abs() < 1e-3,
+            "crelu_dot {got_crelu} vs scalar {scalar_crelu}"
+        );
+    }
 
     fn xorshift_weights(n: usize, state0: u64) -> Vec<f32> {
         let mut state = state0;

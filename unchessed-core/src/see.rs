@@ -43,7 +43,69 @@ fn attackers_to(pos: &Position, to: u8, occ: Bitboard) -> Bitboard {
 /// nets material, negative means it loses material. Quiet non-promoting
 /// moves are worth 0 (no exchange to evaluate). Castling is never an
 /// exchange, also 0.
+/// Both colors' pin information for a position.
+///
+/// SEE needs this, but it depends only on the position -- not on the move
+/// being evaluated -- so a caller scoring many moves from the same node can
+/// compute it once with [`Pins::new`] and pass it to [`see_with_pins`]
+/// instead of paying for four slider-attack scans per capture.
+#[derive(Clone, Copy)]
+pub struct Pins {
+    white_blockers: Bitboard,
+    white_pinners: Bitboard,
+    black_blockers: Bitboard,
+    black_pinners: Bitboard,
+}
+
+/// Lazily-computed [`Pins`] for one node.
+///
+/// Most nodes score a mix of captures and quiets, and a node whose move list
+/// happens to contain no captures or promotions never needs pin information
+/// at all. Deferring the scan until the first capture is scored keeps the
+/// hoist a pure win instead of adding work to quiet-only nodes.
+pub struct LazyPins<'a> {
+    pos: &'a Position,
+    pins: std::cell::OnceCell<Pins>,
+}
+
+impl<'a> LazyPins<'a> {
+    #[inline]
+    pub fn new(pos: &'a Position) -> LazyPins<'a> {
+        LazyPins {
+            pos,
+            pins: std::cell::OnceCell::new(),
+        }
+    }
+
+    #[inline]
+    pub fn get(&self) -> &Pins {
+        self.pins.get_or_init(|| Pins::new(self.pos))
+    }
+}
+
+impl Pins {
+    #[inline]
+    pub fn new(pos: &Position) -> Pins {
+        let (white_blockers, white_pinners) = pinned_blockers(pos, Color::White);
+        let (black_blockers, black_pinners) = pinned_blockers(pos, Color::Black);
+        Pins {
+            white_blockers,
+            white_pinners,
+            black_blockers,
+            black_pinners,
+        }
+    }
+}
+
 pub fn see(pos: &Position, m: Move) -> i32 {
+    see_with_pins(pos, m, &Pins::new(pos))
+}
+
+/// [`see`], but reusing pin information already computed for this position.
+///
+/// `pins` MUST have been built from `pos` -- passing pins from a different
+/// position would silently produce a wrong exchange value.
+pub fn see_with_pins(pos: &Position, m: Move, pins: &Pins) -> i32 {
     if m.kind() == MK_CASTLE {
         return 0;
     }
@@ -68,8 +130,12 @@ pub fn see(pos: &Position, m: Move) -> i32 {
     // an exchange on `to` unless doing so wouldn't actually expose its own
     // king (not checked here, matching Stockfish's own simplification) --
     // we just exclude it outright while its pinner is still on the board.
-    let (white_blockers, white_pinners) = pinned_blockers(pos, Color::White);
-    let (black_blockers, black_pinners) = pinned_blockers(pos, Color::Black);
+    let Pins {
+        white_blockers,
+        white_pinners,
+        black_blockers,
+        black_pinners,
+    } = *pins;
 
     let mut gain = [0i32; 32];
     let mut d = 0usize;
@@ -160,6 +226,42 @@ mod tests {
         let file = bytes[0] - b'a';
         let rank = bytes[1] - b'1';
         rank * 8 + file
+    }
+
+    /// Hoisting the pin scan out of `see` must not change any value.
+    ///
+    /// `Pins` depends only on the position, so `see` (which builds it
+    /// internally) and `see_with_pins` (which receives a shared one) must
+    /// agree on every legal move of every position -- including the pinned
+    /// case, which is exactly the one the shared struct could break.
+    #[test]
+    fn shared_pins_match_per_call_pins() {
+        let fens = [
+            "4k3/8/8/8/3n4/8/8/3RK3 w - - 0 1",
+            "4k3/8/8/2p5/3n4/8/8/3RK3 w - - 0 1",
+            "4k3/8/8/4b3/3n4/8/8/K2RQ3 w - - 0 1",
+            "r3k2r/p1ppqpb1/bn2pnp1/2pP4/1p2P3/2N2N2/PPQBBPPP/R3K2R w KQkq - 0 1",
+            "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+            "rnbqkbnr/pp2pppp/2p5/3p4/3PP3/8/PPP2PPP/RNBQKBNR w KQkq - 0 3",
+        ];
+        for fen_text in fens {
+            let pos = fen::parse(fen_text).unwrap();
+            let pins = Pins::new(&pos);
+            let lazy = LazyPins::new(&pos);
+            for m in crate::movegen::legal(&pos).as_slice() {
+                let per_call = see(&pos, *m);
+                assert_eq!(
+                    per_call,
+                    see_with_pins(&pos, *m, &pins),
+                    "shared Pins differ on {fen_text}"
+                );
+                assert_eq!(
+                    per_call,
+                    see_with_pins(&pos, *m, lazy.get()),
+                    "LazyPins differ on {fen_text}"
+                );
+            }
+        }
     }
 
     #[test]

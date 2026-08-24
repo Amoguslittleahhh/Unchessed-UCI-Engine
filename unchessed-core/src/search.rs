@@ -7,7 +7,7 @@ use std::time::Instant;
 use crate::board::*;
 use crate::eval::{Eval, EvalState, MG_VALUE};
 use crate::movegen::{generate, in_check, king_safe_after, legal, MoveList};
-use crate::see::see;
+use crate::see::{see_with_pins, LazyPins};
 use crate::tt::{BOUND_EXACT, BOUND_LOWER, BOUND_UPPER, TT};
 
 pub const MATE: i32 = 30_000;
@@ -50,6 +50,15 @@ pub struct SearchParams {
     pub futility_margin: i32,
     /// plain futility pruning only applies at or below this depth
     pub futility_max_depth: i32,
+    /// Skip ProbCut verification of captures that SEE already scores as
+    /// material-losing.
+    ///
+    /// Default `false`: this removes searches, so it can change when ProbCut
+    /// fires and therefore changes the search tree. Per this project's
+    /// discipline a tree-changing pruning rule stays off until a paired-game
+    /// SPRT says otherwise; the plumbing is here so that gate can actually be
+    /// run (`ProbcutSeeFilter` UCI option).
+    pub probcut_see_filter: bool,
 }
 
 impl Default for SearchParams {
@@ -68,6 +77,7 @@ impl Default for SearchParams {
             probcut_min_depth: 5,
             futility_margin: 150,
             futility_max_depth: 8,
+            probcut_see_filter: false,
         }
     }
 }
@@ -276,9 +286,31 @@ impl<'a> Searcher<'a> {
         }
     }
 
+    /// Has `hash` already occurred on the path from the game start to this
+    /// node?
+    ///
+    /// Only the most recent `halfmove` entries can possibly match: the
+    /// halfmove clock resets to zero on every capture and pawn push, and
+    /// those moves are irreversible, so no position before the last one can
+    /// ever recur. Scanning the entire path (which is seeded with the whole
+    /// game history) therefore compared a long tail of entries that are
+    /// provably non-matching -- at move 40 that is ~80 wasted comparisons on
+    /// every single node.
+    ///
+    /// This is a strict narrowing of the search space, not a heuristic: any
+    /// entry it now skips could not have compared equal anyway, so the
+    /// returned value -- and hence the search tree -- is unchanged.
+    ///
+    /// Note the bound uses `halfmove` from the node being tested, and
+    /// `make_null` increments `halfmove` without clearing the path, so the
+    /// window can only ever be too generous (safe), never too tight.
     #[inline]
-    fn is_repetition(&self, hash: u64) -> bool {
-        self.path.iter().rev().any(|&h| h == hash)
+    fn is_repetition(&self, hash: u64, halfmove: u16) -> bool {
+        let window = (halfmove as usize).min(self.path.len());
+        self.path[self.path.len() - window..]
+            .iter()
+            .rev()
+            .any(|&h| h == hash)
     }
 
     /// Draw value from the perspective of the side to move at `ply`.
@@ -305,7 +337,14 @@ impl<'a> Searcher<'a> {
     }
 
     #[inline]
-    fn move_score(&self, pos: &Position, m: Move, tt_mv: Move, ply: usize) -> i32 {
+    fn move_score(
+        &self,
+        pos: &Position,
+        m: Move,
+        tt_mv: Move,
+        ply: usize,
+        pins: &LazyPins,
+    ) -> i32 {
         if m == tt_mv {
             return 1 << 22;
         }
@@ -318,7 +357,7 @@ impl<'a> Searcher<'a> {
         // e.g. QxP defended by a pawn scores high under MVV-LVA but is a
         // material-losing move).
         if is_cap || m.is_promo() {
-            let sc = see(pos, m);
+            let sc = see_with_pins(pos, m, pins.get());
             if sc >= 0 {
                 return 1_000_000 + sc;
             }
@@ -364,8 +403,12 @@ impl<'a> Searcher<'a> {
 
         // MVV-LVA ordering
         let mut scores = [0i32; 256];
+        // Pin scan is position-wide, not move-specific: compute it at most
+        // once per node instead of once per capture inside `see`, and only
+        // if this node actually scores a capture.
+        let pins = LazyPins::new(pos);
         for i in 0..ml.len {
-            scores[i] = self.move_score(pos, ml.moves[i], Move::NONE, ply.min(MAX_PLY - 1));
+            scores[i] = self.move_score(pos, ml.moves[i], Move::NONE, ply.min(MAX_PLY - 1), &pins);
         }
 
         let mut any_legal = false;
@@ -462,7 +505,7 @@ impl<'a> Searcher<'a> {
         if pos.halfmove >= 100 {
             return self.draw(ply);
         }
-        if self.is_repetition(pos.hash) {
+        if self.is_repetition(pos.hash, pos.halfmove) {
             return self.draw(ply);
         }
 
@@ -550,9 +593,15 @@ impl<'a> Searcher<'a> {
                 let mut pc_ml = MoveList::new();
                 generate(pos, true, &mut pc_ml);
                 let mut pc_scores = [0i32; 256];
+                let pc_pins = LazyPins::new(pos);
                 for i in 0..pc_ml.len {
-                    pc_scores[i] =
-                        self.move_score(pos, pc_ml.moves[i], Move::NONE, ply.min(MAX_PLY - 1));
+                    pc_scores[i] = self.move_score(
+                        pos,
+                        pc_ml.moves[i],
+                        Move::NONE,
+                        ply.min(MAX_PLY - 1),
+                        &pc_pins,
+                    );
                 }
                 let mut found = false;
                 self.path.push(pos.hash);
@@ -565,8 +614,25 @@ impl<'a> Searcher<'a> {
                     }
                     pc_ml.moves.swap(i, bi);
                     pc_scores.swap(i, bi);
+
+                    // Optional: skip captures that SEE already says lose
+                    // material. `move_score` scores those below -1_000_000,
+                    // so this reuses a value we just computed rather than
+                    // paying for a second SEE. A capture that loses material
+                    // is very unlikely to beat `beta + probcut_margin`, so
+                    // verifying it is near-pure waste. Because the list is
+                    // sorted best-first, every remaining entry is also
+                    // losing -- hence `break`, not `continue`.
+                    //
+                    // Default-off: this changes which nodes ProbCut cuts, so
+                    // it is a tree change and needs an SPRT before shipping.
+                    if self.params.probcut_see_filter && pc_scores[i] < -1_000_000 {
+                        break;
+                    }
+
                     let m = pc_ml.moves[i];
                     let next = pos.make(m);
+                    self.tt.prefetch(next.hash);
                     if !king_safe_after(&next, pos.side) {
                         continue;
                     }
@@ -602,8 +668,9 @@ impl<'a> Searcher<'a> {
         let mut ml = MoveList::new();
         generate(pos, false, &mut ml);
         let mut scores = [0i32; 256];
+        let pins = LazyPins::new(pos);
         for i in 0..ml.len {
-            scores[i] = self.move_score(pos, ml.moves[i], tt_mv, ply);
+            scores[i] = self.move_score(pos, ml.moves[i], tt_mv, ply, &pins);
         }
 
         let us = pos.side;
@@ -625,12 +692,15 @@ impl<'a> Searcher<'a> {
             let m = ml.moves[i];
 
             let next = pos.make(m);
+            // Start the child's TT line moving toward cache now; the child
+            // won't probe until after the legality check, `in_check`, and
+            // (for non-pruned moves) the accumulator update have run, so the
+            // miss latency overlaps real work. Pure hint, no semantic effect.
+            self.tt.prefetch(next.hash);
             if !king_safe_after(&next, us) {
                 continue;
             }
             legal_count += 1;
-            let child_state = self.eval.update_state(pos, &next, m, &self.eval_states[ply]);
-            self.eval_states[ply + 1] = child_state;
 
             let gives_check = in_check(&next);
             let is_cap = m.kind() == MK_EP || pos.board[m.to() as usize] != NO_PIECE;
@@ -667,6 +737,17 @@ impl<'a> Searcher<'a> {
                 }
                 continue;
             }
+
+            // Deferred until after futility pruning on purpose: this is a
+            // full NNUE accumulator update plus a 2KB `EvalState` write, and
+            // a futility-pruned move never recurses, so doing it above the
+            // pruning test spent that work on a move whose result was thrown
+            // away. Nothing between the old and new position of this line
+            // reads `eval_states[ply + 1]`, and the futility test itself
+            // depends only on `static_eval`/`depth`/`alpha`/move flags, so
+            // the pruning decision -- and the tree -- is unchanged.
+            let child_state = self.eval.update_state(pos, &next, m, &self.eval_states[ply]);
+            self.eval_states[ply + 1] = child_state;
 
             let mut sc;
             if legal_count == 1 {
@@ -1051,6 +1132,73 @@ mod tests {
     use crate::eval::Hce;
     use crate::fen;
     use std::sync::atomic::AtomicBool;
+
+    /// The halfmove-bounded repetition scan must agree with a full scan for
+    /// every hash that could legally still be a repetition.
+    ///
+    /// The bound is a strict narrowing: entries older than the halfmove
+    /// clock sit behind an irreversible move and can never recur, so
+    /// skipping them cannot change the answer. This checks both directions
+    /// -- it must never invent a repetition, and never miss one inside the
+    /// window.
+    #[test]
+    fn bounded_repetition_scan_matches_full_scan_within_window() {
+        fn full_scan(path: &[u64], hash: u64) -> bool {
+            path.iter().rev().any(|&h| h == hash)
+        }
+
+        let mut state = 0x2026_0824_u64;
+        let mut next = || {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            state
+        };
+
+        let tt = TT::new(1);
+        let stop = AtomicBool::new(false);
+        for _ in 0..2000 {
+            let len = (next() % 120) as usize + 1;
+            let halfmove = (next() % 60) as u16;
+            // Small alphabet so repetitions actually occur.
+            let path: Vec<u64> = (0..len).map(|_| next() % 40).collect();
+            let probe = next() % 40;
+
+            let searcher = Searcher {
+                tt: &tt,
+                eval: &Hce::default(),
+                params: SearchParams::default(),
+                stop: &stop,
+                start: Instant::now(),
+                hard_ms: None,
+                node_limit: None,
+                nodes: 0,
+                abort: false,
+                root_draw: 0,
+                killers: [[Move::NONE; 2]; MAX_PLY],
+                history: [[[0; 64]; 64]; 2],
+                path: path.clone(),
+                pv_table: [[Move::NONE; MAX_PLY]; MAX_PLY],
+                pv_len: [0; MAX_PLY],
+                eval_states: Vec::new(),
+            };
+
+            let bounded = searcher.is_repetition(probe, halfmove);
+            let window = (halfmove as usize).min(path.len());
+            let inside = path[path.len() - window..].iter().any(|&h| h == probe);
+
+            assert_eq!(
+                bounded, inside,
+                "bounded scan must exactly cover the halfmove window"
+            );
+            if bounded {
+                assert!(
+                    full_scan(&path, probe),
+                    "bounded scan must never invent a repetition the full scan misses"
+                );
+            }
+        }
+    }
 
     fn best_move(fen: &str, depth: i32) -> (String, i32) {
         let pos = fen::parse(fen).unwrap();
