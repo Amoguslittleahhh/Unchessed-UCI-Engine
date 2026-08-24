@@ -181,10 +181,28 @@ constructs the exact-key worker and routes the main search through
 large-clock/fixed-budget `go` commands; short clocks neither submit nor wait.
 All candidate preprocessing is charged to main and helper deadlines.
 
-`runtime_safety_suite` remains false and no SPRT result exists. Round 6 supplied
-the representative teacher-labelled corpus; the remaining dependencies are the
-deployment CPU, a broad integrated depth/NPS run over that corpus, and a
-paired-game runner. See `docs/unarchitectured-v1-integration-trial.md` and
+Round 7 closed the missing dependencies on real deployment hardware: the
+deployment-CPU benchmark, the integrated depth/time calibration, and three real
+SPRT batches. Those results are recorded in
+`docs/unarchitectured-v1-integration-trial.md`; the short version is that no
+configuration ever trended positive, the aggressive config measured -26.1 then
+-15.1 Elo across 1,200 games, and the shipped conservative config measured
+-5.8 Elo (statistically neutral) across 300.
+
+`runtime_safety_suite` remains false, and round 8 closes the last *named* gap in
+it rather than the flag itself. Every prior root-hint safety test fed a
+hand-built adversarial ranking; none used the real checkpoint's own opinion.
+`tools/find_unarchitectured_v1_hint_disagreements.py` now searches the exported
+package for positions where its policy disagrees with the verifiably correct
+move, and found five of six — including a forced back-rank mate the model ranks
+**10th of 17**, and the Greek-gift sacrifice it ranks **18th of 38** while
+preferring quiet castling. Two of those are now Rust safety tests driven by the
+recorded logits, with a Python test asserting the transcribed numbers still
+match the committed artifact.
+
+The flag stays false because it is not a documentation checkbox: flipping it
+implies the runtime is cleared for integration, and the SPRT evidence says the
+opposite. See `docs/unarchitectured-v1-integration-trial.md` and
 `docs/unarchitectured-v1-calibration.md`.
 
 ## Remaining performance work

@@ -1473,6 +1473,181 @@ mod tests {
         assert!(is_mate_score(lines[0].score));
     }
 
+    /// Apply a recorded real-model policy ranking as root hints.
+    ///
+    /// `scored` holds the actual logits the exported checkpoint produced for
+    /// this position. Any legal move missing from the list gets the minimum
+    /// logit, so the mapping stays total even if movegen order differs.
+    fn hints_from_recorded_logits(pos: &Position, scored: &[(&str, f32)]) -> Vec<RootHint> {
+        let floor = scored
+            .iter()
+            .map(|&(_, s)| s)
+            .fold(f32::INFINITY, f32::min);
+        legal(pos)
+            .as_slice()
+            .iter()
+            .map(|&mv| {
+                let uci = mv.uci();
+                let policy_score = scored
+                    .iter()
+                    .find(|&&(m, _)| m == uci.as_str())
+                    .map(|&(_, s)| s)
+                    .unwrap_or(floor);
+                RootHint { mv, policy_score }
+            })
+            .collect()
+    }
+
+    /// The real checkpoint ranks this forced mate **10th of 17**, and the
+    /// search must still play it.
+    ///
+    /// Every other hint test in this file feeds a hand-built adversarial
+    /// ranking (`-1000.0` on the mate, `+1000.0` on everything else). That
+    /// proves robustness against uniform hostile noise, but it is not the
+    /// input most likely to expose a real ordering leak: a synthetic hint is
+    /// obviously wrong, whereas a real policy is *confidently* wrong in a
+    /// structured way, preferring natural-looking moves.
+    ///
+    /// These logits are not invented. They were measured by running
+    /// `artifacts/unarchitectured-v1-final.unarchv1` through
+    /// `tools/find_unarchitectured_v1_hint_disagreements.py`; the full output
+    /// is committed at
+    /// `benchmarks/unarchitectured-v1/hint-disagreements-2026-08-24.json`.
+    /// The model puts Ka2/Kg2 and four rook moves ahead of Ra8#.
+    #[test]
+    fn real_checkpoint_ranking_cannot_suppress_back_rank_mate() {
+        let pos = fen::parse("6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1").unwrap();
+        let scored = [
+            ("g1h2", -0.917403f32),
+            ("g1g2", -0.567702),
+            ("g1f2", -0.635615),
+            ("g1h1", -1.234828),
+            ("g1f1", -1.019693),
+            ("a1a8", -1.049943), // the mate, ranked 10th
+            ("a1a7", -0.576414),
+            ("a1a6", -1.010350),
+            ("a1a5", -1.355014),
+            ("a1a4", -1.240723),
+            ("a1a3", -1.369275),
+            ("a1a2", -1.337878),
+            ("a1f1", -0.858250),
+            ("a1e1", -0.806330),
+            ("a1d1", -0.894320),
+            ("a1c1", -0.909317),
+            ("a1b1", -1.101056),
+        ];
+        let hints = hints_from_recorded_logits(&pos, &scored);
+
+        // Sanity-check the premise: if the model ever starts ranking the mate
+        // first, this test silently stops testing anything.
+        let best_hint = hints
+            .iter()
+            .max_by(|a, b| a.policy_score.partial_cmp(&b.policy_score).unwrap())
+            .unwrap();
+        assert_ne!(
+            best_hint.mv.uci(),
+            "a1a8",
+            "fixture no longer represents a disagreement"
+        );
+
+        let tt = TT::new(4);
+        let stop = AtomicBool::new(false);
+        let lines = go_with_root_hints(
+            &pos, &Hce::default(), &Limits::depth(4), 1, &tt, &stop, &[], 0,
+            SearchParams::default(), 1, &hints, std::time::Duration::ZERO,
+            &mut |_| {},
+        );
+        assert_eq!(lines[0].mv.uci(), "a1a8");
+        assert!(is_mate_score(lines[0].score));
+    }
+
+    /// A real, non-synthetic disagreement in a full middlegame position.
+    ///
+    /// The checkpoint ranks the Greek-gift sacrifice Bxf7+ **18th of 38**,
+    /// strongly preferring quiet castling (the only move it scores above
+    /// zero). This is the widest real logit gap found (1.91), and unlike the
+    /// mate fixtures the position is a normal opening tabiya rather than a
+    /// constructed endgame -- so root ordering is under maximum realistic
+    /// pressure from a plausible-looking wrong move.
+    ///
+    /// This asserts the *search stays sound*, not that it finds Bxf7 -- at
+    /// shallow depth with HCE the objectively best move here is genuinely
+    /// debatable, and asserting a specific move would be encoding an opinion
+    /// rather than a correctness property. What must hold is that a hostile
+    /// real ranking cannot make the search return an illegal or absurd move.
+    #[test]
+    fn real_checkpoint_ranking_keeps_middlegame_search_sound() {
+        let pos = fen::parse(
+            "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/3P1N2/PPP2PPP/RNBQK2R w KQkq - 0 1",
+        )
+        .unwrap();
+        let scored = [
+            ("c4f7", -1.774796f32), // the sacrifice, ranked 18th
+            ("c4e6", -2.502336),
+            ("c4a6", -3.061207),
+            ("c4d5", -2.111246),
+            ("c4b5", -1.818687),
+            ("c4b3", -1.717077),
+            ("f3g5", -1.821042),
+            ("f3e5", -1.468683),
+            ("f3h4", -2.010518),
+            ("f3d4", -2.138683),
+            ("f3d2", -2.010799),
+            ("f3g1", -2.458552),
+            ("h1g1", -2.137744),
+            ("h1f1", -2.031782),
+            ("e1e2", -2.309721),
+            ("e1d2", -2.288298),
+            ("e1f1", -2.188198),
+            ("d1e2", -1.428620),
+            ("d1d2", -1.474914),
+            ("c1h6", -3.256310),
+            ("c1g5", -0.725913),
+            ("c1f4", -2.460410),
+            ("c1e3", -1.295096),
+            ("c1d2", -1.444858),
+            ("b1c3", -0.614645),
+            ("b1a3", -1.860586),
+            ("b1d2", -1.233407),
+            ("e1g1", 0.136316), // model's top choice: castle
+            ("d3d4", -1.338036),
+            ("h2h3", -1.322452),
+            ("g2g3", -1.904789),
+            ("c2c3", -1.422695),
+            ("b2b3", -1.633388),
+            ("a2a3", -1.312639),
+            ("h2h4", -1.591149),
+            ("g2g4", -1.988203),
+            ("b2b4", -1.341225),
+            ("a2a4", -1.749212),
+        ];
+        let hints = hints_from_recorded_logits(&pos, &scored);
+        let tt = TT::new(4);
+        let stop = AtomicBool::new(false);
+        let lines = go_with_root_hints(
+            &pos, &Hce::default(), &Limits::depth(6), 1, &tt, &stop, &[], 0,
+            SearchParams::default(), 1, &hints, std::time::Duration::ZERO,
+            &mut |_| {},
+        );
+
+        // The returned move must be one of the position's real legal moves.
+        let legal_ucis: Vec<String> =
+            legal(&pos).as_slice().iter().map(|m| m.uci()).collect();
+        assert!(
+            legal_ucis.contains(&lines[0].mv.uci()),
+            "search returned {} which is not legal here",
+            lines[0].mv.uci()
+        );
+        // Nobody is getting mated in this quiet opening position.
+        assert!(!is_mate_score(lines[0].score));
+        // A sane evaluation: this is a balanced tabiya, not a lost position.
+        assert!(
+            lines[0].score.abs() < 500,
+            "implausible score {} for a balanced opening",
+            lines[0].score
+        );
+    }
+
     #[test]
     fn finds_mate_in_two() {
         // Classic: 1.Qh7+!? no — use a known M2: white Qg7#? Position:
