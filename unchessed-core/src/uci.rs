@@ -62,6 +62,33 @@ struct Options {
     unarchitectured_min_time_ms: u64,
 }
 
+/// Default search thread count: the machine's logical CPU count, capped.
+///
+/// The previous default of 1 left every core but one idle on any modern
+/// machine. On a 16-core laptop chip (e.g. Core Ultra 9 285H: 6 P + 8 E + 2
+/// low-power E) that meant using ~6% of the CPU, which costs far more strength
+/// than any micro-optimization in this codebase can recover.
+///
+/// Notes on the cap and on hybrid CPUs:
+///
+/// - We use the full logical count rather than trying to identify only the
+///   "fast" cores. Lazy SMP helpers are pure TT-warmers, not latency-critical:
+///   a slow E-core still contributes useful entries, and the OS scheduler
+///   already prefers P-cores for the earliest-spawned threads. Trying to
+///   detect P vs E from userspace portably is unreliable and not worth it.
+/// - Capped at 32 so a very large server doesn't spawn a helper per core and
+///   drown the shared TT in write contention; users can still raise `Threads`
+///   explicitly up to the UCI maximum.
+/// - Falls back to 1 if the platform can't report a count.
+///
+/// GUIs that set `Threads` explicitly (most do) override this entirely; this
+/// only changes the out-of-the-box behavior for direct/UCI-default use.
+fn default_threads() -> usize {
+    std::thread::available_parallelism()
+        .map(|n| n.get().min(32))
+        .unwrap_or(1)
+}
+
 impl Default for Options {
     fn default() -> Self {
         Options {
@@ -75,7 +102,7 @@ impl Default for Options {
             own_book: true,
             book_depth: 16,
             search: SearchParams::default(),
-            threads: 1,
+            threads: default_threads(),
             eval_params: EvalParams::default(),
             unarchitectured_hint: false,
             unarchitectured_file: String::new(),
@@ -207,7 +234,10 @@ pub fn run(ident: EngineIdent) {
                 println!("id name {} {}", ident.name, ident.version);
                 println!("id author {}", ident.author);
                 println!("option name Hash type spin default 128 min 1 max 2048");
-                println!("option name Threads type spin default 1 min 1 max 64");
+                println!(
+                    "option name Threads type spin default {} min 1 max 64",
+                    default_threads()
+                );
                 println!("option name Clear Hash type button");
                 println!("option name MultiPV type spin default {} min 1 max 8",
                     if ident.adaptive_engine { 1 } else { 3 });
@@ -1530,6 +1560,32 @@ fn weighted_pick<'a>(entries: &[&'a BookEntry], rng: &mut Rng) -> Option<&'a Boo
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The out-of-the-box thread default must actually use the machine.
+    ///
+    /// This previously defaulted to 1, which left every core but one idle --
+    /// on a 16-core laptop chip that is ~6% CPU utilization, costing far more
+    /// strength than any micro-optimization here can recover.
+    #[test]
+    fn default_threads_uses_available_cores_and_is_bounded() {
+        let n = default_threads();
+        assert!(n >= 1, "must always yield a usable thread count");
+        assert!(n <= 32, "must stay within the documented cap");
+        if let Ok(par) = std::thread::available_parallelism() {
+            assert_eq!(
+                n,
+                par.get().min(32),
+                "should track the machine's logical CPU count up to the cap"
+            );
+            // On any multi-core host the default must not silently be 1.
+            if par.get() > 1 {
+                assert!(n > 1, "multi-core host must default above a single thread");
+            }
+        }
+        // The advertised UCI default and the actual default must agree,
+        // otherwise a GUI showing "default 1" would mislead the user.
+        assert_eq!(Options::default().threads, default_threads());
+    }
 
     // Regression test for a real bug caught via a live game log: GUIs (En
     // Croissant, cutechess-cli, etc.) resend the full move list from
