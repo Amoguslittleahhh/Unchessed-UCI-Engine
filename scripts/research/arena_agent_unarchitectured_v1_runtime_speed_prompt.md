@@ -103,27 +103,49 @@ games to characterize properly. Either is a legitimate answer; don't treat
 the earlier "clock tax" explanation as settled — it wasn't well-supported by
 this round's own follow-up data.
 
-**Recommendation for round 8 — two honest paths, pick one rather than
-re-litigating whether this result is real:**
+**The conservative-threshold retest was also run, closing this out for
+now.** Same reviewer, same real hardware, same binary, same book. Since
+`UnarchitecturedMinTime=30000` can never fire at `tc=5+0.05` (base time is
+only 5000ms, so `wtime`/`btime` can never reach 30000ms), the time control
+had to change too — `tc=60+0.6`, 300 games (150 rounds), same
+`elo0=0 elo1=5 alpha=0.05 beta=0.05` SPRT bounds:
 
-1. **Retest at a conservative threshold.** Everything so far (1,200 games
-   across two independent batches) has used `UnarchitecturedMinTime=1000`
-   (the aggressive stress config, correctly chosen to surface a problem if
-   one exists — and one did, twice). Rerun at the shipped default,
-   `UnarchitecturedMinTime=30000` (only fires on genuine clock surplus, not
-   near-every-move), to see whether the regression is specific to paying
-   the tax too often, or whether it persists even when rare.
-2. **If it persists at a conservative threshold too, or if you'd rather not
-   spend more paired games chasing it, retire the feature as tested.** A
-   real, twice-replicated negative result across 1,200 games is exactly the
-   kind of outcome this whole multi-round process exists to produce —
-   reporting "we tested it properly, twice, and it doesn't help" is a
-   legitimate, complete answer, not a failure to push past.
+- **Conservative config: Hint scored 72-77-151 (0.492) against Baseline.
+  Elo difference -5.8 ± 27.7 (95% CI roughly [-33.5, +21.9], comfortably
+  includes zero). LOS 34.1%. SPRT llr -0.207**, far from either bound —
+  genuinely inconclusive/neutral, not a lean in either direction.
 
-Either way: **do not enable `UnarchitecturedHint` by default.** Nothing
-about this result changes that; if anything it reinforces it. `main`'s
-default remains `false`, no code changed to enable it, and this status
-update itself is not a request to remove the default-off protection.
+**The three real batches form a clean, monotonic trend:**
+
+| Config | Games | Elo | LOS |
+|---|---:|---|---:|
+| `MinTime=1000`, `tc=5+0.05` (original) | 600 | -26.1 ± 22.4 | 1.1% |
+| `MinTime=1000`, `tc=5+0.05` (replication) | 600 | -15.1 ± 22.5 | 9.5% |
+| `MinTime=30000`, `tc=60+0.6` (conservative) | 300 | -5.8 ± 27.7 | 34.1% |
+
+Paying the tax less often makes the harm shrink toward indistinguishable
+from zero. **Caveat, stated plainly rather than glossed over: the
+conservative retest necessarily changed both `UnarchitecturedMinTime` *and*
+the time control at once** (there was no way to isolate just one variable,
+since the conservative threshold is physically unreachable at the original
+fast time control) — so this doesn't cleanly prove *which* change removed
+the harm, only that the actual shipped configuration (which pairs both)
+shows no detectable regression across 300 games.
+
+**Conclusion for round 8: this is a reasonable stopping point, not a green
+light.** The default-shipped config (`UnarchitecturedMinTime=30000`) shows
+no measurable harm — that's a real, useful finding. But nothing here ever
+trended positive at any config, so there is still no evidence this feature
+helps, only evidence that at the conservative setting it no longer
+measurably hurts. That is not sufficient to enable it by default; it would
+take a real positive result to justify that, which doesn't exist. If
+there's appetite for more, a genuinely isolated test (same time control,
+only `UnarchitecturedMinTime` varied) would cleanly separate the two
+confounded variables above — but that's optional polish, not a blocker.
+
+**Do not enable `UnarchitecturedHint` by default under any of this.**
+`main`'s default remains `false`, no code changed to enable it, and none of
+this round's results changes that.
 
 ## Status update — round 6
 
@@ -478,43 +500,43 @@ a severe strength loss. The wiring was reverted (nothing broken landed on
 
 ## What's needed
 
-Rounds 5-7 closed the whole prior checklist: the UCI candidate exists
-(round 5), calibration exists and shows real-but-weak signal (round 6), and
-a real deployment-CPU-benchmarked, real-SPRT-style test now exists too
-(round 7, see the status update above) — run twice (600 games, then
-replicated with a corrected model path, another 600 games) and **both runs
-came back negative**: -26.1 ± 22.4 Elo (LOS 1.1%) then -15.1 ± 22.5 Elo (LOS
-9.5%), 1,200 games total at the aggressive `UnarchitecturedMinTime=1000`
-config, never positive in either run. The ask this round is narrow and
-follows directly from that result:
+Round 7 (see the status update above, done directly on real hardware by the
+project owner/reviewer, not arena) closed the entire prior checklist and
+ran three real batches: the aggressive stress config twice (-26.1 Elo, then
+-15.1 Elo replicated, both negative, 1,200 games) and the actual
+shipped-default config once (-5.8 Elo, statistically neutral, 300 games).
+The safety suite was also broadened in the same round (`480f90e`): knight,
+bishop, and queen single-legal-move-under-check cases, plus a second mate
+pattern (king+queen) beyond the existing rook back-rank mates — every new
+FEN verified against the real engine, not hand-derived and trusted.
 
-1. **Retest at the conservative threshold.** Every test so far used
-   `UnarchitecturedMinTime=1000` (correctly aggressive, to surface a
-   problem if one exists — and one did). Run the same scale of paired
-   games (a few hundred is enough to see a similarly-sized effect; the
-   round-7 pilot used 600) at `UnarchitecturedMinTime=30000` — the actual
-   shipped default, which only fires on genuine clock surplus instead of
-   near-every-move — and report the result plainly whichever way it goes.
-   `scripts/sprt-history/sprt_unarchitectured_v1_hint.sh` is already
-   correctly built for this; only the `UnarchitecturedMinTime` value passed
-   to the `Hint` engine needs to change.
-2. **If the regression persists at the conservative threshold too, retire
-   the feature as tested rather than keep iterating on it.** A real,
-   replicated negative result from a properly-run pilot is a complete,
-   legitimate answer — this multi-round process exists to produce exactly
-   that outcome when it's the true one, not just to eventually find a
-   config that passes.
-3. **Broaden the mate/only-move safety suite further** if more rounds
-   continue regardless of the above — round 5 added adversarial back-rank
-   mate (both colors), stalemate, and invalid-hint coverage, but your own
-   doc still calls `runtime_safety_suite` false. This is no longer
-   blocking further testing (round 7's pilot ran without it, safely, since
-   the existing mate/legality tests already prevent unsound play), but it's
-   still incomplete.
+**The open items are narrow and optional, not blocking:**
 
-Do not enable `UnarchitecturedHint` by default under any outcome here — that
-decision requires a positive, formally-concluded SPRT at whatever config is
-eventually tested, which does not exist yet in either direction.
+1. **A cleanly isolated retest, if there's appetite for more precision.**
+   The conservative-config result changed both `UnarchitecturedMinTime`
+   *and* the time control at once (`tc=60+0.6` instead of `tc=5+0.05`,
+   since the conservative threshold is physically unreachable at the
+   original fast control) — so it proves the shipped config looks safe,
+   but not cleanly *why*. Isolating the two variables (same `tc=60+0.6`,
+   compare `MinTime=1000` vs `MinTime=30000` directly) would settle that,
+   but it's polish on an already-actionable result, not a prerequisite.
+2. **`runtime_safety_suite` can now genuinely be marked closer to complete**
+   given round 7's additions — worth a pass confirming there's no remaining
+   gap (e.g. hint-vs-correct-move disagreement on a real, non-synthetic
+   tactical position using the actual checkpoint, which round 6/7 both
+   mentioned but never built) before calling it fully done.
+3. **This is a legitimate stopping point for the feature itself.** No
+   configuration tested — aggressive or conservative — ever trended
+   positive. The conservative config's neutral result means it's *not
+   measurably harmful*, which is worth knowing, but it is not evidence the
+   feature helps. Enabling it by default would need a real positive result,
+   which doesn't exist at any tested config. Retiring the feature as
+   "tested at multiple configs, never shown to help, occasionally shown to
+   hurt" is a complete, legitimate answer.
+
+Do not enable `UnarchitecturedHint` by default under any outcome here —
+nothing in round 7's results, including the neutral conservative-config
+result, changes that.
 
 If you'd rather keep pushing raw speed instead this round, the doc's own
 "Remaining performance work" list is honest about what's left and none of
