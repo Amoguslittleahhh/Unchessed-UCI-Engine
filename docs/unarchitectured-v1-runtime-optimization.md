@@ -72,9 +72,17 @@ cross-host latency from sandbox ratios.
 - retained-int8 regret source/target projections under the existing complete-
   output drift gate.
 
-`UNCHESSED_INFERENCE_THREADS` can override the default, which is the visible CPU
-count capped at four. This is deliberately independent of search threads; the
-model is not wired into search yet.
+`UNCHESSED_INFERENCE_THREADS` can override the default, which is **1
+(sequential)**, not the visible CPU count. Every parallel path here spawns
+fresh OS threads per call rather than reusing a pool, and measured directly
+on real hardware (Core Ultra 9 285H) that per-call spawn/join cost is a
+monotonic net loss at every thread count tried — 1 thread measured 7.92ms,
+rising to 16.42ms at 8 threads. The earlier `available_parallelism().min(4)`
+default (11.01ms on that same host) was already worse than doing no internal
+splitting; it has been corrected. The override remains available for a
+different host, or once a persistent worker pool replaces the current
+spawn-per-call design. This is deliberately independent of search threads;
+the model is not wired into search yet.
 
 ## Rejected experiments
 

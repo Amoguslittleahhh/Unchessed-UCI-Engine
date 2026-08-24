@@ -52,18 +52,31 @@ static AXPY_KERNEL: OnceLock<AxpyKernel> = OnceLock::new();
 static QUANTIZE_I16_KERNEL: OnceLock<QuantizeI16Kernel> = OnceLock::new();
 static INFERENCE_THREADS: OnceLock<usize> = OnceLock::new();
 
+/// Every parallel path here spawns fresh OS threads per call via
+/// `std::thread::scope` rather than reusing a persistent pool, and a single
+/// forward pass makes dozens of such calls (QKV/attention/FFN splits per
+/// layer, times up to 8 layers, plus `linear_full`'s own internal split).
+/// That per-call spawn/join cost is never amortized, and measured directly
+/// on real hardware (`cargo test -p unchessed-core --release
+/// benchmark_forward_pass -- --ignored --nocapture`, Core Ultra 9 285H) it
+/// is a strict, monotonic net loss at every thread count tried: 7.92ms at 1
+/// thread, rising to 8.71/10.43/11.01/13.33/16.42ms at 2/3/4/6/8 -- the
+/// previous `available_parallelism().min(4)` default (11.01ms here) was
+/// slower than doing no internal splitting at all. Until this uses a
+/// persistent worker pool instead of spawning per call, sequential is
+/// simply faster, so that's the default. `UNCHESSED_INFERENCE_THREADS`
+/// still overrides it, for a different host or a future pooled
+/// implementation to prove otherwise.
+fn parse_inference_threads(env_value: Option<&str>) -> usize {
+    env_value
+        .and_then(|value| value.parse::<usize>().ok())
+        .filter(|&value| value > 0)
+        .unwrap_or(1)
+}
+
 fn inference_threads() -> usize {
     *INFERENCE_THREADS.get_or_init(|| {
-        std::env::var("UNCHESSED_INFERENCE_THREADS")
-            .ok()
-            .and_then(|value| value.parse::<usize>().ok())
-            .filter(|&value| value > 0)
-            .unwrap_or_else(|| {
-                std::thread::available_parallelism()
-                    .map(usize::from)
-                    .unwrap_or(1)
-                    .min(4)
-            })
+        parse_inference_threads(std::env::var("UNCHESSED_INFERENCE_THREADS").ok().as_deref())
     })
 }
 
@@ -2860,6 +2873,25 @@ mod tests {
             input.legal_actions[best_192], 1227,
             "exit 4/192 best action encoding"
         );
+    }
+
+    /// Default must be sequential (1), not `available_parallelism()`.
+    ///
+    /// Measured directly on real hardware (Core Ultra 9 285H,
+    /// `benchmark_forward_pass` swept across `UNCHESSED_INFERENCE_THREADS`):
+    /// 1 thread is fastest (7.92ms) and every higher count is monotonically
+    /// slower (up to 16.42ms at 8), because every parallel path here spawns
+    /// fresh OS threads per call rather than reusing a pool. A regression
+    /// back to an `available_parallelism()`-based default would silently
+    /// reintroduce that loss for everyone who doesn't override the env var.
+    #[test]
+    fn inference_threads_defaults_to_sequential() {
+        assert_eq!(parse_inference_threads(None), 1);
+        assert_eq!(parse_inference_threads(Some("")), 1);
+        assert_eq!(parse_inference_threads(Some("0")), 1);
+        assert_eq!(parse_inference_threads(Some("not-a-number")), 1);
+        assert_eq!(parse_inference_threads(Some("4")), 4);
+        assert_eq!(parse_inference_threads(Some("16")), 16);
     }
 
     #[test]
