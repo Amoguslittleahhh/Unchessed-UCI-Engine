@@ -1,0 +1,60 @@
+{
+  "positions": 200,
+  "baseline_rating": 600,
+  "ratings": {
+    "600": {
+      "top1_changed": 0,
+      "top1_changed_pct": 0.0,
+      "mean_abs_delta": 0.0,
+      "max_abs_delta": 0.0,
+      "teacher_agreement": 0.265
+    },
+    "1000": {
+      "top1_changed": 0,
+      "top1_changed_pct": 0.0,
+      "mean_abs_delta": 0.00030356502160429956,
+      "max_abs_delta": 0.0006327629089355469,
+      "teacher_agreement": 0.265
+    },
+    "1400": {
+      "top1_changed": 0,
+      "top1_changed_pct": 0.0,
+      "mean_abs_delta": 0.0006071241013705731,
+      "max_abs_delta": 0.0012664794921875,
+      "teacher_agreement": 0.265
+    },
+    "1800": {
+      "top1_changed": 0,
+      "top1_changed_pct": 0.0,
+      "mean_abs_delta": 0.000910648163408041,
+      "max_abs_delta": 0.00189971923828125,
+      "teacher_agreement": 0.265
+    },
+    "2200": {
+      "top1_changed": 0,
+      "top1_changed_pct": 0.0,
+      "mean_abs_delta": 0.0012141214311122894,
+      "max_abs_delta": 0.0025331974029541016,
+      "teacher_agreement": 0.265
+    },
+    "2600": {
+      "top1_changed": 0,
+      "top1_changed_pct": 0.0,
+      "mean_abs_delta": 0.0015175830014050008,
+      "max_abs_delta": 0.0031663179397583008,
+      "teacher_agreement": 0.265
+    },
+    "3200": {
+      "top1_changed": 0,
+      "top1_changed_pct": 0.0,
+      "mean_abs_delta": 0.0019727130606770516,
+      "max_abs_delta": 0.00411534309387207,
+      "teacher_agreement": 0.265
+    }
+  },
+  "policy_kind": {
+    "changed": 4,
+    "scored": 200,
+    "changed_pct": 2.0
+  }
+}
