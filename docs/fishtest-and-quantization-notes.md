@@ -84,6 +84,13 @@ Measured on the real exported checkpoint against Stockfish's `±127/64`:
 | castling_embedding.weight | 3.68 | 4.69% |
 | square_embedding.weight | **4.09** | 4.56% |
 
+**Scope, to prevent a misreading:** this measurement is on the
+**Unarchitectured v1** package (`artifacts/unarchitectured-v1-final.unarchv1`)
+— the tensors above are its `blocks.*` layers and embedding tables. The
+shipped NNUE (`unchessed-nnue.bin`) is f32 and has **no int8 runtime path at
+all**, so none of this concerns it. The rejected int8 activation prototype
+that motivated this section was likewise an Unarchitectured v1 experiment.
+
 Peak magnitude is **4.09 — 2.06x the int8 limit**, and the worst tensor has
 7.5% of its weights out of range. Full per-tensor data in
 `benchmarks/unarchitectured-v1/int8-weight-range-2026-08-25.json`.

@@ -20,11 +20,17 @@ Elo, puzzle accuracy, and policy accuracy alike.
 
 Read directly from the exported checkpoint:
 
-| dimension | ours | paper 5M | paper 23M / 79M |
-|---|---:|---:|---:|
-| d1 (token projection) | **8** | 32 | 32 |
-| d2 (compress) | **32** | 64 | 128 |
-| d3 (templates) | **32** | 64 | 128 |
+Note these are the **student's** dimensions, read from the shipped artifact.
+`config/unarchitectured_v1_training.json` lists `gab_token_projection: 16,
+gab_hidden: 64, gab_templates: 64`, but those sit under an `oracle` key and
+describe the 58M teacher. The student that actually ships is smaller than its
+own teacher on every GAB axis as well as smaller than the paper.
+
+| dimension | ours (student) | our oracle | paper 5M | paper 23M / 79M |
+|---|---:|---:|---:|---:|
+| d1 (token projection) | **8** | 16 | 32 | 32 |
+| d2 (compress) | **32** | 64 | 64 | 128 |
+| d3 (templates) | **32** | 64 | 64 | 128 |
 
 Our `d1` is **4x smaller than the smallest configuration the paper reports**,
 and `d2`/`d3` are half. The paper's 5M model is comparable in scale to our
