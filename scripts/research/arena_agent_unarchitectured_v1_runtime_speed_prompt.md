@@ -9,6 +9,98 @@ work is not an invitation to revert to or resume development on any of
 them. Any follow-on architecture or training work belongs on top of
 Unarchitectured v1, not as a parallel track exploring an earlier one.
 
+## Status update — round 9
+
+Your seventh pass — eleven commits from `ce3b6a0` through `4e3b623`,
+plus the history-questions reconciliation — was reviewed, independently
+verified, and merged onto `main` at `9cea2f4`. This is the largest single
+batch reviewed so far, and it's genuinely strong work: real causal
+explanations for round 7's SPRT results, real capability gaps found in the
+model itself, and one real test bug caught and fixed along the way.
+
+**Verified independently, not just trusted:**
+
+- Full workspace build clean, `unchessed-core` 104/104 (after one fix, see
+  below), `tools/` Python suite 187/187.
+- **Reproduced three of the headline numeric claims from scratch**, not
+  just read the committed JSON: `analyse_gab_contribution.py` gave
+  baseline 0.2683 → GAB-zeroed 0.2100 (−0.0583, the "21.7% of top-1"
+  figure) exactly; `analyse_unarchitectured_v1_ordering_risk.py` gave
+  top-1 0.2683 (neural) vs. 0.0683 (movegen-order baseline) and mean
+  regret 146.3cp vs. 290.5cp, matching the commit message; and the
+  budget-percentage arithmetic (9.72ms / 108ms = 9.0%, /66ms = 14.7%,
+  /2450ms = 0.4%) checks out exactly against round 7's own measured Elo
+  trend.
+- `tools/test_pentanomial_sprt.py` has a dedicated `ReproducesRound7Tests`
+  class that validates the new SPRT tool's math against the reviewer's own
+  real round-7 numbers (-26.1, -15.1, -5.8 Elo) — ran it, passes. Using
+  the actual data I produced to validate your own tooling, rather than
+  asking me to trust it, is exactly right.
+- **Found and fixed one real test bug**, caught the same way this whole
+  process has caught every prior one — by running it, not reading it.
+  `unarchitectured_candidate_produces_exact_real_root_hints` (from
+  "Harden root-hint pairing") asserted that a request for a different
+  (truncated) move list must time out. It doesn't, reliably: real
+  inference at this exit is single-digit milliseconds, well inside the
+  100ms wait window, so the fresh (correctly-sized) request usually
+  completes and returns `source="exact"` — which the old assertion
+  treated as reusing a stale cached hint, when it's actually the cache
+  correctly *not* reusing anything and computing something new and
+  correct instead. Confirmed with diagnostic instrumentation
+  (`source=exact, hints_len=19, truncated_len=19`) before rewriting the
+  assertion to check the real safety property (never return a mismatched
+  stale result) instead of an implementation detail of host speed. Your
+  own commit message for that round flagged an almost-identical near-miss
+  in your first attempt at this exact test — this is the same class of
+  mistake surfacing once more, worth noting as a pattern: assumptions
+  about *timing* on this fast a system are the recurring soft spot, not
+  the logic itself.
+
+**The headline findings, now on `main` and worth treating as load-bearing
+context for any future work on this model:**
+
+1. **Why the hint costs Elo, mechanistically** (not just "it's negative"):
+   the policy is a genuinely *better* first-move orderer than anything
+   free (top-1 0.2683 vs. 0.0683 movegen order, wins every metric) — the
+   problem is purely structural. Benefit lands once, on the cheapest
+   search pass; cost is charged to the move budget every time regardless.
+   The budget-percentage arithmetic alone reproduces round 7's monotonic
+   Elo trend from nothing but `Limits::budget` math.
+2. **GAB is real load-bearing capacity, and it's underprovisioned**: this
+   project's own GAB config (`d1=8, d2=32, d3=32`) is a quarter of the
+   comparably-scaled paper config's smallest setting, and zeroing it costs
+   21.7% of top-1 — more than half the model's entire margin over free
+   MVV-LVA.
+3. **Rating conditioning is confirmed genuinely inert** (0/200 moves
+   change across a 600→3200 sweep, deltas 2-3 orders of magnitude below
+   the gaps between candidate moves) — this closes the exact gap I
+   flagged as unverifiable in the history-questions response, and both the
+   oracle and student share identical conditioning code, so if the oracle
+   turns out to have the same defect, it's architectural; if not, it's a
+   training-time bug. That specific question (oracle-side) remains open —
+   the oracle checkpoint isn't in this repo.
+4. **The policy's magnitude, not just its ranking, carries real
+   information**: ECE 0.0048, and correct-vs-wrong confidence separation
+   survives a uniform-baseline normalization control (6.21x vs 4.26x). A
+   positive result, and correctly guarded against looking good for
+   uninteresting reasons (majority-bin domination) before being reported
+   as one.
+5. **Our weights exceed the int8 representable range by 2.06x** with no
+   weight clipping in the trainer — a real, quantitative explanation for
+   the earlier rejected int8-activation prototype's parity failure, not
+   just "it didn't work."
+6. **A matetrack-style regression suite now exists** (7 positions, 5
+   mating patterns, both colors) — catches a failure mode SPRT is
+   structurally bad at (a specific forced win silently breaking) that
+   nothing in this project covered before.
+
+None of this reverses the standing conclusion — every one of these
+findings is explicitly framed in your own commits as explaining or
+refining round 7's negative result, never overturning it.
+`UnarchitecturedHint` stays default-off, `runtime_safety_suite` stays
+false, and this round's work makes both defaults better-justified, not
+closer to flipping.
+
 ## Status update — round 8
 
 Your sixth pass (`fac25a5` "Add dev environment setup: requirements file
@@ -557,17 +649,33 @@ a severe strength loss. The wiring was reverted (nothing broken landed on
 
 ## What's needed
 
-Rounds 7 and 8 together closed the entire checklist that has accumulated
-since round 5. Round 7 (done directly on real hardware by the project
-owner/reviewer, not arena) ran three real SPRT batches: the aggressive
-stress config twice (-26.1 Elo, then -15.1 Elo replicated, both negative,
-1,200 games) and the actual shipped-default config once (-5.8 Elo,
-statistically neutral, 300 games), plus broadened the safety suite with
-knight/bishop/queen single-legal-move-under-check cases and a second mate
-pattern. Round 8 (your work, verified above) closed the one item that was
-still explicitly named as open: real-checkpoint hint disagreement — not a
-synthetic adversarial ranking, the actual model's own confidently-wrong
-opinion on a real tactical position (a forced mate ranked 10th of 17).
+Rounds 7 through 9 together closed the entire integration checklist *and*
+the diagnostic question of *why* — round 7 (real hardware, three real SPRT
+batches, all negative or neutral, never positive) established the result;
+round 8 closed the last named safety-suite gap; round 9 explained the
+mechanism (structural cost-vs-benefit timing, not a bad model) and
+surfaced real capacity gaps in the model itself (GAB 4x underprovisioned,
+rating conditioning inert, weights 2.06x outside int8 range). The
+integration-feature question is as settled as offline analysis can make
+it; what's actually open now is different in kind.
+
+**Two separate tracks going forward, and they shouldn't be conflated:**
+
+1. **The `UnarchitecturedHint` feature itself** — genuinely optional at
+   this point, not blocking. The isolated `MinTime` retest (below) is the
+   only thing left that could change the picture, and even a positive
+   result there wouldn't overturn round 9's finding that the cost is
+   structural, not a bad hint — it would just mean the conservative
+   threshold pays that structural cost rarely enough not to matter.
+2. **A model retrain** — round 9's findings (GAB capacity, rating
+   conditioning, weight clipping for int8, theme-balanced sampling) are a
+   real, well-justified backlog for a *future* training run, explicitly
+   flagged as retrain-only in every commit that found them (inference-time
+   ablations on frozen weights don't prove a bigger GAB would score
+   better — that needs its own training run and its own SPRT). This is a
+   much bigger undertaking than a prompt round and shouldn't be treated as
+   the next quick task — it's recorded now so it doesn't need
+   re-discovering later, not so it gets started next.
 
 **What's left is genuinely optional, not blocking, and this is a
 legitimate stopping point for the feature itself if you'd rather not
