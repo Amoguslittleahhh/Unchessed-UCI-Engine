@@ -207,8 +207,18 @@ opposite. See `docs/unarchitectured-v1-integration-trial.md` and
 
 ## Remaining performance work
 
-- evaluate calibrated int8 activations and VNNI/dot-product kernels without
-  relaxing the existing parity and end-to-end drift gates;
+- ~~evaluate calibrated int8 activations~~ **done, and rejected.** Five
+  calibration schemes (per-tensor static, per-channel, per-group, percentile
+  clipping, and the previously-rejected per-token symmetric) were simulated
+  against the real checkpoint: all fail the `5e-3` gate by 5-14x. A
+  mixed-precision split passes on the two frozen fixtures at 44% of MACs in
+  int8, but that assignment is overfit -- it exceeds the gate on 80 of 150
+  unseen corpus positions. Forcing it to generalise shrinks int8 coverage to
+  ~11% of MACs and *still* fails 2-3 of 150. Root cause is the missing weight
+  clipping in training, so this is retrain-gated, not kernel-gated. See
+  `docs/int8-activation-calibration-finding.md`;
+- evaluate VNNI/dot-product kernels for the existing int16 activation path
+  without relaxing the parity and end-to-end drift gates;
 - prepack/transcode matrices for wider deployment microkernels;
 - stop materializing duplicate f32 copies for matrices once all fallback and
   non-x86 deployment constraints are settled;
