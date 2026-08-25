@@ -656,6 +656,99 @@ mod tests {
     use super::*;
     use crate::fen;
 
+    /// `KING_BUCKETS` must match Stockfish's `half_ka_v2_hm.h` exactly.
+    ///
+    /// This table decides which of the 32 buckets every feature index lands
+    /// in, so a single wrong entry silently routes a king square to the wrong
+    /// 704-feature block. The net still loads, still evaluates, and still
+    /// passes the existing colour-mirror tests -- it is just quietly reading
+    /// the wrong weights for some king positions. That is exactly the kind of
+    /// bug worth a cheap structural test.
+    ///
+    /// The expected values are transcribed from Stockfish's own source. Our
+    /// convention differs in one respect: the board is horizontally mirrored
+    /// before lookup so the king is always on files e-h, which means only
+    /// those 32 entries are ever read and the a-d half is `-1`. Stockfish
+    /// stores a full, horizontally symmetric table instead. Comparing only
+    /// the e-h half is therefore the correct comparison, not a weakening of
+    /// it -- and `king_buckets_cover_only_the_mirrored_half` pins the rest.
+    #[test]
+    fn king_buckets_match_stockfish_half_ka_v2_hm() {
+        // Stockfish src/nnue/features/half_ka_v2_hm.h, KingBuckets, a1..h8.
+        #[rustfmt::skip]
+        const STOCKFISH: [i8; 64] = [
+            28, 29, 30, 31, 31, 30, 29, 28,
+            24, 25, 26, 27, 27, 26, 25, 24,
+            20, 21, 22, 23, 23, 22, 21, 20,
+            16, 17, 18, 19, 19, 18, 17, 16,
+            12, 13, 14, 15, 15, 14, 13, 12,
+             8,  9, 10, 11, 11, 10,  9,  8,
+             4,  5,  6,  7,  7,  6,  5,  4,
+             0,  1,  2,  3,  3,  2,  1,  0,
+        ];
+
+        // Sanity-check the reference itself before trusting it: Stockfish's
+        // table must be horizontally symmetric, which is the property that
+        // makes mirroring to one half lossless.
+        for sq in 0..64usize {
+            let mirrored = (sq / 8) * 8 + (7 - sq % 8);
+            assert_eq!(
+                STOCKFISH[sq], STOCKFISH[mirrored],
+                "reference table is not horizontally symmetric at {sq}"
+            );
+        }
+
+        for sq in 0..64usize {
+            if sq % 8 >= 4 {
+                assert_eq!(
+                    KING_BUCKETS[sq], STOCKFISH[sq],
+                    "bucket mismatch at square {sq} (file {})",
+                    sq % 8
+                );
+            }
+        }
+    }
+
+    /// The mirrored half must be a clean bijection onto 0..32.
+    ///
+    /// Two independent failure modes this catches: a duplicated bucket (two
+    /// king squares sharing one weight block, halving effective capacity for
+    /// those squares) and an out-of-range index (which would read past the
+    /// intended block).
+    #[test]
+    fn king_buckets_cover_only_the_mirrored_half() {
+        let mut seen = [false; N_BUCKETS];
+        let mut valid = 0;
+        for sq in 0..64usize {
+            let bucket = KING_BUCKETS[sq];
+            if sq % 8 < 4 {
+                assert_eq!(bucket, -1, "file a-d square {sq} must be unreachable");
+                continue;
+            }
+            assert!(bucket >= 0, "file e-h square {sq} must have a bucket");
+            let bucket = bucket as usize;
+            assert!(bucket < N_BUCKETS, "bucket {bucket} out of range at {sq}");
+            assert!(!seen[bucket], "bucket {bucket} used twice, at square {sq}");
+            seen[bucket] = true;
+            valid += 1;
+        }
+        assert_eq!(valid, N_BUCKETS, "expected exactly {N_BUCKETS} live squares");
+        assert!(seen.iter().all(|&b| b), "some bucket is never produced");
+    }
+
+    /// The v3 feature layout must be internally consistent.
+    ///
+    /// `FT_IN_V3` is validated against the file header on load, so if these
+    /// constants drifted apart the net would fail to load rather than
+    /// misbehave -- but the arithmetic is worth pinning next to the table it
+    /// depends on.
+    #[test]
+    fn v3_feature_dimensions_are_consistent() {
+        assert_eq!(N_PIECE_SQ_V3, 11 * 64);
+        assert_eq!(FT_IN_V3, N_BUCKETS * N_PIECE_SQ_V3);
+        assert_eq!(FT_IN_V3, 22528);
+    }
+
     /// The SIMD kernels must agree with the scalar reference they replaced.
     ///
     /// `add_row`/`sub_row` are elementwise and must be *bit-exact*.
