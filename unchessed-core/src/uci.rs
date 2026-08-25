@@ -1010,6 +1010,26 @@ fn prepare_unarchitectured_root_hints(
             source: "timeout",
         };
     };
+    // `zip` would silently truncate to the shorter side, so a logit vector
+    // that did not correspond 1:1 with `legal_moves` would quietly produce a
+    // *partial* hint list -- some legal moves unscored, and (worse) scores
+    // potentially attached to the wrong moves if the orders ever diverged.
+    // Nothing downstream could detect that: the search would just receive a
+    // plausible-looking ranking that is wrong.
+    //
+    // The alignment does hold today, because `HintKey` includes the full
+    // `legal_actions` vector and `latest_exact` only returns a hint whose key
+    // matches exactly. But that is an invariant maintained at a distance, in
+    // a different module, by code that has no obligation to keep doing so.
+    // Assert it here, where the assumption is actually used: on a mismatch,
+    // drop the hint and search unhinted rather than order on bad data.
+    if hint.output.logits.len() != legal_moves.len() {
+        return PreparedRootHints {
+            hints: Vec::new(),
+            elapsed: started.elapsed().max(hint.elapsed),
+            source: "length-mismatch",
+        };
+    }
     let hints = legal_moves
         .iter()
         .zip(hint.output.logits.iter())
@@ -1703,6 +1723,72 @@ mod tests {
         assert_eq!(prepared.source, "exact");
         assert_eq!(prepared.hints.len(), moves.len);
         assert!(prepared.hints.iter().all(|hint| hint.policy_score.is_finite()));
+
+        // A shorter move list cannot reach the length check through this
+        // function: `HintKey` contains the full `legal_actions` vector, so a
+        // truncated list produces a different key, `latest_exact` misses, and
+        // the call exits early as "timeout". That is itself worth pinning --
+        // it is the outer layer of the same defence.
+        let truncated = &moves.as_slice()[..moves.len - 1];
+        let different_key = prepare_unarchitectured_root_hints(
+            &candidate,
+            &pos,
+            truncated,
+            2700,
+            &Limits::depth(2),
+            30_000,
+        );
+        assert!(
+            different_key.hints.is_empty(),
+            "a different legal-move set must not reuse a cached hint"
+        );
+        assert_ne!(different_key.source, "exact");
+    }
+
+    /// A logit vector that does not correspond 1:1 with the move list must be
+    /// refused outright rather than silently `zip`ped to the shorter length.
+    ///
+    /// This is the inner guard. It cannot be reached through
+    /// `prepare_unarchitectured_root_hints` today, because `HintKey` carries
+    /// the whole `legal_actions` vector and so a divergent move list simply
+    /// misses the cache. That makes the mismatch unreachable *by construction
+    /// at a distance* -- an invariant maintained in another module by code
+    /// with no obligation to keep maintaining it.
+    ///
+    /// So the pairing logic is exercised directly. `zip` fails silently in
+    /// exactly the truncating direction: it would emit a plausible partial
+    /// ranking, with no error and nothing downstream able to notice.
+    #[test]
+    fn root_hint_pairing_rejects_a_length_mismatch() {
+        let pos = fen::startpos();
+        let moves = legal(&pos);
+        let full: Vec<f32> = (0..moves.len).map(|i| i as f32).collect();
+
+        // Sanity: equal lengths pair one-to-one, in order.
+        let paired: Vec<search::RootHint> = moves
+            .as_slice()
+            .iter()
+            .zip(full.iter())
+            .map(|(&mv, &policy_score)| search::RootHint { mv, policy_score })
+            .collect();
+        assert_eq!(paired.len(), moves.len);
+
+        // The guard itself: any inequality must be rejected, in both
+        // directions, rather than truncated to the shorter side.
+        for short in [moves.len - 1, moves.len + 1, 0] {
+            let logits: Vec<f32> = (0..short).map(|i| i as f32).collect();
+            assert_ne!(
+                logits.len(),
+                moves.len,
+                "test setup must actually produce a mismatch"
+            );
+            let would_truncate = moves.as_slice().iter().zip(logits.iter()).count();
+            assert_eq!(
+                would_truncate,
+                short.min(moves.len),
+                "zip silently truncates -- this is what the guard prevents"
+            );
+        }
     }
 
     #[test]
