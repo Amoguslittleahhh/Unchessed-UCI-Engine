@@ -1725,11 +1725,19 @@ mod tests {
         assert_eq!(prepared.hints.len(), moves.len);
         assert!(prepared.hints.iter().all(|hint| hint.policy_score.is_finite()));
 
-        // A shorter move list cannot reach the length check through this
-        // function: `HintKey` contains the full `legal_actions` vector, so a
-        // truncated list produces a different key, `latest_exact` misses, and
-        // the call exits early as "timeout". That is itself worth pinning --
-        // it is the outer layer of the same defence.
+        // A shorter move list produces a different `HintKey` (it embeds the
+        // full `legal_actions` vector), so `latest_exact` misses the stale
+        // full-length cache entry and `try_submit` queues a fresh request
+        // for the truncated set instead. Real inference on this exit is fast
+        // (single-digit milliseconds), so within the 100ms wait window that
+        // fresh request usually *does* complete -- this is not a timeout in
+        // practice, and asserting one would be asserting an implementation
+        // detail of host speed rather than the actual safety property.
+        //
+        // The property that must hold either way: the result is never the
+        // stale full-length hint set reused against a different move list.
+        // If a result comes back at all, it must be freshly computed for
+        // (and correctly sized to) the truncated set actually requested.
         let truncated = &moves.as_slice()[..moves.len - 1];
         let different_key = prepare_unarchitectured_root_hints(
             &candidate,
@@ -1739,11 +1747,18 @@ mod tests {
             &Limits::depth(2),
             30_000,
         );
-        assert!(
-            different_key.hints.is_empty(),
-            "a different legal-move set must not reuse a cached hint"
-        );
-        assert_ne!(different_key.source, "exact");
+        if different_key.source == "exact" {
+            assert_eq!(
+                different_key.hints.len(),
+                truncated.len(),
+                "a fresh hint for a different move list must be sized to that list, not the stale cache entry"
+            );
+        } else {
+            assert!(
+                different_key.hints.is_empty(),
+                "a non-exact result must not carry hints from the stale cache entry"
+            );
+        }
     }
 
     /// A logit vector that does not correspond 1:1 with the move list must be
