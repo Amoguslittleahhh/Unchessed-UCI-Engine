@@ -1293,6 +1293,53 @@ mod tests {
         assert_eq!(mate_in(sc), 1);
     }
 
+    /// Matetrack-style suite: every forced mate must be found, every time.
+    ///
+    /// Stockfish gates mate-finding behaviour this way -- a fixed set of
+    /// positions with known forced mates, run deterministically, with no
+    /// games involved. It catches a failure SPRT is bad at detecting: an
+    /// engine that is fine on average but has lost the ability to see a
+    /// specific forced win. Their `seekMate` work is validated exactly like
+    /// this ("61 FENs, 61 found mates").
+    ///
+    /// It matters here specifically because mate handling is this engine's
+    /// weakest measured area. The theme breakdown put `mate_available` last
+    /// of nine categories (top-1 0.2105, mean regret 408.7cp against 38.9cp
+    /// for captures), and the real checkpoint ranks a forced back-rank mate
+    /// 10th of 17. That is the policy rather than the search, but it is
+    /// precisely why the search's own mate finding needs a standing test
+    /// rather than four scattered assertions.
+    ///
+    /// The positions mirror `benchmarks/matetrack.epd`, which is generated
+    /// and verified by `tools/build_matetrack_suite.py`: each `bm` is
+    /// checked to be legal, mating, and the *unique* mate, so the expected
+    /// move is unambiguous. `tools/test_matetrack_suite.py` asserts this
+    /// list stays in sync with that file.
+    #[test]
+    fn matetrack_suite_finds_every_forced_mate() {
+        // (id, fen, expected uci)
+        let suite = [
+            ("backrank-rook", "6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1", "a1a8"),
+            ("backrank-rook-black", "r5k1/8/8/8/8/8/5PPP/6K1 b - - 0 1", "a8a1"),
+            (
+                "backrank-full-shield",
+                "6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1",
+                "a1a8",
+            ),
+            ("smothered-knight", "6rk/6pp/8/6N1/8/8/8/6K1 w - - 0 1", "g5f7"),
+            ("queen-support-king", "7k/5K2/Q7/8/8/8/8/8 w - - 0 1", "a6h6"),
+            ("corner-queen", "k7/8/2K5/8/8/8/8/1Q6 w - - 0 1", "b1b7"),
+            ("ladder-two-rooks", "7k/R7/1R6/8/8/8/8/6K1 w - - 0 1", "b6b8"),
+        ];
+
+        for (id, fen, expected) in suite {
+            let (mv, sc) = best_move(fen, 4);
+            assert_eq!(mv, expected, "{id}: wrong move for {fen}");
+            assert!(is_mate_score(sc), "{id}: score {sc} is not a mate score");
+            assert_eq!(mate_in(sc), 1, "{id}: expected mate in 1, got {sc}");
+        }
+    }
+
     #[test]
     fn root_hints_cannot_override_a_forced_mate() {
         let pos = fen::parse("6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1").unwrap();
