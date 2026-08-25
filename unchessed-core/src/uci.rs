@@ -1077,12 +1077,13 @@ fn print_info(ev: &InfoEvent, multipv_shown: usize) {
     };
     let pv: Vec<String> = ev.pv.iter().map(|m| m.uci()).collect();
     println!(
-        "info depth {} multipv {} score {} nodes {} nps {} time {} pv {}",
+        "info depth {} multipv {} score {} nodes {} nps {} hashfull {} time {} pv {}",
         ev.depth,
         ev.multipv,
         score,
         ev.nodes,
         nps,
+        ev.hashfull,
         ev.time_ms,
         pv.join(" ")
     );

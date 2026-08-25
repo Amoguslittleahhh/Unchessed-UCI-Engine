@@ -112,6 +112,36 @@ impl TT {
     }
 
     #[inline]
+    /// Permille of the table currently occupied, for UCI `info hashfull`.
+    ///
+    /// This exists because hash pressure is invisible without it, and
+    /// Stockfish's published measurements show it matters: at LTC, going
+    /// from 131 permille hashfull to 591 costs about 12 Elo, and to 931
+    /// costs about 52. The advice that follows from that data is to keep
+    /// average hashfull under ~300 permille, which an operator cannot act on
+    /// unless the engine reports the number.
+    ///
+    /// Sampled over the first 1000 slots rather than scanned in full: the
+    /// UCI specification defines this field as approximate, and a full scan
+    /// of a 2 GB table during search would cost more than the information is
+    /// worth. Small tables are scanned exactly, since 1000 slots may be the
+    /// whole table.
+    ///
+    /// Occupancy is `data != 0`, which is exact rather than heuristic here:
+    /// `pack` stores `depth + 1`, so a live entry can never have all-zero
+    /// data, and `new`/`clear` leave exactly zero.
+    pub fn hashfull(&self) -> usize {
+        let sample = self.table.len().min(1000);
+        if sample == 0 {
+            return 0;
+        }
+        let used = self.table[..sample]
+            .iter()
+            .filter(|slot| slot.data.load(Ordering::Relaxed) != 0)
+            .count();
+        used * 1000 / sample
+    }
+
     pub fn probe(&self, hash: u64) -> Option<Entry> {
         let slot = &self.table[(hash as usize) & self.mask];
         let xor_key = slot.xor_key.load(Ordering::Relaxed);
@@ -166,6 +196,63 @@ impl TT {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// `hashfull` must read 0 on a fresh table and rise as entries land.
+    ///
+    /// The occupancy test is `data != 0`, which is only exact because `pack`
+    /// stores `depth + 1` -- so a real entry, even one at depth 0, can never
+    /// produce all-zero data. If that encoding ever changed, a stored entry
+    /// would read as empty and this metric would silently report 0 forever.
+    #[test]
+    fn hashfull_is_zero_when_empty_and_grows_when_filled() {
+        let tt = TT::new(1);
+        assert_eq!(tt.hashfull(), 0, "a fresh table must be empty");
+
+        // Fill the sampled window. Slot index is `hash & mask`, so hashes
+        // 0..1000 land in distinct slots for any table of at least 1024.
+        for hash in 0..1000u64 {
+            tt.store(hash, Move::NONE, 0, 0, BOUND_EXACT);
+        }
+        assert_eq!(tt.hashfull(), 1000, "every sampled slot should be used");
+
+        tt.clear();
+        assert_eq!(tt.hashfull(), 0, "clear must reset occupancy");
+    }
+
+    /// A depth-0 entry must still count as occupied.
+    ///
+    /// This is the specific case the `depth + 1` offset protects, and the
+    /// one a naive `depth != 0` check would get wrong.
+    #[test]
+    fn hashfull_counts_depth_zero_entries() {
+        let tt = TT::new(1);
+        tt.store(0, Move::NONE, 0, 0, BOUND_EXACT);
+        assert!(tt.hashfull() > 0, "a depth-0 entry is still an entry");
+    }
+
+    /// Partial occupancy must land between the extremes, not saturate.
+    #[test]
+    fn hashfull_reports_partial_occupancy() {
+        let tt = TT::new(1);
+        for hash in 0..250u64 {
+            tt.store(hash, Move::NONE, 0, 0, BOUND_EXACT);
+        }
+        let full = tt.hashfull();
+        assert!(
+            (200..=300).contains(&full),
+            "expected roughly 250 permille, got {full}"
+        );
+    }
+
+    /// The value is a permille and must never exceed 1000.
+    #[test]
+    fn hashfull_is_bounded() {
+        let tt = TT::new(1);
+        for hash in 0..5000u64 {
+            tt.store(hash, Move::NONE, 0, 1, BOUND_EXACT);
+        }
+        assert!(tt.hashfull() <= 1000);
+    }
 
     /// `prefetch` is a cache hint and must be observationally inert: it may
     /// not fault for any hash, and may not change what a later probe sees.

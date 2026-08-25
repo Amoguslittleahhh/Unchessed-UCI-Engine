@@ -198,6 +198,8 @@ pub struct InfoEvent<'a> {
     pub score: i32,
     pub nodes: u64,
     pub time_ms: u64,
+    /// Transposition-table occupancy in permille, for UCI `info hashfull`.
+    pub hashfull: usize,
     pub pv: &'a [Move],
 }
 
@@ -1086,6 +1088,7 @@ pub fn go_with_root_hints(
                     score: roots[bi].score,
                     nodes: s.nodes,
                     time_ms: elapsed,
+                    hashfull: s.tt.hashfull(),
                     pv: &roots[bi].pv,
                 });
             }
