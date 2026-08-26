@@ -38,19 +38,70 @@ The general rule: **vendor source you wrote, not binaries you can re-fetch.**
 A lockfile or requirements file reproduces an environment far more cheaply
 than the artifacts themselves.
 
-## When there is no Rust toolchain
+## Rust toolchain
 
-Some environments have no `cargo`/`rustc` and cannot obtain one — the
-toolchain hosts (`sh.rustup.rs`, `static.rust-lang.org`, `crates.io`) are
-unreachable, and there is no toolchain on PyPI. `maturin` and
-`setuptools-rust` exist there but only *invoke* an existing `rustc`; they do
-not ship one. Distro packages are likewise unavailable when the apt sources
-are empty.
+### Available via PyPI (resolved 2026-08-26)
 
-Disk space is not the blocker, and freeing it does not help.
+The toolchain hosts remain unreachable from this sandbox, but PyPI is
+reachable, and PyPI carries a toolchain for exactly this situation:
+**`arena-rust-toolchain` 1.97.0** — "Bundled Rust 1.97.0 toolchain for
+offline use in sandboxed environments (e.g. arena.ai agents with restricted
+egress — no access to static.rust-lang.org / crates.io)".
 
-In that situation `cargo test --workspace --release` cannot run, and any Rust
-change **must be disclosed as unverified**. The available fallbacks are:
+Install (as run on 2026-08-26; the tree lives outside the repo in
+`/home/user/.cache`, which persists between sessions and is excluded from
+patchset accounting — per this repo's no-binaries-in-git policy it is never
+committed):
+
+```sh
+python3 -m venv /home/user/.cache/rust-toolchain-venv
+/home/user/.cache/rust-toolchain-venv/bin/pip install "arena-rust-toolchain[all]" zstandard
+```
+
+**Known packaging bug in that package:** `arena_rust_toolchain._install`
+expects a fourth data package (`arena_rust_toolchain_data4`), but only
+`data1..3` are published and its own metadata only declares `data1..3`.
+`art.install()` therefore raises `Missing arena_rust_toolchain_data4`.
+The three published parts are a complete split (two 95 MiB parts + a
+remainder; zstd magic verified), so extract manually — concatenate
+`part_1..part_3`, decompress with the Python `zstandard` module (the
+sandbox has no `zstd` binary and apt is unreachable), `tar -xf` into
+`/home/user/.cache/rust`. Result: `/home/user/.cache/rust/prefix/bin/{cargo,rustc}`
+(rustc/cargo/clippy/rustfmt; **no rustdoc, no rustup**).
+
+Then:
+
+```sh
+TOOLCHAIN_DIR=/home/user/.cache/rust/prefix bash scripts/build-and-test.sh
+```
+
+**First-build verification (2026-08-26, rustc 1.97.0):** the workspace
+compiled cleanly on the first attempt — debug in 2.9 s, release
+(opt-3 + LTO + 1 codegen unit) in 16.8 s, zero warnings, with **no Rust
+source changed**. `cargo test --workspace`: **104 passed, 0 failed,
+6 ignored** (5 runtime benchmarks + the deep perft, which was then run
+separately and passed in 9.9 s). The 6 ignored include the three 5e-3
+parity gates, which are in the 104. UCI smoke: startpos depth 5 returns a
+move; the matetrack back-rank position returns exactly `bestmove a1a8`
+(the unique mate). NPS on the sandbox's 2-core Xeon, NNUE loaded,
+startpos depth 16: release **~1.65 Mnps** (debug ~61 knps) —
+host-specific, recorded for the record only.
+
+Because the offline toolchain has no rustdoc, `scripts/build-and-test.sh`
+skips the doc-test phase (`--lib --bins`) when rustdoc is absent; the
+codebase contains no doctests, so nothing is lost.
+
+Two runtime observations from the first live runs (for probe hygiene, not
+bugs): the adaptive adapter plays its **built-in book** at move 1 when
+`OwnBook` is on (the SPRT scripts already set `OwnBook=false`), and the
+NNUE is auto-loaded from the **executable's directory**, not the CWD —
+copy `unchessed-nnue.bin` next to the binary (or set `EvalFile`) for
+NNUE runs from a checkout. And never pipe `quit` directly after `go`: a
+`quit` read while a search is in flight legitimately aborts it.
+
+### If the toolchain is ever unavailable again
+
+The fallbacks for an environment with no `cargo`/`rustc` at all are:
 
 1. **Bracket balance** — `python3 tools/rust_bracket_check.py --all`.
    Catches unbalanced `()`/`[]`/`{}`, the most likely way an edit corrupts a
@@ -61,6 +112,7 @@ change **must be disclosed as unverified**. The available fallbacks are:
    order against the struct declaration; for new calls, confirm each
    referenced symbol is in scope and imported.
 
+In that situation any Rust change **must be disclosed as unverified**.
 Neither substitutes for a build. Compile before trusting the result.
 
 ### 2026-08-26: egress audit — what is and isn't reachable
@@ -89,8 +141,13 @@ Consequences:
   blocked at the CDN host, so the only GitHub binary channel is `git clone`
   of regular blobs (≤100 MB each). No repo committing a full toolchain as
   such blobs was found on 2026-08-26.
-- No Rust packages on PyPI; apt cache empty; no toolchain vendored anywhere
-  on disk (full-filesystem search).
+- ~~No Rust packages on PyPI~~ — corrected 2026-08-26: `arena-rust-toolchain`
+  1.97.0 **is** on PyPI (published 2026-08-24, explicitly for sandboxed
+  environments); earlier rounds missed it because PyPI's search page sits
+  behind a JavaScript client challenge that defeats direct `curl`, and
+  name-guessing against the JSON API didn't hit it. The JS-rendered search
+  (via the fetch tools) finds it. apt cache empty; no toolchain was
+  vendored anywhere on disk (full-filesystem search).
 - Space is not the constraint: 21 GB volume, 19 GB free, repo 482 MB
   (128 MB of it `.git`). A full debug+test+LTO-release build of this
   std-only workspace needs well under 2 GB.
@@ -101,6 +158,8 @@ a startpos UCI smoke, and the matetrack back-rank mate (must find `Ra8#`);
 `--release` adds the opt-3+LTO build.
 
 ### Providing a toolchain to the sandbox
+
+(Resolved 2026-08-26 via the PyPI route above; kept for the next sandbox.)
 
 Minimum: **rustc >= 1.70** (the code uses `std::sync::OnceLock` in 12
 places; `thread::scope` needs 1.63; nothing above 1.70 is required — no

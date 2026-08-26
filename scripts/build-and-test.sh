@@ -60,7 +60,15 @@ cargo build --workspace
 echo "== cargo test --workspace (test profile: opt-level 2) =="
 # Runs every unit test, including the perft correctness gate, the
 # SearchParams/EvalParams defaults, and budget_speeds_up_as_clock_drains.
-cargo test --workspace
+# The offline toolchain shipped via `arena-rust-toolchain` on PyPI has no
+# rustdoc, and this codebase has no doctests, so the doc-test phase is
+# skipped (nothing is lost) when rustdoc is absent.
+if command -v rustdoc >/dev/null 2>&1; then
+  cargo test --workspace
+else
+  echo "(rustdoc not in this toolchain; no doctests exist, running --lib --bins)"
+  cargo test --workspace --lib --bins
+fi
 
 ADAPTER=target/debug/unchessed-adapter
 test -x "$ADAPTER"

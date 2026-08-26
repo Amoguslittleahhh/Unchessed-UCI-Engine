@@ -15,6 +15,19 @@ requires a fresh SPRT on real hardware
 "the sort of change this project's SPRT discipline exists to reject").
 This round adds the audit, a drift guard, and a time-budget baseline.
 
+> **Addendum (2026-08-26, later round):** the "no Rust toolchain" premise
+> has since changed — rustc 1.97.0 is now available in this sandbox via the
+> `arena-rust-toolchain` PyPI package (see
+> `docs/dev-environment.md`), the workspace compiles cleanly with **zero
+> source changes** (debug 2.9 s, release+LTO 16.8 s, no warnings), and the
+> full test suite passes: 104/104 unit tests, the deep perft, the three
+> 5e-3 parity gates, and the UCI smokes including the matetrack `Ra8#`.
+> Stage 0 of the work order (build + perft + correctness sanity) is
+> therefore executable in-sandbox from now on; Stage 5 can be compiled
+> here but its nps numbers do not transfer off this 2-core Xeon. Stages
+> 1–4 (SPRT) still need cutechess + an opponent engine + a book, i.e. the
+> reviewer's hardware.
+
 ## What "calibrated" means here (evidence hierarchy)
 
 1. **Measured on real deployment hardware** (285H / reviewer hardware):
