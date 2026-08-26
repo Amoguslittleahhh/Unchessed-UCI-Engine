@@ -10,6 +10,16 @@
 #   bash scripts/build-and-test.sh --release  # additionally: release build
 #                                             # (opt-level 3 + LTO, slow)
 #
+# Toolchain: rustc >= 1.70 (the code uses std::sync::OnceLock; any recent
+# stable is fine). To use a toolchain provided at a non-default location,
+# point TOOLCHAIN_DIR at the toolchain root (the directory containing bin/):
+#
+#   TOOLCHAIN_DIR=/opt/rust-1.85.0-x86_64-unknown-linux-gnu \
+#     bash scripts/build-and-test.sh
+#
+# A standard rustup layout (~/.cargo/bin + ~/.rustup) works as-is once
+# ~/.cargo/bin is on PATH.
+
 # Disk budget (measured 2026-08-26 on a 21 GB volume with 19 GB free):
 # the workspace is small (13.6k lines of core, ZERO external crate
 # dependencies — every member is std-only plus path deps), so
@@ -18,6 +28,18 @@
 # Space has never been the blocker; the toolchain is.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+
+# Optional provided toolchain: TOOLCHAIN_DIR is the toolchain root
+# (the directory containing bin/cargo). Plain extracted
+# rust-1.7x+-x86_64-unknown-linux-gnu trees work directly; rustup shims work
+# too if their ~/.rustup is visible from the default environment.
+if [ -n "${TOOLCHAIN_DIR:-}" ]; then
+  test -x "$TOOLCHAIN_DIR/bin/cargo" || {
+    echo "TOOLCHAIN_DIR=$TOOLCHAIN_DIR has no executable bin/cargo" >&2
+    exit 3
+  }
+  export PATH="$TOOLCHAIN_DIR/bin:$PATH"
+fi
 
 if ! command -v cargo >/dev/null 2>&1; then
   echo "cargo not found on PATH. Nothing else in this script can proceed;" >&2

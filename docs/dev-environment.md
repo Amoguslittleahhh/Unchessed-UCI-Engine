@@ -100,6 +100,25 @@ whole job: debug build, full test suite (incl. the perft correctness gate),
 a startpos UCI smoke, and the matetrack back-rank mate (must find `Ra8#`);
 `--release` adds the opt-3+LTO build.
 
+### Providing a toolchain to the sandbox
+
+Minimum: **rustc >= 1.70** (the code uses `std::sync::OnceLock` in 12
+places; `thread::scope` needs 1.63; nothing above 1.70 is required — no
+`LazyLock`, no `is_some_and`, edition 2021, zero external crates). Any
+recent stable works. Three layouts, in order of preference:
+
+1. **Plain extracted toolchain** — the contents of
+   `rust-1.8x.x-x86_64-unknown-linux-gnu.tar.(x)z` anywhere, then
+   `TOOLCHAIN_DIR=/that/root bash scripts/build-and-test.sh`
+   (the script expects `/that/root/bin/cargo`).
+2. **Standard rustup layout** — `~/.cargo/bin` +
+   `~/.rustup/toolchains/<ver>-x86_64-unknown-linux-gnu` for user 1001,
+   with `~/.cargo/bin` on `PATH`; then just `bash scripts/build-and-test.sh`.
+3. **Anything else** — `PATH=/wherever/bin:$PATH bash scripts/build-and-test.sh`.
+
+Only the `x86_64-unknown-linux-gnu` target is needed (the sandbox is
+x86_64 Linux; no cross-compilation is part of the workflow).
+
 ## Ephemeral scratch space
 
 `/tmp` does not survive between sessions here: virtualenvs, scratch C
