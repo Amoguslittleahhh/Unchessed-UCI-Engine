@@ -63,6 +63,43 @@ change **must be disclosed as unverified**. The available fallbacks are:
 
 Neither substitutes for a build. Compile before trusting the result.
 
+### 2026-08-26: egress audit — what is and isn't reachable
+
+Measured with direct probes (the sandbox's egress is a narrow host
+allowlist; the fetch tools' proxy has different, text-only egress):
+
+| Reachable | Blocked |
+|---|---|
+| pypi.org, files.pythonhosted.org | static.rust-lang.org, sh.rustup.rs |
+| github.com (HTTPS **and git protocol**), api.github.com | crates.io, index.crates.io, static.crates.io |
+| | deb.debian.org (http and https) — so apt is useless even though passwordless `sudo` works |
+| | musl.cc, rsproxy.cn, mirrors.ustc.edu.cn, mirrors.tuna.tsinghua.edu.cn |
+| | ferrocene.dev / releases.ferrocene.dev |
+| | objects.githubusercontent.com (release-asset redirects), raw.githubusercontent.com, media.githubusercontent.com (git-LFS) |
+
+Consequences:
+
+- **The workspace has zero external crate dependencies** — all four
+  members (`unchessed-core`, `unchessed-adapter`, `unchessed-reviewer`,
+  `unchessed-datagen`) are std-only plus path dependencies (verified from
+  the `Cargo.toml`s; `Cargo.lock` is committed). The crates.io block is
+  therefore irrelevant to building: **the toolchain binaries are the only
+  missing input.**
+- GitHub release assets (ferrocene and friends) and git-LFS are both
+  blocked at the CDN host, so the only GitHub binary channel is `git clone`
+  of regular blobs (≤100 MB each). No repo committing a full toolchain as
+  such blobs was found on 2026-08-26.
+- No Rust packages on PyPI; apt cache empty; no toolchain vendored anywhere
+  on disk (full-filesystem search).
+- Space is not the constraint: 21 GB volume, 19 GB free, repo 482 MB
+  (128 MB of it `.git`). A full debug+test+LTO-release build of this
+  std-only workspace needs well under 2 GB.
+
+On any machine with a toolchain, `bash scripts/build-and-test.sh` is the
+whole job: debug build, full test suite (incl. the perft correctness gate),
+a startpos UCI smoke, and the matetrack back-rank mate (must find `Ra8#`);
+`--release` adds the opt-3+LTO build.
+
 ## Ephemeral scratch space
 
 `/tmp` does not survive between sessions here: virtualenvs, scratch C
