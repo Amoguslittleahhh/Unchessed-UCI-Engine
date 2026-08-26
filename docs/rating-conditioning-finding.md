@@ -82,7 +82,13 @@ Concretely, and in priority order alongside the earlier findings:
 
 1. widen GAB to at least the paper's 5M configuration (d1=32, d2=d3=64);
 2. give rating a real conditioning path, and verify it with this tool before
-   trusting it;
+   trusting it. `docs/research-notes-maia-levels-reverse-engineering.md`
+   reverse-engineered the Maia ladder's three generations and extracts the
+   two conditioning designs that demonstrably work at scale (Maia-2's
+   discrete self/opponent bucket embeddings; Maia-3's interpolated anchor
+   embeddings) — both take TWO inputs (self and opponent skill), not the
+   single scalar this doc found inert. `tools/build_level_conditioned_moves.py`
+   already emits the dual-elo move labels a retrain would train on;
 3. theme-balanced sampling toward quiet/mate/fork positions
    (`docs/unarchitectured-v1-theme-breakdown.md`);
 4. weight clipping so the result is quantizable

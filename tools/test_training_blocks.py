@@ -199,7 +199,16 @@ class TestCommittedBlocks:
 
     def test_total_game_count(self):
         manifest = json.loads(MANIFEST.read_text())
-        assert sum(b["games"] for b in manifest["blocks"]) == 71987
+        assert sum(b["games"] for b in manifest["blocks"]) == 71961
+
+    def test_carlsen_block_correction_recorded(self):
+        # 2026-08-26: re-running `clean` on the round-14 Carlsen block
+        # found 26 SAN-desync games the manifest had (unmeasured) claimed
+        # zero; the block was re-cleaned and the manifest updated.
+        manifest = json.loads(MANIFEST.read_text())
+        carlsen = next(b for b in manifest["blocks"] if "Carlsen" in b["path"])
+        assert carlsen["games"] == 4288
+        assert carlsen["illegal_games_dropped"] == 26
 
 
 class TestCli:

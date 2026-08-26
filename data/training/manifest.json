@@ -182,12 +182,12 @@
       "path": "data/training/players/Carlsen.pgn",
       "tier": "curated",
       "band_or_note": "player archive 2001-2022; rated games mean 2735, range 2050-2850",
-      "games": 4314,
-      "bytes": 3237879,
-      "sha256": "e587219fcb15b5d655bbd4a4807ef0eea3de33553b0365c11a10e398614b8227",
+      "games": 4288,
+      "bytes": 3348306,
+      "sha256": "3354ee18b4058f7f81d409af1bd251debb746e711e889d88bae50dfabcaed544",
       "source_path_in_repo": "PgnMentor/Carlsen.pgn",
       "full_move_validated": true,
-      "illegal_games_dropped": 0
+      "illegal_games_dropped": 26
     },
     {
       "path": "data/training/players/Nakamura.pgn",
@@ -231,7 +231,7 @@
     "elo-2300-2600": 22099,
     "elo-2600-3500": 1926
   },
-  "cross_block_duplicates": "200 games (0.28% of 71,987) appear in two blocks: Carlsen-Nakamura head-to-heads present in both player archives with identical headers. No dedupe was applied; pipelines should dedupe by a position+move key if needed.",
+  "cross_block_duplicates": "219 games (0.30% of 71,961) appear in two blocks: Carlsen-Nakamura head-to-heads present in both player archives with identical headers. No dedupe was applied; pipelines should dedupe by a position+move key if needed.",
   "known_caveats": [
     "world-championships files carry no WhiteElo/BlackElo tags; they are top-tier by definition and are kept as a separate (unbanded) block.",
     "platform blocks are slices of one release (2022-10-05) of the mirror's mega-clean set; deduped within the file (pgn-extract -C) but not against other blocks or releases.",
@@ -263,5 +263,6 @@
       "path": "Bundesliga/*, Britbase/*, Convekta/*, ...",
       "note": "league and club archives"
     }
-  ]
+  ],
+  "total_games": 71961
 }

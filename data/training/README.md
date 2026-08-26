@@ -24,12 +24,19 @@ per-block record):
 - **Provenance per file.** Source repo commit + in-repo path per block;
   the upstream caveat ("dups, dirty data, errors") is recorded.
 - **Honest gaps.** World Championship files carry no rating tags (kept as
-  a separate top-tier block); 200 Carlsen–Nakamura head-to-heads appear in
-  both player archives (0.28%, documented, not deduped); ratings are as
+  a separate top-tier block); 219 Carlsen–Nakamura head-to-heads appear in
+  both player archives (0.30%, documented, not deduped); ratings are as
   tagged by the source (lichess = platform-calibrated, self-registered
   accounts).
+- **Correction (2026-08-26).** Re-running `clean` on the round-14 Carlsen
+  block found 26 games (0.6% of that block) whose SAN text makes
+  python-chess 1.11.2 drop tokens — the manifest's
+  `illegal_games_dropped: 0` for that one block was never actually
+  measured. The block was re-cleaned in place (4,314 → 4,288 games) and
+  the manifest/counts above updated; all 14 other blocks re-verified with
+  zero dropped-token games.
 
-## Coverage (71,987 games)
+## Coverage (71,961 games)
 
 | Level | Games | Source |
 |---|---:|---|
@@ -39,7 +46,7 @@ per-block record):
 | 2000–2300 | 16,313 | lichess |
 | 2300–2600 | 22,099 | lichess |
 | ≥2600 | 1,926 | lichess |
-| GM player archives (2687–2735 mean) | 9,893 | Carlsen, Nakamura (PgnMentor) |
+| GM player archives (2687–2735 mean) | 9,867 | Carlsen, Nakamura (PgnMentor) |
 | Master leagues (2209–2647 mean) | 1,421 | Bundesliga 2006-07, British Champ 2017 |
 | TWIC weekly issues (1528–2786) | 9,666 | issues 400 / 1000 / 1649 |
 | World Championship (unrated tags, top-tier) | 622 | 1990, 1993 |
