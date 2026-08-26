@@ -1,0 +1,1422 @@
+{
+ "chessdata:Chessopolis.com/WCHAMP.pgn": {
+  "dir": null,
+  "file": "world-championship-matches.pgn",
+  "note": "split_by_era: World Championship matches 1886-1927"
+ },
+ "chessdata:WorldChampionships/V1LONDON.pgn": {
+  "dir": "world-championships",
+  "file": "london-1851-first-world-championship.pgn",
+  "note": ""
+ },
+ "chessdata:PgnMentor/London1851.pgn": {
+  "dir": "world-championships",
+  "file": "london-1851-tournament-full.pgn",
+  "note": ""
+ },
+ "chessdata:Old/bourdonnais-mcdonnell.pgn": {
+  "dir": "classics-1834-1899",
+  "file": "de-la-bourdonnais-mcdonnell-paris-1834.pgn",
+  "note": ""
+ },
+ "chessdata:Old/saint_amant_staunton_1843.pgn": {
+  "dir": "classics-1834-1899",
+  "file": "saint-amant-staunton-1843.pgn",
+  "note": ""
+ },
+ "chessdata:Old/old.pgn": {
+  "dir": "classics-1834-1899",
+  "file": "misc-19th-century.pgn",
+  "note": ""
+ },
+ "chessdata:ChessNostalgia.com/1800-1900.pgn": {
+  "dir": "classics-1834-1899",
+  "file": "nostalgia-1800-1900.pgn",
+  "note": ""
+ },
+ "chessdata:PgnMentor/Anderssen.pgn": {
+  "dir": "classics-1834-1899",
+  "file": "anderssen.pgn",
+  "note": ""
+ },
+ "chessdata:PgnMentor/Bird.pgn": {
+  "dir": null,
+  "file": "bird.pgn",
+  "note": "split_by_era"
+ },
+ "chessdata:PgnMentor/Blackburne.pgn": {
+  "dir": null,
+  "file": "blackburne.pgn",
+  "note": "split_by_era"
+ },
+ "chessdata:PgnMentor/Horwitz.pgn": {
+  "dir": "classics-1834-1899",
+  "file": "horwitz.pgn",
+  "note": ""
+ },
+ "chessdata:PgnMentor/Staunton.pgn": {
+  "dir": "classics-1834-1899",
+  "file": "staunton.pgn",
+  "note": ""
+ },
+ "chessdata:PgnMentor/Morphy.pgn": {
+  "dir": "classics-1834-1899",
+  "file": "morphy.pgn",
+  "note": ""
+ },
+ "chessdata:PgnMentor/Zukertort.pgn": {
+  "dir": "classics-1834-1899",
+  "file": "zukertort.pgn",
+  "note": ""
+ },
+ "scoutfish:pgn/immortal_games.pgn": {
+  "dir": "classics-1834-1899",
+  "file": "immortal-games.pgn",
+  "note": "annotated classics 1820-1993"
+ },
+ "scoutfish:pgn/great_masters.pgn": {
+  "dir": "classics-1834-1899",
+  "file": "great-masters.pgn",
+  "note": "annotated"
+ },
+ "scoutfish:pgn/hayes.pgn": {
+  "dir": "classics-1834-1899",
+  "file": "hayes-annotated-classics.pgn",
+  "note": "Paul Hayes annotations"
+ },
+ "scoutfish:pgn/schiller.pgn": {
+  "dir": "classics-1834-1899",
+  "file": "schiller-annotated-classics.pgn",
+  "note": "Schiller annotations"
+ },
+ "chessdata:ChessNostalgia.com/1901-1920.pgn": {
+  "dir": "1900-1945",
+  "file": "nostalgia-1901-1920.pgn",
+  "note": ""
+ },
+ "chessdata:ChessNostalgia.com/1921-1940.pgn": {
+  "dir": "1900-1945",
+  "file": "nostalgia-1921-1940.pgn",
+  "note": ""
+ },
+ "chessdata:PgnMentor/Lasker.pgn": {
+  "dir": null,
+  "file": "lasker.pgn",
+  "note": "split_by_era"
+ },
+ "chessdata:PgnMentor/Capablanca.pgn": {
+  "dir": "1900-1945",
+  "file": "capablanca.pgn",
+  "note": ""
+ },
+ "chessdata:PgnMentor/Alekhine.pgn": {
+  "dir": "1900-1945",
+  "file": "alekhine.pgn",
+  "note": ""
+ },
+ "chessdata:PgnMentor/Reti.pgn": {
+  "dir": "1900-1945",
+  "file": "reti.pgn",
+  "note": ""
+ },
+ "chessdata:PgnMentor/Nimzowitsch.pgn": {
+  "dir": "1900-1945",
+  "file": "nimzowitsch.pgn",
+  "note": ""
+ },
+ "chessdata:PgnMentor/Tartakower.pgn": {
+  "dir": null,
+  "file": "tartakower.pgn",
+  "note": "split_by_era"
+ },
+ "scoutfish:pgn/newyork1924.pgn": {
+  "dir": "1900-1945",
+  "file": "new-york-1924.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/194608bcf.pgn": {
+  "dir": "1946-1970",
+  "file": "british-championship-1946.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/194708bcf.pgn": {
+  "dir": "1946-1970",
+  "file": "british-championship-1947.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/194808bcf.pgn": {
+  "dir": "1946-1970",
+  "file": "british-championship-1948.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/194908bcf.pgn": {
+  "dir": "1946-1970",
+  "file": "british-championship-1949.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/195008bcf.pgn": {
+  "dir": "1946-1970",
+  "file": "british-championship-1950.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/195108bcf.pgn": {
+  "dir": "1946-1970",
+  "file": "british-championship-1951.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/195208bcf.pgn": {
+  "dir": "1946-1970",
+  "file": "british-championship-1952.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/195308bcf.pgn": {
+  "dir": "1946-1970",
+  "file": "british-championship-1953.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/195408bcf.pgn": {
+  "dir": "1946-1970",
+  "file": "british-championship-1954.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/195508bcf.pgn": {
+  "dir": "1946-1970",
+  "file": "british-championship-1955.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/pghast20.pgn": {
+  "dir": "1900-1945",
+  "file": "hastings-1920s.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/pghast30.pgn": {
+  "dir": "1900-1945",
+  "file": "hastings-1930s.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/pghast40.pgn": {
+  "dir": "1900-1945",
+  "file": "hastings-1945-1949.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/57$WC.pgn": {
+  "dir": "1946-1970",
+  "file": "wcc-1957.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/58$WC.pgn": {
+  "dir": "1946-1970",
+  "file": "wcc-1958.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/60$WC.pgn": {
+  "dir": "1946-1970",
+  "file": "wcc-1960.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/61$WC.pgn": {
+  "dir": "1946-1970",
+  "file": "wcc-1961.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/73LENING.pgn": {
+  "dir": "1946-1970",
+  "file": "candidates-leningrad-1973.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/73PETROP.pgn": {
+  "dir": "1946-1970",
+  "file": "zones-petrograd-1973.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/73POR-PO.pgn": {
+  "dir": "1946-1970",
+  "file": "interzonal-playoff-1973.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/76BIEL.pgn": {
+  "dir": "1946-1970",
+  "file": "interzonal-biel-1976.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/76MANILA.pgn": {
+  "dir": "1946-1970",
+  "file": "interzonal-manila-1976.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/76ROOSEN.pgn": {
+  "dir": "1946-1970",
+  "file": "interzonal-roosendaal-1976.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/76VAR-PO.pgn": {
+  "dir": "1946-1970",
+  "file": "interzonal-playoff-1976.pgn",
+  "note": ""
+ },
+ "scoutfish:pgn/moscow64.pgn": {
+  "dir": "1946-1970",
+  "file": "moscow-candidates-1964.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/196508bcf.pgn": {
+  "dir": "1946-1970",
+  "file": "british-championship-1965.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/196608bcf.pgn": {
+  "dir": "1946-1970",
+  "file": "british-championship-1966.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/196708bcf.pgn": {
+  "dir": "1946-1970",
+  "file": "british-championship-1967.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/196808bcf.pgn": {
+  "dir": "1946-1970",
+  "file": "british-championship-1968.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/196908bcf.pgn": {
+  "dir": "1946-1970",
+  "file": "british-championship-1969.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/197008bcf.pgn": {
+  "dir": "1946-1970",
+  "file": "british-championship-1970.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/197108bcf.pgn": {
+  "dir": "1971-1999",
+  "file": "british-championship-1971.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/197208bcf.pgn": {
+  "dir": "1971-1999",
+  "file": "british-championship-1972.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/197308bcf.pgn": {
+  "dir": "1971-1999",
+  "file": "british-championship-1973.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/197408bcf.pgn": {
+  "dir": "1971-1999",
+  "file": "british-championship-1974.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/197508bcf.pgn": {
+  "dir": "1971-1999",
+  "file": "british-championship-1975.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/197608bcf.pgn": {
+  "dir": "1971-1999",
+  "file": "british-championship-1976.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/197708bcf.pgn": {
+  "dir": "1971-1999",
+  "file": "british-championship-1977.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/197808bcf.pgn": {
+  "dir": "1971-1999",
+  "file": "british-championship-1978.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/197908bcf.pgn": {
+  "dir": "1971-1999",
+  "file": "british-championship-1979.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/pghast50.pgn": {
+  "dir": "1946-1970",
+  "file": "hastings-1950s.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/pghast60.pgn": {
+  "dir": "1946-1970",
+  "file": "hastings-1960s.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/pghast70.pgn": {
+  "dir": "1946-1970",
+  "file": "hastings-1970s.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/79RIGA.pgn": {
+  "dir": "1971-1999",
+  "file": "interzonal-riga-1979.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/79RIODEJ.pgn": {
+  "dir": "1971-1999",
+  "file": "interzonal-rio-de-janeiro-1979.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/79BUD-PO.pgn": {
+  "dir": "1971-1999",
+  "file": "interzonal-playoff-budapest-1979.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/82LASPAL.pgn": {
+  "dir": "1971-1999",
+  "file": "candidates-las-palmas-1982.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/82MOSCOW.pgn": {
+  "dir": "1971-1999",
+  "file": "candidates-moscow-1982.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/82TOLUCA.pgn": {
+  "dir": "1971-1999",
+  "file": "candidates-toluca-1982.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/84$WC.pgn": {
+  "dir": "1971-1999",
+  "file": "wcc-1984.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/85$WC.pgn": {
+  "dir": "1971-1999",
+  "file": "wcc-1985.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/85BIEL.pgn": {
+  "dir": "1971-1999",
+  "file": "interzonal-biel-1985.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/85BIELPO.pgn": {
+  "dir": "1971-1999",
+  "file": "interzonal-playoff-biel-1985.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/85MON$CP.pgn": {
+  "dir": "1971-1999",
+  "file": "candidates-monaco-1985-1.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/85MON$CT.pgn": {
+  "dir": "1971-1999",
+  "file": "candidates-monaco-1985-2.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/85TAXCO.pgn": {
+  "dir": "1971-1999",
+  "file": "interzonal-taxco-1985.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/85TUNIS.pgn": {
+  "dir": "1971-1999",
+  "file": "interzonal-tunis-1985.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/85TUNIPO.pgn": {
+  "dir": "1971-1999",
+  "file": "interzonal-playoff-tunis-1985.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/86$WC.pgn": {
+  "dir": "1971-1999",
+  "file": "wcc-1986.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/86C1KS.pgn": {
+  "dir": "1971-1999",
+  "file": "candidates-1986-pairing-1.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/86C2SY.pgn": {
+  "dir": "1971-1999",
+  "file": "candidates-1986-pairing-2.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/86C4SV.pgn": {
+  "dir": "1971-1999",
+  "file": "candidates-1986-pairing-3.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/86C4YT.pgn": {
+  "dir": "1971-1999",
+  "file": "candidates-1986-pairing-4.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/87BUDAPE.pgn": {
+  "dir": "1971-1999",
+  "file": "interzonal-budapest-1987.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/87HAVANA.pgn": {
+  "dir": "1971-1999",
+  "file": "interzonal-havana-1987.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/87SUBOTI.pgn": {
+  "dir": "1971-1999",
+  "file": "interzonal-subotica-1987.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/87SZIRAK.pgn": {
+  "dir": "1971-1999",
+  "file": "interzonal-szirak-1987.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/87TUZLA.pgn": {
+  "dir": "1971-1999",
+  "file": "interzonal-tuzla-1987.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/87ZAGREB.pgn": {
+  "dir": "1971-1999",
+  "file": "interzonal-zagreb-1987.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/90AZOV.pgn": {
+  "dir": "1971-1999",
+  "file": "candidates-azov-1990.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/93BIEL.pgn": {
+  "dir": "1971-1999",
+  "file": "interzonal-biel-1993.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/93GROPCQ.pgn": {
+  "dir": "1971-1999",
+  "file": "candidates-group-1993.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/93PWKS.pgn": {
+  "dir": "1971-1999",
+  "file": "wcc-playoff-1993.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/93PWKS-X.pgn": {
+  "dir": "1971-1999",
+  "file": "wcc-playoff-1993-tiebreak.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/94P1AK.pgn": {
+  "dir": "1971-1999",
+  "file": "candidates-1994-95-1.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/94P2AA.pgn": {
+  "dir": "1971-1999",
+  "file": "candidates-1994-95-2.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/94P2KS.pgn": {
+  "dir": "1971-1999",
+  "file": "candidates-1994-95-3.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/94P4AR.pgn": {
+  "dir": "1971-1999",
+  "file": "candidates-1994-95-4.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/94P4AT.pgn": {
+  "dir": "1971-1999",
+  "file": "candidates-1994-95-5.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/94P4KK.pgn": {
+  "dir": "1971-1999",
+  "file": "candidates-1994-95-6.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/94P4SG.pgn": {
+  "dir": "1971-1999",
+  "file": "candidates-1994-95-7.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/9805ASVK.pgn": {
+  "dir": "1971-1999",
+  "file": "wcc-playoff-1998-1.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/9806GKVT.pgn": {
+  "dir": "1971-1999",
+  "file": "wcc-playoff-1998-2.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/9809GKJT.pgn": {
+  "dir": "1971-1999",
+  "file": "wcc-playoff-1998-3.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/9811GKVK.pgn": {
+  "dir": "1971-1999",
+  "file": "wcc-playoff-1998-4.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/9906GKTW.pgn": {
+  "dir": "1971-1999",
+  "file": "kasparov-vs-the-world-1999.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/BOUAZIZ.pgn": {
+  "dir": "1971-1999",
+  "file": "interzonal-playoff-1985-solo.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/KAVALEK.pgn": {
+  "dir": "1971-1999",
+  "file": "interzonal-playoff-1987-solo.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/MECKING.pgn": {
+  "dir": "1971-1999",
+  "file": "interzonal-playoff-1979-solo.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/SOLTBEST.pgn": {
+  "dir": "1971-1999",
+  "file": "misc-candidates-1953-1994.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/199007bcf.pgn": {
+  "dir": "1971-1999",
+  "file": "british-championship-1990.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/pghast80.pgn": {
+  "dir": "1971-1999",
+  "file": "hastings-1980s.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/pghast90.pgn": {
+  "dir": "1971-1999",
+  "file": "hastings-1990s.pgn",
+  "note": ""
+ },
+ "chessdata:Chessopolis.com/DEN80-CH.pgn": {
+  "dir": "1971-1999",
+  "file": "denmark-championship-1980.pgn",
+  "note": ""
+ },
+ "chessdata:Chessopolis.com/DEN84-CH.pgn": {
+  "dir": "1971-1999",
+  "file": "denmark-championship-1984.pgn",
+  "note": ""
+ },
+ "chessdata:Chessopolis.com/PCA-CT1.pgn": {
+  "dir": "1971-1999",
+  "file": "pca-candidates-1993-1.pgn",
+  "note": ""
+ },
+ "chessdata:Chessopolis.com/PCA-CT2.pgn": {
+  "dir": "1971-1999",
+  "file": "pca-candidates-1993-2.pgn",
+  "note": ""
+ },
+ "chessdata:Chessopolis.com/PCA-CT3.pgn": {
+  "dir": "1971-1999",
+  "file": "pca-candidates-1993-3.pgn",
+  "note": ""
+ },
+ "chessdata:Chessopolis.com/PCA-IZT.pgn": {
+  "dir": "1971-1999",
+  "file": "pca-interzonals-1993.pgn",
+  "note": ""
+ },
+ "chessdata:Chessopolis.com/PCA-WCH.pgn": {
+  "dir": "1971-1999",
+  "file": "pca-world-championship-1993.pgn",
+  "note": ""
+ },
+ "chessdata:Chessopolis.com/IRISH.pgn": {
+  "dir": "1971-1999",
+  "file": "ireland-championships-1964-1991.pgn",
+  "note": ""
+ },
+ "chessdata:Chessopolis.com/ITALY.pgn": {
+  "dir": null,
+  "file": "italy-championships.pgn",
+  "note": "split_by_era"
+ },
+ "chessdata:Chessopolis.com/CANADA.pgn": {
+  "dir": "1971-1999",
+  "file": "canada-day-open-1992.pgn",
+  "note": ""
+ },
+ "chessdata:Chessopolis.com/CROATIA.pgn": {
+  "dir": "1971-1999",
+  "file": "croatia-championships-1992-1995.pgn",
+  "note": ""
+ },
+ "chessdata:Chessopolis.com/SWEDEN-A.pgn": {
+  "dir": null,
+  "file": "sweden-championships.pgn",
+  "note": "split_by_era"
+ },
+ "chessdata:RebelSite/mega2600.pgn": {
+  "dir": "1971-1999",
+  "file": "megadatabase-2600-1970-1998.pgn",
+  "note": "9,078 games, all rated 2600+, 1970-1998"
+ },
+ "scoutfish:pgn/kramnik.pgn": {
+  "dir": "1971-1999",
+  "file": "kramnik-selected-games.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2007_Dortmund.pgn": {
+  "dir": "2000-plus",
+  "file": "2007_dortmund.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2007_Elista.pgn": {
+  "dir": "2000-plus",
+  "file": "2007_elista.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2007_World_Championship.pgn": {
+  "dir": "2000-plus",
+  "file": "2007_world_championship.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2008_AmberBlind.pgn": {
+  "dir": "2000-plus",
+  "file": "2008_amberblind.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2008_AmberRapid.pgn": {
+  "dir": "2000-plus",
+  "file": "2008_amberrapid.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2008_AtaturkWomen.pgn": {
+  "dir": "womens",
+  "file": "2008_ataturkwomen.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2008_Baku_-_FIDE_Grand_Prix_2008-10.pgn": {
+  "dir": "2000-plus",
+  "file": "2008_baku___fide_grand_prix_2008_10.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2008_Biel.pgn": {
+  "dir": "2000-plus",
+  "file": "2008_biel.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2008_BilbaoMasters.pgn": {
+  "dir": "2000-plus",
+  "file": "2008_bilbaomasters.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2008_Dortmund.pgn": {
+  "dir": "2000-plus",
+  "file": "2008_dortmund.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2008_Elista_-_FIDE_Grand_Prix_2008-10.pgn": {
+  "dir": "2000-plus",
+  "file": "2008_elista___fide_grand_prix_2008_10.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2008_MoreliaLinares.pgn": {
+  "dir": "2000-plus",
+  "file": "2008_morelialinares.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2008_North_Urals_Cup.pgn": {
+  "dir": "2000-plus",
+  "file": "2008_north_urals_cup.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2008_Poikovsky.pgn": {
+  "dir": "2000-plus",
+  "file": "2008_poikovsky.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2008_SCT_LadiesOpen.pgn": {
+  "dir": "womens",
+  "file": "2008_sct_ladiesopen.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2008_SPICE_Cup.pgn": {
+  "dir": "2000-plus",
+  "file": "2008_spice_cup.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2008_Sochi_-_FIDE_Grand_Prix_2008-10.pgn": {
+  "dir": "2000-plus",
+  "file": "2008_sochi___fide_grand_prix_2008_10.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2008_Tal_Memorial.pgn": {
+  "dir": "2000-plus",
+  "file": "2008_tal_memorial.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2008_WomenWCC.pgn": {
+  "dir": "womens",
+  "file": "2008_womenwcc.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2008_World_Championship_-_quasi_rematch.pgn": {
+  "dir": "2000-plus",
+  "file": "2008_world_championship___quasi_rematch.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2009_ACP_World_Rapid.pgn": {
+  "dir": "2000-plus",
+  "file": "2009_acp_world_rapid.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2009_AmberBlind.pgn": {
+  "dir": "2000-plus",
+  "file": "2009_amberblind.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2009_AmberRapid.pgn": {
+  "dir": "2000-plus",
+  "file": "2009_amberrapid.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2009_Anand_Karpov.pgn": {
+  "dir": "2000-plus",
+  "file": "2009_anand_karpov.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2009_Bazna.pgn": {
+  "dir": "2000-plus",
+  "file": "2009_bazna.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2009_Biel.pgn": {
+  "dir": "2000-plus",
+  "file": "2009_biel.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2009_Bilbao.pgn": {
+  "dir": "2000-plus",
+  "file": "2009_bilbao.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2009_Corus.pgn": {
+  "dir": "2000-plus",
+  "file": "2009_corus.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2009_Dortmund.pgn": {
+  "dir": "2000-plus",
+  "file": "2009_dortmund.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2009_FIDE_GP_Jermuk.pgn": {
+  "dir": "2000-plus",
+  "file": "2009_fide_gp_jermuk.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2009_FIDE_GP_Nalchik.pgn": {
+  "dir": "2000-plus",
+  "file": "2009_fide_gp_nalchik.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2009_FIDE_Women_GP_Istanbul.pgn": {
+  "dir": "womens",
+  "file": "2009_fide_women_gp_istanbul.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2009_FIDE_Women_GP_Nanjing.pgn": {
+  "dir": "womens",
+  "file": "2009_fide_women_gp_nanjing.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2009_Karpov_Kasparov.pgn": {
+  "dir": "2000-plus",
+  "file": "2009_karpov_kasparov.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2009_Korchnoi_Spassky.pgn": {
+  "dir": "2000-plus",
+  "file": "2009_korchnoi_spassky.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2009_Leko_Anand.pgn": {
+  "dir": "2000-plus",
+  "file": "2009_leko_anand.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2009_Linares.pgn": {
+  "dir": "2000-plus",
+  "file": "2009_linares.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2009_London.pgn": {
+  "dir": "2000-plus",
+  "file": "2009_london.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2009_M-Tel_Masters.pgn": {
+  "dir": "2000-plus",
+  "file": "2009_m_tel_masters.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2009_Mainz_rapid.pgn": {
+  "dir": "2000-plus",
+  "file": "2009_mainz_rapid.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2009_Nanjing.pgn": {
+  "dir": "2000-plus",
+  "file": "2009_nanjing.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2009_Poikovsky.pgn": {
+  "dir": "2000-plus",
+  "file": "2009_poikovsky.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2009_Presidents_Cup.pgn": {
+  "dir": "2000-plus",
+  "file": "2009_presidents_cup.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2009_Russian_Championship.pgn": {
+  "dir": "2000-plus",
+  "file": "2009_russian_championship.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2009_Tal_Memorial.pgn": {
+  "dir": "2000-plus",
+  "file": "2009_tal_memorial.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2009_US_Championship.pgn": {
+  "dir": "2000-plus",
+  "file": "2009_us_championship.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2009_US_Womens_Championship.pgn": {
+  "dir": "womens",
+  "file": "2009_us_womens_championship.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2009_WTCC.pgn": {
+  "dir": "2000-plus",
+  "file": "2009_wtcc.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2009_World_Cup.pgn": {
+  "dir": "2000-plus",
+  "file": "2009_world_cup.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2010_Amsterdam.pgn": {
+  "dir": "2000-plus",
+  "file": "2010_amsterdam.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2010_Astrakhan_-_FIDE_Grand_Prix_2008-10.pgn": {
+  "dir": "2000-plus",
+  "file": "2010_astrakhan___fide_grand_prix_2008_10.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2010_Bazna.pgn": {
+  "dir": "2000-plus",
+  "file": "2010_bazna.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2010_Biel.pgn": {
+  "dir": "2000-plus",
+  "file": "2010_biel.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2010_Bilbao.pgn": {
+  "dir": "2000-plus",
+  "file": "2010_bilbao.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2010_Cap_dAgde.pgn": {
+  "dir": "2000-plus",
+  "file": "2010_cap_dagde.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2010_Dortmund.pgn": {
+  "dir": "2000-plus",
+  "file": "2010_dortmund.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2010_FIDE_Women_GP_Jermuk.pgn": {
+  "dir": "womens",
+  "file": "2010_fide_women_gp_jermuk.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2010_FIDE_Women_GP_Nalchik.pgn": {
+  "dir": "womens",
+  "file": "2010_fide_women_gp_nalchik.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2010_FIDE_Women_GP_Ulan_Bator.pgn": {
+  "dir": "womens",
+  "file": "2010_fide_women_gp_ulan_bator.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2010_Havana.pgn": {
+  "dir": "2000-plus",
+  "file": "2010_havana.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2010_Kristiansund.pgn": {
+  "dir": "2000-plus",
+  "file": "2010_kristiansund.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2010_Linares.pgn": {
+  "dir": "2000-plus",
+  "file": "2010_linares.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2010_London.pgn": {
+  "dir": "2000-plus",
+  "file": "2010_london.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2010_Nanjing.pgn": {
+  "dir": "2000-plus",
+  "file": "2010_nanjing.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2010_Poikovsky.pgn": {
+  "dir": "2000-plus",
+  "file": "2010_poikovsky.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2010_Presidents_Cup.pgn": {
+  "dir": "2000-plus",
+  "file": "2010_presidents_cup.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2010_Reggio_Emilia.pgn": {
+  "dir": "2000-plus",
+  "file": "2010_reggio_emilia.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2010_Russian_Championship.pgn": {
+  "dir": "2000-plus",
+  "file": "2010_russian_championship.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2010_Shanghai.pgn": {
+  "dir": "2000-plus",
+  "file": "2010_shanghai.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2010_Tal_Memorial.pgn": {
+  "dir": "2000-plus",
+  "file": "2010_tal_memorial.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2010_US_Championship.pgn": {
+  "dir": "2000-plus",
+  "file": "2010_us_championship.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2010_US_Womens_Championship.pgn": {
+  "dir": "womens",
+  "file": "2010_us_womens_championship.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2010_Wijk_aan_Zee.pgn": {
+  "dir": "2000-plus",
+  "file": "2010_wijk_aan_zee.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2010_Women_World.pgn": {
+  "dir": "womens",
+  "file": "2010_women_world.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2010_World_Blitz.pgn": {
+  "dir": "2000-plus",
+  "file": "2010_world_blitz.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2010_World_Championship.pgn": {
+  "dir": "2000-plus",
+  "file": "2010_world_championship.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2011_Amber_rapid.pgn": {
+  "dir": "2000-plus",
+  "file": "2011_amber_rapid.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2011_FIDE_Women_GP_Doha.pgn": {
+  "dir": "womens",
+  "file": "2011_fide_women_gp_doha.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2011_US_Championship.pgn": {
+  "dir": "2000-plus",
+  "file": "2011_us_championship.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2011_US_Womens_Championship.pgn": {
+  "dir": "womens",
+  "file": "2011_us_womens_championship.pgn",
+  "note": ""
+ },
+ "chessdata:PgnDownloads/2011_Wijk_aan_Zee.pgn": {
+  "dir": "2000-plus",
+  "file": "2011_wijk_aan_zee.pgn",
+  "note": ""
+ },
+ "chessdata:Corus/2003.pgn": {
+  "dir": "2000-plus",
+  "file": "tata-steel-wijk-aan-zee-2003.pgn",
+  "note": ""
+ },
+ "chessdata:Corus/2004.pgn": {
+  "dir": "2000-plus",
+  "file": "tata-steel-wijk-aan-zee-2004.pgn",
+  "note": ""
+ },
+ "chessdata:Corus/2005.pgn": {
+  "dir": "2000-plus",
+  "file": "tata-steel-wijk-aan-zee-2005.pgn",
+  "note": ""
+ },
+ "chessdata:Corus/2006.pgn": {
+  "dir": "2000-plus",
+  "file": "tata-steel-wijk-aan-zee-2006.pgn",
+  "note": ""
+ },
+ "chessdata:Corus/2007.pgn": {
+  "dir": "2000-plus",
+  "file": "tata-steel-wijk-aan-zee-2007.pgn",
+  "note": ""
+ },
+ "chessdata:Corus/2008.pgn": {
+  "dir": "2000-plus",
+  "file": "tata-steel-wijk-aan-zee-2008.pgn",
+  "note": ""
+ },
+ "chessdata:Corus/2009.pgn": {
+  "dir": "2000-plus",
+  "file": "tata-steel-wijk-aan-zee-2009.pgn",
+  "note": ""
+ },
+ "chessdata:Corus/2010.pgn": {
+  "dir": "2000-plus",
+  "file": "tata-steel-wijk-aan-zee-2010.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/200408britchamp.pgn": {
+  "dir": "2000-plus",
+  "file": "british-championship-2004.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/200508britchamp.pgn": {
+  "dir": "2000-plus",
+  "file": "british-championship-2005.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/200608britchamp.pgn": {
+  "dir": "2000-plus",
+  "file": "british-championship-2006.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/200707britchamp.pgn": {
+  "dir": "2000-plus",
+  "file": "british-championship-2007.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/200807britchamp.pgn": {
+  "dir": "2000-plus",
+  "file": "british-championship-2008.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/200907britchamp.pgn": {
+  "dir": "2000-plus",
+  "file": "british-championship-2009.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/201007britchamp.pgn": {
+  "dir": "2000-plus",
+  "file": "british-championship-2010.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/201107britchamp.pgn": {
+  "dir": "2000-plus",
+  "file": "british-championship-2011.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/201207britchamp.pgn": {
+  "dir": "2000-plus",
+  "file": "british-championship-2012.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/201307britchamp.pgn": {
+  "dir": "2000-plus",
+  "file": "british-championship-2013.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/201407britchamp.pgn": {
+  "dir": "2000-plus",
+  "file": "british-championship-2014.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/201507britchamp.pgn": {
+  "dir": "2000-plus",
+  "file": "british-championship-2015.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/201607britchamp.pgn": {
+  "dir": "2000-plus",
+  "file": "british-championship-2016.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/201707britchamp.pgn": {
+  "dir": "2000-plus",
+  "file": "british-championship-2017.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/201512hast.pgn": {
+  "dir": "2000-plus",
+  "file": "hastings-2015.pgn",
+  "note": ""
+ },
+ "chessdata:Britbase/pghast00.pgn": {
+  "dir": "2000-plus",
+  "file": "hastings-2000s.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/02C1LT.pgn": {
+  "dir": "2000-plus",
+  "file": "candidates-sparkassen-2002-final.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/02C2LS.pgn": {
+  "dir": "2000-plus",
+  "file": "candidates-sparkassen-2002-sf1.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/02C2TB.pgn": {
+  "dir": "2000-plus",
+  "file": "candidates-sparkassen-2002-tiebreak.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/02G1.pgn": {
+  "dir": "2000-plus",
+  "file": "candidates-sparkassen-2002-g1.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/02G1PO.pgn": {
+  "dir": "2000-plus",
+  "file": "candidates-sparkassen-2002-g1-tiebreak.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/02G2.pgn": {
+  "dir": "2000-plus",
+  "file": "candidates-sparkassen-2002-g2.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/A0WCKK.pgn": {
+  "dir": "2000-plus",
+  "file": "wcc-2000.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/A4WCKL.pgn": {
+  "dir": "2000-plus",
+  "file": "wcc-2004.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/A6WCKT.pgn": {
+  "dir": "2000-plus",
+  "file": "wcc-2006.pgn",
+  "note": ""
+ },
+ "chessdata:Tournament/kvika-open-clean.pgn": {
+  "dir": "2000-plus",
+  "file": "kvika-reykjavik-open-2022.pgn",
+  "note": ""
+ },
+ "chessdata:Tournament/sinqcup22.pgn": {
+  "dir": "2000-plus",
+  "file": "sinqcup-2022.pgn",
+  "note": ""
+ },
+ "chessdata:PgnMentor/PolgarJ.pgn": {
+  "dir": "womens",
+  "file": "polgar-judith.pgn",
+  "note": ""
+ },
+ "chessdata:PgnMentor/PolgarS.pgn": {
+  "dir": "womens",
+  "file": "polgar-suzanne.pgn",
+  "note": ""
+ },
+ "chessdata:PgnMentor/PolgarZ.pgn": {
+  "dir": "womens",
+  "file": "polgar-zsofia.pgn",
+  "note": ""
+ },
+ "chessdata:PgnMentor/Kosteniuk.pgn": {
+  "dir": "womens",
+  "file": "kosteniuk.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/90GEN.pgn": {
+  "dir": "womens",
+  "file": "women-interzonal-geneva-1990.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/90GEN-PO.pgn": {
+  "dir": "womens",
+  "file": "women-interzonal-playoff-1990.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/93FWCKT.pgn": {
+  "dir": "womens",
+  "file": "women-wcc-1993.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/94F1KG.pgn": {
+  "dir": "womens",
+  "file": "women-wcc-1994-95-match-1.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/94F1KS.pgn": {
+  "dir": "womens",
+  "file": "women-wcc-1994-95-match-2.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/94F2GK.pgn": {
+  "dir": "womens",
+  "file": "women-wcc-1994-95-match-3.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/94F2KA.pgn": {
+  "dir": "womens",
+  "file": "women-wcc-1994-95-match-4.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/94F2ST.pgn": {
+  "dir": "womens",
+  "file": "women-wcc-1994-95-match-5.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/94F4AY.pgn": {
+  "dir": "womens",
+  "file": "women-wcc-1994-match-1.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/94F4GA.pgn": {
+  "dir": "womens",
+  "file": "women-wcc-1994-match-2.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/94F4KV.pgn": {
+  "dir": "womens",
+  "file": "women-wcc-1994-match-3.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/94F4KY.pgn": {
+  "dir": "womens",
+  "file": "women-wcc-1994-match-4.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/94F4SK.pgn": {
+  "dir": "womens",
+  "file": "women-wcc-1994-match-5.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/95PWC.pgn": {
+  "dir": "womens",
+  "file": "women-wcc-pca-1995.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/96FWC.pgn": {
+  "dir": "womens",
+  "file": "women-wcc-fide-1996.pgn",
+  "note": ""
+ },
+ "chessdata:WorldChampionships/87TUZ-PO.pgn": {
+  "dir": "womens",
+  "file": "women-interzonal-playoff-1987.pgn",
+  "note": ""
+ },
+ "scoutfish:pgn/polgar.pgn": {
+  "dir": "womens",
+  "file": "polgar-annotated.pgn",
+  "note": ""
+ },
+ "pepper:womens_all.pgn": {
+  "dir": "womens",
+  "file": "womens-invitational-2009-2017.pgn",
+  "note": ""
+ },
+ "annotated:1517_aiccf.pgn": {
+  "dir": "correspondence",
+  "file": "aiccf-2017.pgn",
+  "note": "ICCF correspondence chess"
+ },
+ "annotated:iccf/2018/aa_sf_2018.pgn": {
+  "dir": "correspondence",
+  "file": "aa-semifinal-2018.pgn",
+  "note": "ICCF correspondence chess"
+ },
+ "annotated:iccf/2018/russia25.pgn": {
+  "dir": "correspondence",
+  "file": "russia-25-2018.pgn",
+  "note": "ICCF correspondence chess"
+ },
+ "annotated:iccf/2018/interzonal3_groupK.pgn": {
+  "dir": "correspondence",
+  "file": "interzonal-3-group-k-2018.pgn",
+  "note": "ICCF correspondence chess"
+ },
+ "annotated:iccf/2018/copa peru.pgn": {
+  "dir": "correspondence",
+  "file": "copa-peru-2018.pgn",
+  "note": "ICCF correspondence chess"
+ },
+ "annotated:iccf/finjub55_2017/hrzina.pgn": {
+  "dir": "correspondence",
+  "file": "finjub-55-2017.pgn",
+  "note": "ICCF correspondence chess"
+ },
+ "annotated:iccf/ws_o_1007_2017/all_games.pgn": {
+  "dir": "correspondence",
+  "file": "world-seniors-2017.pgn",
+  "note": "ICCF correspondence chess"
+ },
+ "annotated:iccf/IND_AUS 2017/games.pgn": {
+  "dir": "correspondence",
+  "file": "ind-aus-2017.pgn",
+  "note": "ICCF correspondence chess"
+ },
+ "annotated:iccf/2021/2021_izit.pgn": {
+  "dir": "correspondence",
+  "file": "izit-2021.pgn",
+  "note": "ICCF correspondence chess"
+ },
+ "annotated:iccf/2021/AA_SF_2021.pgn": {
+  "dir": "correspondence",
+  "file": "aa-semifinal-2021.pgn",
+  "note": "ICCF correspondence chess"
+ },
+ "chessdata:ChessNostalgia.com/1941-1960.pgn": {
+  "dir": "1946-1970",
+  "file": "nostalgia-1941-1960.pgn",
+  "note": ""
+ },
+ "chessdata:ChessNostalgia.com/1961-1970.pgn": {
+  "dir": "1946-1970",
+  "file": "nostalgia-1961-1970.pgn",
+  "note": ""
+ }
+}

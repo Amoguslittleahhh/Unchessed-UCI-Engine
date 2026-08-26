@@ -38,6 +38,11 @@ per-block record):
 
 ## Coverage (71,961 games)
 
+> For era/theme breadth across chess history (1834–2022: world
+> championships, national events, women's, correspondence, annotated
+> classics) see the sibling archive `data/archive/` — same validation
+> rules, curated for quality rather than rating.
+
 | Level | Games | Source |
 |---|---:|---|
 | ≤1400 | 695 | lichess (merged 3 chunks) |
