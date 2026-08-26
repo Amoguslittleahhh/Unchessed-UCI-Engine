@@ -49,9 +49,14 @@ offline use in sandboxed environments (e.g. arena.ai agents with restricted
 egress — no access to static.rust-lang.org / crates.io)".
 
 Install (as run on 2026-08-26; the tree lives outside the repo in
-`/home/user/.cache`, which persists between sessions and is excluded from
-patchset accounting — per this repo's no-binaries-in-git policy it is never
-committed):
+`/home/user/.cache`):
+
+> **Caveat (verified 2026-08-26):** `/home/user/.cache` is on the
+> snapshot-exclusion list, so it does **not** persist between sessions —
+> the toolchain and any scratch clones in it disappear on session change,
+> even though the repo itself survives. Treat the toolchain as a
+> per-session setup step; the whole install is ~30 s of pip plus a ~1–2 min
+> extraction (the pip packages stay on PyPI, so re-running is cheap).
 
 ```sh
 python3 -m venv /home/user/.cache/rust-toolchain-venv
