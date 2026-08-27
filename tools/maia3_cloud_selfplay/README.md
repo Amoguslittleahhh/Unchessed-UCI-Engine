@@ -113,22 +113,37 @@ web UI (docs: https://docs.verda.com). Flow:
 5. **Ship the data back** (rsync/scp from the instance, or point your
    training job at the instance volume if your stack supports it).
 
-## Expected duration and cost (honest, anchored)
+## Expected duration and cost (measured breakdown, honest)
 
-Anchor measured in this repo's 2-core sandbox: ~13.5 positions/s per
-process (CPU), ~65 plies/game.
+Per-ply cost breakdown, measured with the shipped driver
+(`Maia3`, single-position, CPU, 1 thread):
 
-| Layout | Throughput (est.) | 2M games | Cost (est.) |
+  * ONNX forward pass: **98 ms** on this repo's 2-core sandbox vCPU
+    (old, shared); expect **~5-15 ms** per forward on Verda's modern
+    32-176-core server CPUs (it is a 5M-param model)
+  * python-chess overhead (board, legal moves, san, labels): **~3 ms/ply**
+
+So on CPU the **model forward is ~99% of the cost** (CPU-inference-
+bound, not python-bound). A GPU forward (batch 1, ~0.5-2 ms on an
+H100) makes a GPU worker python-bound at the ~3-5 ms/ply floor.
+
+| Layout | Throughput (est.) | 2M games (131M plies) | Cost (est.) |
 |---|---|---|---|
-| 1×H100.80S.32V, CPU (30 workers) | ~8-12 games/s | ~5-8 h | ~$20-30 |
-| 1×H100, `--gpus 1` | ~2-5 games/s | ~12-24 h | ~$40-80 |
-| 4×H100.80S.176V, CPU (170 workers) | ~40-60 games/s | ~1-1.5 h | ~$12-20 |
-| 4×H100, `--gpus 4` | ~8-20 games/s | ~3-8 h | ~$40-100 |
+| 1×H100.80S.32V, CPU (30 workers) | ~1.5-3k plies/s | ~12-24 h | ~$40-80 |
+| 4×H100.80S.176V, CPU (170 workers) | ~9-18k plies/s | ~2-4 h | ~$20-55 |
+| 1×H100, `--gpus 1` (shipped code) | ~200-300 plies/s | ~12-18 h | ~$40-60 |
+| 4×H100, `--gpus 4` (shipped code) | ~800-1200 plies/s | ~3-5 h | ~$35-60 |
 
-(GPU throughput on this 5M-param model is dominated by the python-chess
-position overhead, so a big CPU instance is often the sweet spot and is
-the byte-reproducible option; GPU wins once you add more workers per
-GPU or bigger models.)
+Read: with the **shipped code (one game in flight per worker), the
+big CPU instance is the sweet spot** — it runs 176 workers (and is the
+byte-reproducible option) and ties or beats a 4-GPU instance, which is
+capped at 4 workers. A GPU only wins decisively if the generator
+batches positions **across in-flight games** (one forward per batch of
+B games, pipelined against the 3 ms/ply python cost); that mode is not
+implemented yet, and with it 4 GPUs would do the 2M in roughly an
+hour. Recommendation: 4×H100.80S.176V used in CPU mode (~2-4 h,
+~$20-55); if sub-hour turnaround matters, the batched GPU mode is the
+next build item.
 
 ## Calibration and tests
 
