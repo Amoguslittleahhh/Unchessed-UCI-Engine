@@ -107,6 +107,27 @@ class TestSplitter:
             outs.append(hashlib.sha256((out / "elo-1400-1700.pgn").read_bytes()).hexdigest())
         assert outs[0] == outs[1]
 
+    def test_mid_stream_tag_not_duplicated(self):
+        # Regression (found while building data/training-elo/): a game that
+        # starts mid-stream — its tag line directly after the previous
+        # game's movetext, no blank line — must not leak that tag line into
+        # the previous game. The old code appended the line before the
+        # flush, so it landed in BOTH games, which then made a re-clean of
+        # a built file report false "illegal" games (120 of them).
+        text = ('[Event "A"]\n[White "1"]\n[Black "2"]\n[Result "1-0"]\n\n'
+                '1. e4 e5 1-0\n'
+                '[Event "B"]\n[White "3"]\n[Black "4"]\n[Result "0-1"]\n\n'
+                '1. d4 d5 0-1\n')
+        games = split_pgn_games(text)
+        assert len(games) == 2
+        assert games[0] == ('[Event "A"]\n[White "1"]\n[Black "2"]\n'
+                            '[Result "1-0"]\n\n1. e4 e5 1-0\n')
+        assert games[1] == ('[Event "B"]\n[White "3"]\n[Black "4"]\n'
+                            '[Result "0-1"]\n\n1. d4 d5 0-1\n')
+        # re-splitting a built file (concatenation of split games) is
+        # stable: same partition, no corruption
+        assert split_pgn_games("".join(games)) == games
+
 
 class TestIllegalSanDetection:
     """python-chess 1.x silently drops illegal SAN and logs a warning; a

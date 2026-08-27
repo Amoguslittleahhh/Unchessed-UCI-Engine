@@ -10,9 +10,11 @@ python3 -m venv .venv
 .venv/bin/python -m pytest tools/ -q
 ```
 
-Measured from an empty venv: **4.2 s to install, 0.9 s to run the suite**
-(31 passed, 6 skipped). `torch` is deliberately excluded — see the comments in
-`tools/requirements-dev.txt`.
+`torch` is deliberately excluded — see the comments in
+`tools/requirements-dev.txt`. One tool has an extra optional dependency:
+`tools/selfplay_elo_mixer.py` (Maia-3 self-play) needs `onnxruntime`
+(CPU), which is installed into the working venv only when that generator
+is used: `pip install onnxruntime`.
 
 ## Why dependencies are not vendored into the repo
 

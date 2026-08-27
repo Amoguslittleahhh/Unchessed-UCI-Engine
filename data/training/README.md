@@ -38,10 +38,13 @@ per-block record):
 
 ## Coverage (71,961 games)
 
-> For era/theme breadth across chess history (1834–2022: world
-> championships, national events, women's, correspondence, annotated
-> classics) see the sibling archive `data/archive/` — same validation
-> rules, curated for quality rather than rating.
+> Sibling datasets: `data/training-elo/` (real humans in every 100-elo
+> band 100-3200, full mega-clean scan), `data/selfplay/` (Maia-3 at
+> random UCI elo limits against each other — fills the bands where real
+> humans don't exist below ~1000 and above ~2900 mean elo),
+> `data/archive/` (era/theme breadth 1834–2022: world championships,
+> national events, women's, correspondence, annotated classics). All
+> share the same validation rules.
 
 | Level | Games | Source |
 |---|---:|---|

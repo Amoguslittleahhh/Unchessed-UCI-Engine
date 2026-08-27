@@ -114,6 +114,13 @@ comes from the *distribution*, not from a depth knob.
    move" definition.** We can apply the move trimming now; the clock filter
    is deferred with the clock tags (needs raw Lichess files — the
    `available_extensions_not_committed` list in the block manifest).
+5. **The dual-elo label corpus now exists.** `data/training-elo/`
+   (real humans, every 100-elo band 100-3200, full mega-clean scan) plus
+   `data/selfplay/` (Maia-3 at random UCI elo limits against each other —
+   the complement where real humans don't exist below ~1000 and above
+   ~2900 mean elo, and a measured conditioning gradient: top-1 confidence
+   0.32 at elo 100-199 rising to ~0.52-0.62 at 1900-3200). Both feed
+   `tools/build_level_conditioned_moves.py`.
 
 ### The network (the rating-conditioning fix)
 

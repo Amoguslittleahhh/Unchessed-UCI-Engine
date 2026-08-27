@@ -124,15 +124,18 @@ def split_pgn_games(text: str) -> list[str]:
     for line in text.splitlines():
         stripped = line.strip()
         if in_moves:
-            cur.append(line)
             if stripped == "":
                 # blank line ends the current game
+                cur.append(line)
                 flush()
                 in_tags, in_moves = False, False
             elif stripped.startswith("["):
-                # a new game starts mid-stream without a blank line
+                # a new game starts mid-stream without a blank line:
+                # flush FIRST (the tag line belongs to the next game only)
                 flush()
                 in_tags, in_moves = True, False
+                cur.append(line)
+            else:
                 cur.append(line)
         else:
             if stripped.startswith("["):
