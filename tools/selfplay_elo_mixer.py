@@ -126,11 +126,16 @@ def mirror_move(uci: str) -> str:
 class Maia3:
     """Minimal onnxruntime driver for the maia3_simplified.onnx export."""
 
-    def __init__(self, model_path: Path):
+    def __init__(self, model_path: Path, providers: list[str] | None = None,
+                 intra_op_threads: int | None = None):
         import onnxruntime as ort  # lazy: other subcommands don't need it
 
+        so = ort.SessionOptions()
+        if intra_op_threads:
+            so.intra_op_num_threads = intra_op_threads
         self.session = ort.InferenceSession(
-            str(model_path), providers=["CPUExecutionProvider"])
+            str(model_path), sess_options=so,
+            providers=providers or ["CPUExecutionProvider"])
 
     def probs(self, fen: str, elo_self: float, elo_oppo: float):
         """Return (move_probs over legal UCI moves, ldw, top1_prob)."""
@@ -195,17 +200,20 @@ def play_game(model: Maia3, rng: random.Random, elo_w: int, elo_b: int,
     return rows, sans, board.result(), board
 
 
+def game_pgn_text(headers: dict, sans: list[str], result: str) -> str:
+    """One game as PGN text (headers, blank line, numbered movetext)."""
+    text = "\n".join(f'[{k} "{v}"]' for k, v in headers.items()) + "\n\n"
+    text += " ".join(
+        (f"{i // 2 + 1}. " if i % 2 == 0 else "") + s
+        for i, s in enumerate(sans)) + " " + result + "\n\n"
+    return text
+
+
 def write_pgn(path: Path, games: list[dict]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    out: list[str] = []
-    for g in games:
-        out.append("\n".join(f'[{k} "{v}"]' for k, v in g["headers"].items()))
-        out.append("")
-        out.append(" ".join(
-            (f"{i // 2 + 1}. " if i % 2 == 0 else "") + s
-            for i, s in enumerate(g["san"])) + " " + g["result"])
-        out.append("")
-    path.write_text("\n".join(out) + "\n", encoding="utf-8")
+    path.write_text("".join(
+        game_pgn_text(g["headers"], g["san"], g["result"]) for g in games),
+        encoding="utf-8")
 
 
 def cmd_play(args: argparse.Namespace) -> int:

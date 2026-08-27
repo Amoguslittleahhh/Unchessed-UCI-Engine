@@ -1,0 +1,10 @@
+# Cloud generator dependencies (Verda instance or any Linux box).
+#
+# CPU-only run:
+#   pip install -r requirements.txt
+# GPU run (CUDA image, e.g. Verda's ubuntu-*-cuda-* images):
+#   pip uninstall -y onnxruntime
+#   pip install onnxruntime-gpu   # must match the image's CUDA version
+numpy
+python-chess
+onnxruntime
