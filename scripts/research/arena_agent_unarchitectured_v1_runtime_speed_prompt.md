@@ -9,6 +9,68 @@ work is not an invitation to revert to or resume development on any of
 them. Any follow-on architecture or training work belongs on top of
 Unarchitectured v1, not as a parallel track exploring an earlier one.
 
+## Status update — round 10
+
+Your eighth pass — the int8-activation-calibration commit
+(`f6113bf`, already covered) plus a much larger, 17-commit pivot from
+diagnosis into actual retrain infrastructure (`8bfbd44` through
+`3a596cc`) — was reviewed, independently verified, and merged onto
+`main` at `c947ce1`. This is a genuine change in kind from every prior
+round: not offline analysis of the existing checkpoint, but real
+training-data curation (four corpora, ~231,000 games total), a Rust
+toolchain finally working in your sandbox, and a full cloud self-play +
+pretrain pipeline design (Verda AI, 5M games, A100 trainer).
+
+**Before reviewing the content, this got flagged to the project owner
+first, not adopted unilaterally** — two things crossed a line past what
+prior rounds needed a judgment call on: committing ~231,000 games of PGN
+data directly into git (this project's own `docs/dev-environment.md`
+already argues against committing even 23MB of Python wheels for
+exactly this reason — permanent repo bloat), and a pipeline whose whole
+point is spending real money on cloud compute. Confirmed no cloud
+spend has actually happened yet before proceeding — this review covers
+the code, docs, and data as committed, not any executed cloud run.
+
+**Verified independently:**
+
+- Full workspace build clean, `unchessed-core` 104/104 (no Rust engine
+  code touched by any of these 17 commits, confirmed by diff — the
+  "first-ever compile, clean on attempt one" claim in `cb0c0cf` is
+  consistent with that: nothing here was ever at risk of not compiling).
+- **Found and fixed a real, if environment-specific, bug your sandbox
+  couldn't have caught**: this reviewer's Windows machine has
+  `core.autocrlf=true`, which silently converts every committed LF to
+  CRLF on checkout — changing file sizes and game boundaries in the PGN
+  corpora and breaking the exact byte/game-count checks in your own
+  `manifest.json` consistency tests. First pass showed 6 real test
+  failures; cloning fresh in WSL (Linux, no autocrlf) confirmed 318
+  passed, 21 skipped, 0 failures — proving the committed data itself is
+  correct and the drift was purely a Windows-checkout artifact. Fixed by
+  marking `*.pgn`/`*.epd`/`data/**/*.jsonl` `-text` in `.gitattributes`
+  (never converted, any platform) and force-recreating the working-tree
+  copies from the clean git objects. Re-verified on Windows afterward:
+  0 failures. Worth knowing for any future round that touches these
+  formats — this wasn't specific to today's batch, it would have bitten
+  the very next PGN file committed on this reviewer's machine regardless.
+- One remaining Windows-only failure, left as a known, documented
+  environment limitation rather than something to chase:
+  `test_ddp_gloo_two_rank_smoke` fails on Windows with a gloo rendezvous
+  connection error, but passed cleanly in the same WSL run referenced
+  above (318/318 non-skipped). This is a real platform gap in PyTorch's
+  gloo backend on Windows, not a bug in the test or the pipeline code.
+- `tools/` suite otherwise matches your claimed counts closely across
+  the batch's own incremental reports (255 → 298 → 318 passed as
+  features were added), and 336/337 pass here once the CRLF issue was
+  fixed (the one exception being the Windows-only DDP gap above).
+
+**Scope note for what happens next**: this round's content (training
+data, cloud pipeline, pretrain trainer) is infrastructure for a future
+retrain, not a change to anything currently shipped or running.
+`UnarchitecturedHint` stays default-off, `runtime_safety_suite` stays
+false, and nothing here has been executed against real cloud compute —
+that decision, and any actual spend, stays with the project owner
+explicitly, not something to proceed on by default in a future round.
+
 ## Status update — round 9
 
 Your seventh pass — eleven commits from `ce3b6a0` through `4e3b623`,
