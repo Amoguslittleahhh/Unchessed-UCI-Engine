@@ -15,12 +15,18 @@
 # pretrain shows substantial flips with high-elo play more concentrated
 # (top1prob@3200 > top1prob@600).
 #
+# Multi-GPU: this script runs the single-GPU form. For 8x A100, run
+# the same two stage commands under
+#   torchrun --nproc_per_node=8 tools/pretrain_v1_a100.py train ...
+# (nccl; the global effective batch stays 4096 at every world size —
+# see scripts/pretrain-pipeline/README.md).
+#
 # Usage:
 #   scripts/pretrain-pipeline/gpu_stage.sh <out_root> [micro_batch] [gpus]
 #
 #   <out_root>    directory holding pretrain-v5/ + pretrain-v5-trusted/
 #                 (rsynced from the CPU box)
-#   [micro_batch] per-GPU micro-batch (default 128; probe with
+#   [micro_batch] per-GPU micro-batch (default 256; probe with
 #                 nvidia-smi if OOM)
 #   [gpus]        number of GPUs to use for torch (default: all)
 #
@@ -36,7 +42,7 @@
 set -euo pipefail
 
 OUT_ROOT="${1:?usage: gpu_stage.sh <out_root> [micro_batch] [gpus]}"
-MICRO_BATCH="${2:-128}"
+MICRO_BATCH="${2:-256}"
 GPUS="${3:-0}"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PY="$REPO_ROOT/venv/bin/python"

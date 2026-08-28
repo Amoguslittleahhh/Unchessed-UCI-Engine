@@ -98,6 +98,12 @@ Verda gives you bare VMs with `verda` CLI / Terraform / web UI
        --hostname mixed-5m
    ```
 
+   **360-vCPU option:** `CPU.360V.1440G` at **$4.320/h** (same
+   $0.012/vCPU/h, 1440 GB RAM). The generation is linearly parallel,
+   so a 360-vCPU box does the 5M in about **half the wall-clock time
+   at the same total price** (2x cores x 2x rate x 2x hourly price).
+   Worker count and core pinning adapt automatically (see step 6).
+
    (check `verda vm create --help` for the exact CPU flag names on
    your CLI version; the UI path above is unambiguous)
 
@@ -159,18 +165,27 @@ Verda gives you bare VMs with `verda` CLI / Terraform / web UI
    venv/bin/python tools/maia3_cloud_selfplay/generate.py generate \
        --model /tmp/maia3-onnx/simple-maia3-inference/simple_maia3_inference/maia3_simplified.onnx \
        --engines-dir /data/engines --out /data/pilot \
-       --games 1000 --workers 90
+       --games 1000
    ```
 
-6. **Generate the 5M set** (mixed pool, `--workers 90` — each worker
-   drives two engines at once, so ~2 active cores/worker on 180
-   vCPUs; maia3-only runs use `--workers 170`):
+6. **Generate the 5M set** (mixed pool — each worker drives two
+   engines at once, so ~2 active cores/worker; maia3-only runs use
+   one core/worker). `--workers` is optional: the default is
+   `(vCPUs-10)/2` for mixed pools and `vCPUs-10` for maia3-only
+   (180-vCPU: 85/170; **360-vCPU: 175/350**). Each worker is pinned
+   to its dedicated cores (`--cpu-affinity auto`, the default; the
+   parent keeps the last 10 cores, one-thread BLAS/OpenMP pools) —
+   on the 360-vCPU box that is 175 x 2 pinned cores for the mixed
+   pool:
 
    ```sh
    venv/bin/python tools/maia3_cloud_selfplay/generate.py generate \
        --model /tmp/maia3-onnx/simple-maia3-inference/simple_maia3_inference/maia3_simplified.onnx \
        --engines-dir /data/engines --out /data/mixed-5m \
-       --games 5000000 --seed 20260827 --workers 90
+       --games 5000000 --seed 20260827
+   # explicit (same as the defaults on this box):
+   #   --workers 175        mixed pool on 360 vCPUs
+   #   --workers 170        maia3-only on 180 vCPUs
    ```
 
    The command **validates the whole set when it finishes** (every
@@ -204,11 +219,19 @@ Per-ply inputs, **measured** (not guessed):
     length and per-ply time). The numbers below use the measured
     values.
 
-| Run | Workers | Est. duration | Est. cost @ $2.16/h |
-|---|---|---|---|
-| **5M mixed pool (default)** | 90 | **~95-110 h** | **~$205-240** |
-| 5M maia3-only | 170 | ~15-49 h | ~$33-106 |
-| 2M maia3-only | 170 | ~6-20 h | ~$13-43 |
+| Run | Box | Workers (auto) | Est. duration | Est. cost |
+|---|---|---|---|---|
+| **5M mixed pool (default)** | 180V ($2.16/h) | 85 | **~95-110 h** | **~$205-240** |
+| **5M mixed pool (default)** | 360V ($4.32/h) | 175 | **~50-60 h** | **~$205-240** |
+| 5M maia3-only | 180V ($2.16/h) | 170 | ~15-49 h | ~$33-106 |
+| 5M maia3-only | 360V ($4.32/h) | 350 | ~8-25 h | ~$33-106 |
+| 2M maia3-only | 180V ($2.16/h) | 170 | ~6-20 h | ~$13-43 |
+
+The 360-vCPU rows are the same total dollars as the 180-vCPU rows —
+the price is linear in vCPUs and so is the throughput — but the data
+arrives in half the wall-clock time, which is what matters if the
+GPU pretrain is the long pole. (The worker counts above are the tool
+defaults on each box; pass `--workers` to override.)
 
 Read: per-ply CPU inference is the bottleneck (Maia-3 forward is
 ~90%+ of a move's cost), so the big flat-core node is still the sweet

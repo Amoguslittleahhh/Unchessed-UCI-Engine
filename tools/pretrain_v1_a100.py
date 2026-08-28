@@ -26,11 +26,23 @@ canonical v1 finding was 0/200 top-1 flips; a working pretrain must
 show substantial flips with high-elo play more concentrated. That
 number is in the epoch log and the checkpoint metrics.
 
-What this file is NOT: no DDP (single GPU; multi-GPU is the next
-iteration on top of the existing DistributedContext), no distillation
-to the student (the dual-elo student + UNARCHV1 runtime is the next
-wiring round — the checkpoint format marks dual_elo so the distill
-path can detect it and refuse silently-wrong checkpoints).
+Multi-GPU: DDP is supported via torchrun (nccl on CUDA, gloo on CPU
+for smoke tests). The effective batch is GLOBAL (per-rank microbatch x
+accumulation x world); each rank consumes a strided slice of the
+shards, one allreduce per optimizer step (accumulation substeps run
+under no_sync), rank 0 validates/checkpoints and broadcasts the epoch
+metrics. A bare python launch stays a single-process run.
+
+  torchrun --nproc_per_node=8 tools/pretrain_v1_a100.py train \
+      --stage pretrain --train /data/pretrain-v5/train/shard-*.v5 \
+      --validation /data/pretrain-v5/val/shard-*.v5 \
+      --config config/pretrain_v1_training.json \
+      --output /data/pretrain-v5/ckpt-stage1.pt
+
+What this file is NOT: no distillation to the student (the dual-elo
+student + UNARCHV1 runtime is the next wiring round — the checkpoint
+format marks dual_elo so the distill path can detect it and refuse
+silently-wrong checkpoints).
 
 Usage (A100 box):
   python3 tools/pretrain_v1_a100.py selfcheck
@@ -286,32 +298,48 @@ def pretrain_loss(output, batch, config, quality_weights):
 
 @torch.no_grad()
 def conditioning_sweep(model, records, device, elo_oppo_values=None,
-                       sweep=(600, 3200, 100)):
+                       sweep=(600, 3200, 100), chunk_positions=64):
     """The 0/200 gate on the real model: duplicate held-out positions
     across the mover-elo grid (opponent elo fixed per position) and
-    count how many change their predicted top-1 action."""
+    count how many change their predicted top-1 action.
+
+    Chunked over positions (default 64 x 27 elos = 1728 rows per
+    forward): an unchunked 200-position sweep is one 5400-row forward,
+    whose board-trunk activations OOM a CPU smoke box and are needless
+    GPU memory on an A100. Chunking changes no values — only the
+    order rows are fed to the model (results are per-position)."""
     lo, hi, step = sweep
     elo_values = list(range(lo, hi + 1, step))
     n = len(records)
-    repeated = np.repeat(np.arange(n)[:, None], len(elo_values),
-                         axis=1).reshape(-1)
-    dup = records[repeated]
-    batch = prepare_v5_batch(dup, device)
-    batch["rating"] = torch.tensor(
-        [e for e in elo_values for _ in range(n)],
-        dtype=torch.int64, device=device,
-    )
-    batch["elo_oppo"] = torch.tensor(
-        [int(v) for v in elo_oppo_values for _ in range(n)]
-        if elo_oppo_values is not None else
-        [int(dup[i]["elo_oppo"]) for i in repeated],
-        dtype=torch.int64, device=device,
-    )
-    output = model(batch)
-    logits = output["logits"].float()
-    top1 = logits.argmax(1).view(len(elo_values), n)
-    prob = torch.softmax(logits, 1).gather(
-        1, top1.reshape(-1, 1)).view(len(elo_values), n)
+    base_oppo = (np.asarray(elo_oppo_values, dtype=np.int64)
+                 if elo_oppo_values is not None
+                 else records["elo_oppo"].astype(np.int64))
+    top1 = np.empty((len(elo_values), n), dtype=np.int64)
+    prob_min = np.empty(n, dtype=np.float64)
+    prob_max = np.empty(n, dtype=np.float64)
+    for start in range(0, n, max(1, int(chunk_positions))):
+        stop = min(start + int(chunk_positions), n)
+        m = stop - start
+        idx = np.arange(start, stop)
+        repeated = np.repeat(idx[:, None], len(elo_values),
+                             axis=1).reshape(-1)
+        dup = records[repeated]
+        batch = prepare_v5_batch(dup, device)
+        batch["rating"] = torch.tensor(
+            [e for e in elo_values for _ in range(m)],
+            dtype=torch.int64, device=device,
+        )
+        batch["elo_oppo"] = torch.tensor(
+            [int(base_oppo[i]) for i in repeated],
+            dtype=torch.int64, device=device,
+        )
+        logits = model(batch)["logits"].float()
+        chunk_top1 = logits.argmax(1).view(len(elo_values), m)
+        chunk_prob = torch.softmax(logits, 1).gather(
+            1, chunk_top1.reshape(-1, 1)).view(len(elo_values), m)
+        top1[:, start:stop] = chunk_top1.cpu().numpy()
+        prob_min[start:stop] = chunk_prob[0].cpu().numpy()
+        prob_max[start:stop] = chunk_prob[-1].cpu().numpy()
     flips_any = int((top1[0] != top1).any(0).sum())
     flips_extremes = int((top1[0] != top1[-1]).sum())
     return {
@@ -319,14 +347,15 @@ def conditioning_sweep(model, records, device, elo_oppo_values=None,
         "elo_values": elo_values,
         "positions_flipped_any": flips_any,
         "positions_flipped_extremes": flips_extremes,
-        "mean_top1_prob_at_min": float(prob[0].mean()),
-        "mean_top1_prob_at_max": float(prob[-1].mean()),
+        "mean_top1_prob_at_min": float(prob_min.mean()),
+        "mean_top1_prob_at_max": float(prob_max.mean()),
     }
 
 
 @torch.no_grad()
 def evaluate_pretrain(model, shards, device, config, maximum,
                       rng, sweep_positions=200):
+    sweep_chunk = int(config.get("sweep_chunk_positions", 64))
     model.eval()
     total = human_total = guide_total = hits = 0
     nll = 0.0
@@ -346,7 +375,8 @@ def evaluate_pretrain(model, shards, device, config, maximum,
     # the conditioning sweep on a fresh sample
     sweep_records = shards.sample(
         rng, min(sweep_positions, shards.total))
-    sweep = conditioning_sweep(model, sweep_records, device)
+    sweep = conditioning_sweep(model, sweep_records, device,
+                               chunk_positions=sweep_chunk)
     return {
         "records": int(total),
         "nll": nll / max(1, total),
@@ -368,7 +398,21 @@ def pick_device():
     return torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
+def dist_setup() -> tuple:
+    """(rank, world, local_rank, is_ddp). torchrun/torch.distributed.run
+    set RANK, WORLD_SIZE, LOCAL_RANK; a bare python launch is a
+    single-process run (world 1, no DDP wrap) so the existing
+    single-GPU behavior is unchanged."""
+    world = int(os.environ.get("WORLD_SIZE", "1"))
+    if "RANK" not in os.environ or world <= 1:
+        return 0, 1, 0, False
+    return (int(os.environ["RANK"]), world,
+            int(os.environ.get("LOCAL_RANK", 0)), True)
+
+
 def train(args) -> int:
+    import torch.distributed as dist
+
     config, hardware = load_config(args.config, "pretrain")
     root = json.loads(Path(args.config).read_text())
     hardware = root["hardware"]
@@ -382,11 +426,20 @@ def train(args) -> int:
     require_distinct_shards(args.train, args.validation)
     configure_compiler_safety(hardware)
     configure_torch(config["seed"], args.deterministic)
-    device = pick_device()
+    rank, world, local_rank, ddp = dist_setup()
+    is_primary = rank == 0
+    if ddp and torch.cuda.is_available():
+        device = torch.device(f"cuda:{local_rank % torch.cuda.device_count()}")
+    else:
+        device = pick_device()
     precision = resolve_precision(device, hardware)
     train_data = UnarchitecturedV5RecordShards(args.train)
     validation_data = UnarchitecturedV5RecordShards(args.validation)
 
+    # DDP: the effective batch is GLOBAL (per-rank microbatch x
+    # accumulation x world); each rank consumes its strided slice of
+    # the shards and the per-step allreduce makes every rank take the
+    # same optimizer steps.
     minimum_records = (config["effective_batch_records"]
                        * config["minimum_optimizer_steps_per_epoch"])
     if train_data.total < minimum_records:
@@ -401,9 +454,13 @@ def train(args) -> int:
     rng = np.random.default_rng(config["seed"])
     microbatch = args.micro_batch or config["micro_batch_initial"]
     microbatch = max(1, int(microbatch // 8) * 8)
-    accumulation = math.ceil(
-        config["effective_batch_records"] / microbatch)
-    effective_batch = microbatch * accumulation
+    # effective_batch_records is the GLOBAL batch; each rank carries
+    # a microbatch x accumulation slice (world 1: unchanged from the
+    # single-GPU run; world W: accumulation shrinks so the global
+    # batch — and the optimizer schedule — stay W-independent)
+    accumulation = max(1, math.ceil(
+        config["effective_batch_records"] / (microbatch * world)))
+    effective_batch = microbatch * accumulation * world
     optimizer_steps_per_epoch = optimizer_steps_for_epoch(
         train_data.total, effective_batch,
         config["minimum_optimizer_steps_per_epoch"])
@@ -435,38 +492,56 @@ def train(args) -> int:
         best_nll = float(checkpoint_data.get("metrics", {})
                          .get("nll", best_nll))
     train_model = raw_model
+    if ddp:
+        backend = "nccl" if device.type == "cuda" else "gloo"
+        if not dist.is_initialized():
+            dist.init_process_group(backend=backend)
+        # find_unused_parameters: the pretrain objective is policy-only,
+        # so the oracle's score/wdl head parameters never get a grad —
+        # DDP must be told they are intentionally unused (a small
+        # per-step overhead, required for both stages)
+        train_model = nn.parallel.DistributedDataParallel(
+            raw_model,
+            device_ids=[device.index] if device.type == "cuda" else None,
+            find_unused_parameters=True)
     if hardware.get("compile", True) and device.type == "cuda" \
             and not args.no_compile:
         train_model = torch.compile(
-            raw_model, mode=hardware.get("compile_mode", "default"))
+            train_model, mode=hardware.get("compile_mode", "default"))
     scaler = make_grad_scaler(precision["uses_scaler"])
     epochs = args.epochs or config["epochs"]
     total_steps = epochs * optimizer_steps_per_epoch
-    print(json.dumps({
-        "stage": args.stage, "device": str(device),
-        "precision": precision["name"],
-        "parameters": parameter_count,
-        "microbatch": microbatch, "accumulation": accumulation,
-        "effective_batch": effective_batch,
-        "optimizer_steps_per_epoch": optimizer_steps_per_epoch,
-        "records_consumed_once_per_epoch": records_per_epoch,
-        "dropped_tail_records": train_data.total - records_per_epoch,
-        "sampling": "global_without_replacement",
-        "train_records": train_data.total,
-        "validation_records": validation_data.total,
-        "quality_weights": dict(zip(
-            ("calibrated", "native", "approximate", "human"),
-            quality_weights)),
-        "expected_parameters": config.get("expected_parameters"),
-    }, indent=2), flush=True)
+    if is_primary:
+        print(json.dumps({
+            "stage": args.stage, "device": str(device),
+            "ddp": {"world": world, "rank": rank,
+                    "backend": ("nccl" if device.type == "cuda"
+                                else "gloo") if ddp else None},
+            "precision": precision["name"],
+            "parameters": parameter_count,
+            "microbatch": microbatch, "accumulation": accumulation,
+            "effective_batch": effective_batch,
+            "optimizer_steps_per_epoch": optimizer_steps_per_epoch,
+            "records_consumed_once_per_epoch": records_per_epoch,
+            "dropped_tail_records": train_data.total - records_per_epoch,
+            "sampling": "global_without_replacement",
+            "train_records": train_data.total,
+            "validation_records": validation_data.total,
+            "quality_weights": dict(zip(
+                ("calibrated", "native", "approximate", "human"),
+                quality_weights)),
+            "expected_parameters": config.get("expected_parameters"),
+        }, indent=2), flush=True)
     epochs_without_improvement = 0
     try:
         for epoch in range(start_epoch, epochs):
             prefetcher = EpochRecordPrefetcher(
-                train_data, config["seed"], epoch, microbatch, 0, 1,
+                train_data, config["seed"], epoch, microbatch,
+                rank, world,
                 hardware.get("prefetch_batches", 4),
                 hardware.get("prefetch_workers", 4))
-            if prefetcher.batches < optimizer_steps_per_epoch:
+            if prefetcher.batches < (optimizer_steps_per_epoch
+                                     * accumulation):
                 prefetcher.close()
                 raise RuntimeError("without-replacement epoch produced "
                                    "too few batches")
@@ -488,7 +563,14 @@ def train(args) -> int:
                         records = prefetcher.next()
                         batch = prepare_v5_batch(records, device,
                                                  augment=True)
-                        with autocast_context(device, precision):
+                        # DDP: skip the gradient allreduce on all but
+                        # the last accumulation substep
+                        ctx = (train_model.no_sync()
+                               if hasattr(train_model, "no_sync")
+                               and accumulation_index
+                               < accumulation - 1
+                               else contextlib.nullcontext())
+                        with autocast_context(device, precision), ctx:
                             output = train_model(batch)
                             loss, _ = pretrain_loss(
                                 output, batch, config, quality_weights)
@@ -517,7 +599,8 @@ def train(args) -> int:
                     epoch_loss += mean_step_loss
                     global_step += 1
                     if global_step % \
-                            safety.config["heartbeat_interval_steps"] == 0:
+                            safety.config["heartbeat_interval_steps"] == 0 \
+                            and is_primary:
                         write_heartbeat(
                             heartbeat_path, args.stage,
                             {"epoch": epoch, "global_step": global_step,
@@ -527,9 +610,20 @@ def train(args) -> int:
                              "safety": safety.snapshot()})
             finally:
                 prefetcher.close()
-            metrics = evaluate_pretrain(
-                raw_model, validation_data, device, config,
-                args.validation_records, rng)
+            if ddp:
+                dist.barrier()
+            metrics = None
+            if is_primary:
+                metrics = evaluate_pretrain(
+                    raw_model, validation_data, device, config,
+                    args.validation_records, rng)
+            if ddp:
+                # all ranks need the metrics (early-stop decision +
+                # checkpoint payload stay in lockstep)
+                box = [metrics]
+                dist.broadcast_object_list(box, src=0)
+                metrics = box[0]
+                dist.barrier()
             require_finite_metrics({k: v for k, v in metrics.items()
                                     if isinstance(v, float)})
             elapsed = time.monotonic() - started
@@ -544,15 +638,18 @@ def train(args) -> int:
             early_stop = epochs_without_improvement >= \
                 config["early_stopping_patience"]
             sweep = metrics["conditioning_sweep"]
-            print(f"epoch={epoch + 1} stage={args.stage} "
-                  f"loss={mean_epoch_loss:.5f} nll={metrics['nll']:.5f} "
-                  f"top1={metrics['top1']:.4f} "
-                  f"sweep_flips={sweep['positions_flipped_any']}/"
-                  f"{sweep['positions']} "
-                  f"top1prob@600={sweep['mean_top1_prob_at_min']:.4f} "
-                  f"top1prob@3200={sweep['mean_top1_prob_at_max']:.4f} "
-                  f"records_per_second="
-                  f"{records_per_epoch / elapsed:.0f}", flush=True)
+            if is_primary:
+                print(f"epoch={epoch + 1} stage={args.stage} "
+                      f"loss={mean_epoch_loss:.5f} "
+                      f"nll={metrics['nll']:.5f} "
+                      f"top1={metrics['top1']:.4f} "
+                      f"sweep_flips={sweep['positions_flipped_any']}/"
+                      f"{sweep['positions']} "
+                      f"top1prob@600={sweep['mean_top1_prob_at_min']:.4f} "
+                      f"top1prob@3200={sweep['mean_top1_prob_at_max']:.4f} "
+                      f"records_per_second="
+                      f"{records_per_epoch / elapsed:.0f} "
+                      f"world={world}", flush=True)
             payload = {
                 "format": "UNARCHV1_PRETRAIN_DUAL_ELO_V1",
                 "config": {**config, "dual_elo": True},
@@ -571,17 +668,23 @@ def train(args) -> int:
                 "train_manifest": train_data.manifest(),
                 "validation_manifest": validation_data.manifest(),
             }
-            atomic_torch_save(payload, args.output)
-            if improved:
-                atomic_torch_save(payload, str(args.output) + ".best")
+            if is_primary:
+                atomic_torch_save(payload, args.output)
+                if improved:
+                    atomic_torch_save(payload, str(args.output) + ".best")
+                if early_stop:
+                    print(f"early stop: validation NLL failed to improve "
+                          f"for {epochs_without_improvement} epochs",
+                          flush=True)
+            if ddp:
+                dist.barrier()
             if early_stop:
-                print(f"early stop: validation NLL failed to improve for "
-                      f"{epochs_without_improvement} epochs", flush=True)
                 break
             if device.type == "cuda":
                 torch.cuda.empty_cache()
     finally:
-        pass
+        if ddp and dist.is_initialized():
+            dist.destroy_process_group()
     return 0
 
 

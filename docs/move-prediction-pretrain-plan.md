@@ -45,10 +45,10 @@ Measured parameter count of the dual-elo oracle with widened GAB:
 
 | Stage | Box | Tool | Notes |
 |---|---|---|---|
-| games (1M-5M mixed) | CPU.180V.720G | `tools/maia3_cloud_selfplay/generate.py` | see its README for cost (5M mixed ≈ 95-110 h; pilot nails the rate) |
-| **CPU stage** | CPU | `cpu_stage.sh` → `tools/pretrain_v5_data.py` | PGN → v5 dual-elo shards (full + trusted-only) + validation; pure python-chess |
+| games (1M-5M mixed) | CPU.180V.720G (or CPU.360V.1440G: same $, half the time) | `tools/maia3_cloud_selfplay/generate.py` | see its README for cost (5M mixed ≈ 95-110 h on 180V; pilot nails the rate) |
+| **CPU stage** | CPU | `cpu_stage.sh` → `tools/pretrain_v5_data.py` | PGN → v5 dual-elo shards (full + trusted-only) + validation; two-pass parallel build (text scan, then one worker per PGN file; byte-identical for any `--workers`) |
 | handoff | — | rsync both shard dirs | the GPU box needs no generator; the CPU box needs no torch |
-| **GPU stage** | A100/H100 | `gpu_stage.sh` → `tools/pretrain_v1_a100.py` | selfcheck (first!) → stage 1 (24 epochs) → stage 2 (8 epochs, LR 5e-5, resumed); single GPU |
+| **GPU stage** | A100/H100 | `gpu_stage.sh` → `tools/pretrain_v1_a100.py` | selfcheck (first!) → stage 1 (24 epochs) → stage 2 (8 epochs, LR 5e-5, resumed); DDP via torchrun (global batch 4096 at every world size) |
 
 ### v5 data format (`UNCHD5R0`)
 
@@ -106,11 +106,17 @@ The probe validates objective/encoding/diagnostic, not strength
     position** (dual-elo path is live),
   - trusted-only quality filter (all-rows semantics),
   - the 58,486,415 parameter count of the production config (built
-    and counted).
+    and counted),
+  - parallel v5 build worker-invariance (workers 1 vs 3,
+    byte-identical shards),
+  - 2-rank **gloo DDP smoke** of the trainer (2 epochs, disjoint
+    strided slices, rank-0-only checkpoint, one epoch line per
+    epoch).
 - **Not verified here (no CUDA in the sandbox):** the CUDA path of
   the trainer (precision/compile/memory) — the selfcheck is the
-  first command on the box for exactly this reason. Multi-GPU DDP is
-  not implemented (single GPU).
+  first command on the box for exactly this reason. The **nccl**
+  multi-GPU path (the gloo smoke covers the DDP code on CPU; nccl is
+  the same code on CUDA, untested here).
 - **Not yet wired (next round):** distillation to a dual-elo student
   + UNARCHV1 packaging + the Rust runtime change for dual-elo inputs.
   Checkpoints mark `dual_elo: true`; the distill path refuses

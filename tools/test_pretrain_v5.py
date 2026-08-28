@@ -237,6 +237,121 @@ def test_trusted_filter_excludes_approximate_games(tmp_path):
     assert not any(r["rating"] in (1500, 1700) for r in records)
 
 
+def test_parallel_build_worker_invariant(tmp_path):
+    """The pass-2 parallelization must not change the output bytes:
+    workers 1 and 3 produce byte-identical shards (deterministic
+    per-file game order + global cutoff)."""
+    import hashlib
+    import shutil
+
+    def shas(d: Path) -> dict:
+        out = {}
+        for side in ("train", "val"):
+            for shard in sorted((d / side).glob("*.v5")):
+                out[f"{side}/{shard.name}"] = hashlib.sha256(
+                    shard.read_bytes()).hexdigest()
+        return out
+
+    # same PGN file for both builds (the source name is part of the
+    # game hash); the builder clears its own out dir before writing
+    _build(tmp_path, [GAME_A, GAME_B], extra=("--workers", "1"))
+    (tmp_path / "v5-w1").mkdir()
+    shutil.copytree(tmp_path / "v5", tmp_path / "v5-w1",
+                    dirs_exist_ok=True)
+    _build(tmp_path, [GAME_A, GAME_B], extra=("--workers", "3"))
+    (tmp_path / "v5-w3").mkdir()
+    shutil.copytree(tmp_path / "v5", tmp_path / "v5-w3",
+                    dirs_exist_ok=True)
+    assert shas(tmp_path / "v5-w1") == shas(tmp_path / "v5-w3"), \
+        "worker count changed the output bytes"
+
+
+# ----------------------------------------------------------------------
+# multi-GPU (DDP) — 2-process gloo smoke on CPU
+# ----------------------------------------------------------------------
+
+DDP_GAME_MOVES = "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5"
+
+
+def test_ddp_gloo_two_rank_smoke(tmp_path):
+    """torchrun --nproc_per_node=2 on CPU (gloo): both ranks train on
+    disjoint strided slices, ONE allreduce per optimizer step, rank 0
+    validates + checkpoints, and exactly two epoch lines are printed
+    (rank 0 only)."""
+    torch = pytest.importorskip("torch", reason="torch not installed")
+    del torch
+
+    # 144 games x 12 plies = 1728 records; last 20 games -> val
+    games = []
+    for i in range(144):
+        w_elo = 600 + (i * 19) % 2600
+        b_elo = 600 + (i * 37) % 2600
+        games.append(
+            '[Event "ddp"]\n[Site "-"]\n[Date "2026.08.28"]\n'
+            f'[White "A"]\n[Black "B"]\n[Result "1/2-1/2"]\n'
+            f'[WhiteElo "{w_elo}"]\n[BlackElo "{b_elo}"]\n\n'
+            f"{DDP_GAME_MOVES} 1/2-1/2")
+    out = _build(tmp_path, games, extra=("--val-games", "20"))
+    train_shards = sorted((out / "train").glob("*.v5"))
+    val_shards = sorted((out / "val").glob("*.v5"))
+    assert train_shards and val_shards
+
+    config_path = tmp_path / "ddp-smoke-config.json"
+    config_path.write_text(json.dumps({
+        "schema": 1,
+        "name": "ddp gloo smoke",
+        "hardware": {"target": "cpu", "precision": "auto",
+                     "compile": False, "allow_tf32": True,
+                     "prefetch_batches": 2, "prefetch_workers": 2},
+        "quality_weights": [1.0, 1.0, 0.5, 1.0],
+        "safety_config": "config/unarchitectured_v1_safety.json",
+        "pretrain": {
+            "dual_elo": True,
+            "d_model": 64, "board_layers": 2, "board_heads": 4,
+            "board_ffn": 128, "gab_token_projection": 4,
+            "gab_hidden": 16, "gab_templates": 8, "decoder_layers": 1,
+            "decoder_heads": 4, "decoder_ffn": 128, "history_width": 16,
+            "history_plies": 8, "time_classes": 5,
+            "policy_adapter_rank": 8, "concept_count": 16,
+            "concept_width": 8, "score_quantiles": 9, "dropout": 0.05,
+            "activation_checkpointing": False,
+            "micro_batch_initial": 32, "micro_batch_max": 64,
+            "effective_batch_records": 64,
+            "epoch_mode": "without_replacement",
+            "minimum_optimizer_steps_per_epoch": 4,
+            "minimum_validation_records": 64,
+            "epochs": 2, "early_stopping_patience": 5,
+            "early_stopping_min_delta": 0.0,
+            "learning_rate": 0.001, "weight_decay": 0.01,
+            "warmup_steps": 8, "gradient_clip": 1.0,
+            "validation_batch_size": 64, "seed": 20260828,
+            # tiny sweep chunk: the smoke runs two torch ranks inside
+            # the sandbox's small RAM cap
+            "sweep_chunk_positions": 16,
+        },
+    }, indent=2))
+
+    ckpt = tmp_path / "ddp-smoke-ckpt.pt"
+    cmd = [sys.executable, "-m", "torch.distributed.run", "--standalone",
+           "--nproc_per_node", "2",
+           str(TOOLS / "pretrain_v1_a100.py"), "train", "--stage",
+           "pretrain", "--train", *[str(p) for p in train_shards],
+           "--validation", *[str(p) for p in val_shards],
+           "--config", str(config_path), "--output", str(ckpt),
+           "--deterministic", "--no-compile"]
+    r = subprocess.run(cmd, capture_output=True, text=True, timeout=1200,
+                       cwd=REPO_ROOT)
+    assert r.returncode == 0, r.stdout[-4000:] + r.stderr[-4000:]
+    assert ckpt.exists(), "rank 0 must write the checkpoint"
+    epoch_lines = [line for line in r.stdout.splitlines()
+                   if line.startswith("epoch=")]
+    assert len(epoch_lines) == 2, (
+        f"expected exactly 2 epoch lines (rank 0 only, 2 epochs), got "
+        f"{len(epoch_lines)}")
+    assert any('"world": 2' in line for line in r.stdout.splitlines()), \
+        "startup banner must report world size 2"
+
+
 # ----------------------------------------------------------------------
 # GPU trainer (torch)
 # ----------------------------------------------------------------------

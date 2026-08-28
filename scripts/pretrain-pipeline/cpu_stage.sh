@@ -6,6 +6,13 @@
 # and turns it into v5 dual-elo shards (stage-1 full + stage-2
 # trusted-only) that the GPU stage trains on.
 #
+# The build is two-pass and parallel: pass 1 is a text-only scan that
+# fixes the game-disjoint train/val split, pass 2 replays one PGN file
+# per worker and streams the final shards directly (no temp files).
+# Output bytes are identical regardless of worker count (tested);
+# workers default to min(cpus-2, 128), so on CPU.360V.1440G the 5M set
+# builds with 128 parallel file-workers.
+#
 # Usage:
 #   scripts/pretrain-pipeline/cpu_stage.sh <games_dir> <out_root> [val_games]
 #

@@ -40,6 +40,10 @@ Scale-out design (the heavily-optimized parts):
   * deterministic game plan (seeded, per side: engine then elo) and
     per-game move-sampling substreams (sha256 of "seed:game_id"), so
     any game can be regenerated or resumed independently,
+  * CPU pinning on 180/360-vCPU boxes: each worker is affinitized to
+    its dedicated 1-2 cores (parent keeps the last 10) with one-thread
+    BLAS/OpenMP pools, so scheduler migration and thread-pool
+    over-subscription don't tax throughput at scale,
   * a full post-generation validation pass (every move replayed legal,
     headers/labels/engine cross-checks) + a conditioning calibration
     report over the maia3 rows,
@@ -445,6 +449,29 @@ def uci_engine_command(pid: str, engines_dir: Path) -> tuple[list[str], str | No
 _WORKER: dict = {}
 
 
+def _pin_worker(cores: list[int] | None) -> None:
+    """Pin this worker process to its dedicated cores (Linux).
+
+    On a 180/360-vCPU box the scheduler will otherwise migrate worker
+    threads across the whole NUMA domain mid-inference; pinning
+    (worker -> fixed 1-2 cores, parent keeps the last 10) removes that
+    jitter. Mixed pools get 2 cores/worker (maia3 ORT + one UCI
+    engine); maia3-only gets 1. No-op when unsupported or too few
+    free cores (then the run is unpinned, never wrong)."""
+    if not cores:
+        return
+    try:
+        os.sched_setaffinity(0, set(cores))
+    except (AttributeError, OSError):
+        pass
+    # one-thread BLAS/OpenMP pools: the worker owns its cores, and
+    # over-subscribed thread pools on 360-core boxes cost more than
+    # they buy (measured: 2 ORT threads = 1.10x, not worth the core)
+    for var in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS",
+                "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS"):
+        os.environ[var] = "1"
+
+
 def _worker_init(args: tuple) -> None:
     (pool, model_path, provider, gpu_id, intra_op_threads,
      engines_dir) = args
@@ -554,7 +581,8 @@ def _worker_run(job: tuple) -> dict:
     (shard, gid_start, gid_end, plan_slice, pool_ids, model_path,
      provider, gpu_id, out_dir, temperature, max_ply, resume, date_str,
      seed, intra_op_threads, engines_dir, uci_ms, rc_ms,
-     fsync_every, mixed) = job
+     fsync_every, mixed, cores) = job
+    _pin_worker(cores)
     args_ns = argparse.Namespace(uci_ms=uci_ms, rc_ms=rc_ms)
     pool = [PROFILE_BY_ID[i] for i in pool_ids]
     out = Path(out_dir)
@@ -686,6 +714,33 @@ def _chunk_ranges(n: int, workers: int) -> list[tuple[int, int]]:
     return ranges
 
 
+def _core_maps(workers: int, gpus: int, mixed: bool, affinity: str,
+               ncores: int | None = None) -> list[list[int]] | None:
+    """Per-worker dedicated core lists (or None = run unpinned).
+
+    The parent keeps the last 10 cores; mixed CPU pools pin 2 cores
+    per worker (maia3 ORT + one UCI engine), maia3-only pins 1. On a
+    360-vCPU box that is 175 workers x 2 (mixed) or 350 x 1.
+    Disables itself (with a note) when affinity is unsupported or
+    there are not enough free cores — never a hard failure."""
+    if affinity == "off" or gpus:
+        return None
+    if ncores is None:
+        try:
+            ncores = os.cpu_count() or 0
+        except Exception:  # noqa: BLE001
+            return None
+    cpw = 2 if mixed else 1
+    reserve = 10
+    usable = max(0, ncores - reserve)
+    if usable < workers * cpw:
+        print(f"note: cpu affinity disabled ({ncores} cores available, "
+              f"{workers} workers x {cpw} needed); run unpinned",
+              flush=True)
+        return None
+    return [list(range(i * cpw, (i + 1) * cpw)) for i in range(workers)]
+
+
 def _preflight(pool, model_path, engines_dir, gpus) -> dict:
     """One real move per engine before burning hours on the box."""
     import chess
@@ -744,7 +799,16 @@ def cmd_generate(args: argparse.Namespace) -> int:
     gpus = args.gpus
     workers = args.workers
     if not workers:
-        workers = (gpus or 1) if gpus else max(1, (os.cpu_count() or 4) - 2)
+        if gpus:
+            workers = gpus
+        else:
+            # 2 CPU cores per worker in mixed pools (maia3 ORT + one
+            # UCI engine), 1 in maia3-only; keep 10 cores free for the
+            # parent + I/O. 180-vCPU: 85 mixed / 170 maia-only;
+            # 360-vCPU: 175 mixed / 350 maia-only.
+            cpw = 2 if (mixed and not gpus) else 1
+            usable = max(1, (os.cpu_count() or 4) - 10)
+            workers = max(1, usable // cpw)
 
     t0 = time.time()
     print(f"building plan: {args.games} games, seed {args.seed}, pool "
@@ -761,6 +825,7 @@ def cmd_generate(args: argparse.Namespace) -> int:
 
     ranges = _chunk_ranges(args.games, workers)
     date_str = args.date or date.today().strftime("%Y.%m.%d")
+    core_maps = _core_maps(workers, gpus, mixed, args.cpu_affinity)
     ctx = mp.get_context("spawn")
     results = []
     with ctx.Pool(processes=workers) as poolmp:
@@ -774,7 +839,7 @@ def cmd_generate(args: argparse.Namespace) -> int:
                 gpu_id, str(out), args.temperature, args.max_ply,
                 args.resume, date_str, args.seed, args.maia_threads,
                 args.engines_dir, args.uci_ms, args.rc_ms,
-                args.fsync_every, mixed,
+                args.fsync_every, mixed, core_maps[i] if core_maps else None,
             ))
         for r in poolmp.imap_unordered(_worker_run, job_args):
             results.append(r)
@@ -785,7 +850,7 @@ def cmd_generate(args: argparse.Namespace) -> int:
 
     if not args.no_validate:
         print("running full validation + calibration pass...", flush=True)
-        rc = _run_validate(out, workers=min(workers, 16), check_dupes=False)
+        rc = _run_validate(out, workers=min(workers, 64), check_dupes=False)
         if rc != 0:
             print("VALIDATION FAILED — do not use this output for "
                   "training until it passes", file=sys.stderr)
@@ -1325,8 +1390,14 @@ def argument_parser() -> argparse.ArgumentParser:
     g.add_argument("--elo-min", type=int, default=100)
     g.add_argument("--elo-max", type=int, default=3200)
     g.add_argument("--workers", type=int, default=None,
-                   help="worker processes (default: cpus-2; on a "
-                        "180-vCPU box use ~90 for the mixed pool)")
+                   help="worker processes (default: mixed CPU pool "
+                        "(vcpus-10)//2, maia-only vcpus-10 — 85/170 on "
+                        "180-vCPU, 175/350 on 360-vCPU)")
+    g.add_argument("--cpu-affinity", choices=("auto", "off"),
+                   default="auto",
+                   help="pin each worker to its dedicated cores "
+                        "(default auto: on where supported and there "
+                        "are enough free cores)")
     g.add_argument("--gpus", type=int, default=0,
                    help="use this many GPUs for maia3 (one worker each)")
     g.add_argument("--temperature", type=float, default=1.0)

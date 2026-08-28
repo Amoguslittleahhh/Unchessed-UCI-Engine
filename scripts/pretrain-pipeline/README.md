@@ -20,9 +20,9 @@ CPU.180V.720G box                      A100/H100 box
 
 | Work | Box | Notes |
 |---|---|---|
-| Game generation (`tools/maia3_cloud_selfplay/generate.py`) | CPU | 170 workers, ~95-110 h for 5M mixed (measured inputs, see its README); the pilot command nails the real rate |
-| v5 shard build + validation (`cpu_stage.sh`) | CPU | pure python-chess, minutes per 1M games; ~1088 B/record |
-| Stage-1/2 training (`gpu_stage.sh`) | GPU | 58.5M-param dual-elo oracle; single GPU (DDP is the next iteration); `--micro-batch 128` default, probe with nvidia-smi |
+| Game generation (`tools/maia3_cloud_selfplay/generate.py`) | CPU | auto workers (175 mixed / 350 maia-only on 360 vCPUs), ~95-110 h for 5M mixed on 180V or ~half that on 360V at the same cost (measured inputs, see its README); the pilot command nails the real rate |
+| v5 shard build + validation (`cpu_stage.sh`) | CPU | two-pass parallel: a text-only scan fixes the game-disjoint split, then one worker per PGN file replays + streams final shards; **deterministic byte-for-byte regardless of `--workers`** (tested); ~1088 B/record |
+| Stage-1/2 training (`gpu_stage.sh`) | GPU | 58.5M-param dual-elo oracle; **DDP via torchrun (1-8 GPUs, nccl; gloo smoke-tested on CPU)**; global effective batch stays 4096 at every world size, `--micro-batch 256` default, activation checkpointing off (re-enable past micro 512) |
 | Selfcheck | GPU (first command) | tiny model on CUDA — catches torch/precision/model/loader problems before hours of GPU time. Also runs on CPU (sandbox-verified) |
 
 **Handoff:** rsync both shard directories from the CPU box to the GPU
@@ -39,11 +39,29 @@ scripts/pretrain-pipeline/cpu_stage.sh /data/mixed-5m /data/pretrain 20000
 rsync -a /data/pretrain/pretrain-v5 /data/pretrain/pretrain-v5-trusted <a100>:/data/pretrain/
 ```
 
-GPU box:
+GPU box (single GPU):
 
 ```sh
 scripts/pretrain-pipeline/gpu_stage.sh /data/pretrain
 ```
+
+Multi-GPU (8x A100 — the trainer is DDP-ready; nccl on CUDA, rank 0
+validates + checkpoints, one allreduce per optimizer step; from the
+repo checkout on the box, with the shards under /data/pretrain):
+
+```sh
+torchrun --nproc_per_node=8 tools/pretrain_v1_a100.py train \
+    --stage pretrain \
+    --train /data/pretrain/pretrain-v5/train/shard-*.v5 \
+    --validation /data/pretrain/pretrain-v5/val/shard-*.v5 \
+    --config config/pretrain_v1_training.json \
+    --output /data/pretrain/ckpt-stage1.pt
+```
+
+(`gpu_stage.sh` runs the single-GPU form of both stages; for
+multi-GPU, run the same two stage commands under torchrun as above.
+CPU smoke of the DDP path:
+`pytest tools/test_pretrain_v5.py::test_ddp_gloo_two_rank_smoke`.)
 
 ## Data format (v5, `UNCHD5R0`)
 
@@ -59,18 +77,55 @@ not use it). Train/val split is by **game** (never by row). The
 trusted-only stage-2 set contains games where **every** row is
 calibrated/native/human — no approximate rows at all.
 
+## Throughput round (2026-08-28) — what was optimized
+
+- **CPU stage, parallel v5 build:** `pretrain_v5_data.py build` is a
+  two-pass design — pass 1 a text-only scan (no chess parsing) that
+  counts the kept games per file and fixes the game-disjoint split,
+  pass 2 one worker per PGN file replaying with full legality and
+  streaming the final `shard-<file>-<seq>.v5` files directly (no temp
+  files, so disk = dataset size). A worker that disagrees with the
+  pass-1 count hard-fails the build. Output bytes are **identical for
+  any `--workers`** (worker-invariance test in the suite).
+- **CPU stage, 360-vCPU generation:** `generate.py` auto-sizes its
+  workers (`(vCPUs-10)/2` mixed, `vCPUs-10` maia-only) and pins each
+  worker to dedicated cores with one-thread BLAS/OpenMP pools
+  (`--cpu-affinity auto`). 360-vCPU: 175 mixed / 350 maia-only
+  workers.
+- **GPU stage, DDP:** the trainer runs under `torchrun` (nccl on
+  CUDA, gloo on CPU). Global effective batch is 4096 at every world
+  size (per-rank accumulation adapts), one allreduce per optimizer
+  step (accumulation substeps under `no_sync`), rank 0 validates +
+  checkpoints + broadcasts the epoch metrics. A 2-rank gloo CPU smoke
+  is in the suite.
+- **GPU stage, memory:** `micro_batch_initial` 128 -> 256 and
+  `activation_checkpointing` off — the 58.5M model at micro 256
+  measured ~13 GB on an A100 (2x the R21 micro-128 6.7 GB), far
+  inside 80 GB; the optimizer schedule is unchanged because the
+  global batch is constant. The per-epoch conditioning sweep is
+  chunked (64 positions x 27 elos per forward,
+  `sweep_chunk_positions`) — the unchunked 5400-row forward OOM'd a
+  CPU smoke box and is needless GPU memory.
+
 ## What is verified, and what is not (honest status)
 
 - **Verified in the sandbox (CPU):** the full CPU stage on the
   committed 13k-row self-play set (build + validate + spot-checks,
-  0 errors); the GPU trainer's selfcheck; a real-data training smoke
-  (small dual-elo oracle, 5 optimizer steps + conditioning sweep on
-  v5 shards, loss finite, dual-elo logits differ by elo); 7 + new
-  hermetic tests in the repo suite.
+  0 errors), including the parallel build's worker-invariance
+  (workers 1 vs 3 -> byte-identical shards); the GPU trainer's
+  selfcheck; a real-data training smoke (small dual-elo oracle,
+  5 optimizer steps + conditioning sweep on v5 shards, loss finite,
+  dual-elo logits differ by elo); a **2-rank gloo DDP smoke**
+  (2 epochs, disjoint strided data, rank-0 checkpoint, exactly one
+  epoch line per epoch); 9 + 4 + 12 hermetic tests in the repo suite
+  for this pipeline.
 - **Not verified here (no CUDA in the sandbox):** the CUDA path of
-  the trainer (precision/compile/memory). That is exactly what the
-  selfcheck exists for — run it first on the box; expect it to take
-  seconds. The multi-GPU DDP path is not implemented (single GPU).
+  the trainer (precision/compile/memory) and the **nccl** multi-GPU
+  path (the DDP code is the same for nccl/gloo; the smoke uses gloo
+  on CPU). That is exactly what the selfcheck exists for — run it
+  first on the box; expect it to take seconds. A bare python launch
+  (no torchrun) stays a single-process run, so the old single-GPU
+  command line is unchanged.
 - **Not yet wired (next round):** distillation to a dual-elo student
   + UNARCHV1 packaging + the Rust runtime change for dual-elo inputs.
   The checkpoint format marks `dual_elo: true` and the distill path

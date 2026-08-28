@@ -46,12 +46,22 @@ Usage:
   python3 tools/pretrain_v5_data.py build \
       --pgn /data/mixed-5m/pgn/shard-*.pgn \
       --pgn data/training-elo/elo-*.pgn \
-      --out /data/pretrain-v5 --val-games 20000 --shard-records 250000
+      --out /data/pretrain-v5 --val-games 20000
   python3 tools/pretrain_v5_data.py validate --dir /data/pretrain-v5
 
-Sizes: ~1088 bytes per record before zip; 13k rows ~ 14 MB, 327M rows
-~ 356 GB raw (the A100 box streams via mmap; on the CPU box consider
---shard-records tuning if the volume is tight).
+Build design (fast on many-core boxes, 180 or 360 vCPU):
+  pass 1  text-only scan (no chess parsing) counts, per file, the games
+          with valid dual-elo headers (and passes the quality filter),
+          in parallel over files;
+  pass 2  one worker per PGN file replays its games (full legality),
+          streaming records straight into the final shard files —
+          no temporary files, so disk usage equals the dataset size.
+  Output shards are per source file:
+      train/shard-<file:03d>-<seq:03d>.v5   val/shard-...v5
+  in exact game order, so the output bytes are identical regardless
+  of --workers (the split is decided per game by the global cutoff).
+  The GPU stage consumes them via glob: train/shard-*.v5.
+  Sizes: 1M mixed games ≈ 65M records ≈ 71 GB; 5M ≈ 356 GB.
 
 Dependencies: python-chess (tools/requirements-dev.txt).
 """
@@ -63,7 +73,6 @@ import json
 import os
 import struct
 import sys
-import tempfile
 import zlib
 from collections import defaultdict
 from pathlib import Path
@@ -279,6 +288,37 @@ def parse_elo(header_value) -> int | None:
     return v if 0 <= v <= 65535 else None
 
 
+def side_quality_from_tags(tags, white: bool,
+                           default_engine: str) -> int:
+    """Quality for one side from a game's header tags. Header quality
+    wins when present and valid; else derive from the engine header;
+    else default_engine. Used by BOTH the pass-1 text scanner and the
+    pass-2 replay so the split/filter decisions always agree."""
+    engine = str(tags.get(
+        "WhiteEngine" if white else "BlackEngine",
+        "")).strip().lower() or default_engine
+    q = str(tags.get(
+        "WhiteEloQuality" if white else "BlackEloQuality",
+        "")).strip().lower()
+    return QUALITY_NAMES.index(q) if q in QUALITY_NAMES \
+        else ENGINE_QUALITY.get(engine, QUALITY_HUMAN)
+
+
+def game_kept(tags, keep, default_engine: str) -> bool:
+    """True when the game's headers give it a valid dual-elo pair and
+    (when a quality filter is active) both sides pass it — all-rows
+    semantics: quality is per side and constant across that side's
+    plies, so both-sides is equivalent to all-rows."""
+    if parse_elo(tags.get("WhiteElo")) is None or \
+            parse_elo(tags.get("BlackElo")) is None:
+        return False
+    if keep is None:
+        return True
+    return (side_quality_from_tags(tags, True, default_engine) in keep
+            and side_quality_from_tags(tags, False, default_engine)
+            in keep)
+
+
 def game_rows(source_name: str, game_ordinal: int,
               g: "chess.pgn.Game", default_engine: str = "human") -> list[dict]:
     """Replay one PGN game into per-move pretrain rows.
@@ -287,20 +327,18 @@ def game_rows(source_name: str, game_ordinal: int,
     header (e.g. the committed data/selfplay PGN is maia3 but predates
     the engine headers; real-human corpora keep the default "human").
     """
-    w = parse_elo(g.headers.get("WhiteElo"))
-    b = parse_elo(g.headers.get("BlackElo"))
+    tags = g.headers
+    w = parse_elo(tags.get("WhiteElo"))
+    b = parse_elo(tags.get("BlackElo"))
     if w is None or b is None:
         return None  # caller counts as skipped
-    we = str(g.headers.get("WhiteEngine", "")).strip().lower()         or default_engine
-    be = str(g.headers.get("BlackEngine", "")).strip().lower()         or default_engine
-    wq = str(g.headers.get("WhiteEloQuality", "")).strip().lower()
-    bq = str(g.headers.get("BlackEloQuality", "")).strip().lower()
-    # header quality wins when present and valid; else derive from engine
-    wq = QUALITY_NAMES.index(wq) if wq in QUALITY_NAMES \
-        else ENGINE_QUALITY.get(we, QUALITY_HUMAN)
-    bq = QUALITY_NAMES.index(bq) if bq in QUALITY_NAMES \
-        else ENGINE_QUALITY.get(be, QUALITY_HUMAN)
-    result = g.headers.get("Result", "*")
+    we = str(tags.get("WhiteEngine", "")).strip().lower() \
+        or default_engine
+    be = str(tags.get("BlackEngine", "")).strip().lower() \
+        or default_engine
+    wq = side_quality_from_tags(tags, True, default_engine)
+    bq = side_quality_from_tags(tags, False, default_engine)
+    result = tags.get("Result", "*")
     game_key = f"{source_name}:{int(g.headers.get('Round', 0)) if str(g.headers.get('Round', '')).isdigit() else game_ordinal}"
     game_hash = int.from_bytes(hashlib.sha256(game_key.encode()).digest()[:8], "little")
 
@@ -371,7 +409,49 @@ def game_rows(source_name: str, game_ordinal: int,
 # build / validate commands
 # ----------------------------------------------------------------------
 
-def iter_pgn_games(path: Path):
+_TAG_RE = None
+
+
+def _tag_re():
+    global _TAG_RE
+    if _TAG_RE is None:
+        import re
+        _TAG_RE = re.compile(r'^\s*\[([A-Za-z0-9_]+)\s+"(.*)"\]\s*$')
+    return _TAG_RE
+
+
+def scan_file(path: Path, keep, default_engine: str) -> int:
+    """Text-only pass-1 scan: count games with a valid dual-elo header
+    pair (and passing the quality filter when active). No chess
+    parsing — fast enough to run over tens of GB, and uses the exact
+    same header logic (game_kept) as the pass-2 replay so the two
+    passes always agree."""
+    n_kept = 0
+    tags: dict = {}
+    in_game = False
+    in_movetext = False
+    tag_re = _tag_re()
+    with path.open("r", encoding="utf-8", errors="replace") as f:
+        for line in f:
+            m = tag_re.match(line)
+            if m:
+                if in_movetext:
+                    # a new tag block finalizes the previous game
+                    if in_game and game_kept(tags, keep, default_engine):
+                        n_kept += 1
+                    in_game = True
+                    in_movetext = False
+                    tags = {}
+                tags[m.group(1)] = m.group(2)
+                in_game = True
+            elif line.strip():
+                in_movetext = True
+    if in_game and game_kept(tags, keep, default_engine):
+        n_kept += 1
+    return n_kept
+
+
+def _iter_pgn_games(path: Path):
     stream = path.open("r", encoding="utf-8")
     try:
         ordinal = 0
@@ -385,33 +465,112 @@ def iter_pgn_games(path: Path):
         stream.close()
 
 
+class _SideWriter:
+    """Streams records into per-file shard files for one side
+    (train/val). The final shard name embeds the source-file index so
+    shards never collide across files and the output is deterministic
+    regardless of worker count. The header is patched in at close
+    time; the manifest sha256 is the FULL-FILE hash (header +
+    records) so `validate --dir` accepts the set it just built."""
+
+    def __init__(self, side_dir: Path, file_idx: int, shard_records: int):
+        self.side_dir = side_dir
+        self.file_idx = file_idx
+        self.shard_records = shard_records
+        self.shards = []  # (name, count, sha256)
+        self.total = 0
+        self._fh = None
+        self._path = None
+        self._count = 0
+
+    def _open_next(self):
+        seq = len(self.shards)
+        self._name = f"shard-{self.file_idx:03d}-{seq:03d}.v5"
+        self._path = self.side_dir / self._name
+        self._fh = self._path.open("wb")
+        self._fh.write(b"\x00" * HEADER_BYTES)  # placeholder
+        self._count = 0
+
+    def write(self, record: bytes):
+        if self._fh is None:
+            self._open_next()
+        self._fh.write(record)
+        self._count += 1
+        if self._count >= self.shard_records:
+            self._close_current()
+
+    def _close_current(self):
+        assert self._fh is not None
+        self._fh.seek(0)
+        self._fh.write(make_header(self._count))
+        self._fh.flush()
+        os.fsync(self._fh.fileno())
+        self._fh.close()
+        h = hashlib.sha256()
+        with self._path.open("rb") as f:
+            for chunk in iter(lambda: f.read(1 << 20), b""):
+                h.update(chunk)
+        self.shards.append((self._name, self._count, h.hexdigest()))
+        self.total += self._count
+        self._fh = None
+
+    def close(self):
+        if self._fh is not None:
+            self._close_current()
+
+
+def _build_file(job: tuple) -> dict:
+    (file_idx, path, global_start, cutoff, keep, out_dir,
+     default_engine, shard_records, expected_kept) = job
+    import time
+
+    t0 = time.monotonic()
+    train = _SideWriter(Path(out_dir) / "train", file_idx, shard_records)
+    val = _SideWriter(Path(out_dir) / "val", file_idx, shard_records)
+    kept_idx = 0
+    rows = 0
+    dist = defaultdict(lambda: defaultdict(int))
+    for _ordinal, g in _iter_pgn_games(Path(path)):
+        if not game_kept(g.headers, keep, default_engine):
+            continue
+        writer = val if (global_start + kept_idx) >= cutoff else train
+        recs = game_rows(Path(path).name, kept_idx, g, default_engine)
+        if recs:
+            for row in recs:
+                writer.write(make_v5_bytes(row))
+                dist[row["quality"]][row["rating"] // 100 * 100] += 1
+                rows += 1
+        kept_idx += 1
+    train.close()
+    val.close()
+    if kept_idx != expected_kept:
+        raise RuntimeError(
+            f"file {file_idx} ({path}): replay kept {kept_idx} games, "
+            f"pass-1 scan counted {expected_kept} — the two passes "
+            f"disagree (text scan vs parse); refusing to build")
+    return {
+        "file_idx": file_idx, "path": str(path),
+        "kept_games": kept_idx, "rows": rows,
+        "train_shards": train.shards, "val_shards": val.shards,
+        "train_total": train.total, "val_total": val.total,
+        "dist": {q: dict(bands) for q, bands in dist.items()},
+        "elapsed_s": round(time.monotonic() - t0, 1),
+    }
+
+
 def cmd_build(args: argparse.Namespace) -> int:
+    import multiprocessing as mp
+    import time
+
     out = Path(args.out)
     for sub in ("train", "val"):
         (out / sub).mkdir(parents=True, exist_ok=True)
+    # deterministic regeneration: clear any prior shards
+    for sub in ("train", "val"):
+        for stale in (out / sub).glob("shard-*.v5"):
+            stale.unlink()
 
-    # pass 1: collect per-game row counts for the game-disjoint split
-    games = []  # (source, ordinal, header_elo_present, n_rows)
-    skipped_no_elo = 0
-    for pg in args.pgn:
-        path = Path(pg)
-        for ordinal, g in iter_pgn_games(path):
-            if parse_elo(g.headers.get("WhiteElo")) is None or \
-                    parse_elo(g.headers.get("BlackElo")) is None:
-                skipped_no_elo += 1
-                continue
-            rows = game_rows(path.name, ordinal, g, args.default_engine)
-            if rows is None:
-                skipped_no_elo += 1
-                continue
-            games.append((str(path), ordinal, rows))
-    total_rows = sum(len(r) for _, _, r in games)
-    print(f"games with dual-elo headers: {len(games)} "
-          f"({total_rows:,} rows); skipped {skipped_no_elo} "
-          f"games without elos", flush=True)
-    if not games:
-        raise SystemExit("no usable games")
-
+    keep = None
     if args.quality_filter:
         keep_names = {q.strip() for q in args.quality_filter.split(",")}
         unknown = keep_names - set(QUALITY_NAMES)
@@ -419,93 +578,108 @@ def cmd_build(args: argparse.Namespace) -> int:
             raise SystemExit(f"unknown quality name(s) {sorted(unknown)}; "
                              f"choose from {list(QUALITY_NAMES)}")
         keep = {QUALITY_NAMES.index(q) for q in keep_names}
-        before = len(games)
-        # ALL-rows semantics: a game with even one approximate row is
-        # excluded from the trusted subset (stage 2 is trusted-only)
-        games = [g for g in games if all(
-            row["quality"] in keep for row in g[2])]
-        total_rows = sum(len(r) for _, _, r in games)
-        print(f"quality filter {sorted(keep_names)}: {before} -> "
-              f"{len(games)} games ({total_rows:,} rows)", flush=True)
-        if not games:
-            raise SystemExit("quality filter removed all games")
-    val_n = min(args.val_games, len(games) // 2)
+
+    files = [Path(p) for p in args.pgn]
+    workers = args.workers or max(1, min((os.cpu_count() or 4) - 2, 128))
+
+    print(f"pass 1: text scan of {len(files)} file(s) for the "
+          f"game-disjoint split...", flush=True)
+    t0 = time.monotonic()
+    per_file_kept = [
+        scan_file(p, keep, args.default_engine) for p in files
+    ]
+    n_kept_total = sum(per_file_kept)
+    print(f"pass 1 done in {time.monotonic() - t0:.1f}s: "
+          f"{n_kept_total:,} kept games", flush=True)
+    if n_kept_total == 0:
+        raise SystemExit("no usable games (valid dual-elo headers"
+                         + (" + quality filter" if keep else "") + ")")
+
+    val_n = min(args.val_games, n_kept_total // 2)
     if val_n <= 0:
         raise SystemExit("not enough games for a validation split")
-    # last val_n games (in input order) -> validation; deterministic
-    val_games = games[len(games) - val_n:]
-    train_games = games[:len(games) - val_n]
-    train_ids = {id(r) for _, _, r in train_games}
-    val_ids = {id(r) for _, _, r in val_games}
-    assert train_ids.isdisjoint(val_ids)
+    # last val_n kept games (input order) -> validation; deterministic
+    cutoff = n_kept_total - val_n
 
-    def write_side(name, side_games):
-        rows_iter = (row for _, _, rows in side_games for row in rows)
-        paths = []
-        total = 0
-        shard_index = 0
-        while True:
-            count = 0
-            temporary = None
-            with tempfile.NamedTemporaryFile(dir=out / name,
-                                             prefix="shard-",
-                                             delete=False) as handle:
-                temporary = Path(handle.name)
-                handle.write(make_header(0))
-                for row in rows_iter:
-                    handle.write(make_v5_bytes(row))
-                    count += 1
-                    if count >= args.shard_records:
-                        break
-                if count:
-                    handle.seek(0)
-                    handle.write(make_header(count))
-                    handle.flush()
-                    os.fsync(handle.fileno())
-            if count == 0:
-                temporary.unlink()
-                return total, paths
-            path = out / name / f"shard-{shard_index:05d}.v5"
-            os.replace(temporary, path)
-            total += count
-            paths.append((count, path))
-            shard_index += 1
-            if count < args.shard_records:
-                return total, paths
+    # per-file global kept-index ranges (input order)
+    jobs = []
+    start = 0
+    for i, p in enumerate(files):
+        jobs.append((i, str(p), start, cutoff, keep, str(out),
+                     args.default_engine, args.shard_records,
+                     per_file_kept[i]))
+        start += per_file_kept[i]
+    # skip files with nothing to do
+    jobs = [j for j in jobs if j[8] > 0]
 
-    train_count, train_paths = write_side("train", train_games)
-    val_count, val_paths = write_side("val", val_games)
+    print(f"pass 2: replaying {len(jobs)} file(s) with {workers} "
+          f"worker(s); cutoff after game {cutoff} "
+          f"({val_n} val games)...", flush=True)
+    t0 = time.monotonic()
+    reports = []
+    if workers == 1 or len(jobs) == 1:
+        for job in jobs:
+            rep = _build_file(job)
+            reports.append(rep)
+            print(f"  file {rep['file_idx']:03d}: {rep['kept_games']:,} "
+                  f"games, {rep['rows']:,} rows "
+                  f"({rep['train_total']:,} train / "
+                  f"{rep['val_total']:,} val) in {rep['elapsed_s']}s",
+                  flush=True)
+    else:
+        ctx = mp.get_context("spawn")
+        with ctx.Pool(processes=workers) as pool:
+            for rep in pool.imap_unordered(_build_file, jobs):
+                reports.append(rep)
+                print(f"  file {rep['file_idx']:03d}: "
+                      f"{rep['kept_games']:,} games, {rep['rows']:,} rows "
+                      f"({rep['train_total']:,} train / "
+                      f"{rep['val_total']:,} val) in {rep['elapsed_s']}s",
+                      flush=True)
+    reports.sort(key=lambda r: r["file_idx"])
+    print(f"pass 2 done in {time.monotonic() - t0:.1f}s", flush=True)
 
-    # distribution report
+    train_count = sum(r["train_total"] for r in reports)
+    val_count = sum(r["val_total"] for r in reports)
     dist = defaultdict(lambda: defaultdict(int))
-    for _, _, rows in games:
-        for row in rows:
-            dist[row["quality"]][row["rating"] // 100 * 100] += 1
+    for r in reports:
+        for q, bands in r["dist"].items():
+            for band, v in bands.items():
+                dist[q][band] += v
     report = {
         "tool": "tools/pretrain_v5_data.py",
         "magic": MAGIC.decode("ascii"),
         "sources": [str(p) for p in args.pgn],
-        "games": {"train": len(train_games), "val": len(val_games)},
+        "games": {
+            "kept_total": n_kept_total,
+            "train": n_kept_total - val_n,
+            "val": val_n,
+        },
         "rows": {"train": train_count, "val": val_count},
-        "split": "game-disjoint: last N games (input order) -> validation",
+        "split": ("game-disjoint: last N kept games (input order) -> "
+                  "validation; per-file shards named "
+                  "shard-<file>-<seq>.v5"),
         "quality_histogram": {QUALITY_NAMES[k]: {
             f"{band}-{band+99}": v for band, v in sorted(bands.items())
         } for k, bands in sorted(dist.items())},
-        "skipped_games_without_elos": skipped_no_elo,
+        "workers": workers,
     }
     manifest = {
         **report,
         "shards": [
-            {"side": "train", "path": str(p), "records": c,
-             "sha256": sha256_file(p)} for c, p in train_paths
+            {"side": "train", "path": str(out / "train" / name),
+             "records": c, "sha256": h}
+            for r in reports for name, c, h in r["train_shards"]
         ] + [
-            {"side": "val", "path": str(p), "records": c,
-             "sha256": sha256_file(p)} for c, p in val_paths
+            {"side": "val", "path": str(out / "val" / name),
+             "records": c, "sha256": h}
+            for r in reports for name, c, h in r["val_shards"]
         ],
     }
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     print(json.dumps(report, indent=2)[:2000])
-    print(f"wrote {train_count:,} train + {val_count:,} val records")
+    print(f"wrote {train_count:,} train + {val_count:,} val records "
+          f"({len(manifest['shards'])} shards)")
     return 0
 
 
@@ -614,8 +788,11 @@ def argument_parser() -> argparse.ArgumentParser:
     b.add_argument("--val-games", type=int, default=20000,
                    help="number of games held out for validation "
                         "(game-disjoint; default 20000)")
-    b.add_argument("--shard-records", type=int, default=500_000,
-                   help="records per shard file (default 500000)")
+    b.add_argument("--shard-records", type=int, default=1_000_000,
+                   help="records per shard file (default 1000000)")
+    b.add_argument("--workers", type=int, default=None,
+                   help="pass-2 replay workers, one per PGN file "
+                        "(default min(cpus-2, 128))")
     b.add_argument("--quality-filter", default=None,
                    help="comma list of qualities to keep "
                         "(calibrated,native,approximate,human); used to "

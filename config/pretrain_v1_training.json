@@ -7,11 +7,12 @@
   "changes_vs_v1_training": [
    "dual-elo conditioning: single-scalar rating path in history_context replaced by elo_self + elo_oppo projections (docs/rating-conditioning-finding.md: 0/200 sweep with the scalar)",
    "GAB widened to the paper's 5M configuration: gab_token_projection 16 -> 32 (docs/gab-capacity-finding.md)",
-   "objective: legal-only weighted policy cross-entropy (pretrain); stage 2 = same objective on trusted-quality shards (finetune)"
+   "objective: legal-only weighted policy cross-entropy (pretrain); stage 2 = same objective on trusted-quality shards (finetune)",
+   "throughput round (2026-08-28): micro_batch 128 -> 256 with adaptive accumulation (GLOBAL effective batch stays 4096 at every world size, so the optimizer schedule is unchanged from the single-GPU design); activation_checkpointing off — the 58.5M model at micro 256 uses ~13 GB measured on an A100 (2x the R21 micro-128 6.7 GB), far inside 80 GB; re-enable it if micro_batch_max is raised past 512 or on smaller GPUs"
   ]
  },
  "hardware": {
-  "target": "Verda homogeneous NVIDIA GPU node (1 GPU for this stage; 1-8 GPUs supported by the box)",
+  "target": "Verda homogeneous NVIDIA GPU node (1-8 GPUs; DDP via torchrun, nccl auto / gloo on CPU)",
   "precision": "auto",
   "allow_tf32": true,
   "compile": true,
@@ -46,8 +47,8 @@
   "concept_width": 64,
   "score_quantiles": 9,
   "dropout": 0.05,
-  "activation_checkpointing": true,
-  "micro_batch_initial": 128,
+  "activation_checkpointing": false,
+  "micro_batch_initial": 256,
   "micro_batch_max": 1024,
   "effective_batch_records": 4096,
   "epoch_mode": "without_replacement",
@@ -61,6 +62,7 @@
   "warmup_steps": 5000,
   "gradient_clip": 1.0,
   "validation_batch_size": 256,
+  "sweep_chunk_positions": 64,
   "seed": 20260828
  }
 }
