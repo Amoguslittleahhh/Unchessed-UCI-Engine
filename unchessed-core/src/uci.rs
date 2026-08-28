@@ -58,6 +58,7 @@ struct Options {
     /// Experimental Unarchitectured v1 root ordering candidate. Default-off;
     /// alpha-beta remains authoritative and every legal move remains searched.
     unarchitectured_hint: bool,
+    unarchitectured_hint_exit: InferenceExit,
     unarchitectured_file: String,
     unarchitectured_min_time_ms: u64,
 }
@@ -105,6 +106,7 @@ impl Default for Options {
             threads: default_threads(),
             eval_params: EvalParams::default(),
             unarchitectured_hint: false,
+            unarchitectured_hint_exit: InferenceExit::Layer2Width128,
             unarchitectured_file: String::new(),
             unarchitectured_min_time_ms: 30_000,
         }
@@ -243,6 +245,9 @@ pub fn run(ident: EngineIdent) {
                     if ident.adaptive_engine { 1 } else { 3 });
                 println!("option name EvalFile type string default ");
                 println!("option name UnarchitecturedHint type check default false");
+                println!(
+                    "option name UnarchitecturedHintExit type string default 2/128"
+                );
                 println!("option name UnarchitecturedFile type string default ");
                 println!(
                     "option name UnarchitecturedMinTime type spin default 30000 min 1000 max 600000"
@@ -540,6 +545,21 @@ fn handle_setoption(
                         );
                     }
                 }
+            }
+        }
+        "unarchitecturedhintexit" => {
+            match InferenceExit::from_option_name(&value) {
+                Some(exit) => {
+                    opt.unarchitectured_hint_exit = exit;
+                    println!(
+                        "info string [Unchessed] Unarchitectured hint exit set to {}",
+                        exit.option_name()
+                    );
+                }
+                None => println!(
+                    "info string [Unchessed] UnarchitecturedHintExit must be 2/128, 4/192 or 8/256 ({} kept)",
+                    opt.unarchitectured_hint_exit.option_name()
+                ),
             }
         }
         "unarchitecturedfile" => {
@@ -959,6 +979,7 @@ fn prepare_unarchitectured_root_hints(
     rating: i32,
     limits: &Limits,
     minimum_time_ms: u64,
+    exit: InferenceExit,
 ) -> PreparedRootHints {
     if !unarchitectured_wait_allowed(limits, pos.side, minimum_time_ms) {
         return PreparedRootHints {
@@ -969,7 +990,7 @@ fn prepare_unarchitectured_root_hints(
     }
     let started = std::time::Instant::now();
     let input = unarchitectured_input(pos, legal_moves, rating);
-    let key = HintKey::new(pos.hash, &input, InferenceExit::Layer2Width128);
+    let key = HintKey::new(pos.hash, &input, exit);
 
     let exact = {
         let guard = candidate.lock().unwrap();
@@ -985,7 +1006,7 @@ fn prepare_unarchitectured_root_hints(
             if let Some(candidate) = guard.as_ref() {
                 let _ = candidate
                     .worker
-                    .try_submit(pos.hash, input, InferenceExit::Layer2Width128);
+                    .try_submit(pos.hash, input, exit);
             }
         }
         let deadline = std::time::Instant::now() + std::time::Duration::from_millis(100);
@@ -1328,6 +1349,7 @@ fn run_go(
             job.opt.elo,
             &job.limits,
             job.opt.unarchitectured_min_time_ms,
+            job.opt.unarchitectured_hint_exit,
         );
         println!(
             "info string [Unchessed] Unarchitectured hint {} actions={} charged={}ms",
@@ -1679,6 +1701,7 @@ mod tests {
                 ..Default::default()
             },
             options.unarchitectured_min_time_ms,
+            InferenceExit::Layer2Width128,
         );
         assert_eq!(skipped.source, "skipped-low-time");
         assert!(skipped.hints.is_empty());
@@ -1720,6 +1743,7 @@ mod tests {
             2700,
             &Limits::depth(2),
             30_000,
+            InferenceExit::Layer2Width128,
         );
         assert_eq!(prepared.source, "exact");
         assert_eq!(prepared.hints.len(), moves.len);
@@ -1746,6 +1770,7 @@ mod tests {
             2700,
             &Limits::depth(2),
             30_000,
+            InferenceExit::Layer2Width128,
         );
         if different_key.source == "exact" {
             assert_eq!(
@@ -1757,6 +1782,78 @@ mod tests {
             assert!(
                 different_key.hints.is_empty(),
                 "a non-exact result must not carry hints from the stale cache entry"
+            );
+        }
+    }
+
+    #[test]
+    fn unarchitectured_hint_exit_option_selects_exit() {
+        use crate::aegis_v4_runtime::InferenceExit;
+
+        // Option parsing: the three exits, unknown values rejected.
+        assert_eq!(
+            InferenceExit::from_option_name("2/128"),
+            Some(InferenceExit::Layer2Width128)
+        );
+        assert_eq!(
+            InferenceExit::from_option_name("4/192"),
+            Some(InferenceExit::Layer4Width192)
+        );
+        assert_eq!(
+            InferenceExit::from_option_name("8/256"),
+            Some(InferenceExit::Layer8Width256)
+        );
+        assert_eq!(InferenceExit::from_option_name("3/160"), None);
+        assert_eq!(InferenceExit::from_option_name(""), None);
+        assert_eq!(
+            InferenceExit::Layer4Width192.option_name(),
+            "4/192"
+        );
+
+        // End-to-end: the exit chosen by the caller drives both the cache
+        // key and the worker submission (each exit is a distinct HintKey,
+        // so a 4/192 request must be answered from a 4/192 cache entry).
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../artifacts/unarchitectured-v1-final.unarchv1"
+        );
+        let candidate = Arc::new(Mutex::new(Some(
+            load_unarchitectured_candidate(path).expect("load candidate"),
+        )));
+        let pos = fen::startpos();
+        let moves = legal(&pos);
+        let input = unarchitectured_input(&pos, moves.as_slice(), 2700);
+        let key = HintKey::new(pos.hash, &input, InferenceExit::Layer4Width192);
+
+        let prepared = prepare_unarchitectured_root_hints(
+            &candidate,
+            &pos,
+            moves.as_slice(),
+            2700,
+            &Limits::depth(2),
+            30_000,
+            InferenceExit::Layer4Width192,
+        );
+        if prepared.source == "exact" {
+            // a fresh 4/192 result: the worker must also hold it under the
+            // 4/192 key (submission used the same exit as the lookup)
+            let held = candidate
+                .lock()
+                .unwrap()
+                .as_ref()
+                .and_then(|candidate| candidate.worker.latest_exact(&key))
+                .is_some();
+            assert!(
+                held,
+                "a 4/192 result must be cacheable under the 4/192 key"
+            );
+            assert_eq!(prepared.hints.len(), moves.len);
+        } else {
+            // first 4/192 request may still be in flight within the wait
+            // window; nothing from another exit may be served instead
+            assert!(
+                prepared.hints.is_empty(),
+                "a non-exact result must not carry hints from another exit's cache"
             );
         }
     }

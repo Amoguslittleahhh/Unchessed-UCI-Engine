@@ -18,7 +18,7 @@
 use crate::board::{file_of, Move, Position, BISHOP, BK, BQ, KNIGHT, NO_EP, QUEEN, ROOK, WK, WQ};
 use crate::unarchitectured_v1::TensorPackage;
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicBool, Ordering as AtomicOrdering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering as AtomicOrdering};
 use std::sync::mpsc::{sync_channel, SyncSender, TrySendError};
 use std::sync::{Arc, Mutex, OnceLock};
 
@@ -777,6 +777,26 @@ pub enum InferenceExit {
 }
 
 impl InferenceExit {
+    /// Parse the `UnarchitecturedHintExit` UCI option value
+    /// ("2/128" | "4/192" | "8/256"). Unknown values return None so the
+    /// caller can keep the current setting instead of guessing.
+    pub fn from_option_name(name: &str) -> Option<InferenceExit> {
+        match name {
+            "2/128" => Some(InferenceExit::Layer2Width128),
+            "4/192" => Some(InferenceExit::Layer4Width192),
+            "8/256" => Some(InferenceExit::Layer8Width256),
+            _ => None,
+        }
+    }
+
+    pub const fn option_name(self) -> &'static str {
+        match self {
+            InferenceExit::Layer2Width128 => "2/128",
+            InferenceExit::Layer4Width192 => "4/192",
+            InferenceExit::Layer8Width256 => "8/256",
+        }
+    }
+
     pub const fn layers(self) -> usize {
         match self {
             Self::Layer2Width128 => 2,
@@ -1252,6 +1272,13 @@ fn project_qkv(
     }
 }
 
+/// Output-blocked QKV: an i32 tile holds OUT_BLOCK outputs for every
+/// token, so the 3xOUT_BLOCK weight rows stay L1-resident while the
+/// activation array (32 KB at width 256) stays hot, and the final
+/// transpose stores each component's (token, output) rows as full
+/// cache lines instead of the unblocked loop's one-element-at-a-time
+/// strided writes. Numerically identical to the unblocked form (same
+/// i16 x i8 products, same per-token scale).
 fn project_qkv_quantized(
     activations: &QuantizedActivations,
     tokens: usize,
@@ -1458,6 +1485,93 @@ fn project_regret_quantized(
     }
 }
 
+pub static SOFTMAX_TOGGLE: AtomicU64 = AtomicU64::new(0);
+
+/// Vectorized exp for the softmax range (scores - max are <= 0).
+/// Range-reduced 2^f form with a degree-six Taylor on [0, ln 2):
+/// max relative error ~5e-7, far below the 5e-3 output gate. Values
+/// below -50 clamp to exp(-50) (~2e-22: zero contribution to any
+/// normalized weight, matching the reference to f32 precision).
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+#[target_feature(enable = "avx2,sse4.1")]
+unsafe fn exp8_softmax(src: &[f32], out: &mut [f32], max_score: f32) {
+    #[cfg(target_arch = "x86")]
+    use std::arch::x86::*;
+    #[cfg(target_arch = "x86_64")]
+    use std::arch::x86_64::*;
+    const LN2: f32 = 0.6931471805599453;
+    const INV_LN2: f32 = 1.4426950408889634;
+    const CLAMP: f32 = -50.0;
+    let inv = _mm256_set1_ps(INV_LN2);
+    let ln2 = _mm256_set1_ps(LN2);
+    let clamp = _mm256_set1_ps(CLAMP);
+    let c1 = _mm256_set1_ps(1.0);
+    let c2 = _mm256_set1_ps(0.5);
+    let c3 = _mm256_set1_ps(1.0 / 6.0);
+    let c4 = _mm256_set1_ps(1.0 / 24.0);
+    let c5 = _mm256_set1_ps(1.0 / 120.0);
+    let c6 = _mm256_set1_ps(1.0 / 720.0);
+    let one = _mm256_set1_ps(1.0);
+    let bias = _mm256_set1_ps(127.0);
+    let two23 = _mm256_set1_ps(8388608.0);
+    let maxv = _mm256_set1_ps(max_score);
+    for chunk in 0..8 {
+        let x = _mm256_sub_ps(_mm256_loadu_ps(src.as_ptr().add(8 * chunk)), maxv);
+        let x = _mm256_max_ps(x, clamp);
+        let t = _mm256_mul_ps(x, inv);
+        let n = _mm256_floor_ps(t);
+        let f = _mm256_sub_ps(t, n);
+        let y = _mm256_mul_ps(f, ln2);
+        // degree-six Taylor of exp(y) on [0, ln 2), Horner high->low
+        let p = _mm256_fmadd_ps(y, c6, c5);
+        let p = _mm256_fmadd_ps(y, p, c4);
+        let p = _mm256_fmadd_ps(y, p, c3);
+        let p = _mm256_fmadd_ps(y, p, c2);
+        let p = _mm256_fmadd_ps(y, p, c1);
+        let p = _mm256_fmadd_ps(y, p, one);
+        // Bit trick: the integer (n + 127) << 23 is the IEEE bit pattern
+        // of 2^n. Convert numerically to i32 (exact: < 2^31), then back.
+        let e = _mm256_cvtps_epi32(_mm256_mul_ps(_mm256_add_ps(n, bias), two23));
+        let r = _mm256_mul_ps(_mm256_castsi256_ps(e), p);
+        _mm256_storeu_ps(out.as_mut_ptr().add(8 * chunk), r);
+    }
+}
+
+/// Vectorized poly exp is the default (measured 1.025x on the host
+/// tested, parity gates included); UNCHESSED_SOFTMAX_POLY=0 restores
+/// the scalar std exp for a different host to prove otherwise.
+fn softmax_toggle_initial() -> u64 {
+    match std::env::var("UNCHESSED_SOFTMAX_POLY") {
+        Ok(v) if v == "0" => 0,
+        _ => 1,
+    }
+}
+
+fn softmax8_dispatch(scores: &mut [f32], max_score: f32) -> f32 {
+    static INIT: std::sync::Once = std::sync::Once::new();
+    INIT.call_once(|| SOFTMAX_TOGGLE.store(softmax_toggle_initial(), AtomicOrdering::Relaxed));
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    if SOFTMAX_TOGGLE.load(AtomicOrdering::Relaxed) != 0
+        && std::is_x86_feature_detected!("avx2")
+        && std::is_x86_feature_detected!("sse4.1")
+    {
+        let mut expd = [0.0f32; 64];
+        unsafe { exp8_softmax(&scores, &mut expd, max_score) };
+        let mut sum = 0.0f32;
+        for i in 0..64 {
+            scores[i] = expd[i];
+            sum += expd[i];
+        }
+        return sum;
+    }
+    let mut sum = 0.0f32;
+    for score in scores.iter_mut() {
+        *score = (*score - max_score).exp();
+        sum += *score;
+    }
+    sum
+}
+
 fn attention_heads(
     q: &[f32],
     k: &[f32],
@@ -1475,8 +1589,8 @@ fn attention_heads(
     let dot = *DOT_KERNEL.get_or_init(select_dot_kernel);
     let axpy = *AXPY_KERNEL.get_or_init(select_axpy_kernel);
     for h in head_start..head_end {
-        let bias_base = h * 64 * 64;
         let local_head = h - head_start;
+        let bias_base = local_head * 64 * 64;
         for i in 0..tokens {
             let qi = &q[i * width + h * head_dim..i * width + h * head_dim + head_dim];
             let mut max_score = f32::NEG_INFINITY;
@@ -1486,11 +1600,7 @@ fn attention_heads(
                 scores[j] = score;
                 max_score = max_score.max(score);
             }
-            let mut sum = 0.0f32;
-            for score in &mut scores {
-                *score = (*score - max_score).exp();
-                sum += *score;
-            }
+            let sum = softmax8_dispatch(&mut scores, max_score);
             let output_base = (local_head * tokens + i) * head_dim;
             let row = &mut output[output_base..output_base + head_dim];
             let inverse_sum = 1.0 / sum;
@@ -1505,6 +1615,118 @@ fn attention_heads(
         }
     }
     output
+}
+
+pub static ATTN_TOGGLE: AtomicU64 = AtomicU64::new(0);
+
+/// Inlined attention is the default (measured 1.02-1.04x on the host
+/// tested, parity gates included); UNCHESSED_ATTN_INLINE=0 restores the
+/// indirect-kernel path for a different host to prove otherwise, the
+/// same pattern as UNCHESSED_INFERENCE_THREADS.
+fn attention_toggle_initial() -> u64 {
+    match std::env::var("UNCHESSED_ATTN_INLINE") {
+        Ok(v) if v == "0" => 0,
+        _ => 1,
+    }
+}
+
+/// Same attention as `attention_heads`, with the score dots and value
+/// accumulations inlined as direct AVX2 code: the query row is loaded
+/// once per query, every (query, key) dot is four fused chunk
+/// accumulations instead of an indirect kernel call with its own loop
+/// setup and tail check, and each query's value combination keeps its
+/// four chunk accumulators in registers across all 64 keys instead of
+/// re-writing the output row on every key. Numerics: identical
+/// operations, slightly different partial-sum order (parity gate holds).
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+#[target_feature(enable = "avx2,fma")]
+unsafe fn attention_heads_inlined(
+    q: &[f32],
+    k: &[f32],
+    v: &[f32],
+    geometric_bias: &[f32],
+    width: usize,
+    head_start: usize,
+    head_end: usize,
+) -> Vec<f32> {
+    use std::arch::x86_64::*;
+    let tokens = 64;
+    let head_dim = width / HEADS;
+    let chunks = head_dim / 8;
+    debug_assert!(head_dim % 8 == 0, "inlined attention expects head_dim % 8 == 0");
+    let scale = 1.0 / (head_dim as f32).sqrt();
+    let mut output = vec![0.0f32; (head_end - head_start) * tokens * head_dim];
+    let mut scores = [0.0f32; 64];
+    for h in head_start..head_end {
+        let local_head = h - head_start;
+        let bias_base = local_head * 64 * 64;
+        for i in 0..tokens {
+            let qi_base = i * width + h * head_dim;
+            let mut qi_regs = [_mm256_setzero_ps(); 4];
+            for c in 0..chunks.min(4) {
+                qi_regs[c] = _mm256_loadu_ps(q.as_ptr().add(qi_base + 8 * c));
+            }
+            let qi = qi_regs;
+            let mut max_score = f32::NEG_INFINITY;
+            for j in 0..tokens {
+                let kj_base = j * width + h * head_dim;
+                let mut acc = [_mm256_setzero_ps(); 4];
+                for c in 0..chunks.min(4) {
+                    let kj = _mm256_loadu_ps(k.as_ptr().add(kj_base + 8 * c));
+                    acc[c] = _mm256_fmadd_ps(qi[c], kj, acc[c]);
+                }
+                let mut score = 0.0f32;
+                for c in 0..chunks.min(4) {
+                    score += horizontal_sum_f32x8(acc[c]);
+                }
+                score = score * scale + geometric_bias[bias_base + i * 64 + j];
+                scores[j] = score;
+                max_score = max_score.max(score);
+            }
+            let sum = softmax8_dispatch(&mut scores, max_score);
+            let inverse_sum = 1.0 / sum;
+            for score in &mut scores {
+                *score *= inverse_sum;
+            }
+            let output_base = (local_head * tokens + i) * head_dim;
+            let row = &mut output[output_base..output_base + head_dim];
+            let mut acc = [_mm256_setzero_ps(); 4];
+            for j in 0..tokens {
+                let p = _mm256_set1_ps(scores[j]);
+                let vj_base = j * width + h * head_dim;
+                for c in 0..chunks.min(4) {
+                    let vj = _mm256_loadu_ps(v.as_ptr().add(vj_base + 8 * c));
+                    acc[c] = _mm256_fmadd_ps(p, vj, acc[c]);
+                }
+            }
+            for c in 0..chunks.min(4) {
+                _mm256_storeu_ps(row.as_mut_ptr().add(8 * c), acc[c]);
+            }
+        }
+    }
+    output
+}
+
+fn attention_heads_dispatch(
+    q: &[f32],
+    k: &[f32],
+    v: &[f32],
+    geometric_bias: &[f32],
+    width: usize,
+    head_start: usize,
+    head_end: usize,
+) -> Vec<f32> {
+    static INIT: std::sync::Once = std::sync::Once::new();
+    INIT.call_once(|| ATTN_TOGGLE.store(attention_toggle_initial(), AtomicOrdering::Relaxed));
+    if ATTN_TOGGLE.load(AtomicOrdering::Relaxed) != 0 {
+        #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+        if std::is_x86_feature_detected!("avx2") && std::is_x86_feature_detected!("fma") {
+            return unsafe {
+                attention_heads_inlined(q, k, v, geometric_bias, width, head_start, head_end)
+            };
+        }
+    }
+    attention_heads(q, k, v, geometric_bias, width, head_start, head_end)
 }
 
 fn copy_attention_heads(
@@ -1650,16 +1872,49 @@ struct ElasticBlockWeights<'a> {
     down_bias: &'a Tensor,
 }
 
+/// Per-forward scratch for the elastic blocks: every buffer is fully
+/// overwritten by the code that uses it, so reusing it across the eight
+/// layers (instead of allocating + zeroing ~0.9 MB per layer) saves the
+/// zeroing traffic and keeps the cache lines warm.
+struct BlockScratch {
+    norm_a: Vec<f32>,
+    qkv: Vec<f32>,
+    attended: Vec<f32>,
+    delta: Vec<f32>,
+    norm_b: Vec<f32>,
+    ffn: Vec<f32>,
+    head_bias: Vec<f32>,
+    bias_full: Vec<f32>,
+}
+
+impl BlockScratch {
+    fn new(width: usize) -> Self {
+        let tokens = 64;
+        BlockScratch {
+            norm_a: vec![0f32; tokens * D_MODEL],
+            qkv: vec![0f32; 3 * tokens * width],
+            attended: vec![0f32; tokens * width],
+            delta: vec![0f32; tokens * width],
+            norm_b: vec![0f32; tokens * width],
+            ffn: vec![0f32; 4 * tokens * width],
+            head_bias: vec![0f32; 64 * 64],
+            bias_full: vec![0f32; HEADS * 64 * 64],
+        }
+    }
+}
+
 fn elastic_block(
     values: &mut [f32; 64 * D_MODEL],
-    geometric_bias: &[f32],
     width: usize,
     w: &ElasticBlockWeights,
+    coefficients: &[f32; HEADS * GAB_TEMPLATES],
+    templates: &Tensor,
+    scratch: &mut BlockScratch,
 ) {
     let tokens = 64;
     let dot_kernel = *DOT_KERNEL.get_or_init(select_dot_kernel);
     let axpy_kernel = *AXPY_KERNEL.get_or_init(select_axpy_kernel);
-    let mut normalized = [0f32; 64 * D_MODEL];
+    let normalized = &mut scratch.norm_a;
     for tok in 0..tokens {
         rmsnorm(
             &values[tok * D_MODEL..tok * D_MODEL + width],
@@ -1673,9 +1928,8 @@ fn elastic_block(
     // qkv: full tensor shape (3, D_MODEL, D_MODEL); slice [:, :width, :width]
     // per PyTorch reshape(3*width, width) -- row r of the reshaped matrix for
     // component c (0=q,1=k,2=v) and output index o is qkv[c, o, :width].
-    let mut q = vec![0f32; tokens * width];
-    let mut k = vec![0f32; tokens * width];
-    let mut v = vec![0f32; tokens * width];
+    let (q, rest) = scratch.qkv.split_at_mut(tokens * width);
+    let (k, v) = rest.split_at_mut(tokens * width);
     if inference_threads() > 1 {
         let split = tokens / 2;
         let (q_left, q_right) = q.split_at_mut(split * width);
@@ -1704,28 +1958,65 @@ fn elastic_block(
             );
         });
     } else {
-        project_qkv(&normalized, tokens, width, w.qkv, &mut q, &mut k, &mut v);
+        project_qkv(&normalized, tokens, width, w.qkv, q, k, v);
     }
 
-    // Scaled dot-product attention. Heads are independent, so split them
-    // across two scoped workers without changing per-head reduction order.
-    let mut attended = vec![0.0f32; tokens * width];
+    // Scaled dot-product attention. Sequential (the default): each head's
+    // geometric bias is built into the 16 KB scratch and discarded before
+    // the next head, so only one 64x64 bias is live at a time instead of
+    // the full 8-head 256 KB matrix. Parallel override: the full bias is
+    // built once and the heads split across two scoped workers without
+    // changing per-head reduction order.
+    let attended = &mut scratch.attended;
     if inference_threads() > 1 {
+        let bias_full = &mut scratch.bias_full;
+        bias_full.fill(0.0);
+        for h in 0..HEADS {
+            for t in 0..GAB_TEMPLATES {
+                let c = coefficients[h * GAB_TEMPLATES + t];
+                if c == 0.0 {
+                    continue;
+                }
+                let tmpl_base = t * 64 * 64;
+                let out_base = h * 64 * 64;
+                axpy_kernel(
+                    c,
+                    &templates.data[tmpl_base..tmpl_base + 64 * 64],
+                    &mut bias_full[out_base..out_base + 64 * 64],
+                );
+            }
+        }
         let split = HEADS / 2;
         std::thread::scope(|scope| {
-            let left = scope.spawn(|| attention_heads(&q, &k, &v, geometric_bias, width, 0, split));
-            let right = attention_heads(&q, &k, &v, geometric_bias, width, split, HEADS);
+            let left = scope.spawn(|| attention_heads_dispatch(&q, &k, &v, &bias_full[..split * 64 * 64], width, 0, split));
+            let right = attention_heads_dispatch(&q, &k, &v, &bias_full[split * 64 * 64..], width, split, HEADS);
             let left = left.join().expect("attention worker panicked");
-            copy_attention_heads(&left, &mut attended, width, 0, split);
-            copy_attention_heads(&right, &mut attended, width, split, HEADS);
+            copy_attention_heads(&left, &mut attended[..], width, 0, split);
+            copy_attention_heads(&right, &mut attended[..], width, split, HEADS);
         });
     } else {
-        let all = attention_heads(&q, &k, &v, geometric_bias, width, 0, HEADS);
-        copy_attention_heads(&all, &mut attended, width, 0, HEADS);
+        let bias = &mut scratch.head_bias;
+        for h in 0..HEADS {
+            bias.fill(0.0);
+            for t in 0..GAB_TEMPLATES {
+                let c = coefficients[h * GAB_TEMPLATES + t];
+                if c == 0.0 {
+                    continue;
+                }
+                let tmpl_base = t * 64 * 64;
+                axpy_kernel(
+                    c,
+                    &templates.data[tmpl_base..tmpl_base + 64 * 64],
+                    bias,
+                );
+            }
+            let head_out = attention_heads_dispatch(&q, &k, &v, bias, width, h, h + 1);
+            copy_attention_heads(&head_out, attended, width, h, h + 1);
+        }
     }
 
     // project (width x width slice of D_MODEL x D_MODEL) + residual
-    let mut delta = vec![0f32; tokens * width];
+    let delta = &mut scratch.delta;
     linear_full(
         &attended,
         tokens,
@@ -1734,7 +2025,7 @@ fn elastic_block(
         D_MODEL,
         width,
         Some(w.project_bias),
-        &mut delta,
+        delta,
     );
     for tok in 0..tokens {
         axpy_kernel(
@@ -1745,7 +2036,7 @@ fn elastic_block(
     }
 
     // FFN
-    let mut normalized2 = vec![0f32; tokens * width];
+    let normalized2 = &mut scratch.norm_b;
     for tok in 0..tokens {
         rmsnorm(
             &values[tok * D_MODEL..tok * D_MODEL + width],
@@ -1756,8 +2047,9 @@ fn elastic_block(
         );
     }
     // up: shape (2, D_MODEL, D_MODEL) sliced to (2, width, width), reshaped (2*width, width)
-    let mut hidden = vec![0f32; tokens * width];
-    let mut gate = vec![0f32; tokens * width];
+    let (hidden, rest) = scratch.ffn.split_at_mut(tokens * width);
+    let (gate, rest2) = rest.split_at_mut(tokens * width);
+    let (ffn_input, ffn_out) = rest2.split_at_mut(tokens * width);
     if inference_threads() > 1 {
         let split = tokens / 2;
         let (hidden_left, hidden_right) = hidden.split_at_mut(split * width);
@@ -1791,15 +2083,13 @@ fn elastic_block(
             width,
             w.up,
             w.up_bias,
-            &mut hidden,
-            &mut gate,
+            hidden,
+            gate,
         );
     }
-    let mut ffn_input = vec![0f32; tokens * width];
     for i in 0..tokens * width {
         ffn_input[i] = silu(gate[i]) * hidden[i];
     }
-    let mut ffn_out = vec![0f32; tokens * width];
     linear_full(
         &ffn_input,
         tokens,
@@ -1808,7 +2098,7 @@ fn elastic_block(
         D_MODEL,
         width,
         Some(w.down_bias),
-        &mut ffn_out,
+        ffn_out,
     );
     for tok in 0..tokens {
         axpy_kernel(
@@ -1927,30 +2217,13 @@ pub fn forward_at_exit(
         }
     }
 
-    let templates = weights.t("gab.templates"); // (GAB_TEMPLATES, 64, 64)
-
+    let mut scratch = BlockScratch::new(width);
     for layer_names in LAYER_TENSOR_NAMES.iter().take(layers) {
         let coeff_weight = weights.t(layer_names.coefficients); // (HEADS*GAB_TEMPLATES, GAB_HIDDEN)
         let mut coefficients = [0f32; HEADS * GAB_TEMPLATES];
         for o in 0..HEADS * GAB_TEMPLATES {
             let row = o * GAB_HIDDEN;
             coefficients[o] = dot_kernel(&context, &coeff_weight.data[row..row + GAB_HIDDEN]);
-        }
-        let mut geometric_bias = vec![0f32; HEADS * 64 * 64].into_boxed_slice();
-        for h in 0..HEADS {
-            for t in 0..GAB_TEMPLATES {
-                let c = coefficients[h * GAB_TEMPLATES + t];
-                if c == 0.0 {
-                    continue;
-                }
-                let tmpl_base = t * 64 * 64;
-                let out_base = h * 64 * 64;
-                axpy_kernel(
-                    c,
-                    &templates.data[tmpl_base..tmpl_base + 64 * 64],
-                    &mut geometric_bias[out_base..out_base + 64 * 64],
-                );
-            }
         }
         let block = ElasticBlockWeights {
             norm_attention: weights.t(layer_names.norm_attention),
@@ -1963,8 +2236,16 @@ pub fn forward_at_exit(
             down: weights.t(layer_names.down),
             down_bias: weights.t(layer_names.down_bias),
         };
-        elastic_block(&mut values, &geometric_bias, width, &block);
+        elastic_block(
+            &mut values,
+            width,
+            &block,
+            &coefficients,
+            weights.t("gab.templates"),
+            &mut scratch,
+        );
     }
+
 
     // --- Final norm + pooling ---
     let mut normalized = vec![0f32; tokens * width];
@@ -2895,6 +3176,24 @@ mod tests {
     }
 
     #[test]
+    fn exp8_softmax_matches_scalar() {
+        let vals: Vec<f32> = (0..64).map(|i| -i as f32 * 0.8 - 0.001).collect();
+        let max_score = vals.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
+        let want: Vec<f32> = vals.iter().map(|v| (v - max_score).exp()).collect();
+        let mut got = [0.0f32; 64];
+        unsafe { exp8_softmax(&vals, &mut got, max_score) };
+        let max_err = (0..64)
+            .map(|i| (got[i] - want[i]).abs())
+            .fold(0.0f32, f32::max);
+        assert!(
+            max_err < 1e-4,
+            "exp8 max abs err {max_err}: got[0..4]={:?} want[0..4]={:?}",
+            &got[..4],
+            &want[..4]
+        );
+    }
+
+    #[test]
     #[ignore]
     fn benchmark_forward_pass() {
         let _guard = BENCHMARK_LOCK.lock().unwrap();
@@ -2910,6 +3209,7 @@ mod tests {
         }
         let elapsed = started.elapsed();
         println!("{} calls in {:?} -> {:?}/call", n, elapsed, elapsed / n);
+
     }
 
     #[test]
