@@ -369,6 +369,26 @@ const NNUE_QUIET_MARGIN_STATIC_VS_SEARCH: i32 = 70;
 /// point for this engine's evaluation scale, not a transferred constant --
 /// hence the override. Setting either to 0 disables that filter, which is the
 /// way to generate a baseline dataset for an A/B comparison.
+/// Read the NNUE base-seconds gate, allowing env overrides.
+///
+/// `NNUE_MIN_BASE_SECS` (180) is fail-closed by design: a game whose
+/// time control is *unknown* is rejected, because the gate exists to keep
+/// positions from very fast time controls out of the dataset. The committed
+/// corpora (`data/training`, `data/training-elo`, `data/selfplay`) carry no
+/// `TimeControl` header at all, so with the default they produce **zero**
+/// samples. The score label is engine-generated (5000-node HCE search,
+/// independent of the player clock); the gate's only real protection is the
+/// WDL outcome field and the position-distribution proxy. For corpus
+/// retraining where the time control is genuinely unknown,
+/// `UNCHESSED_NNUE_MIN_BASE_SECS=0` explicitly opts out -- the run log
+/// records the effective gate so every dataset is self-describing.
+fn nnue_min_base_secs() -> u32 {
+    std::env::var("UNCHESSED_NNUE_MIN_BASE_SECS")
+        .ok()
+        .and_then(|v| v.parse::<u32>().ok())
+        .unwrap_or(NNUE_MIN_BASE_SECS)
+}
+
 fn quiet_margins() -> (i32, i32) {
     let read = |name: &str, default: i32| {
         std::env::var(name)
@@ -413,6 +433,8 @@ fn run_nnue(args: &[String]) {
     let mut noisy_qsearch = 0u64;
     let mut noisy_search = 0u64;
     let (quiet_margin_qsearch, quiet_margin_search) = quiet_margins();
+    let min_base_secs = nnue_min_base_secs();
+    let mut hist = QuietHistogram::new();
 
     'files: for path in &args[6..] {
         let f = File::open(path).unwrap_or_else(|e| panic!("open {}: {}", path, e));
@@ -436,7 +458,9 @@ fn run_nnue(args: &[String]) {
                             &headers, &movetext, &mut out, &tt, &mut rng, &mut samples,
                             max_positions, &mut used_games, &start,
                             quiet_margin_qsearch, quiet_margin_search,
-                            &mut noisy_qsearch, &mut noisy_search,
+                            min_base_secs, &mut noisy_qsearch, &mut noisy_search,
+
+                            &mut hist,
                         );
                     }
                     games += 1;
@@ -460,23 +484,32 @@ fn run_nnue(args: &[String]) {
                     &headers, &movetext, &mut out, &tt, &mut rng, &mut samples,
                     max_positions, &mut used_games, &start,
                     quiet_margin_qsearch, quiet_margin_search,
-                    &mut noisy_qsearch, &mut noisy_search,
+                    min_base_secs, &mut noisy_qsearch, &mut noisy_search,
+
+                    &mut hist,
                 );
             }
             games += 1;
         }
         eprintln!(
             "worker {}: done {}: {} samples so far ({} games seen); \
-             quiet-filter rejects: qsearch={} search={} (margins {}/{}cp)",
+             quiet-filter rejects: qsearch={} search={} (qsearch candidates={} search candidates={}; margins {}/{}cp, base-secs gate {})",
             worker_id,
             path,
             samples,
             games,
             noisy_qsearch,
             noisy_search,
+            hist.qsearch_candidates,
+            hist.search_candidates,
             quiet_margin_qsearch,
-            quiet_margin_search
+            quiet_margin_search,
+            if min_base_secs > 0 { min_base_secs } else { 0 }
         );
+        let hist_line = hist.summary();
+        if !hist_line.is_empty() {
+            eprintln!("worker {}: histogram:{}", worker_id, hist_line);
+        }
         if samples >= max_positions {
             break;
         }
@@ -493,6 +526,10 @@ fn run_nnue(args: &[String]) {
         secs,
         samples as f64 / secs
     );
+    let hist_line = hist.summary();
+    if !hist_line.is_empty() {
+        eprintln!("worker {}: histogram:{}", worker_id, hist_line);
+    }
 }
 
 /// Same labeling as `nnue`, but decompresses/reads the PGN exactly ONCE
@@ -525,6 +562,7 @@ fn run_nnue_stream(args: &[String]) {
     let n_workers: usize = args[3].parse().expect("n_workers");
     let max_positions_per_worker: u64 = args[4].parse().expect("max_positions_per_worker");
     let (quiet_margin_qsearch, quiet_margin_search) = quiet_margins();
+    let min_base_secs = nnue_min_base_secs();
     assert!(n_workers > 0, "need at least 1 worker");
     std::fs::create_dir_all(&out_dir).unwrap_or_else(|e| panic!("create {}: {}", out_dir, e));
 
@@ -556,12 +594,15 @@ fn run_nnue_stream(args: &[String]) {
             let mut used_games = 0u64;
             let mut noisy_qsearch = 0u64;
             let mut noisy_search = 0u64;
+            let mut hist = QuietHistogram::new();
             while let Ok((h, movetext)) = rx.recv() {
                 process_nnue_game(
                     &h, &movetext, &mut out, &tt, &mut rng, &mut samples,
                     max_positions_per_worker, &mut used_games, &start,
                     quiet_margin_qsearch, quiet_margin_search,
-                    &mut noisy_qsearch, &mut noisy_search,
+                    min_base_secs, &mut noisy_qsearch, &mut noisy_search,
+
+                    &mut hist,
                 );
                 if samples >= max_positions_per_worker {
                     done[i].store(true, std::sync::atomic::Ordering::Relaxed);
@@ -572,14 +613,20 @@ fn run_nnue_stream(args: &[String]) {
             let secs = start.elapsed().as_secs_f64().max(1e-9);
             eprintln!(
                 "worker {}: {} samples from {} games ({:.0} samples/s); \
-                 quiet-filter rejects: qsearch={} search={}",
+                 quiet-filter rejects: qsearch={} search={} (qsearch candidates={} search candidates={})",
                 i,
                 samples,
                 used_games,
                 samples as f64 / secs,
                 noisy_qsearch,
-                noisy_search
+                noisy_search,
+                hist.qsearch_candidates,
+                hist.search_candidates
             );
+            let hist_line = hist.summary();
+            if !hist_line.is_empty() {
+                eprintln!("worker {}: histogram:{}", i, hist_line);
+            }
         });
         handles.push(handle);
     }
@@ -637,6 +684,81 @@ fn run_nnue_stream(args: &[String]) {
 }
 
 #[allow(clippy::too_many_arguments)]
+/// Reject-counts over a fixed margin grid, for retuning
+/// `UNCHESSED_QUIET_MARGIN_QSEARCH` / `UNCHESSED_QUIET_MARGIN_SEARCH`
+/// against this engine's evaluation scale (the published 60/70 were tuned
+/// on Xiangqi -- see docs/nnue-dataset-quiet-filters.md). `hist[i]` is the
+/// count of positions whose |static - deeper| gap EXCEEDS `grid[i]`, so the
+/// curve is monotone and the active margin's reject rate is readable
+/// directly off it. Enabled with `UNCHESSED_QUIET_HISTOGRAM=1`.
+const QUIET_HIST_GRID: [i32; 10] = [10, 20, 30, 40, 50, 60, 70, 80, 100, 150];
+
+struct QuietHistogram {
+    enabled: bool,
+    qsearch: Vec<u64>,
+    search: Vec<u64>,
+    /// Every position that reached each filter (denominator for the reject
+    /// rates), counted regardless of `enabled`.
+    qsearch_candidates: u64,
+    search_candidates: u64,
+}
+
+impl QuietHistogram {
+    fn new() -> Self {
+        let enabled =
+            std::env::var("UNCHESSED_QUIET_HISTOGRAM").map(|v| v == "1").unwrap_or(false);
+        QuietHistogram {
+            enabled,
+            qsearch: vec![0; QUIET_HIST_GRID.len()],
+            search: vec![0; QUIET_HIST_GRID.len()],
+            qsearch_candidates: 0,
+            search_candidates: 0,
+        }
+    }
+
+    fn record_qsearch(&mut self, gap: i32) {
+        self.qsearch_candidates += 1;
+        if self.enabled {
+            for i in 0..QUIET_HIST_GRID.len() {
+                if gap > QUIET_HIST_GRID[i] {
+                    self.qsearch[i] += 1;
+                }
+            }
+        }
+    }
+
+    fn record_search(&mut self, gap: i32) {
+        self.search_candidates += 1;
+        if self.enabled {
+            for i in 0..QUIET_HIST_GRID.len() {
+                if gap > QUIET_HIST_GRID[i] {
+                    self.search[i] += 1;
+                }
+            }
+        }
+    }
+
+    /// e.g. "hist[>60cp] qsearch=1234 search=456" for every grid point.
+    fn summary(&self) -> String {
+        if !self.enabled {
+            return String::new();
+        }
+        let mut parts = String::new();
+        for i in 0..QUIET_HIST_GRID.len() {
+            parts.push_str(
+                &format!(
+                    " q>{}={}/s>{}={}",
+                    QUIET_HIST_GRID[i],
+                    self.qsearch[i],
+                    QUIET_HIST_GRID[i],
+                    self.search[i]
+                ),
+            );
+        }
+        parts
+    }
+}
+
 fn process_nnue_game(
     h: &Headers,
     movetext: &str,
@@ -649,8 +771,10 @@ fn process_nnue_game(
     start: &Instant,
     quiet_margin_qsearch: i32,
     quiet_margin_search: i32,
+    min_base_secs: u32,
     noisy_qsearch: &mut u64,
     noisy_search: &mut u64,
+    hist: &mut QuietHistogram,
 ) {
     if *samples >= max_positions {
         return;
@@ -663,7 +787,9 @@ fn process_nnue_game(
     if we < NNUE_MIN_ELO || be < NNUE_MIN_ELO {
         return;
     }
-    if h.base_secs.map(|b| b < NNUE_MIN_BASE_SECS).unwrap_or(true) {
+    if min_base_secs > 0
+        && h.base_secs.map(|b| b < min_base_secs).unwrap_or(true)
+    {
         return;
     }
     // WDL from White's perspective: 2 = white won, 1 = draw, 0 = black won
@@ -740,7 +866,9 @@ fn process_nnue_game(
         // so this rejects the majority of noisy positions for almost nothing.
         let (static_eval, quiet_eval) =
             search::static_and_quiescence(p, &Hce::default(), tt);
-        if quiet_margin_qsearch > 0 && (static_eval - quiet_eval).abs() > quiet_margin_qsearch {
+        let gap_q = (static_eval - quiet_eval).abs();
+        hist.record_qsearch(gap_q);
+        if quiet_margin_qsearch > 0 && gap_q > quiet_margin_qsearch {
             *noisy_qsearch += 1;
             continue;
         }
@@ -786,7 +914,9 @@ fn process_nnue_game(
         // resolves captures, so it cannot see a quiet forcing sequence --
         // a knight fork winning material, or a mating attack. Those
         // positions are exactly the ones whose static value is misleading.
-        if quiet_margin_search > 0 && (static_eval - l.score).abs() > quiet_margin_search {
+        let gap_s = (static_eval - l.score).abs();
+        hist.record_search(gap_s);
+        if quiet_margin_search > 0 && gap_s > quiet_margin_search {
             *noisy_search += 1;
             continue;
         }
