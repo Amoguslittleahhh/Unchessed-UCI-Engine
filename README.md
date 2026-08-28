@@ -69,8 +69,10 @@ The Python suite: `python -m pytest tools/ -q`.
 - `artifacts/unarchitectured-v1-final.unarchv1` — the Unarchitectured v1
   package (UNARCHV1 format, auto-located; `UnarchitecturedFile` to
   override).
-- `config/` — v1 architecture spec, student/oracle configs, and the
-  runtime capability manifest
+- `config/` — v1 architecture spec, student/oracle configs, the
+  pretrain config (`pretrain_v1_training.json`: dual-elo oracle,
+  widened GAB, pinned 58,486,415 parameters), and the runtime
+  capability manifest
   (`unarchitectured_v1_runtime_capabilities.json`).
 - `data/` — the four committed training corpora (below).
 - `tools/` — the entire Python pipeline: data curation/validation,
@@ -81,7 +83,8 @@ The Python suite: `python -m pytest tools/ -q`.
   conditioning, theme breakdown) with a
   [`README`](benchmarks/unarchitectured-v1/README.md).
 - `scripts/` — `build-and-test.sh`, `exhibition/` (game runners),
-  `nnue-pipeline/` (cloud NNUE training scripts), `sprt-history/`
+  `nnue-pipeline/` (cloud NNUE training scripts), `pretrain-pipeline/`
+  (CPU/GPU split for the move-prediction retrain), `sprt-history/`
   (committed SPRT launchers — a record of specific past experiments,
   mix of passed and reverted), `research/` (research prompts/notes).
 - `docs/` — findings and research notes (indexed at the bottom).
@@ -262,25 +265,30 @@ switches, book/troll choices).
 
 ## Roadmap
 
-1. **Level-conditioned retrain of the policy net** — now concretized
-   as a two-stage move-prediction plan
-   (`docs/move-prediction-pretrain-plan.md`): stage 1 pretrain =
-   next-move prediction (legal-only cross-entropy over the 20480
-   action space) on the whole mixed corpus (5M cloud set +
-   `data/selfplay/` + `data/training-elo/`) with dual-elo
-   conditioning — the objective that forces the level axis to be
-   informative (the v1 single-rating input was measured inert,
-   0/200); stage 2 fine-tune on the trusted rows (calibrated +
-   native + human) to align the level axis and pull in human style.
-   Data bridge (`tools/pretrain_move_dataset.py`, STM-normalized
-   encoding matching `unchessed-datagen`, game-disjoint splits) and a
-   sandbox probe (`tools/pretrain_move_predictor.py`, NumPy MLP +
-   the 0/200 conditioning-sweep gate) are committed and tested. Then:
-   widen GAB to the paper's 5M config in the same retrain; theme-
-   balanced sampling; weight clipping for quantization. Verify with
-   `tools/analyse_rating_conditioning.py` (the 0/200 sweep must
-   invert), then paired-game SPRT before `UnarchitecturedHint` turns
-   on.
+1. **Level-conditioned retrain of the policy net** — now built as a
+   two-stage move-prediction pipeline
+   (`docs/move-prediction-pretrain-plan.md`,
+   `scripts/pretrain-pipeline/`): stage 1 pretrain = next-move
+   prediction (legal-only cross-entropy, 16-bit action encoding in
+   the 4096×5 = 20480 vocabulary) on the whole mixed corpus with
+   **dual-elo conditioning** — the objective that forces the level
+   axis to be informative (the v1 single-rating input was measured
+   inert, 0/200); stage 2 fine-tune on the trusted-only subset
+   (calibrated + native + human, no approximate ladder rows) at a
+   lower LR. The CPU/GPU split: `cpu_stage.sh` builds v5 dual-elo
+   shards (`tools/pretrain_v5_data.py`, STM-normalized encoding
+   matching `unchessed-datagen`, game-disjoint splits, target-in-
+   legal guard) on the 180-vCPU box; `gpu_stage.sh` runs the
+   dual-elo oracle (58.5M params, GAB widened to the paper's 5M
+   config per `gab-capacity-finding.md`) on one A100 with the 0/200
+   conditioning sweep as a per-epoch gate metric. Sandbox probe of
+   the objective: 118/200 flips (v1: 0/200), 1.9× baseline accuracy
+   (`benchmarks/unarchitectured-v1/pretrain-probe-2026-08-28.json`).
+   Remaining: the A100 runs (selfcheck first — the CUDA path is
+   untested in the sandbox), then dual-elo student distillation +
+   UNARCHV1 packaging, then `tools/analyse_rating_conditioning.py`
+   (the 0/200 sweep must invert) and a paired-game SPRT before
+   `UnarchitecturedHint` turns on.
 2. **Runtime:** lazy SMP threads, pondering, tablebases, adaptation
    tuning. NPU dispatch stays experimental-unimplemented (CPU-only
    inference; the case for why: `docs/npu-viability-285h.md`).
@@ -296,6 +304,9 @@ switches, book/troll choices).
 - `python tools/unarchitectured_v1_runtime_readiness.py` — capability-manifest readiness report.
 - `python tools/pretrain_move_dataset.py --labels … --out …` — build move-prediction pretrain shards (bridge + leakage guard).
 - `python tools/pretrain_move_predictor.py --data …` — sandbox probe of the pretrain objective with the 0/200 conditioning sweep.
+- `python tools/pretrain_v5_data.py build --pgn ... --out ...` — CPU stage: PGN -> v5 dual-elo shards (full + `--quality-filter` trusted-only) + validation.
+- `python tools/pretrain_v1_a100.py selfcheck` — GPU stage: tiny dual-elo oracle + real loader + conditioning sweep (CPU or CUDA; first command on the A100 box).
+- `scripts/pretrain-pipeline/cpu_stage.sh` / `gpu_stage.sh` — the two stages end-to-end, split by machine (see its README).
 - `scripts/build-and-test.sh` — full gate set (build + tests + UCI smoke + matetrack).
 
 ## Docs index
