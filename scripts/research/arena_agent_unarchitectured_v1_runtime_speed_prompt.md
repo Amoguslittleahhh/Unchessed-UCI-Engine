@@ -9,64 +9,40 @@ work is not an invitation to revert to or resume development on any of
 them. Any follow-on architecture or training work belongs on top of
 Unarchitectured v1, not as a parallel track exploring an earlier one.
 
-## Current status (round 10, `main` at `d8fc659`)
+## Current status (round 11, `main` at `a936d8d`)
 
-Your eighth pass — int8-activation calibration (`f6113bf`) plus a
-17-commit pivot from diagnosis into actual retrain infrastructure
-(`8bfbd44`..`3a596cc`) — was reviewed, independently verified, and merged.
-This is a genuine change in kind from every prior round: not offline
-analysis of the existing checkpoint, but real training-data curation (four
-corpora, ~231,000 games), a Rust toolchain working in your sandbox, and a
-full cloud self-play + pretrain pipeline design (Verda AI, 5M games, A100
-trainer).
+Runtime kernel work in `aegis_v4_runtime.rs` (inlined AVX2 attention,
+vectorized softmax exp, per-forward scratch reuse, per-head GAB
+streaming — all now the default path) plus a new `UnarchitecturedHintExit`
+UCI option (2/128 default, 4/192, 8/256 selectable). Reviewed, verified,
+merged.
 
-This got flagged to the project owner before adoption, not merged
-unilaterally — committing ~231,000 games of PGN directly into git and a
-pipeline whose point is spending real cloud money both cross a line past
-what prior pure-analysis rounds needed. Confirmed no cloud spend has
-happened yet.
+**Verified independently:** build clean, `unchessed-core` 106/106
+(matches claimed count), all three Python-reference parity gates pass
+with the new defaults enabled, `rust_bracket_check --all` clean. Real
+speedup reproduced on this reviewer's hardware: 9.01ms → 8.06ms (~1.12x)
+full-exit forward pass — a bigger gain here than their own host saw
+(they reported "within noise," cache-bound on their smaller L2; this
+machine's larger cache benefits more). New UCI option tested live:
+correct exit selection, invalid values rejected with the previous value
+kept, exact-key caching confirmed never cross-serves between exits.
 
-**Verified independently:**
-
-- Full workspace build clean, `unchessed-core` 104/104 (zero Rust engine
-  code touched by any of the 17 commits).
-- **Found and fixed a real bug your sandbox couldn't catch**: this
-  reviewer's Windows checkout (`core.autocrlf=true`) silently converts
-  every committed LF to CRLF, changing file sizes/game counts in the PGN
-  corpora and breaking your own `manifest.json` byte/game-count checks —
-  6 real test failures on first pass. Cloning fresh in WSL (no autocrlf)
-  confirmed 318 passed, 21 skipped, 0 failures, proving the committed data
-  itself was correct. Fixed via `.gitattributes -text` rules plus a full
-  re-checkout from clean git objects; 336/337 pass on Windows now.
-- One remaining Windows-only failure (`test_ddp_gloo_two_rank_smoke`,
-  gloo rendezvous) is a real PyTorch/Windows platform gap, not a bug —
-  it passes cleanly on the same WSL run referenced above.
-- Int8-activation calibration (`f6113bf`): reproduced the study
-  end-to-end; the qualitative conclusion (all 5 schemes fail the 5e-3
-  gate by 4-14x, none close) reproduced exactly, and the holdout-
-  generalization table matched the committed JSON to the last digit.
-
-**Where things stand:** this round's content (training data, cloud
-pipeline, pretrain trainer) is infrastructure for a *future* retrain, not
-a change to anything shipped or running. `UnarchitecturedHint` stays
-default-off, `runtime_safety_suite` stays false, and nothing has been
-executed against real cloud compute — that decision, and any actual
-spend, stays with the project owner explicitly.
+**Why this option matters going forward**: the SPRT batches so far all
+used the hard-coded 2/128 exit — the worst-calibrated one (top-1 0.185
+vs. 0.255 at full 8/256). Any future SPRT retest should now state which
+exit it used, since that's a real, previously-hidden variable.
 
 ## What's needed next
 
-1. **A retrain decision, if you want to act on round 9's findings**
-   (GAB capacity, rating conditioning, int8 weight clipping) using the
-   infrastructure round 10 just built. This is the project owner's call,
-   not something to proceed on by default — it means real cloud spend.
-2. **A cleanly isolated `MinTime` retest**, still open from round 7:
-   same time control (`tc=60+0.6`), only `MinTime` varied between 1000
-   and 30000, to separate the two variables the conservative-config
-   result confounded. Optional polish, not a blocker.
+1. **A retrain decision**, if you want to act on round 9's findings (GAB
+   capacity, rating conditioning, int8 weight clipping) using the
+   infrastructure round 10 built. Project owner's call — real cloud
+   spend, not something to proceed on by default.
+2. **A cleanly isolated `MinTime` retest**, still open from round 7 —
+   now with the added question of which `HintExit` to test at. Optional
+   polish, not a blocker.
 3. **`UnarchitecturedHint` stays default-off** either way. No config
-   tested across four real SPRT batches has ever trended positive —
-   only the conservative default has been shown *not measurably
-   harmful*, which is not the same as evidence it helps.
+   tested across four real SPRT batches has ever trended positive.
 
 ## History (condensed)
 
@@ -102,7 +78,15 @@ spend, stays with the project owner explicitly.
   conditioning confirmed inert (0/200 moves change across a 600→3200
   sweep), weights 2.06x outside the int8 range. Fixed one real test
   timing-assumption bug found via diagnostic instrumentation.
-- **Round 10**: see "Current status" above.
+- **Round 10** (`d8fc659`): int8-activation calibration closed negative
+  (5 schemes, all fail 5e-3 by 4-14x). Pivoted into real retrain
+  infrastructure — four training corpora (~231,000 games), a working
+  Rust toolchain in arena's sandbox, cloud self-play/pretrain pipeline
+  design (Verda AI). Flagged to the project owner before adoption given
+  the scope change (committing PGN data to git, infrastructure for real
+  cloud spend); no cloud spend has occurred. Found and fixed a real
+  Windows `core.autocrlf` bug corrupting committed PGN files on checkout.
+- **Round 11**: see "Current status" above.
 
 ## Correctness gates that must keep passing
 
@@ -116,7 +100,7 @@ for speed without re-validating against that same Python reference.
 
 ## Pre-flight checklist
 
-Established over rounds 1-10, still the standard before reporting a round
+Established over rounds 1-11, still the standard before reporting a round
 done:
 
 - [ ] Diff against `main`, not your own branch's accumulated history.
