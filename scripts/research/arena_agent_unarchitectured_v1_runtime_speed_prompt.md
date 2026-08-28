@@ -44,6 +44,67 @@ exit it used, since that's a real, previously-hidden variable.
 3. **`UnarchitecturedHint` stays default-off** either way. No config
    tested across four real SPRT batches has ever trended positive.
 
+## Other open items (consolidated here, not left in a separate file)
+
+1. **DiffusionBlocks for a labeling-oracle retrain — never actually
+   sent to you before this, despite being drafted rounds ago.** Original
+   full prompt at `scripts/research/arena_agent_diffusionblocks_prompt.md`;
+   condensed here with updated context:
+
+   The backlog idea (`remaining_research_topics.md` item 84,
+   `200_research_ideas.md` item 153): train a large transformer as a
+   one-time labeling oracle, generate improved labels for training data,
+   retrain the small deployed net on those labels instead of weaker
+   HCE-style labels. **Context has moved since this was drafted**: the
+   real 58M-param Unarchitectured v1 oracle now exists and trained
+   successfully via ordinary end-to-end backprop — so the original
+   memory-pressure motivation (an A100 40GB-vs-80GB sizing scare from an
+   unrelated NNUE run) didn't end up blocking anything at that scale.
+   DiffusionBlocks (ICLR 2026, Sakana AI, arXiv:2506.14202 — trains each
+   transformer block independently via local score-matching, cutting
+   training memory by ~the block count) is only worth a fresh look if a
+   *future* retrain scales meaningfully past 58M params. Questions, if
+   pursued:
+   - Does a chess value/policy oracle's block structure actually fit
+     DiffusionBlocks' requirement (residual blocks, matching input/output
+     dims per block — it doesn't yet handle U-Net-style dimension
+     changes)? Chess positions aren't naturally "noised" like images —
+     is there a sensible mapping, or does the analogy break down here?
+   - At what oracle size would DiffusionBlocks' memory savings actually
+     become load-bearing, given 58M already trained fine without it?
+   - Given a labeling oracle is used once and discarded, is the added
+     engineering complexity worth it versus just renting a bigger GPU for
+     a one-off run? Give the honest answer even if it's "not worth it at
+     any size this project is likely to reach."
+   - Concrete recommendation: prototype, defer until a specific larger
+     size is planned, or drop entirely. No padding, no invented benchmark
+     figures — say plainly if a real comparable figure can't be found.
+
+2. **Oracle-side rating conditioning remains untested** (round 9). Both
+   the oracle and student use identical `rating_weight`/`rating_bias`
+   conditioning code; the student's is confirmed inert (0/200 moves
+   change across a 600→3200 sweep). Whether the oracle has the same
+   defect is still unknown — the oracle checkpoint isn't in this repo.
+   If it's ever available, the same sweep methodology from
+   `docs/rating-conditioning-finding.md` applies directly. This matters
+   because the answer changes where the bug lives: if the oracle also
+   shows zero conditioning effect, it's architectural (the mechanism
+   itself is too weak); if the oracle conditions properly and only the
+   student doesn't, it's a distillation-time bug — different fixes.
+
+3. **The NNUE evaluator itself has had comparatively little scrutiny**
+   next to how thoroughly Unarchitectured v1 has been picked apart — and
+   it's the evaluator actually used in every real game, unlike the
+   still-default-off hint. Round 9's NNUE king-bucket audit found the
+   existing table already correct (good), and round 4's quiet-position
+   dataset filters were built but never used to actually retrain. If
+   there's appetite for a lower-risk, likely-higher-impact-per-effort
+   round than more Unarchitectured v1 kernel work, this is it — the
+   shipped NNUE retrain backlog (quiet-position filtering, 8 piece-count
+   output buckets per `docs/research-notes-moe-2507.11181.md`) is
+   real and, unlike Unarchitectured v1's retrain items, only needs the
+   existing 108M-position self-play corpus, not new cloud infrastructure.
+
 ## History (condensed)
 
 - **Round 0**: root-hint wired directly into search, SPRT'd, failed
