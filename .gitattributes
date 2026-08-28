@@ -1,2 +1,14 @@
 *.pt.best filter=lfs diff=lfs merge=lfs -text
 *.pt filter=lfs diff=lfs merge=lfs -text
+
+# PGN/EPD/JSONL training-data files carry byte-exact game counts and
+# manifest sha256s that a platform-dependent line-ending conversion breaks
+# silently: on a Windows checkout with core.autocrlf=true, every committed
+# LF becomes CRLF, changing file sizes and game boundaries, which makes
+# the committed manifest.json entries (and any hash-pinned provenance)
+# disagree with what's actually on disk. Mark them binary (no LF<->CRLF
+# conversion ever) so a fresh checkout on any platform matches the
+# committed blob byte-for-byte.
+*.pgn -text
+*.epd -text
+data/**/*.jsonl -text
