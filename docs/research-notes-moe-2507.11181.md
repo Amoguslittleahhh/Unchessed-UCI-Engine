@@ -114,3 +114,32 @@ that survives contact with a per-node evaluation budget.
 Priority-wise it sits behind validating the already-written SIMD work
 (`docs/performance-round-1-implementation.md`), which is pure speed at zero
 training cost and still needs `cargo test` on a machine with a toolchain.
+
+## Status (2026-08-28) — 8 buckets implemented, retrain still gated
+
+The 8 piece-count output buckets are now **implemented** on both sides,
+default-inert until a retrain:
+
+- **Runtime** (`unchessed-core/src/nnue.rs`): file format **version 4** =
+  HalfKAv2_hm features + per-bucket output head (`out_w` = 8 × [512] f32,
+  `out_b` = 8 f32, per bucket [STM half | NSTM half]). The bucket is
+  `clamp((pieces−1)/4, 0, 7)` from the position's occupied-squares count at
+  eval time — no state bookkeeping needed, because the incremental state is
+  just the two accumulators and captures (the only bucket-changing event)
+  recompute the bucket from the new position. Versions 1–3 remain loadable
+  (`out_buckets = 1`, single shared head). Tests: per-bucket constant-head
+  probe net asserts the exact bucket for piece counts 3/5/11/15/18/21/26/32,
+  and a 29→28-piece capture asserts the eval crosses bucket 7→6 by exactly
+  the per-bucket bias delta through both the full-refresh and incremental
+  state paths.
+- **Trainer** (`tools/train_nnue.py`): `Linear(2×ACC, 8)` head, bucket from
+  the popcount of the 12 input planes, v4 export, selfcheck ALL PASS
+  (numpy manual forward matches the model to 2.98e-08), and a
+  trainer→runtime ABI cross-check: the trainer-exported net loads in the
+  Rust runtime and reproduces the Python manual forward exactly
+  (startpos: raw 0.031979, cp 12, bucket 7).
+
+**Not done, on purpose:** the retrain itself (filtered corpus per
+`docs/nnue-dataset-quiet-filters.md` + this head) is the owner's call —
+real compute — and any resulting net goes through SPRT before it can touch
+the default evaluation. Nothing in the default search path has changed.

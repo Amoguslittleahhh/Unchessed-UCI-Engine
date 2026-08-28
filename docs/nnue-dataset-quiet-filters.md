@@ -71,39 +71,77 @@ UNCHESSED_QUIET_MARGIN_SEARCH=70 \
 ```
 
 Setting either to `0` disables that filter, which is how to generate an
-unfiltered baseline for an A/B comparison. Both binaries print their reject
-counts per file so the selectivity is visible:
+unfiltered baseline for an A/B comparison.
 
-```
-worker 0: done a.pgn: 12345 samples so far (900 games seen); \
-  quiet-filter rejects: qsearch=4210 search=880 (margins 60/70cp)
-```
+### Measured on this engine (2026-08-28)
 
-Those counts are the input to retuning: if the qsearch rejection rate is
-extreme, the margin is too tight for this evaluation's scale.
+Full-file run, 1 thread, this 2-vCPU host:
+`data/training/lichess-2022-10-05/elo-1700-2000.pgn` (4,465 games seen,
+4,092 contributed, 121 s, ~358 samples/s).
 
-## Status — read this before trusting the numbers
+| Margin (cp) | 10 | 20 | 30 | 40 | 50 | **60** | **70** | 80 | 100 | 150 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| M1 rejects \|static−qsearch\| > m | 23541 | 21982 | 20561 | 19336 | 18137 | **17021** | 15917 | 14811 | 12478 | 9638 |
+| M2 rejects \|static−search\| > m | 41202 | 31926 | 24311 | 18508 | 14186 | 10867 | **8543** | 6868 | 4671 | 2282 |
 
-- **The Rust does not compile in this sandbox.** There is no cargo or rustc
-  available and the toolchain cannot be fetched (see the notes in the
-  performance docs). The changes here were verified by symbol-level review
-  only: every `Searcher` field was checked name-by-name against the struct
-  declaration, every referenced symbol (`MATE`, `MAX_PLY`, `Move::NONE`,
-  `Hce`, `TT`, `fen`, `AtomicBool`) confirmed in scope, and both edited files
-  passed a literal-aware bracket-balance check. **That is not a substitute for
-  a build.** Compile and run `cargo test --workspace --release` before using
-  this.
-- **No dataset has been regenerated and no network retrained**, so there is no
-  measured quality delta yet. The claimed benefit is the paper's, not ours.
-- A unit test (`static_and_quiescence_separates_quiet_from_hanging_positions`)
-  asserts the new helper actually separates a quiet position from one with a
-  hanging queen — but it has not been executed here, for the reason above.
+At the published 60/70 defaults, with the pipeline counts:
+
+- M1: **17,021 rejected of 79,267** positions tested against quiescence
+  (**21.5%**). M1 rejects are cheap — they happen before the labelling search.
+- 62,246 survive M1 and get the 5000-node labelling search; 10,428 of those
+  are dropped by the pre-existing post-label skips (depth fallback, mate /
+  >2000cp score, tactical best move) before M2 ever sees them.
+- M2: **8,543 rejected of 51,818** positions with a label score (**16.5%**).
+  M2 rejects are expensive — each one already paid for the full label search.
+- **43,275 accepted** (54.6% of M1 candidates).
+
+Both reject curves are long-tailed (roughly hyperbolic out to at least 150
+cp) — there is no elbow in the curve that argues for a different default, and
+this engine's evaluation swings are large enough that even the loose end of
+the curve is informative. **Decision: keep the published 60/70.** An unfiltered
+A/B on the same file showed the filter costs ~3% throughput (308 vs 300
+samples/s for the same 20,000-record cap).
+
+### Base-seconds gate vs the committed corpus
+
+The dataset also carries a fail-closed `NNUE_MIN_BASE_SECS=180` gate (games
+must record a TimeControl with ≥180 s base time, to exclude time-pressure
+play). **None of the committed corpora carry TimeControl headers**, so the
+gate rejected 100% of candidates — 0 samples out of the whole file. The gate
+now honours the `UNCHESSED_NNUE_MIN_BASE_SECS` env var (default 180; `0`
+disables it). Runs against the committed corpus must set it to `0`; this is a
+data-provenance property of the corpus, not a quality property of the games.
+The numbers above were measured with `UNCHESSED_NNUE_MIN_BASE_SECS=0`.
+
+## Status
+
+- **Built and tested here**: cargo 1.88.0, `cargo test --workspace --release`
+  green; the unit test
+  `static_and_quiescence_separates_quiet_from_hanging_positions`
+  (`unchessed-core/src/search.rs`) was executed and passes.
+- **The retuning table above was measured on this host** (2 vCPU, 1 thread,
+  ~358 samples/s). The full committed corpus (~95k games across
+  `data/training`, `data/training-elo`, `data/selfplay`) is ~1 hour single-
+  threaded here and a few minutes on the 180-vCPU cloud host — regenerating
+  training data is no longer an infrastructure decision.
+- **No dataset has been regenerated for training and no net retrained**, so
+  there is no measured quality delta yet. The claimed benefit is the
+  paper's, not ours.
+- The 8 piece-count output buckets proposed in
+  `docs/research-notes-moe-2507.11181.md` are now implemented in the runtime
+  (file format version 4, `unchessed-core/src/nnue.rs`) and the trainer
+  (`tools/train_nnue.py`), with a cross-checked trainer→runtime ABI
+  (trainer-exported net loads and matches the Python manual forward exactly).
+  Retraining on the filtered corpus with the 8-bucket head is the next gated
+  step — owner's call, and it goes through SPRT.
 
 ## Next steps
 
-1. Build and run the test suite.
-2. Generate a filtered and an unfiltered dataset from the same PGN corpus,
-   using the `=0` override for the baseline.
-3. Compare rejection rates and retune the margins for this evaluation scale.
-4. Retrain and gate the result through SPRT as usual — a dataset change is a
-   playing-strength change and does not bypass the gate.
+1. ~~Build and run the test suite.~~ Done (2026-08-28, cargo 1.88.0, green).
+2. Generate the filtered and unfiltered datasets from the full committed
+   corpus with `UNCHESSED_NNUE_MIN_BASE_SECS=0` (no TimeControl headers).
+3. ~~Compare rejection rates and retune the margins.~~ Done above — 60/70
+   kept as the default.
+4. Retrain (filtered corpus, 8-bucket head) and gate the result through SPRT
+   as usual — a dataset change is a playing-strength change and does not
+   bypass the gate.

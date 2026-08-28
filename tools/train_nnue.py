@@ -59,12 +59,19 @@ model/modules/features/halfka_v2_hm.py in official-stockfish/nnue-pytorch):
 Model: acc_persp = ft_main(idx) + ft_virtual(vidx) + ft_bias (training only;
 ft_main/ft_virtual are coalesced into one table at export). SCReLU
 (clamp(x,0,1)^2) on both accumulators, concat [stm, nstm] (512, same as v1)
--> Linear(512, 1). Raw output unit is cp/400. Training loss:
-|sigmoid(raw) - target|^2.5, target = 0.7*sigmoid(cp/400) + 0.3*(wdl/2).
+-> piece-count-bucketed output head: 8 parallel output rows, one per band of
+4 pieces. bucket = clamp((pieces - 1) / 4, 0, 7), pieces = popcount of all
+12 planes (legal positions have 2..=32 pieces -> buckets 0..=7); the head is
+Linear(512, 8) indexed by the position's bucket (MoE-style expert selection,
+see docs/research-notes-moe-2507.11181.md). Raw output unit is cp/400.
+Training loss: |sigmoid(raw) - target|^2.5,
+target = 0.7*sigmoid(cp/400) + 0.3*(wdl/2).
 
-Export: b"UNCHNNUE", u32 version=3, u32 ft_in=22528, u32 acc=256,
+Export: b"UNCHNNUE", u32 version=4, u32 ft_in=22528, u32 acc=256,
 ft weights [22528][256] f32 (coalesced + 11-piece-merged), ft bias [256] f32,
-out weights [512] f32 (STM half first), out bias [1] f32. All LE.
+out weights [8][512] f32 (per bucket: STM half first, then NSTM half),
+out bias [8] f32. All LE. (File version 3 = identical features with a single
+non-bucketed output head; both remain loadable by the Rust runtime.)
 
 Usage: train_nnue.py selfcheck
        train_nnue.py <out.bin> <epochs> <shard1.bin> [shard2.bin ...]
@@ -95,7 +102,7 @@ REC = np.dtype(
         ("pad", "u1", 5),
     ]
 )
-VERSION = 3
+VERSION = 4
 N_SQ = 64
 N_PT = 12  # training-time piece types (own+opp king kept separate)
 N_PLANES = N_SQ * N_PT  # 768
@@ -106,9 +113,10 @@ N_PT_EXPORT = 11  # own+opp king merged into one category at export
 N_PIECE_SQ_EXPORT = N_PT_EXPORT * N_SQ  # 704
 FT_IN = N_BUCKETS * N_PIECE_SQ_EXPORT  # 22528, the exported/inference table
 ACC = 256
+N_OUT_BUCKETS = 8  # piece-count output-bucket (expert) count
 MAGIC = b"UNCHNNUE"
 HEADER_SIZE = 8 + 3 * 4
-PAYLOAD_FLOATS = FT_IN * ACC + ACC + 2 * ACC + 1
+PAYLOAD_FLOATS = FT_IN * ACC + ACC + N_OUT_BUCKETS * 2 * ACC + N_OUT_BUCKETS
 # NSTM perspective: use opponent planes as "own" and vice versa.
 PLANE_SWAP = np.array([6, 7, 8, 9, 10, 11, 0, 1, 2, 3, 4, 5])
 
@@ -186,7 +194,7 @@ class Nnue(nn.Module):
         self.ft_main = nn.EmbeddingBag(FT_IN_MAIN, ACC, mode="sum", include_last_offset=True)
         self.ft_virtual = nn.EmbeddingBag(FT_IN_VIRTUAL, ACC, mode="sum", include_last_offset=True)
         self.ft_bias = nn.Parameter(torch.zeros(ACC))
-        self.out = nn.Linear(2 * ACC, 1, bias=True)
+        self.out = nn.Linear(2 * ACC, N_OUT_BUCKETS, bias=True)
         # Small uniform init for the main (sparse, per-bucket) table --
         # with ~28 active features the EmbeddingBag sum would saturate
         # SCReLU immediately under a larger init. Virtual table starts at
@@ -198,11 +206,13 @@ class Nnue(nn.Module):
     def accumulate(self, idx, off, vidx):
         return self.ft_main(idx, off) + self.ft_virtual(vidx, off) + self.ft_bias
 
-    def forward(self, stm_idx, stm_off, stm_vidx, nstm_idx, nstm_off, nstm_vidx):
+    def forward(self, stm_idx, stm_off, stm_vidx, nstm_idx, nstm_off,
+                nstm_vidx, bucket):
         acc_stm = self.accumulate(stm_idx, stm_off, stm_vidx)
         acc_nstm = self.accumulate(nstm_idx, nstm_off, nstm_vidx)
         h = torch.cat([screlu(acc_stm), screlu(acc_nstm)], dim=1)
-        return self.out(h).squeeze(1)  # raw output ~ cp/400
+        raw = self.out(h)  # [n, N_OUT_BUCKETS] -- one row per bucket
+        return raw.gather(1, bucket.reshape(-1, 1)).squeeze(1)  # ~ cp/400
 
 
 def unpack_planes(bb):
@@ -268,9 +278,13 @@ def _features_and_target(bb, score, wdl):
     stm_bits, nstm_bits = both_perspectives(bits)
     stm_idx, stm_vidx, stm_off = halfka_v2_hm_indices(stm_bits)
     nstm_idx, nstm_vidx, nstm_off = halfka_v2_hm_indices(nstm_bits)
+    # piece-count output bucket (matches the Rust runtime's
+    # Nnue::output_bucket): legal positions always hold both kings.
+    pieces = bits.sum(dim=(1, 2))  # [n] int64, >= 2
+    bucket = ((pieces - 1) // 4).clamp(max=N_OUT_BUCKETS - 1)
     score_f = score.to(torch.float32)
     target = 0.7 * torch.sigmoid(score_f / 400.0) + 0.3 * (wdl.to(torch.float32) / 2.0)
-    return stm_idx, stm_off, stm_vidx, nstm_idx, nstm_off, nstm_vidx, target, score_f
+    return stm_idx, stm_off, stm_vidx, nstm_idx, nstm_off, nstm_vidx, target, score_f, bucket
 
 
 def make_batch(sel):
@@ -313,8 +327,8 @@ def evaluate_iter(model, batch_iter):
     (either batches() or batches_resident())."""
     se = ae = n = 0.0
     with torch.no_grad():
-        for si, so, sv, ni, no, nv, target, score in batch_iter:
-            raw = model(si, so, sv, ni, no, nv)
+        for si, so, sv, ni, no, nv, target, score, bkt in batch_iter:
+            raw = model(si, so, sv, ni, no, nv, bkt)
             se += ((torch.sigmoid(raw) - target) ** 2).sum().item()
             ae += (raw * 400.0 - score).abs().sum().item()
             n += len(target)
@@ -354,8 +368,8 @@ def export_net(model, path):
         f.write(struct.pack("<III", VERSION, FT_IN, ACC))
         f.write(ft_export.tobytes())
         f.write(model.ft_bias.detach().cpu().numpy().astype("<f4").tobytes())
-        # out.weight is [1, 512]; [:256] = STM half, [256:] = NSTM half,
-        # exactly the concat order in forward() (same as v1).
+        # out.weight is [N_OUT_BUCKETS, 512]; per bucket [:256] = STM half,
+        # [256:] = NSTM half, exactly the concat order in forward().
         f.write(
             model.out.weight.detach().cpu().numpy().astype("<f4").reshape(-1).tobytes()
         )
@@ -425,9 +439,9 @@ def train(shards, out_path, epochs):
             train_iter = batches(data, train_idx, BATCH_SIZE)
         t0 = time.time()
         running = steps = 0
-        for si, so, sv, ni, no, nv, target, _ in train_iter:
+        for si, so, sv, ni, no, nv, target, _, bkt in train_iter:
             opt.zero_grad()
-            loss = wdl_loss(model(si, so, sv, ni, no, nv), target)
+            loss = wdl_loss(model(si, so, sv, ni, no, nv, bkt), target)
             loss.backward()
             opt.step()
             running += loss.item()
@@ -536,9 +550,9 @@ def selfcheck():
     opt = torch.optim.Adam(model.parameters(), lr=1e-3)
     idx = np.arange(len(data))
     for _ in range(3):
-        si, so, sv, ni, no, nv, target, _ = make_batch(data[idx])
+        si, so, sv, ni, no, nv, target, _, bkt = make_batch(data[idx])
         opt.zero_grad()
-        loss = wdl_loss(model(si, so, sv, ni, no, nv), target)
+        loss = wdl_loss(model(si, so, sv, ni, no, nv, bkt), target)
         loss.backward()
         opt.step()
     print(f"selfcheck: 3 training steps done, last loss {loss.item():.6f}",
@@ -572,9 +586,11 @@ def selfcheck():
         off += FT_IN * ACC * 4
         ftb = np.frombuffer(blob, "<f4", ACC, off)
         off += ACC * 4
-        outw = np.frombuffer(blob, "<f4", 2 * ACC, off)
-        off += 2 * ACC * 4
-        outb = np.frombuffer(blob, "<f4", 1, off)
+        outw = np.frombuffer(blob, "<f4", N_OUT_BUCKETS * 2 * ACC, off).reshape(
+            N_OUT_BUCKETS, 2 * ACC
+        )
+        off += N_OUT_BUCKETS * 2 * ACC * 4
+        outb = np.frombuffer(blob, "<f4", N_OUT_BUCKETS, off)
 
         def screlu_np(x):
             v = np.clip(x, 0, 1)
@@ -597,9 +613,11 @@ def selfcheck():
                 a = ftw[stm_feats].sum(axis=0) + ftb
                 b = ftw[nstm_feats].sum(axis=0) + ftb
                 h = np.concatenate([screlu_np(a), screlu_np(b)])
-                manual = float(h @ outw + outb[0])
-                si, so, sv, ni, no, nv, _, _ = make_batch(sel)
-                got = float(model(si, so, sv, ni, no, nv)[0])
+                bkt = min((int(bits.sum()) - 1) // 4, N_OUT_BUCKETS - 1)
+                manual = float(h @ outw[bkt] + outb[bkt])
+                si, so, sv, ni, no, nv, _, _, bkt_t = make_batch(sel)
+                got = float(model(si, so, sv, ni, no, nv, bkt_t)[0])
+                assert int(bkt_t[0]) == bkt
                 max_diff = max(max_diff, abs(manual - got))
         check(f"numpy forward matches model (max diff {max_diff:.2e} <= 1e-3)",
               max_diff <= 1e-3)

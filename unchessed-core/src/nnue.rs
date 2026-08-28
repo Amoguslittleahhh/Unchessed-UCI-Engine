@@ -107,9 +107,36 @@ pub struct Nnue {
     ft_w: Vec<f32>,
     /// [ACC]
     ft_b: Vec<f32>,
-    /// [mult * ACC]; mult=2 (v1, v3) or 4 (v2), see module doc for layout
+    /// [out_buckets * mult * ACC]; mult=2 (v1, v3) or 4 (v2), see module
+    /// doc for layout. v4 (and only v4) has 8 piece-count output buckets:
+    /// `(popcount(occupied) - 1) / 4`, Stockfish's standard output-head
+    /// bucketing (docs/research-notes-moe-2507.11181.md: the fixed
+    /// hand-specified router that keeps MoE's benefit without its failure
+    /// modes).
     out_w: Vec<f32>,
-    out_b: f32,
+    /// [out_buckets]; v1-v3 files have a single bias.
+    out_b: Vec<f32>,
+    /// 1 for v1-v3, 8 for v4.
+    out_buckets: usize,
+}
+
+/// Piece-count output bucket (v4): `(pieces - 1) / 4`, 0..=7. Matches
+/// Stockfish's half-ka output-bucket selection; a legal position has 2..=32
+/// pieces, so the clamp is belt-and-braces, not a reachable correction.
+#[inline]
+fn output_bucket(pieces: usize) -> usize {
+    ((pieces - 1) / 4).min(7)
+}
+
+#[inline]
+fn occupied_count(pos: &Position) -> usize {
+    let mut occ: u64 = 0;
+    for c in 0..2 {
+        for p in 0..6 {
+            occ |= pos.bb[c][p];
+        }
+    }
+    occ.count_ones() as usize
 }
 
 fn read_u32(buf: &[u8], off: &mut usize) -> Result<u32, String> {
@@ -365,10 +392,11 @@ impl Nnue {
         }
         let mut off = 8usize;
         let version = read_u32(buf, &mut off)?;
-        let (scheme, expected_ft_in, mult) = match version {
-            1 => (Scheme::Flat768, FT_IN_V1, 2usize),
-            2 => (Scheme::HalfKa, FT_IN_V2, 4usize),
-            3 => (Scheme::HalfKav2Hm, FT_IN_V3, 2usize),
+        let (scheme, expected_ft_in, mult, out_buckets) = match version {
+            1 => (Scheme::Flat768, FT_IN_V1, 2usize, 1usize),
+            2 => (Scheme::HalfKa, FT_IN_V2, 4usize, 1usize),
+            3 => (Scheme::HalfKav2Hm, FT_IN_V3, 2usize, 1usize),
+            4 => (Scheme::HalfKav2Hm, FT_IN_V3, 2usize, 8usize),
             v => return Err(format!("unsupported UNCHNNUE version {}", v)),
         };
         let ft_in = read_u32(buf, &mut off)? as usize;
@@ -379,7 +407,8 @@ impl Nnue {
                 ft_in, acc, expected_ft_in, ACC, version
             ));
         }
-        let expected = 20 + 4 * (ft_in * ACC + ACC + mult * ACC + 1);
+        let expected =
+            20 + 4 * (ft_in * ACC + ACC + out_buckets * mult * ACC + out_buckets);
         if buf.len() != expected {
             return Err(format!(
                 "bad UNCHNNUE file size {} (expected {})",
@@ -389,14 +418,15 @@ impl Nnue {
         }
         let ft_w = read_f32s(buf, &mut off, ft_in * ACC)?;
         let ft_b = read_f32s(buf, &mut off, ACC)?;
-        let out_w = read_f32s(buf, &mut off, mult * ACC)?;
-        let out_b = read_f32s(buf, &mut off, 1)?[0];
+        let out_w = read_f32s(buf, &mut off, out_buckets * mult * ACC)?;
+        let out_b = read_f32s(buf, &mut off, out_buckets)?;
         Ok(Nnue {
             scheme,
             ft_w,
             ft_b,
             out_w,
             out_b,
+            out_buckets,
         })
     }
 
@@ -562,18 +592,25 @@ impl Nnue {
         }
     }
 
-    fn combine(&self, acc_stm: &[f32], acc_nstm: &[f32]) -> i32 {
-        let mut out = self.out_b;
+    fn combine(&self, acc_stm: &[f32], acc_nstm: &[f32], pieces: usize) -> i32 {
+        let bucket = if self.out_buckets == 1 {
+            0
+        } else {
+            output_bucket(pieces)
+        };
+        let mult = if matches!(self.scheme, Scheme::HalfKa) { 4 } else { 2 };
+        let base = bucket * mult * ACC;
+        let mut out = self.out_b[bucket];
         match self.scheme {
             Scheme::Flat768 | Scheme::HalfKav2Hm => {
-                out += screlu_dot(&acc_stm[..ACC], &self.out_w[..ACC]);
-                out += screlu_dot(&acc_nstm[..ACC], &self.out_w[ACC..2 * ACC]);
+                out += screlu_dot(&acc_stm[..ACC], &self.out_w[base..base + ACC]);
+                out += screlu_dot(&acc_nstm[..ACC], &self.out_w[base + ACC..base + 2 * ACC]);
             }
             Scheme::HalfKa => {
-                out += screlu_dot(&acc_stm[..ACC], &self.out_w[..ACC]);
-                out += crelu_dot(&acc_stm[..ACC], &self.out_w[ACC..2 * ACC]);
-                out += screlu_dot(&acc_nstm[..ACC], &self.out_w[2 * ACC..3 * ACC]);
-                out += crelu_dot(&acc_nstm[..ACC], &self.out_w[3 * ACC..4 * ACC]);
+                out += screlu_dot(&acc_stm[..ACC], &self.out_w[base..base + ACC]);
+                out += crelu_dot(&acc_stm[..ACC], &self.out_w[base + ACC..base + 2 * ACC]);
+                out += screlu_dot(&acc_nstm[..ACC], &self.out_w[base + 2 * ACC..base + 3 * ACC]);
+                out += crelu_dot(&acc_nstm[..ACC], &self.out_w[base + 3 * ACC..base + 4 * ACC]);
             }
         }
         ((out * SCALE) as i32).clamp(-EVAL_CLAMP, EVAL_CLAMP)
@@ -599,7 +636,7 @@ impl Eval for Nnue {
     fn eval(&self, pos: &Position) -> i32 {
         let acc_stm = self.accumulate(pos, pos.side);
         let acc_nstm = self.accumulate(pos, pos.side.flip());
-        self.combine(&acc_stm, &acc_nstm)
+        self.combine(&acc_stm, &acc_nstm, occupied_count(pos))
     }
 
     fn initial_state(&self, pos: &Position) -> EvalState {
@@ -647,7 +684,10 @@ impl Eval for Nnue {
     fn eval_with_state(&self, pos: &Position, state: &EvalState) -> i32 {
         let acc_stm = &state.nnue.acc[pos.side.idx()];
         let acc_nstm = &state.nnue.acc[pos.side.flip().idx()];
-        self.combine(acc_stm, acc_nstm)
+        // The piece count (and hence the v4 bucket) changes only on
+        // captures; it is derived from `pos` here, so `update_state`
+        // needs no bucket bookkeeping.
+        self.combine(acc_stm, acc_nstm, occupied_count(pos))
     }
 }
 
@@ -874,6 +914,158 @@ mod tests {
             buf.extend_from_slice(&w.to_le_bytes());
         }
         buf
+    }
+
+    /// Build a deterministic dummy v4 (8 piece-count output buckets)
+    /// network file image.
+    fn dummy_net_bytes_v4() -> Vec<u8> {
+        let n_weights = FT_IN_V3 * ACC + ACC + 8 * 2 * ACC + 8;
+        let mut buf = Vec::with_capacity(20 + 4 * n_weights);
+        buf.extend_from_slice(MAGIC);
+        buf.extend_from_slice(&4u32.to_le_bytes());
+        buf.extend_from_slice(&(FT_IN_V3 as u32).to_le_bytes());
+        buf.extend_from_slice(&(ACC as u32).to_le_bytes());
+        for w in xorshift_weights(n_weights, 0xBEEF_CAFE_1234_5678) {
+            buf.extend_from_slice(&w.to_le_bytes());
+        }
+        buf
+    }
+
+    /// A v4 net whose feature tables and output weights are all zero and
+    /// whose per-bucket biases are 0..=7: the evaluation is exactly
+    /// `bucket * SCALE`, so the piece-count bucket selection is directly
+    /// observable.
+    fn bucket_probe_net() -> Nnue {
+        let mut buf = Vec::with_capacity(
+            20 + 4 * (FT_IN_V3 * ACC + ACC + 8 * 2 * ACC + 8),
+        );
+        buf.extend_from_slice(MAGIC);
+        buf.extend_from_slice(&4u32.to_le_bytes());
+        buf.extend_from_slice(&(FT_IN_V3 as u32).to_le_bytes());
+        buf.extend_from_slice(&(ACC as u32).to_le_bytes());
+        for _ in 0..FT_IN_V3 * ACC + ACC + 8 * 2 * ACC {
+            buf.extend_from_slice(&0f32.to_le_bytes());
+        }
+        for b in 0..8u32 {
+            buf.extend_from_slice(&(b as f32).to_le_bytes());
+        }
+        Nnue::from_bytes(&buf).expect("v4 probe net")
+    }
+
+    #[test]
+    fn v4_output_bucket_selection_by_piece_count() {
+        let net = bucket_probe_net();
+        // (fen, expected piece count, expected bucket)
+        let cases: &[(&str, usize, usize)] = &[
+            // 3 pieces -> (3-1)/4 = 0
+            ("7k/8/8/8/8/8/8/K3R3 w - - 0 1", 3, 0),
+            // 5 -> 1
+            ("7k/8/8/8/4P3/4P3/8/K3R3 w - - 0 1", 5, 1),
+            // 11 -> 2
+            ("7k/8/P7/PPPP4/PPP5/8/8/K3R3 w - - 0 1", 11, 2),
+            // 15 -> 3
+            ("7k/8/PPP5/PPP5/PPP5/PPP5/8/K3R3 w - - 0 1", 15, 3),
+            // 18 -> 4
+            ("7k/PPP5/PPP5/PPP5/PPP5/PPP5/8/K3R3 w - - 0 1", 18, 4),
+            // 21 -> 5
+            ("7k/PPP5/PPP5/PPP5/PPP5/PPP5/PPP5/K3R3 w - - 0 1", 21, 5),
+            // 26 -> 6
+            ("7k/PPP5/PPP5/PPP5/PPP5/PPP5/PPPPPPPP/K3R3 w - - 0 1", 26, 6),
+            // 32 (startpos) -> 7
+            (fen::START_FEN, 32, 7),
+        ];
+        for (fen_text, pieces, bucket) in cases {
+            let pos = fen::parse(fen_text)
+                .unwrap_or_else(|e| panic!("probe fen must parse ({}): {}", fen_text, e));
+            assert_eq!(
+                occupied_count(&pos),
+                *pieces,
+                "piece count for {}",
+                fen_text
+            );
+            let want = (*bucket as f32) * SCALE;
+            assert_eq!(
+                net.eval(&pos) as f32,
+                want,
+                "bucket eval for {} ({} pieces)",
+                fen_text,
+                pieces
+            );
+            // state path must agree (bucket derived from pos there too)
+            let state = net.initial_state(&pos);
+            assert_eq!(
+                net.eval_with_state(&pos, &state) as f32,
+                want,
+                "state bucket eval for {}",
+                fen_text
+            );
+        }
+    }
+
+    #[test]
+    fn v4_net_loads_and_incremental_survives_captures() {
+        let net = load_dummy("v4", dummy_net_bytes_v4());
+        assert_eq!(net.out_buckets, 8);
+        let start = fen::parse(fen::START_FEN).unwrap();
+        let s0 = net.eval(&start);
+        assert!(s0.abs() <= EVAL_CLAMP);
+        let state = net.initial_state(&start);
+        assert_eq!(net.eval_with_state(&start, &state), s0);
+        check_incremental_step(&net, fen::START_FEN, "e2e4", "v4 quiet");
+        check_incremental_step(
+            &net,
+            "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3",
+            "f3e5",
+            "v4 capture",
+        );
+    }
+
+    /// A capture that crosses a bucket boundary (29 -> 28 pieces:
+    /// bucket 7 -> 6) must change the evaluation by exactly the
+    /// per-bucket bias delta on the probe net, through both the
+    /// full-refresh and the incremental state paths.
+    #[test]
+    fn v4_bucket_change_on_capture_changes_output() {
+        let net = bucket_probe_net();
+        let before = fen::parse("3rkbnr/ppp1pppp/8/1p6/PP6/8/1PPPPPPP/RNBQKB1R b - - 0 1")
+            .expect("capture probe fen");
+        assert_eq!(occupied_count(&before), 29);
+        assert_eq!(net.eval(&before) as f32, 7.0 * SCALE);
+        let mv = crate::movegen::parse_uci_move(&before, "b5a4").expect("b5a4");
+        let after = before.make(mv);
+        assert_eq!(occupied_count(&after), 28);
+        let full = net.initial_state(&after);
+        assert_eq!(net.eval_with_state(&after, &full) as f32, 6.0 * SCALE);
+        let incremental =
+            net.update_state(&before, &after, mv, &net.initial_state(&before));
+        assert_eq!(net.eval_with_state(&after, &incremental) as f32, 6.0 * SCALE);
+    }
+
+    /// End-to-end ABI cross-check against the Python trainer: loads a
+    /// trainer-exported v4 net (path from NNUE_CROSSCHECK_NET, test skipped
+    /// when unset) and prints the raw output for the start position.
+    #[test]
+    fn v4_crosscheck_exported_net() {
+        let Ok(path) = std::env::var("NNUE_CROSSCHECK_NET") else {
+            return;
+        };
+        let net = Nnue::load(&path).expect("trainer export must load as v4");
+        let pos = fen::parse(fen::START_FEN).expect("startpos");
+        let state = net.initial_state(&pos);
+        let acc_stm = &state.nnue.acc[pos.side.idx()];
+        let acc_nstm = &state.nnue.acc[pos.side.flip().idx()];
+        let pieces = occupied_count(&pos);
+        let bkt = output_bucket(pieces);
+        let base = bkt * 2 * ACC;
+        let raw = net.out_b[bkt]
+            + screlu_dot(acc_stm, &net.out_w[base..base + ACC])
+            + screlu_dot(acc_nstm, &net.out_w[base + ACC..base + 2 * ACC]);
+        let cp = net.eval(&pos);
+        println!(
+            "CROSSCHECK rust raw={:.6} cp={} bucket={} pieces={} out_buckets={}",
+            raw, cp, bkt, pieces, net.out_buckets
+        );
+        assert_eq!(net.eval(&pos), net.eval_with_state(&pos, &state));
     }
 
     /// Write the dummy net to a uniquely named temp file and Nnue::load it.
