@@ -55,21 +55,43 @@ changes.
 
 ## Run on a Verda AI instance
 
-Verda gives you bare CUDA-equipped VMs with `verda` CLI / Terraform /
-web UI (docs: https://docs.verda.com). Flow:
+Verda gives you bare VMs (CPU or GPU) with `verda` CLI / Terraform /
+web UI (docs: https://docs.verda.com). Flow (chosen configuration
+first):
 
-1. **Create the instance** (from your laptop, `verda` CLI installed):
+1. **Create the instance** — the picked shape is the **CPU Node,
+   180x vCPU / 720 GB RAM** (instance `CPU.180V.720G`, FIN-03,
+   **$2.160/h** = $0.012/vCPU/h): web UI → *Compute type: CPU
+   instance* → *CPU Node* → **180x**, or CLI:
 
    ```sh
-   # one H100, 32 cores, 100 GB volume (~$3.25/h on-demand, ~$1.14-1.63 spot)
-   verda vm create --kind gpu \
-       --instance-type 1H100.80S.32V \
-       --os ubuntu-24.04-cuda-12.8-open-docker \
+   verda vm create --kind cpu \
+       --instance-type CPU.180V.720G \
+       --os ubuntu-24.04 \
        --os-volume-size 100 \
        --hostname maia3-2m
-   # faster: 4H100.80S.176V (176 cores, ~$9-13/h) or 8H100.80S.176V
-   # budget: 1V100.6V (~$0.17/h, CPU generation is viable)
    ```
+
+   (check `verda vm create --help` for the exact CPU flag names on
+   your CLI version; the UI path above is unambiguous)
+
+   Purchase checklist (the compute-configuration screen does not show
+   all of these):
+
+   * **Storage >= 100 GB** — the run writes ~35 GB of shards plus the
+     clone and venv; the compute screen only shows vCPU/RAM, so
+     confirm/attach the volume on the storage step.
+   * **On-demand, not spot** — the job costs ~$5-9 total; a spot
+     preemption kills the instance *and* its local disk, wiping the
+     `--resume` checkpoints.
+   * **OS: any Ubuntu** (22.04/24.04) — CPU mode needs no CUDA image
+     and no Docker.
+   * **RAM is over-provisioned** (720 GB available, ~10-20 GB used by
+     170 workers) — no action needed.
+
+   Alternatives: 4xH100.80S.176V (176 cores, ~$9-13/h) gives the same
+   CPU throughput at GPU-box pricing; `--gpus` mode on a GPU box is
+   only worth it with the (not-yet-built) batched pipeline.
 
 2. **SSH in and set up** (GitHub must be reachable from the instance —
    Verda instances have normal internet):
@@ -80,9 +102,7 @@ web UI (docs: https://docs.verda.com). Flow:
    cd Unchessed-UCI-Engine
    python3 -m venv venv
    venv/bin/pip install -r tools/maia3_cloud_selfplay/requirements.txt
-   # GPU (recommended on a CUDA image):
-   venv/bin/pip uninstall -y onnxruntime
-   venv/bin/pip install onnxruntime-gpu        # match the image CUDA
+   # (GPU instances only: swap in onnxruntime-gpu matching the image CUDA)
    ```
 
 3. **Stage the model** (pinned mirror, 45.7 MB):
@@ -91,19 +111,18 @@ web UI (docs: https://docs.verda.com). Flow:
    venv/bin/python tools/selfplay_elo_mixer.py fetch-model --out /tmp/maia3-onnx
    ```
 
-4. **Generate** (2M games). Two sensible layouts:
+4. **Generate** (2M games, CPU path on the 180-vCPU node — fully
+   byte-reproducible; `--workers 170` leaves headroom for the parent
+   and the post-run validation pool):
 
    ```sh
-   # GPU path (4 GPUs, one worker per GPU):
    venv/bin/python tools/maia3_cloud_selfplay/generate.py \
        --model /tmp/maia3-onnx/simple-maia3-inference/simple_maia3_inference/maia3_simplified.onnx \
-       --out /data/maia3-2m --games 2000000 --seed 20260827 --gpus 4
-
-   # CPU path (uses all cores; fully byte-reproducible):
-   venv/bin/python tools/maia3_cloud_selfplay/generate.py \
-       --model ... --out /data/maia3-2m --games 2000000 --seed 20260827 \
-       --workers 30
+       --out /data/maia3-2m --games 2000000 --seed 20260827 --workers 170
    ```
+
+   (put `--out` on the >= 100 GB volume; GPU boxes: `--gpus 4`
+   instead of `--workers`)
 
    The command **validates the whole set when it finishes** (every move
    replayed legal, headers/labels cross-checked, conditioning gradient
@@ -129,21 +148,23 @@ H100) makes a GPU worker python-bound at the ~3-5 ms/ply floor.
 
 | Layout | Throughput (est.) | 2M games (131M plies) | Cost (est.) |
 |---|---|---|---|
+| **CPU.180V.720G (chosen), 170 workers** | ~9-18k plies/s | **~2-4 h** | **~$5-9 ($2.16/h listed)** |
 | 1×H100.80S.32V, CPU (30 workers) | ~1.5-3k plies/s | ~12-24 h | ~$40-80 |
 | 4×H100.80S.176V, CPU (170 workers) | ~9-18k plies/s | ~2-4 h | ~$20-55 |
 | 1×H100, `--gpus 1` (shipped code) | ~200-300 plies/s | ~12-18 h | ~$40-60 |
 | 4×H100, `--gpus 4` (shipped code) | ~800-1200 plies/s | ~3-5 h | ~$35-60 |
 
 Read: with the **shipped code (one game in flight per worker), the
-big CPU instance is the sweet spot** — it runs 176 workers (and is the
-byte-reproducible option) and ties or beats a 4-GPU instance, which is
-capped at 4 workers. A GPU only wins decisively if the generator
-batches positions **across in-flight games** (one forward per batch of
-B games, pipelined against the 3 ms/ply python cost); that mode is not
-implemented yet, and with it 4 GPUs would do the 2M in roughly an
-hour. Recommendation: 4×H100.80S.176V used in CPU mode (~2-4 h,
-~$20-55); if sub-hour turnaround matters, the batched GPU mode is the
-next build item.
+big CPU instance is the sweet spot** — it runs ~170 workers (and is
+the byte-reproducible option) and ties or beats a 4-GPU instance,
+which is capped at 4 workers. A GPU only wins decisively if the
+generator batches positions **across in-flight games** (one forward
+per batch of B games, pipelined against the 3 ms/ply python cost);
+that mode is not implemented yet, and with it 4 GPUs would do the 2M
+in roughly an hour. The chosen **CPU.180V.720G node at $2.16/h is
+both the fast option (~2-4 h) and the cheap one (~$5-9 total)** —
+note it is priced per vCPU, so the same core count inside an
+H100-SXM box costs ~5-6x more.
 
 ## Calibration and tests
 
