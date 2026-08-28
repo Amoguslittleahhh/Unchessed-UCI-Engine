@@ -111,10 +111,15 @@ The pipeline around them (`tools/`):
   a fresh clone.
 - `selfplay_elo_mixer.py` — the Maia-3 random-elo generator (the
   committed 200-game set); `maia3_cloud_selfplay/` — its many-core cloud
-  scale-out for **2,000,000 games** (per-game deterministic substreams,
-  fsync'd resume, built-in full validation + conditioning calibration,
-  Verda-AI-targeted README with measured cost: ~2-4 h / ~$5-9 on a
-  180-vCPU node).
+  scale-out, default **5,000,000 games** from a four-engine pool
+  (Maia-3 + Stockfish 18 + LC0 v0.32.1 + RubiChess, each with the
+  strength mechanism it actually supports — native UCI_Elo for
+  Maia-3/Stockfish, thinking-budget and NPS-cap ladders for LC0/Rubi,
+  the latter two labelled `EloQuality: approximate`), per-game
+  deterministic substreams, resident per-worker engine pools, fsync'd
+  resume, built-in full validation + conditioning calibration, and a
+  Verda-AI-targeted README with measured cost (5M mixed ≈ 95-110 h /
+  ≈$205-240 on a 180-vCPU node; pilot command gives the real rate).
 - `build_level_conditioned_moves.py` — turns any of these sets into
   per-move `(FEN, level-window, move, elo_self, elo_oppo)` labels
   (Maia-style both-players windows; 800,971 rows from `data/training/`
@@ -258,7 +263,7 @@ switches, book/troll choices).
 ## Roadmap
 
 1. **Level-conditioned retrain of the policy net** — the data
-   (`data/training-elo/` + `data/selfplay/`, optionally the 2M-game
+   (`data/training-elo/` + `data/selfplay/`, optionally the 5M-game
    cloud set) and the design spec (dual self/opponent skill
    conditioning per the Maia reverse-engineering note) are in place;
    widen GAB to the paper's 5M config in the same retrain; theme-
