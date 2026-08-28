@@ -1,0 +1,220 @@
+{
+  "val_rows": 3130,
+  "top1_accuracy": 0.1687,
+  "baseline_top1_accuracy": 0.0879,
+  "mean_top1_prob": 0.2008,
+  "per_band": {
+    "100-199": {
+      "n": 34,
+      "top1_accuracy": 0.1765,
+      "mean_top1_prob": 0.205,
+      "baseline_top1_prob": 0.1405
+    },
+    "200-299": {
+      "n": 75,
+      "top1_accuracy": 0.2,
+      "mean_top1_prob": 0.2606,
+      "baseline_top1_prob": 0.179
+    },
+    "400-499": {
+      "n": 33,
+      "top1_accuracy": 0.2121,
+      "mean_top1_prob": 0.2038,
+      "baseline_top1_prob": 0.1126
+    },
+    "600-699": {
+      "n": 161,
+      "top1_accuracy": 0.2919,
+      "mean_top1_prob": 0.2847,
+      "baseline_top1_prob": 0.1782
+    },
+    "700-799": {
+      "n": 29,
+      "top1_accuracy": 0.1379,
+      "mean_top1_prob": 0.1999,
+      "baseline_top1_prob": 0.1109
+    },
+    "800-899": {
+      "n": 143,
+      "top1_accuracy": 0.1888,
+      "mean_top1_prob": 0.2029,
+      "baseline_top1_prob": 0.1227
+    },
+    "900-999": {
+      "n": 27,
+      "top1_accuracy": 0.1111,
+      "mean_top1_prob": 0.2418,
+      "baseline_top1_prob": 0.1346
+    },
+    "1000-1099": {
+      "n": 130,
+      "top1_accuracy": 0.1538,
+      "mean_top1_prob": 0.1822,
+      "baseline_top1_prob": 0.0895
+    },
+    "1100-1199": {
+      "n": 234,
+      "top1_accuracy": 0.1838,
+      "mean_top1_prob": 0.1941,
+      "baseline_top1_prob": 0.1088
+    },
+    "1200-1299": {
+      "n": 71,
+      "top1_accuracy": 0.1408,
+      "mean_top1_prob": 0.1418,
+      "baseline_top1_prob": 0.0535
+    },
+    "1300-1399": {
+      "n": 222,
+      "top1_accuracy": 0.1396,
+      "mean_top1_prob": 0.194,
+      "baseline_top1_prob": 0.0887
+    },
+    "1400-1499": {
+      "n": 81,
+      "top1_accuracy": 0.2222,
+      "mean_top1_prob": 0.1947,
+      "baseline_top1_prob": 0.0851
+    },
+    "1500-1599": {
+      "n": 66,
+      "top1_accuracy": 0.1818,
+      "mean_top1_prob": 0.1992,
+      "baseline_top1_prob": 0.0832
+    },
+    "1600-1699": {
+      "n": 135,
+      "top1_accuracy": 0.2,
+      "mean_top1_prob": 0.1544,
+      "baseline_top1_prob": 0.0627
+    },
+    "1700-1799": {
+      "n": 74,
+      "top1_accuracy": 0.1216,
+      "mean_top1_prob": 0.1991,
+      "baseline_top1_prob": 0.0609
+    },
+    "1800-1899": {
+      "n": 229,
+      "top1_accuracy": 0.2533,
+      "mean_top1_prob": 0.2364,
+      "baseline_top1_prob": 0.1259
+    },
+    "1900-1999": {
+      "n": 134,
+      "top1_accuracy": 0.0821,
+      "mean_top1_prob": 0.1488,
+      "baseline_top1_prob": 0.0464
+    },
+    "2100-2199": {
+      "n": 16,
+      "top1_accuracy": 0.125,
+      "mean_top1_prob": 0.135,
+      "baseline_top1_prob": 0.0311
+    },
+    "2200-2299": {
+      "n": 206,
+      "top1_accuracy": 0.2039,
+      "mean_top1_prob": 0.2414,
+      "baseline_top1_prob": 0.1167
+    },
+    "2300-2399": {
+      "n": 163,
+      "top1_accuracy": 0.1043,
+      "mean_top1_prob": 0.2042,
+      "baseline_top1_prob": 0.0769
+    },
+    "2400-2499": {
+      "n": 199,
+      "top1_accuracy": 0.1407,
+      "mean_top1_prob": 0.1829,
+      "baseline_top1_prob": 0.0641
+    },
+    "2500-2599": {
+      "n": 206,
+      "top1_accuracy": 0.1214,
+      "mean_top1_prob": 0.1821,
+      "baseline_top1_prob": 0.0604
+    },
+    "2600-2699": {
+      "n": 85,
+      "top1_accuracy": 0.1412,
+      "mean_top1_prob": 0.1656,
+      "baseline_top1_prob": 0.0413
+    },
+    "2700-2799": {
+      "n": 47,
+      "top1_accuracy": 0.1277,
+      "mean_top1_prob": 0.1817,
+      "baseline_top1_prob": 0.0266
+    },
+    "2800-2899": {
+      "n": 79,
+      "top1_accuracy": 0.2152,
+      "mean_top1_prob": 0.2193,
+      "baseline_top1_prob": 0.0512
+    },
+    "2900-2999": {
+      "n": 168,
+      "top1_accuracy": 0.119,
+      "mean_top1_prob": 0.1932,
+      "baseline_top1_prob": 0.0337
+    },
+    "3000-3099": {
+      "n": 61,
+      "top1_accuracy": 0.1311,
+      "mean_top1_prob": 0.1916,
+      "baseline_top1_prob": 0.0259
+    },
+    "3100-3199": {
+      "n": 22,
+      "top1_accuracy": 0.1364,
+      "mean_top1_prob": 0.1837,
+      "baseline_top1_prob": 0.0327
+    }
+  },
+  "conditioning_sweep": {
+    "positions": 200,
+    "elo_values": [
+      600,
+      700,
+      800,
+      900,
+      1000,
+      1100,
+      1200,
+      1300,
+      1400,
+      1500,
+      1600,
+      1700,
+      1800,
+      1900,
+      2000,
+      2100,
+      2200,
+      2300,
+      2400,
+      2500,
+      2600,
+      2700,
+      2800,
+      2900,
+      3000,
+      3100,
+      3200
+    ],
+    "note": "opponent elo fixed at the position's own elo_oppo; mover elo swept 600..3200 step 100; flip = any change of predicted top-1 action across the sweep (the v1 finding was 0/200)",
+    "positions_flipped_any": 118,
+    "positions_flipped_extremes": 115,
+    "mean_top1_prob_at_600": 0.1561,
+    "mean_top1_prob_at_3200": 0.2591
+  },
+  "tool": "tools/pretrain_move_predictor.py",
+  "data": "/tmp/pretrain-selfplay",
+  "epochs_run": 15,
+  "best_val_ce": 2.8479,
+  "architecture": "mlp 774->256->256->20480 (numpy, legal-only softmax)",
+  "elapsed_s": 158.0,
+  "note": "sandbox probe of the move-prediction pretrain objective; the full pretrain runs the same objective on the mixed 1M-5M corpus via the v1 A100 pipeline"
+}

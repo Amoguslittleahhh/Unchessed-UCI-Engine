@@ -11,6 +11,11 @@ names are experimental history only.
   smoke and precharged shallow-hint search trial.
 - `uci-candidate-2026-08-23.json` records the real default-off UCI wiring,
   short-clock gate, exact-hint smoke, safety tests, and unrun SPRT launcher.
+- `pretrain-probe-2026-08-28.json` records the sandbox move-prediction
+  pretrain probe (13,076 committed self-play rows, 256-wide NumPy MLP):
+  the 0/200 rating-conditioning sweep inverts to 118/200 with dual-elo
+  conditioning, top-1 accuracy 0.1687 vs 0.0879 baseline
+  (`docs/move-prediction-pretrain-plan.md`).
 
 All figures are host-specific instrumentation. The candidate remains default-off
 and is not deployment calibration, Elo, or SPRT evidence.

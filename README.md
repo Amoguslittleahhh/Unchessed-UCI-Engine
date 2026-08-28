@@ -262,10 +262,20 @@ switches, book/troll choices).
 
 ## Roadmap
 
-1. **Level-conditioned retrain of the policy net** — the data
-   (`data/training-elo/` + `data/selfplay/`, optionally the 5M-game
-   cloud set) and the design spec (dual self/opponent skill
-   conditioning per the Maia reverse-engineering note) are in place;
+1. **Level-conditioned retrain of the policy net** — now concretized
+   as a two-stage move-prediction plan
+   (`docs/move-prediction-pretrain-plan.md`): stage 1 pretrain =
+   next-move prediction (legal-only cross-entropy over the 20480
+   action space) on the whole mixed corpus (5M cloud set +
+   `data/selfplay/` + `data/training-elo/`) with dual-elo
+   conditioning — the objective that forces the level axis to be
+   informative (the v1 single-rating input was measured inert,
+   0/200); stage 2 fine-tune on the trusted rows (calibrated +
+   native + human) to align the level axis and pull in human style.
+   Data bridge (`tools/pretrain_move_dataset.py`, STM-normalized
+   encoding matching `unchessed-datagen`, game-disjoint splits) and a
+   sandbox probe (`tools/pretrain_move_predictor.py`, NumPy MLP +
+   the 0/200 conditioning-sweep gate) are committed and tested. Then:
    widen GAB to the paper's 5M config in the same retrain; theme-
    balanced sampling; weight clipping for quantization. Verify with
    `tools/analyse_rating_conditioning.py` (the 0/200 sweep must
@@ -284,6 +294,8 @@ switches, book/troll choices).
 - `python tools/rust_bracket_check.py` — balanced-bracket lint for the Rust sources.
 - `python tools/pentanomial_sprt.py` — the SPRT decision tool (Fishtest mathematics).
 - `python tools/unarchitectured_v1_runtime_readiness.py` — capability-manifest readiness report.
+- `python tools/pretrain_move_dataset.py --labels … --out …` — build move-prediction pretrain shards (bridge + leakage guard).
+- `python tools/pretrain_move_predictor.py --data …` — sandbox probe of the pretrain objective with the 0/200 conditioning sweep.
 - `scripts/build-and-test.sh` — full gate set (build + tests + UCI smoke + matetrack).
 
 ## Docs index
@@ -300,7 +312,8 @@ switches, book/troll choices).
   `research-notes-vrzina-engine-thesis.md`,
   `research-survey-arxiv-2026-08-24.md`,
   `stockfish-empirical-data-notes.md`, `fishtest-and-quantization-notes.md`,
-  `llm-uci-matrix-assessment.md`.
+  `llm-uci-matrix-assessment.md`, `move-prediction-pretrain-plan.md`
+  (the two-stage retrain design + sandbox probe).
 - **Performance:** `performance-survey-2026-08-24.md`,
   `performance-round-1-implementation.md`,
   `performance-ceiling-and-gpu-viability.md`,
