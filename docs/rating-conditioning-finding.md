@@ -96,6 +96,50 @@ Concretely, and in priority order alongside the earlier findings:
 
 All four are retrain-only, and any retrained net still needs its own SPRT.
 
+## Oracle side: locating the bug (analysis added 2026-08-28)
+
+Round 12 asked where the bug lives — architectural (the conditioning path
+cannot carry a signal) vs distillation-time (the teacher's targets never
+varied with rating) — with the oracle-side sweep as the deciding experiment.
+The oracle checkpoint is not in the repo, so the sweep cannot be run here;
+the repo evidence still narrows the answer:
+
+1. **The student was trained on rating-varying data.** The distillation
+   dataset carries per-move dual elo (`elo_self`/`elo_oppo` u16 from the
+   game headers / selfplay labels —
+   `tools/pretrain_move_dataset.py`), so "the student never saw rating
+   variation" is ruled out as the sole cause.
+2. **The measured response is cleanly linear in rating** (delta logit scales
+   almost exactly with the rating value across the sweep). That is the
+   exact signature of the single-scalar injection path
+   (`normalized_rating * rating_weight + rating_bias`) with a small learned
+   weight — downstream, a tiny perturbation to a 32-wide vector produces a
+   locally linear response. It is *consistent with* the path having learned
+   a near-zero weight, which is what the network learns when its targets
+   (the oracle's policy) are rating-invariant — but it cannot distinguish
+   that from the path being architecturally swamped.
+3. **The distillation-time hypothesis therefore remains the live one**, and
+   only the oracle-side sweep can decide it.
+
+**Decision procedure (when the oracle checkpoint is available):** run the
+same 200-position, 7-rating sweep (600→3200) through the oracle's policy
+head with `tools/analyse_rating_conditioning.py`'s measurement, pointing it
+at the oracle. Minutes of CPU compute — the 58M model is small.
+
+- **Oracle varies with rating** → the bug is in the student's
+  architecture/translation: the single-scalar path cannot carry the
+  teacher's rating-varying targets. The already-planned retrain
+  (`tools/pretrain_v1_a100.py` replaces the single-scalar path with proper
+  dual-elo conditioning, and `tools/pretrain_move_predictor.py` uses this
+  exact sweep as its gate metric) is the fix.
+- **Oracle is also rating-invariant** → the bug is upstream of the student:
+  the oracle itself does not condition (its own architecture or training
+  data). Fixing the student alone would be wasted; the oracle retrain must
+  establish conditioning first, and the student retrain then inherits it.
+
+Either outcome is actionable; neither changes anything shipping (the hint
+stays default-off and no retrain happens without the owner's call + SPRT).
+
 ## Honest limits
 
 - **200 positions, not the full 600**, to keep the seven-rating sweep

@@ -194,6 +194,7 @@ the other backlog file's numbering.
 151. Investigate a genuinely different search paradigm (MCTS hybrid) as a long-shot alternative to pure alpha-beta
 152. Explore whether a small value network could complement NNUE for search-time position complexity estimation
 153. Investigate distillation from a much larger offline-trained model into the deployed small NNUE (the transformer-oracle idea generalized)
+    - **[PARTIALLY ANSWERED 2026-08-28]** the oracle's *training-method* sub-question (DiffusionBlocks block-wise training for the memory wall) is answered in `docs/research-notes-diffusionblocks-2506.14202.md`: defer/drop at 9M–270M scales — standard backprop fits one 80 GB card, and the method has no published regression results. The oracle itself (train → label → retrain NNUE) remains open, owner-gated.
 154. Explore adding Chess960 support properly scoped as a real project, not just a maybe
 155. Explore endgame tablebase probing during search (not just label correction)
 156. Explore a hybrid rule-based endgame module for 8+-piece positions tablebases don't cover
