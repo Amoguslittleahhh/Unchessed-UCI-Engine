@@ -9,101 +9,72 @@ work is not an invitation to revert to or resume development on any of
 them. Any follow-on architecture or training work belongs on top of
 Unarchitectured v1, not as a parallel track exploring an earlier one.
 
-## Current status (round 11, `main` at `a936d8d`)
+## Current status (round 12, `main` at `9466820`)
 
-Runtime kernel work in `aegis_v4_runtime.rs` (inlined AVX2 attention,
-vectorized softmax exp, per-forward scratch reuse, per-head GAB
-streaming — all now the default path) plus a new `UnarchitecturedHintExit`
-UCI option (2/128 default, 4/192, 8/256 selectable). Reviewed, verified,
-merged.
+Full sweep of round 11's "other open items": NNUE quiet-filter blocker
+fixed and measured, NNUE 8 piece-count output buckets implemented
+end-to-end (runtime + trainer), and both research questions
+(DiffusionBlocks, oracle-side rating conditioning) answered. Reviewed,
+verified, merged.
 
-**Verified independently:** build clean, `unchessed-core` 106/106
-(matches claimed count), all three Python-reference parity gates pass
-with the new defaults enabled, `rust_bracket_check --all` clean. Real
-speedup reproduced on this reviewer's hardware: 9.01ms → 8.06ms (~1.12x)
-full-exit forward pass — a bigger gain here than their own host saw
-(they reported "within noise," cache-bound on their smaller L2; this
-machine's larger cache benefits more). New UCI option tested live:
-correct exit selection, invalid values rejected with the previous value
-kept, exact-key caching confirmed never cross-serves between exits.
+**Verified independently:** build clean, `unchessed-core` 110/110
+(matches claimed count, +4 new v4 bucket tests), `train_nnue.py selfcheck`
+ALL PASS (numpy-vs-model max diff 1.49e-08 on this host, same order of
+magnitude as their 2.98e-08 — different seed, same conclusion), `pytest
+tools/` 336/4/352 (the one failure is the already-known Windows-only
+`test_ddp_gloo_two_rank_smoke` gloo gap, confirmed passing on WSL in
+prior rounds — not new). Read the actual `nnue.rs` diff line by line: the
+v4 bucket formula (`(pieces-1)/4` clamped to 7) matches between Rust and
+the Python trainer exactly, v1-v3 files stay bit-identical (bucket
+forced to 0), and the new `UNCHESSED_NNUE_MIN_BASE_SECS` env override
+defaults to the original fail-closed 180s gate — no default behavior
+changed anywhere in this round.
 
-**Why this option matters going forward**: the SPRT batches so far all
-used the hard-coded 2/128 exit — the worst-calibrated one (top-1 0.185
-vs. 0.255 at full 8/256). Any future SPRT retest should now state which
-exit it used, since that's a real, previously-hidden variable.
+**Honest state, same as they reported**: no NNUE net has been retrained
+and nothing has been SPRT'd. This round is better tooling + a verified
+new file format, zero shipping change — the v4 format isn't used by
+anything until a v4 net actually exists and passes SPRT.
 
 ## What's needed next
 
-1. **A retrain decision**, if you want to act on round 9's findings (GAB
-   capacity, rating conditioning, int8 weight clipping) using the
-   infrastructure round 10 built. Project owner's call — real cloud
-   spend, not something to proceed on by default.
-2. **A cleanly isolated `MinTime` retest**, still open from round 7 —
-   now with the added question of which `HintExit` to test at. Optional
-   polish, not a blocker.
-3. **`UnarchitecturedHint` stays default-off** either way. No config
-   tested across four real SPRT batches has ever trended positive.
+1. **An NNUE retrain**, now unblocked on both axes that were stopping
+   it: the quiet-filter base-seconds gate (fixed) and the 8-bucket head
+   (implemented). This is real compute but far cheaper than the
+   Unarchitectured v1 retrain items — no new cloud infrastructure needed,
+   just the existing 108M-position corpus. Project owner's call on
+   whether/when to spend the compute; if it happens, it needs a fresh
+   SPRT gate before touching the default evaluation, same rule as
+   everything else.
+2. **A retrain decision** for round 9's Unarchitectured v1 findings (GAB
+   capacity, rating conditioning, int8 weight clipping), if the oracle
+   checkpoint becomes available — see item 3 below, this is now gated on
+   that.
+3. **Oracle-side rating conditioning**: narrowed, not closed. One
+   hypothesis (student never saw rating variation) is ruled out with
+   repo evidence; the deciding experiment (200 positions × 7 ratings on
+   the oracle checkpoint) needs the oracle checkpoint, which isn't in
+   this repo. If it ever becomes available, run it — cheap (CPU-minutes)
+   and it decides where the real fix goes (oracle vs. distillation).
+4. **A cleanly isolated `MinTime` retest**, still open from round 7 —
+   must now also state which `HintExit` it used. Optional polish, not a
+   blocker.
+5. **`UnarchitecturedHint` stays default-off**. No config tested across
+   four real SPRT batches has ever trended positive.
 
-## Other open items (consolidated here, not left in a separate file)
+## Other open items
 
-1. **DiffusionBlocks for a labeling-oracle retrain — never actually
-   sent to you before this, despite being drafted rounds ago.** Original
-   full prompt at `scripts/research/arena_agent_diffusionblocks_prompt.md`;
-   condensed here with updated context:
-
-   The backlog idea (`remaining_research_topics.md` item 84,
-   `200_research_ideas.md` item 153): train a large transformer as a
-   one-time labeling oracle, generate improved labels for training data,
-   retrain the small deployed net on those labels instead of weaker
-   HCE-style labels. **Context has moved since this was drafted**: the
-   real 58M-param Unarchitectured v1 oracle now exists and trained
-   successfully via ordinary end-to-end backprop — so the original
-   memory-pressure motivation (an A100 40GB-vs-80GB sizing scare from an
-   unrelated NNUE run) didn't end up blocking anything at that scale.
-   DiffusionBlocks (ICLR 2026, Sakana AI, arXiv:2506.14202 — trains each
-   transformer block independently via local score-matching, cutting
-   training memory by ~the block count) is only worth a fresh look if a
-   *future* retrain scales meaningfully past 58M params. Questions, if
-   pursued:
-   - Does a chess value/policy oracle's block structure actually fit
-     DiffusionBlocks' requirement (residual blocks, matching input/output
-     dims per block — it doesn't yet handle U-Net-style dimension
-     changes)? Chess positions aren't naturally "noised" like images —
-     is there a sensible mapping, or does the analogy break down here?
-   - At what oracle size would DiffusionBlocks' memory savings actually
-     become load-bearing, given 58M already trained fine without it?
-   - Given a labeling oracle is used once and discarded, is the added
-     engineering complexity worth it versus just renting a bigger GPU for
-     a one-off run? Give the honest answer even if it's "not worth it at
-     any size this project is likely to reach."
-   - Concrete recommendation: prototype, defer until a specific larger
-     size is planned, or drop entirely. No padding, no invented benchmark
-     figures — say plainly if a real comparable figure can't be found.
-
-2. **Oracle-side rating conditioning remains untested** (round 9). Both
-   the oracle and student use identical `rating_weight`/`rating_bias`
-   conditioning code; the student's is confirmed inert (0/200 moves
-   change across a 600→3200 sweep). Whether the oracle has the same
-   defect is still unknown — the oracle checkpoint isn't in this repo.
-   If it's ever available, the same sweep methodology from
-   `docs/rating-conditioning-finding.md` applies directly. This matters
-   because the answer changes where the bug lives: if the oracle also
-   shows zero conditioning effect, it's architectural (the mechanism
-   itself is too weak); if the oracle conditions properly and only the
-   student doesn't, it's a distillation-time bug — different fixes.
-
-3. **The NNUE evaluator itself has had comparatively little scrutiny**
-   next to how thoroughly Unarchitectured v1 has been picked apart — and
-   it's the evaluator actually used in every real game, unlike the
-   still-default-off hint. Round 9's NNUE king-bucket audit found the
-   existing table already correct (good), and round 4's quiet-position
-   dataset filters were built but never used to actually retrain. If
-   there's appetite for a lower-risk, likely-higher-impact-per-effort
-   round than more Unarchitectured v1 kernel work, this is it — the
-   shipped NNUE retrain backlog (quiet-position filtering, 8 piece-count
-   output buckets per `docs/research-notes-moe-2507.11181.md`) is
-   real and, unlike Unarchitectured v1's retrain items, only needs the
-   existing 108M-position self-play corpus, not new cloud infrastructure.
+**DiffusionBlocks for a labeling-oracle retrain: answered, effectively
+closed.** Full answer in `docs/research-notes-diffusionblocks-2506.14202.md`.
+Bottom line: architecturally it would fit a chess value oracle with no
+I/O rework, but there are no published regression results (only
+classification/generation) and the code is ViT/CIFAR-only. At the real
+scales in play (published chess transformers run ~9M-270M params), the
+memory footprint fits comfortably on one 80GB card with ordinary
+backprop — DiffusionBlocks' savings only become load-bearing past
+~500M-1B params on a sub-48GB card, which isn't this project's scale.
+Recommendation: defer/drop; revisit only if a future oracle retrain
+targets that size on constrained hardware. No action needed unless that
+changes.
 
 ## History (condensed)
 
@@ -147,7 +118,11 @@ exit it used, since that's a real, previously-hidden variable.
   the scope change (committing PGN data to git, infrastructure for real
   cloud spend); no cloud spend has occurred. Found and fixed a real
   Windows `core.autocrlf` bug corrupting committed PGN files on checkout.
-- **Round 11**: see "Current status" above.
+- **Round 11** (`a936d8d`): inlined AVX2 attention, vectorized softmax
+  exp, scratch reuse, per-head GAB streaming (all now default); added
+  `UnarchitecturedHintExit`. Real speedup reproduced (1.12x full-exit
+  forward pass on this host).
+- **Round 12**: see "Current status" above.
 
 ## Correctness gates that must keep passing
 
@@ -161,7 +136,7 @@ for speed without re-validating against that same Python reference.
 
 ## Pre-flight checklist
 
-Established over rounds 1-11, still the standard before reporting a round
+Established over rounds 1-12, still the standard before reporting a round
 done:
 
 - [ ] Diff against `main`, not your own branch's accumulated history.
@@ -196,3 +171,12 @@ done:
   `docs/gab-capacity-finding.md`, `docs/rating-conditioning-finding.md`,
   `docs/fishtest-and-quantization-notes.md` — the round 7-9 findings that
   now constitute the retrain backlog.
+- `unchessed-core/src/nnue.rs`, `tools/train_nnue.py` — the NNUE
+  evaluator, now on file format v4 (8 piece-count output buckets).
+- `docs/nnue-round-12-results.md`, `docs/nnue-dataset-quiet-filters.md`,
+  `docs/research-notes-moe-2507.11181.md` — the NNUE retrain backlog:
+  what's built, measured, and still needs a real retrain + SPRT.
+- `docs/research-notes-diffusionblocks-2506.14202.md`,
+  `docs/rating-conditioning-finding.md` — the two round-12 research
+  answers (DiffusionBlocks: defer/drop; oracle rating conditioning:
+  narrowed, blocked on the oracle checkpoint).
