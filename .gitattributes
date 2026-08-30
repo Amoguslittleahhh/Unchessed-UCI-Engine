@@ -12,3 +12,8 @@
 *.pgn -text
 *.epd -text
 data/**/*.jsonl -text
+
+# Shell scripts run under WSL/bash; a CRLF shebang line (`#!/bin/bash\r`)
+# fails to exec on Linux. Force LF on checkout regardless of platform or
+# core.autocrlf, rather than just leaving line endings unconverted.
+*.sh text eol=lf
