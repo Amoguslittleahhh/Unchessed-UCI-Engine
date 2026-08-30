@@ -1,5 +1,9 @@
 # NNUE v4 retrain: data-scaling root cause (2026-08-30)
 
+**Round 13 answer:** `docs/nnue-v4-training-recipe.md` — early-stop +
+best-checkpoint export; shipped launcher recipe recovered; cloud 178M is
+NO-GO until a local 108M SPRT with that recipe exists.
+
 Reviewer-run (not arena), following up on round 12's shipped 8-bucket v4
 format and quiet-filtered dataset tooling. Round 12 built the format and
 tooling but never trained on real data or SPRT'd a result. This is that

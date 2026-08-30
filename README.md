@@ -316,7 +316,9 @@ switches, book/troll choices).
   `unarchitectured-v1-why-the-hint-costs-elo.md`,
   `policy-prior-calibration.md`, `unarchitectured-v1-theme-breakdown.md`,
   `int8-activation-calibration-finding.md`,
-  `parameter-calibration-audit.md`, `nnue-architecture-audit.md`.
+  `parameter-calibration-audit.md`, `nnue-architecture-audit.md`,
+  `nnue-v4-retrain-data-scaling-finding.md`,
+  `nnue-v4-training-recipe.md`.
 - **Research notes:** `research-notes-maia-levels-reverse-engineering.md`
   (the level-ladder mechanism — the retrain design spec),
   `research-notes-moe-mcts-2401.16852.md`, `research-notes-moe-2507.11181.md`,

@@ -9,7 +9,7 @@ work is not an invitation to revert to or resume development on any of
 them. Any follow-on architecture or training work belongs on top of
 Unarchitectured v1, not as a parallel track exploring an earlier one.
 
-## Current status (round 12, `main` at `9466820`)
+## Current status (round 13)
 
 Full sweep of round 11's "other open items": NNUE quiet-filter blocker
 fixed and measured, NNUE 8 piece-count output buckets implemented
@@ -49,30 +49,31 @@ extrapolation lands the full 178M corpus around a 150-250 Elo gap
 used for these diagnostics. Full writeup, exact numbers, and the specific
 ask: `docs/nnue-v4-retrain-data-scaling-finding.md`.
 
+**Round 13 (this round):** answered that ask. The shipped launcher recipe
+was recoverable (`full_pipeline.sh`: 15-epoch cap, batch 65536, Adam
+1e-3, 60/80 step-decay). The diagnostic SPRTs exported the *last* epoch
+while val-MAE was climbing — a trainer bug, now fixed (best-checkpoint +
+early-stop patience 3). Cloud 178M is **NO-GO** until a local 108M run
+with this recipe is SPRT'd; arena cannot run 108M (shards not in git).
+Writeup: `docs/nnue-v4-training-recipe.md`. Trainer change only; no
+shipping net, no search integration, `UnarchitecturedHint` stays off.
+
 ## What's needed next
 
-1. **Work out and defend an actual NNUE full-scale training recipe
-   before any cloud spend happens.** The reviewer follow-up above proved
-   data volume is the real, load-bearing lever (not the 8-bucket format),
-   but also that naively pointing the existing 8-epoch recipe at more
-   shards is not a validated production recipe — the diminishing-returns
-   trend suggests it likely falls well short of the shipped default at
-   full scale. Specifically:
-   - Get one more free local data point (e.g. all 12 original shards,
-     108M positions) before touching cloud, and see whether the
-     diminishing-returns slope holds, worsens, or improves.
-   - Work out the right epoch/step count for 178M-scale data from
-     validation-loss convergence, not a copied constant — the same
-     failure mode `docs/full-scale-bug-audit-2026-08-21.md` (F-01)
-     already documented for a different pipeline likely applies here.
-   - If the original shipped default's own training recipe (epoch count,
-     LR schedule, exact corpus) is discoverable, use it as the reference
-     bar instead of re-deriving one from scratch.
-   - Only then decide on cloud spend, with a stated recipe and expected
-     outcome — not "more data than before." Any resulting net still needs
-     a fresh SPRT gate before touching the default evaluation.
-   Full context, exact numbers, and reproduction scripts:
-   `docs/nnue-v4-retrain-data-scaling-finding.md`.
+1. **Local 108M recipe run + SPRT (reviewer hardware, not arena).**
+   Round 13 worked out and defended the production recipe
+   (`docs/nnue-v4-training-recipe.md`): 15-epoch *cap*, early-stop
+   patience 3 on val-MAE, export the best checkpoint not the last, batch
+   65536, Adam 1e-3 with the existing 60/80 step-decay. Cloud 178M is
+   **NO-GO** until this 108M SPRT exists. Arena cannot run it — the 12
+   original shards are not in git. Wrapper:
+   `scripts/nnue-pipeline/train_recipe.sh`. Decision tree after the SPRT
+   is in the recipe doc (still >100 Elo behind → don't spend cloud on
+   1.65× unique data; within ~50 Elo or better → A100 178M with the same
+   recipe is the justified next spend). Any resulting net still needs a
+   fresh SPRT before touching the default evaluation.
+   The three diagnostic SPRTs and the last-vs-best export bug they
+   exposed: `docs/nnue-v4-retrain-data-scaling-finding.md`.
 2. **A retrain decision** for round 9's Unarchitectured v1 findings (GAB
    capacity, rating conditioning, int8 weight clipping), if the oracle
    checkpoint becomes available — see item 3 below, this is now gated on
@@ -153,6 +154,8 @@ changes.
 - **Round 12**: see "Current status" above.
 - **Reviewer follow-up** (real hardware, not arena, since round 12): see
   "Current status" above and `docs/nnue-v4-retrain-data-scaling-finding.md`.
+- **Round 13**: NNUE training recipe defended; trainer exports best
+  val-MAE and early-stops. Cloud 178M NO-GO pending local 108M SPRT.
 
 ## Correctness gates that must keep passing
 
@@ -166,7 +169,7 @@ for speed without re-validating against that same Python reference.
 
 ## Pre-flight checklist
 
-Established over rounds 1-12, still the standard before reporting a round
+Established over rounds 1-13, still the standard before reporting a round
 done:
 
 - [ ] Diff against `main`, not your own branch's accumulated history.
@@ -215,3 +218,7 @@ done:
   the specific recipe-validation ask above. `scripts/nnue-pipeline/
   local_regen.sh` and `scripts/research/wsl_sprt_nnue_{v4,real9m,real27m}.sh`
   reproduce it exactly.
+- `docs/nnue-v4-training-recipe.md` — round 13 answer: epoch/step count,
+  shipped-launcher recipe, 108M gap, go/no-go. Trainer:
+  `tools/train_nnue.py` + `tools/nnue_train_control.py`. Wrapper:
+  `scripts/nnue-pipeline/train_recipe.sh`.

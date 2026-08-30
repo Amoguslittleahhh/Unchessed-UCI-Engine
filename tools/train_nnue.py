@@ -76,18 +76,28 @@ non-bucketed output head; both remain loadable by the Rust runtime.)
 Usage: train_nnue.py selfcheck
        train_nnue.py <out.bin> <epochs> <shard1.bin> [shard2.bin ...]
 
+`<epochs>` is a safety cap, not a "must complete" count. The trainer
+exports the **best-val-MAE checkpoint**, not the last epoch, and stops
+early when val-MAE has not improved by EARLY_STOP_MIN_DELTA cp for
+EARLY_STOP_PATIENCE epochs (defaults 0.1 / 3; patience 0 disables
+early-stop but still exports best). See docs/nnue-v4-training-recipe.md.
+
 Device: auto-detects CUDA; override with DEVICE=cpu|cuda|cuda:0 env var.
-Batch size: override with BATCH_SIZE env var (default 16384; a GPU can
-usually take this much higher, e.g. 65536+, for better throughput).
+Batch size: override with BATCH_SIZE env var (default 16384; production
+CPU recipe uses 65536, A100 recipe uses 131072).
 """
 import os
 import struct
 import sys
 import time
+from pathlib import Path
 
 import numpy as np
 import torch
 import torch.nn as nn
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from nnue_train_control import EarlyStop, lr_at_epoch, recipe_from_env
 
 DEVICE = torch.device(
     os.environ.get("DEVICE") or ("cuda" if torch.cuda.is_available() else "cpu")
@@ -425,10 +435,21 @@ def train(shards, out_path, epochs):
 
     model = Nnue().to(DEVICE)
     opt = torch.optim.Adam(model.parameters(), lr=1e-3)
-    drop1, drop2 = int(epochs * 0.6), int(epochs * 0.8)
+    patience, min_delta = recipe_from_env()
+    stopper = EarlyStop(patience, min_delta)
+    n_train = len(train_idx)
+    print(
+        f"recipe: max_epochs={epochs} early_stop_patience={patience} "
+        f"min_delta={min_delta}cp batch={BATCH_SIZE} device={DEVICE} "
+        f"n_train={n_train}",
+        flush=True,
+    )
 
+    best_state = None
+    stopped_early = False
+    last_epoch = 0
     for ep in range(epochs):
-        lr = 1e-3 * 0.3 ** ((ep >= drop1) + (ep >= drop2))
+        lr = lr_at_epoch(ep, epochs)
         for g in opt.param_groups:
             g["lr"] = lr
         if gpu_resident:
@@ -452,17 +473,49 @@ def train(shards, out_path, epochs):
         else:
             val_iter = batches(data, val_idx, BATCH_SIZE)
         val_loss, val_mae = evaluate_iter(model, val_iter)
+        last_epoch = ep + 1
+        samples_seen = last_epoch * n_train
+        is_best, should_stop = stopper.update(val_mae)
+        mark = " *best*" if is_best else f" (no-improve {stopper.bad}/{patience or 'off'})"
         print(
-            f"epoch {ep + 1}/{epochs}: lr {lr:.1e} "
+            f"epoch {last_epoch}/{epochs}: lr {lr:.1e} "
             f"train-loss {running / max(steps, 1):.6f} "
             f"val-loss {val_loss:.6f} val-mae {val_mae:.1f}cp "
-            f"({len(train_idx) / max(t_train, 1e-9):.0f} samples/s, "
-            f"{t_train:.0f}s)",
+            f"samples-seen {samples_seen} "
+            f"({n_train / max(t_train, 1e-9):.0f} samples/s, "
+            f"{t_train:.0f}s){mark}",
             flush=True,
         )
+        if is_best:
+            best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
+        if should_stop:
+            stopped_early = True
+            print(
+                f"early-stop at epoch {last_epoch}: no val-mae improvement "
+                f">= {min_delta}cp for {patience} epochs "
+                f"(best epoch {stopper.best_epoch} at {stopper.best:.1f}cp)",
+                flush=True,
+            )
+            break
 
+    if best_state is None:
+        raise SystemExit("ERROR: training produced no checkpoint")
+    model.load_state_dict(best_state)
     export_net(model, out_path)
-    print(f"wrote {out_path} ({os.path.getsize(out_path)} bytes)", flush=True)
+    print(
+        f"wrote {out_path} ({os.path.getsize(out_path)} bytes) "
+        f"best-epoch {stopper.best_epoch}/{last_epoch} "
+        f"best-mae {stopper.best:.1f}cp stopped-early={stopped_early}",
+        flush=True,
+    )
+    return {
+        "best_epoch": stopper.best_epoch,
+        "best_val_mae": stopper.best,
+        "last_epoch": last_epoch,
+        "stopped_early": stopped_early,
+        "n_train": n_train,
+        "n_val": n_val,
+    }
 
 
 def synth_records(n, rng):

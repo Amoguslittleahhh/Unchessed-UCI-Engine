@@ -220,7 +220,11 @@ LOG=~/unchessed-ai/results/nnue_training/train_v3.log
 # 80GB VRAM has ample room and larger batches improve GPU utilization for
 # this small a model; re-tune down if it OOMs on VRAM (unlikely at this
 # model size, but the box hasn't been measured yet).
+# 15 is a cap. Same early-stop / best-ckpt recipe as the local launcher
+# (docs/nnue-v4-training-recipe.md). Cloud 178M is NO-GO until the local
+# 108M SPRT exists; this line is the recipe to use *if* that SPRT says go.
 env DEVICE=cuda BATCH_SIZE=131072 \
+  EARLY_STOP_PATIENCE=3 EARLY_STOP_MIN_DELTA=0.1 \
   "$VENV/bin/python3" tools/train_nnue.py "$OUT" 15 $SHARDS \
   > "$LOG" 2>&1
 TRAIN_EXIT=$?

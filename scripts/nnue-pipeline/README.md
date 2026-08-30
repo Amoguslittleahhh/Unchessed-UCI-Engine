@@ -1,5 +1,9 @@
 # NNUE data pipeline scripts
 
+- `train_recipe.sh` — the defended v4 training recipe (15-epoch cap,
+  early-stop 3, best-checkpoint, batch 65536). Wrap `train_nnue.py` for
+  the local 108M point; see `docs/nnue-v4-training-recipe.md`. Does not
+  spend cloud money.
 - `worker_bench.sh` — benchmarks `unchessed-datagen nnue` worker-count
   throughput (used to pick 28 workers / 2 per core over both 14 and 56 on a
   14-core WSL box; see project memory for the numbers).

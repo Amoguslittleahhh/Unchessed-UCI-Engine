@@ -124,7 +124,12 @@ cd /home/amogusontheterminal/unchessed-kingsafety-src
 OUT=/home/amogusontheterminal/unchessed-ai/results/nnue_training/unchessed-nnue-v2.bin
 LOG=/home/amogusontheterminal/unchessed-ai/results/nnue_training/train_v2.log
 
+# 15 is a cap. train_nnue.py exports the best-val-MAE checkpoint and
+# early-stops after 3 epochs without a 0.1cp improvement (see
+# docs/nnue-v4-training-recipe.md). Do not raise the cap to "train more"
+# — the diagnostic runs overfit inside 8.
 env OMP_NUM_THREADS=14 MKL_NUM_THREADS=14 DEVICE=cpu BATCH_SIZE=65536 \
+  EARLY_STOP_PATIENCE=3 EARLY_STOP_MIN_DELTA=0.1 \
   ~/unchessed-ai/data/maia-venv/bin/python3 tools/train_nnue.py "$OUT" 15 $SHARDS \
   > "$LOG" 2>&1
 TRAIN_EXIT=$?
