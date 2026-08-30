@@ -35,16 +35,44 @@ and nothing has been SPRT'd. This round is better tooling + a verified
 new file format, zero shipping change — the v4 format isn't used by
 anything until a v4 net actually exists and passes SPRT.
 
+**Reviewer follow-up (real hardware, not arena, since round 12)**: did
+that retrain-and-SPRT step at three data scales (940k / 9M / 27M real
+positions) to see what round 12 left untested. All three lost badly to
+the shipped default (−796.5 / −383.5 / −307.1 Elo), but a controlled
+ablation proves it's **not the 8-bucket format's fault** — a single-head
+net trained on the identical tiny dataset performed statistically the
+same. Root cause: the committed git corpus is 0.5% the size of the real
+178M-position self-play corpus. The Elo gap shrinks with more data, but
+the shrink rate is decaying (diminishing returns), not linear — a rough
+extrapolation lands the full 178M corpus around a 150-250 Elo gap
+*remaining*, not parity, if trained with the same cheap 8-epoch recipe
+used for these diagnostics. Full writeup, exact numbers, and the specific
+ask: `docs/nnue-v4-retrain-data-scaling-finding.md`.
+
 ## What's needed next
 
-1. **An NNUE retrain**, now unblocked on both axes that were stopping
-   it: the quiet-filter base-seconds gate (fixed) and the 8-bucket head
-   (implemented). This is real compute but far cheaper than the
-   Unarchitectured v1 retrain items — no new cloud infrastructure needed,
-   just the existing 108M-position corpus. Project owner's call on
-   whether/when to spend the compute; if it happens, it needs a fresh
-   SPRT gate before touching the default evaluation, same rule as
-   everything else.
+1. **Work out and defend an actual NNUE full-scale training recipe
+   before any cloud spend happens.** The reviewer follow-up above proved
+   data volume is the real, load-bearing lever (not the 8-bucket format),
+   but also that naively pointing the existing 8-epoch recipe at more
+   shards is not a validated production recipe — the diminishing-returns
+   trend suggests it likely falls well short of the shipped default at
+   full scale. Specifically:
+   - Get one more free local data point (e.g. all 12 original shards,
+     108M positions) before touching cloud, and see whether the
+     diminishing-returns slope holds, worsens, or improves.
+   - Work out the right epoch/step count for 178M-scale data from
+     validation-loss convergence, not a copied constant — the same
+     failure mode `docs/full-scale-bug-audit-2026-08-21.md` (F-01)
+     already documented for a different pipeline likely applies here.
+   - If the original shipped default's own training recipe (epoch count,
+     LR schedule, exact corpus) is discoverable, use it as the reference
+     bar instead of re-deriving one from scratch.
+   - Only then decide on cloud spend, with a stated recipe and expected
+     outcome — not "more data than before." Any resulting net still needs
+     a fresh SPRT gate before touching the default evaluation.
+   Full context, exact numbers, and reproduction scripts:
+   `docs/nnue-v4-retrain-data-scaling-finding.md`.
 2. **A retrain decision** for round 9's Unarchitectured v1 findings (GAB
    capacity, rating conditioning, int8 weight clipping), if the oracle
    checkpoint becomes available — see item 3 below, this is now gated on
@@ -123,6 +151,8 @@ changes.
   `UnarchitecturedHintExit`. Real speedup reproduced (1.12x full-exit
   forward pass on this host).
 - **Round 12**: see "Current status" above.
+- **Reviewer follow-up** (real hardware, not arena, since round 12): see
+  "Current status" above and `docs/nnue-v4-retrain-data-scaling-finding.md`.
 
 ## Correctness gates that must keep passing
 
@@ -180,3 +210,8 @@ done:
   `docs/rating-conditioning-finding.md` — the two round-12 research
   answers (DiffusionBlocks: defer/drop; oracle rating conditioning:
   narrowed, blocked on the oracle checkpoint).
+- `docs/nnue-v4-retrain-data-scaling-finding.md` — the reviewer follow-up:
+  three real SPRT'd data points, the bucket-vs-dataset-size ablation, and
+  the specific recipe-validation ask above. `scripts/nnue-pipeline/
+  local_regen.sh` and `scripts/research/wsl_sprt_nnue_{v4,real9m,real27m}.sh`
+  reproduce it exactly.
