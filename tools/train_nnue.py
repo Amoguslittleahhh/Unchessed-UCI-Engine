@@ -98,11 +98,14 @@ import torch.nn as nn
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from nnue_train_control import EarlyStop, lr_at_epoch, recipe_from_env
+from nnue_cloud_runtime import apply_torch_speed, cloud_flags, preflight_errors
 
 DEVICE = torch.device(
     os.environ.get("DEVICE") or ("cuda" if torch.cuda.is_available() else "cpu")
 )
 BATCH_SIZE = int(os.environ.get("BATCH_SIZE", 16384))
+_CLOUD = cloud_flags()
+_SPEED_NOTES = apply_torch_speed(torch, DEVICE)
 
 REC = np.dtype(
     [
@@ -398,6 +401,10 @@ def train(shards, out_path, epochs):
                   f"trailing bytes ignored", flush=True)
         counts.append(size // REC.itemsize)
     n = sum(counts)
+    go_required = os.environ.get("GO_CLOUD") is not None or os.environ.get("REQUIRE_CLOUD_GO") == "1"
+    blockers = preflight_errors(n, DEVICE.type, go_required=go_required)
+    if blockers:
+        raise SystemExit("ERROR: cloud/train preflight failed:\n  - " + "\n  - ".join(blockers))
     if n < 1000:
         raise SystemExit(f"ERROR: only {n} records total — refusing to train")
     data = np.empty(n, dtype=REC)
@@ -434,7 +441,29 @@ def train(shards, out_path, epochs):
         train_idx, val_idx = train_idx_np, val_idx_np
 
     model = Nnue().to(DEVICE)
-    opt = torch.optim.Adam(model.parameters(), lr=1e-3)
+    if _CLOUD["torch_compile"] and DEVICE.type == "cuda":
+        model = torch.compile(model)
+        print("torch.compile enabled (opt-in)", flush=True)
+    adam_kwargs = {"lr": 1e-3}
+    if _CLOUD["fused_adam"] and DEVICE.type == "cuda":
+        try:
+            opt = torch.optim.Adam(model.parameters(), fused=True, **adam_kwargs)
+            print("Adam fused=True", flush=True)
+        except TypeError:
+            opt = torch.optim.Adam(model.parameters(), **adam_kwargs)
+    else:
+        opt = torch.optim.Adam(model.parameters(), **adam_kwargs)
+    use_amp = _CLOUD["use_amp"] and DEVICE.type == "cuda"
+    amp_dtype = torch.bfloat16 if use_amp else torch.float32
+    if use_amp:
+        print("AMP autocast bfloat16", flush=True)
+    if _SPEED_NOTES:
+        print("speed: " + ", ".join(_SPEED_NOTES), flush=True)
+    print(
+        f"persona_active={_CLOUD['persona_active']} unarch_hint={_CLOUD['unarch_hint']} "
+        f"(Adaptive stays on; hint stays off)",
+        flush=True,
+    )
     patience, min_delta = recipe_from_env()
     stopper = EarlyStop(patience, min_delta)
     n_train = len(train_idx)
@@ -448,6 +477,9 @@ def train(shards, out_path, epochs):
     best_state = None
     stopped_early = False
     last_epoch = 0
+    metrics_path = os.environ.get("METRICS_JSONL", "")
+    if metrics_path:
+        open(metrics_path, "w").close()
     for ep in range(epochs):
         lr = lr_at_epoch(ep, epochs)
         for g in opt.param_groups:
@@ -461,8 +493,12 @@ def train(shards, out_path, epochs):
         t0 = time.time()
         running = steps = 0
         for si, so, sv, ni, no, nv, target, _, bkt in train_iter:
-            opt.zero_grad()
-            loss = wdl_loss(model(si, so, sv, ni, no, nv, bkt), target)
+            opt.zero_grad(set_to_none=True)
+            if use_amp:
+                with torch.autocast(device_type="cuda", dtype=amp_dtype):
+                    loss = wdl_loss(model(si, so, sv, ni, no, nv, bkt), target)
+            else:
+                loss = wdl_loss(model(si, so, sv, ni, no, nv, bkt), target)
             loss.backward()
             opt.step()
             running += loss.item()
@@ -486,6 +522,19 @@ def train(shards, out_path, epochs):
             f"{t_train:.0f}s){mark}",
             flush=True,
         )
+        if metrics_path and _CLOUD["jsonl_metrics"]:
+            import json as _json
+            with open(metrics_path, "a") as mf:
+                mf.write(_json.dumps({
+                    "epoch": last_epoch,
+                    "lr": lr,
+                    "train_loss": running / max(steps, 1),
+                    "val_loss": val_loss,
+                    "val_mae_cp": val_mae,
+                    "samples_seen": samples_seen,
+                    "is_best": is_best,
+                    "persona_active": True,
+                }) + "\n")
         if is_best:
             best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
         if should_stop:

@@ -311,6 +311,10 @@ switches, book/troll choices).
 
 ## Docs index
 
+- **IEEE-style report (cloud speed/quality, persona-on):** `ieee-cloud-nnue-speed-quality.pdf` (LaTeX source `ieee-cloud-nnue-speed-quality.tex`).
+- **IEEE-style report (val-MAE floors vs persona):** `ieee-low-cp-val-mae-and-persona.md`
+  (simulation + committed SPRTs; sub-20 cp is NO-GO on current HCE labels;
+  Adaptive stays on).
 - **Findings (measured, honest):** `rating-conditioning-finding.md`,
   `gab-capacity-finding.md`,
   `unarchitectured-v1-why-the-hint-costs-elo.md`,

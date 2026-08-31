@@ -1,5 +1,8 @@
 # NNUE data pipeline scripts
 
+- `cloud_train_v4.sh` — fail-closed A100 launcher (GO_CLOUD token,
+  TF32/bf16/fused Adam, persona-on, hint-off). See
+  `docs/ieee-cloud-nnue-speed-quality.pdf`.
 - `train_recipe.sh` — the defended v4 training recipe (15-epoch cap,
   early-stop 3, best-checkpoint, batch 65536). Wrap `train_nnue.py` for
   the local 108M point; see `docs/nnue-v4-training-recipe.md`. Does not

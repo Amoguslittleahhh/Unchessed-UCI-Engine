@@ -1,0 +1,236 @@
+{
+  "seed": 20260831,
+  "n_per_recipe": 80000,
+  "repo_diagnostics": [
+    {
+      "unique": 959102,
+      "epochs": 20,
+      "final_mae": 83.6,
+      "best_mae": 57.4,
+      "sprt_elo": -796.5
+    },
+    {
+      "unique": 9000000,
+      "epochs": 8,
+      "final_mae": 59.3,
+      "best_mae": 55.3,
+      "sprt_elo": -383.5
+    },
+    {
+      "unique": 27000000,
+      "epochs": 8,
+      "final_mae": 54.3,
+      "best_mae": 51.1,
+      "sprt_elo": -307.1
+    }
+  ],
+  "v3_best_mae_cp": 53.6,
+  "shipped_nnue_sprt_elo_vs_hce": 107.1,
+  "recipes": [
+    {
+      "name": "baseline_hce_label_noise_70",
+      "n": 80000,
+      "noise_sigma_cp": 70,
+      "clip_abs": null,
+      "quiet_max_true": null,
+      "wdl_blend": 0.7,
+      "gaussian_bayes_mae_cp": 55.85,
+      "oracle_true_vs_noisy_label_mae_cp": 55.91,
+      "constant_predictor_mae_cp": 151.47,
+      "affine_true_fit_mae_cp": 55.91,
+      "perfect_wdl_fit_mae_vs_cp_label": 21.97,
+      "perfect_wdl_p25_loss": 0.0,
+      "hits_sub_20": false,
+      "hits_sub_10": false,
+      "wdl_fit_hits_sub_20": false
+    },
+    {
+      "name": "quiet_filter_sigma35",
+      "n": 79245,
+      "noise_sigma_cp": 35,
+      "clip_abs": null,
+      "quiet_max_true": 800,
+      "wdl_blend": 0.7,
+      "gaussian_bayes_mae_cp": 27.93,
+      "oracle_true_vs_noisy_label_mae_cp": 27.85,
+      "constant_predictor_mae_cp": 133.22,
+      "affine_true_fit_mae_cp": 27.85,
+      "perfect_wdl_fit_mae_vs_cp_label": 15.49,
+      "perfect_wdl_p25_loss": 0.0,
+      "hits_sub_20": false,
+      "hits_sub_10": false,
+      "wdl_fit_hits_sub_20": true
+    },
+    {
+      "name": "deeper_teacher_sigma20",
+      "n": 79205,
+      "noise_sigma_cp": 20,
+      "clip_abs": null,
+      "quiet_max_true": 800,
+      "wdl_blend": 0.7,
+      "gaussian_bayes_mae_cp": 15.96,
+      "oracle_true_vs_noisy_label_mae_cp": 15.9,
+      "constant_predictor_mae_cp": 129.8,
+      "affine_true_fit_mae_cp": 15.9,
+      "perfect_wdl_fit_mae_vs_cp_label": 13.43,
+      "perfect_wdl_p25_loss": 0.0,
+      "hits_sub_20": true,
+      "hits_sub_10": false,
+      "wdl_fit_hits_sub_20": true
+    },
+    {
+      "name": "stockfish_teacher_sigma12",
+      "n": 77517,
+      "noise_sigma_cp": 12,
+      "clip_abs": null,
+      "quiet_max_true": 600,
+      "wdl_blend": 0.7,
+      "gaussian_bayes_mae_cp": 9.57,
+      "oracle_true_vs_noisy_label_mae_cp": 9.61,
+      "constant_predictor_mae_cp": 116.69,
+      "affine_true_fit_mae_cp": 9.61,
+      "perfect_wdl_fit_mae_vs_cp_label": 11.7,
+      "perfect_wdl_p25_loss": 0.0,
+      "hits_sub_20": true,
+      "hits_sub_10": true,
+      "wdl_fit_hits_sub_20": true
+    },
+    {
+      "name": "clip_600_sigma20",
+      "n": 79147,
+      "noise_sigma_cp": 20,
+      "clip_abs": 600,
+      "quiet_max_true": 800,
+      "wdl_blend": 0.7,
+      "gaussian_bayes_mae_cp": 15.96,
+      "oracle_true_vs_noisy_label_mae_cp": 15.6,
+      "constant_predictor_mae_cp": 127.99,
+      "affine_true_fit_mae_cp": 15.62,
+      "perfect_wdl_fit_mae_vs_cp_label": 13.33,
+      "perfect_wdl_p25_loss": 0.0,
+      "hits_sub_20": true,
+      "hits_sub_10": false,
+      "wdl_fit_hits_sub_20": true
+    },
+    {
+      "name": "clip_400_sigma12_quiet",
+      "n": 73273,
+      "noise_sigma_cp": 12,
+      "clip_abs": 400,
+      "quiet_max_true": 400,
+      "wdl_blend": 0.7,
+      "gaussian_bayes_mae_cp": 9.57,
+      "oracle_true_vs_noisy_label_mae_cp": 9.53,
+      "constant_predictor_mae_cp": 96.55,
+      "affine_true_fit_mae_cp": 9.53,
+      "perfect_wdl_fit_mae_vs_cp_label": 9.92,
+      "perfect_wdl_p25_loss": 0.0,
+      "hits_sub_20": true,
+      "hits_sub_10": true,
+      "wdl_fit_hits_sub_20": true
+    },
+    {
+      "name": "pathological_overfit_sigma3",
+      "n": 65228,
+      "noise_sigma_cp": 3,
+      "clip_abs": 200,
+      "quiet_max_true": 200,
+      "wdl_blend": 0.7,
+      "gaussian_bayes_mae_cp": 2.39,
+      "oracle_true_vs_noisy_label_mae_cp": 2.4,
+      "constant_predictor_mae_cp": 72.04,
+      "affine_true_fit_mae_cp": 2.4,
+      "perfect_wdl_fit_mae_vs_cp_label": 7.19,
+      "perfect_wdl_p25_loss": 0.0,
+      "hits_sub_20": true,
+      "hits_sub_10": true,
+      "wdl_fit_hits_sub_20": true
+    }
+  ],
+  "persona": {
+    "note": "Persona reads search eval, not trainer val-MAE. Lower eval MAE reduces accidental DEFEND/PUNISH/CLINCH flips; MATCH stays the default.",
+    "thresholds": {
+      "defend_enter": -180,
+      "defend_exit": -80,
+      "punish_eval": 60,
+      "punish_hold": 200,
+      "clinch_enter_abs": 60,
+      "clinch_hold_abs": 100,
+      "blunder_cp": 180
+    },
+    "by_mae": [
+      {
+        "eval_mae_cp": 5,
+        "mode_flip_rate": 0.0238,
+        "match_retention": 0.9716,
+        "n": 20000
+      },
+      {
+        "eval_mae_cp": 10,
+        "mode_flip_rate": 0.0454,
+        "match_retention": 0.9452,
+        "n": 20000
+      },
+      {
+        "eval_mae_cp": 20,
+        "mode_flip_rate": 0.0916,
+        "match_retention": 0.8883,
+        "n": 20000
+      },
+      {
+        "eval_mae_cp": 50,
+        "mode_flip_rate": 0.2158,
+        "match_retention": 0.7393,
+        "n": 20000
+      },
+      {
+        "eval_mae_cp": 80,
+        "mode_flip_rate": 0.3051,
+        "match_retention": 0.6277,
+        "n": 20000
+      },
+      {
+        "eval_mae_cp": 150,
+        "mode_flip_rate": 0.4424,
+        "match_retention": 0.473,
+        "n": 20000
+      }
+    ],
+    "adaptive_default": true,
+    "unarchitectured_hint_default": false
+  },
+  "scaling": {
+    "fit": "best_mae = a + b*ln(unique)",
+    "a": 81.924,
+    "b": -1.748,
+    "forecast_best_mae": {
+      "108M (local shards)": 49.59,
+      "178M (cloud corpus)": 48.72,
+      "500M": 46.91,
+      "2e9 (nnue-pytorch superbatch scale)": 44.49
+    },
+    "unique_for_20cp": 2432486983662185,
+    "unique_for_10cp": 742509177688678272,
+    "warning": "Diminishing returns already measured (9M\u219227M recovered only 4.2cp best-MAE). Linear-in-log extrapolation is optimistic; do not budget cloud spend on hitting 10\u201320cp by data volume alone."
+  },
+  "objective_mismatch": {
+    "finding": "A net that drives p=2.5 WDL loss to ~0 still reports large val-MAE in centipawns because target = 0.7*sigmoid(cp/400)+0.3*wdl is not invertible to the search score. Direct L1-on-cp is the objective that actually minimises val-MAE; it is not what tools/train_nnue.py trains.",
+    "trainer_loss": "|sigmoid(raw)-target|^2.5",
+    "reported_metric": "MAE(raw*400, search_score_cp)",
+    "implication_for_sub_20": "Switching the *reported* metric without changing labels cannot produce a 10\u201320cp net that is also strong; it can only make the number look smaller (clipping) or larger (WDL mismatch)."
+  },
+  "go_nogo": {
+    "sub_20_cp_with_current_hce_5000_node_labels": "NO-GO",
+    "reason": "Bayes floor of ~56cp (sigma=70) exceeds the target; repo best measured val-MAE is 51.1cp at 27M positions.",
+    "path_that_can_hit_20cp": [
+      "Regenerate labels with a much stronger teacher (Stockfish/self-distill) so label noise sigma \u2272 20cp on quiet positions.",
+      "Keep M1/M2 quiet filters (arXiv:2412.17948; already in unchessed-datagen).",
+      "Train L1 or Huber on cp (or report WDL loss as the primary metric).",
+      "Export best checkpoint (already in train_nnue.py after round 13).",
+      "Do not disable Adaptive; persona is search-side and stays on."
+    ],
+    "persona_remains_active": true,
+    "unarchitectured_hint_stays_off": true,
+    "cloud_178M_same_recipe": "still NO-GO per docs/nnue-v4-training-recipe.md"
+  }
+}

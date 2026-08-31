@@ -210,10 +210,10 @@ if [ "$TOTAL_RECORDS" -gt "$SAFE_MAX_RECORDS" ]; then
   exit 1
 fi
 
-log "Starting NNUE v3 retrain (HalfKA features, GPU-resident) on combined dataset ..."
+log "Starting NNUE v4 retrain (HalfKAv2_hm, GPU-resident, persona-on) on combined dataset ..."
 cd "$TRAIN_SRC"
-OUT=~/unchessed-ai/results/nnue_training/unchessed-nnue-v3.bin
-LOG=~/unchessed-ai/results/nnue_training/train_v3.log
+OUT=~/unchessed-ai/results/nnue_training/unchessed-nnue-v4.bin
+LOG=~/unchessed-ai/results/nnue_training/train_v4.log
 
 # DEVICE=cuda triggers train_nnue.py's GPU-resident path (whole dataset
 # shipped to VRAM once). BATCH_SIZE raised well above the CPU-tuned 65536 --
@@ -225,6 +225,10 @@ LOG=~/unchessed-ai/results/nnue_training/train_v3.log
 # 108M SPRT exists; this line is the recipe to use *if* that SPRT says go.
 env DEVICE=cuda BATCH_SIZE=131072 \
   EARLY_STOP_PATIENCE=3 EARLY_STOP_MIN_DELTA=0.1 \
+  ALLOW_TF32=1 USE_AMP=1 FUSED_ADAM=1 CUDNN_BENCHMARK=1 TORCH_COMPILE=0 \
+  PERSONA_ACTIVE=1 UNARCH_HINT=0 REQUIRE_CLOUD_GO=1 \
+  GO_CLOUD="${GO_CLOUD:-}" \
+  METRICS_JSONL="${OUT}.metrics.jsonl" \
   "$VENV/bin/python3" tools/train_nnue.py "$OUT" 15 $SHARDS \
   > "$LOG" 2>&1
 TRAIN_EXIT=$?
