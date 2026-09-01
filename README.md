@@ -203,6 +203,8 @@ before the hint is trusted.
 | `PolicyFile` | auto | legacy per-rating policy net path; weights not committed — without the file MATCH mode uses the built-in heuristic priors and says so in the log |
 | `EvalFile` | auto | path to the UNCHNNUE evaluator; default `unchessed-nnue.bin` next to the exe |
 | `UCI_Opponent` | — | standard GUI-supplied opponent info; seeds the model for engines |
+| `PersonaSmooth` | false | EMA+dwell persona filter; **off until Adaptive-on SPRT** |
+| `EngineDetectV2` | false | high-level Elo-detector retune; **off until Adaptive-on SPRT** |
 | `UnarchitecturedHint` | false | experimental root-ordering candidate; stays off until the retrain + SPRT gates above pass |
 | `UnarchitecturedFile` | — | explicit `UNARCHV1` model package (default: auto-located `artifacts/unarchitectured-v1-final.unarchv1`) |
 | `UnarchitecturedMinTime` | 30000 | minimum remaining clock (ms) before the candidate may submit and wait up to 100 ms for a shallow exact-position hint |
@@ -313,6 +315,7 @@ switches, book/troll choices).
 
 <<<<<<< HEAD
 =======
+- **Round 16 UCI gates:** `round-16-uci-gates.md` (`PersonaSmooth` / `EngineDetectV2` default **false**; UnarchitecturedHint not done).
 - **Live Elo detector (high-level misfires):** `elo-detector-high-level-integration.md` (Maia≠FULL, ceiling/clock tells retuned).
 - **Persona stability / SPRT correlation:** `persona-stability-and-sprt-correlation.md` (EMA+dwell; 57% fewer mode flips in sim).
 >>>>>>> ef4f210 (Persona EMA/dwell, Elo-detector high-level gates, fail-closed A100 v4 path)
