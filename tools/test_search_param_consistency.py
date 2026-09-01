@@ -48,7 +48,7 @@ class TestRealRepo:
         assert out.returncode == 0, out.stdout + out.stderr
         data = json.loads(out.stdout)
         assert data["failures"] == []
-        assert data["checked"] == 20
+        assert data["checked"] == 24
         # spot-check three of the pinned values
         assert data["params"]["rfpmargin"]["struct_default"] == 90
         assert data["params"]["futilitymargin"]["clamp"] == [30, 400]

@@ -438,19 +438,26 @@ impl PersonaState {
             return mode;
         }
         if !self.ema_init {
+            // Seed the filter only; a first ply is not a persona vote.
+            // Otherwise a single CLINCH-eligible observation (or a −400
+            // collapse on ply 1) would skip the dwell / mix seed with vote.
             self.eval_ema = raw_eval_cp as f64;
             self.ema_init = true;
-        } else {
-            self.eval_ema =
-                Self::ALPHA * raw_eval_cp as f64 + (1.0 - Self::ALPHA) * self.eval_ema;
+            return self.mode;
         }
+        self.eval_ema =
+            Self::ALPHA * raw_eval_cp as f64 + (1.0 - Self::ALPHA) * self.eval_ema;
         let smoothed = self.eval_ema.round() as i32;
 
         // Low confidence → require a clearer eval before leaving MATCH.
         // `confidence()` is a ± band; ~150 after a few moves, ~400 early.
         let pad = (model.confidence() / 20).clamp(0, 40);
 
-        let emergency_defend = smoothed < Self::DEFEND_EMERGENCY;
+        // Emergencies skip dwell. Collapse uses *raw* eval so a one-ply
+        // −400 is DEFEND even though the EMA has not caught up; a −190
+        // blip is not an emergency (threshold is −220) and stays MATCH.
+        let emergency_defend =
+            raw_eval_cp < Self::DEFEND_EMERGENCY || smoothed < Self::DEFEND_EMERGENCY;
         let emergency_punish = model.last_was_blunder() && smoothed > 60;
         let emergency_full = model.engine_suspect() && !cfg.limit_strength && cfg.adaptive;
 
@@ -480,12 +487,13 @@ impl PersonaState {
             self.candidate = proposed;
             return self.mode;
         }
-        if proposed == self.candidate {
-            self.dwell = self.dwell.saturating_add(1);
-        } else {
+        // Introducing a candidate does not count as an agreeing ply.
+        if proposed != self.candidate {
             self.candidate = proposed;
-            self.dwell = 1;
+            self.dwell = 0;
+            return self.mode;
         }
+        self.dwell = self.dwell.saturating_add(1);
         if self.dwell >= Self::DWELL {
             self.mode = proposed;
             self.dwell = 0;
