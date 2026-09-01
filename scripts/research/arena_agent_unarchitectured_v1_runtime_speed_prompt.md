@@ -9,85 +9,79 @@ work is not an invitation to revert to or resume development on any of
 them. Any follow-on architecture or training work belongs on top of
 Unarchitectured v1, not as a parallel track exploring an earlier one.
 
-## Current status (round 13)
+## Current status (round 15 rejected; round 13 stands as the last merged NNUE work)
 
-Full sweep of round 11's "other open items": NNUE quiet-filter blocker
-fixed and measured, NNUE 8 piece-count output buckets implemented
-end-to-end (runtime + trainer), and both research questions
-(DiffusionBlocks, oracle-side rating conditioning) answered. Reviewed,
-verified, merged.
+**Reviewer follow-up (real hardware, not arena) closed the round-13 ask.**
+Rented a Verda `CPU.32V.128G` box (~$1, deleted right after), trained the
+defended recipe on all 108M real self-play positions, and ran the real
+SPRT: **−155.6 ± 47.7 Elo vs the shipped default** (188 games), best
+val-MAE 47.8cp — the best number in the whole investigation, but round
+13's own pre-committed rule ("still >100 Elo behind → cloud 178M stays
+NO-GO") still applies even at the optimistic end of that interval.
+**Cloud 178M remains NO-GO.** Full trend table, the go/no-go reasoning,
+and what's actually worth trying next (stronger labels, not more of the
+same): `docs/nnue-v4-108m-recipe-result.md`.
 
-**Verified independently:** build clean, `unchessed-core` 110/110
-(matches claimed count, +4 new v4 bucket tests), `train_nnue.py selfcheck`
-ALL PASS (numpy-vs-model max diff 1.49e-08 on this host, same order of
-magnitude as their 2.98e-08 — different seed, same conclusion), `pytest
-tools/` 336/4/352 (the one failure is the already-known Windows-only
-`test_ddp_gloo_two_rank_smoke` gloo gap, confirmed passing on WSL in
-prior rounds — not new). Read the actual `nnue.rs` diff line by line: the
-v4 bucket formula (`(pieces-1)/4` clamped to 7) matches between Rust and
-the Python trainer exactly, v1-v3 files stay bit-identical (bucket
-forced to 0), and the new `UNCHESSED_NNUE_MIN_BASE_SECS` env override
-defaults to the original fail-closed 180s gate — no default behavior
-changed anywhere in this round.
+**Round 15 (`01a0581c` @ `b3e1e03`) is rejected, not merged.** Two
+independent problems, either one disqualifying on its own:
 
-**Honest state, same as they reported**: no NNUE net has been retrained
-and nothing has been SPRT'd. This round is better tooling + a verified
-new file format, zero shipping change — the v4 format isn't used by
-anything until a v4 net actually exists and passes SPRT.
+1. **It does not compile.** `cargo test --workspace --release` fails:
+   `run_go`'s signature in `uci.rs` still declares
+   `persona: Arc<Mutex<Mode>>` while the call sites were changed to pass
+   `Arc<Mutex<PersonaState>>` — an incomplete rename, caught by rustc in
+   under 10 seconds. Both new docs this round hedge with "(need rustc)",
+   which now reads as "this was never actually compiled" rather than a
+   footnote.
+2. **Even fixed, it changes live adapter behavior with no opt-out and no
+   real SPRT.** `decide_mode` was fully replaced by `PersonaState::update`
+   in the UCI worker's `adaptive_now` path — unconditionally, no new UCI
+   option gating it. The only validation is a Python simulation
+   (`tools/persona_stability_sprt.py`, synthetic AR(1) eval traces) that
+   the round's own doc honestly calls "not a cutechess SPRT." That's a
+   real behavior change to what real opponents actually experience,
+   shipped without the one rule this project has enforced since round 0.
+   The `elo_detector.py` misfire-threshold changes in the same commit
+   have the identical problem: real detection-logic changes, simulation-only
+   validation, no opt-out.
 
-**Reviewer follow-up (real hardware, not arena, since round 12)**: did
-that retrain-and-SPRT step at three data scales (940k / 9M / 27M real
-positions) to see what round 12 left untested. All three lost badly to
-the shipped default (−796.5 / −383.5 / −307.1 Elo), but a controlled
-ablation proves it's **not the 8-bucket format's fault** — a single-head
-net trained on the identical tiny dataset performed statistically the
-same. Root cause: the committed git corpus is 0.5% the size of the real
-178M-position self-play corpus. The Elo gap shrinks with more data, but
-the shrink rate is decaying (diminishing returns), not linear — a rough
-extrapolation lands the full 178M corpus around a 150-250 Elo gap
-*remaining*, not parity, if trained with the same cheap 8-epoch recipe
-used for these diagnostics. Full writeup, exact numbers, and the specific
-ask: `docs/nnue-v4-retrain-data-scaling-finding.md`.
-
-**Round 13 (this round):** answered that ask. The shipped launcher recipe
-was recoverable (`full_pipeline.sh`: 15-epoch cap, batch 65536, Adam
-1e-3, 60/80 step-decay). The diagnostic SPRTs exported the *last* epoch
-while val-MAE was climbing — a trainer bug, now fixed (best-checkpoint +
-early-stop patience 3). Cloud 178M is **NO-GO** until a local 108M run
-with this recipe is SPRT'd; arena cannot run 108M (shards not in git).
-Writeup: `docs/nnue-v4-training-recipe.md`. Trainer change only; no
-shipping net, no search integration, `UnarchitecturedHint` stays off.
+Send back for: (a) fix the compile error, (b) gate both behavior changes
+behind a UCI option that defaults to the *old* behavior until a real
+cutechess SPRT (Adaptive=true both sides, same as
+`scripts/sprt-history/sprt_punish_latch.sh`) validates the new one. The
+underlying ideas (EMA/dwell smoothing, the four misfire cases) may well
+be real improvements — the simulation numbers are plausible — but
+"plausible in simulation" is not the bar this project has held
+`aegis_v4_runtime.rs` or the NNUE retrain to, and it shouldn't be lowered
+here just because the change lives in `adapt.rs` instead.
 
 ## What's needed next
 
-1. **Local 108M recipe run + SPRT (reviewer hardware, not arena).**
-   Round 13 worked out and defended the production recipe
-   (`docs/nnue-v4-training-recipe.md`): 15-epoch *cap*, early-stop
-   patience 3 on val-MAE, export the best checkpoint not the last, batch
-   65536, Adam 1e-3 with the existing 60/80 step-decay. Cloud 178M is
-   **NO-GO** until this 108M SPRT exists. Arena cannot run it — the 12
-   original shards are not in git. Wrapper:
-   `scripts/nnue-pipeline/train_recipe.sh`. Decision tree after the SPRT
-   is in the recipe doc (still >100 Elo behind → don't spend cloud on
-   1.65× unique data; within ~50 Elo or better → A100 178M with the same
-   recipe is the justified next spend). Any resulting net still needs a
-   fresh SPRT before touching the default evaluation.
-   The three diagnostic SPRTs and the last-vs-best export bug they
-   exposed: `docs/nnue-v4-retrain-data-scaling-finding.md`.
-2. **A retrain decision** for round 9's Unarchitectured v1 findings (GAB
+1. **NNUE: not more data.** The 108M result plus last round's Bayes-floor
+   analysis (`docs/ieee-low-cp-val-mae-and-persona.md`, itself simulation-only
+   but methodologically sound and independently reproduced) both point the
+   same direction: the current 5000-node HCE labels cap achievable val-MAE
+   around 48-56cp, and this net is already there. Worth exploring:
+   stronger/deeper labels on the *existing* corpus (self-distillation from
+   the shipped net at high node count, or a deeper HCE search), separating
+   label-noise from architecture-capacity before assuming either is the
+   fix. Not cloud spend on more of the same labels.
+2. **Round 15's persona/detector work**: fix the compile break, then
+   re-submit gated behind a UCI option with the old behavior as default,
+   validated by a real SPRT before flipping the default. Do not resubmit
+   simulation-only.
+3. **A retrain decision** for round 9's Unarchitectured v1 findings (GAB
    capacity, rating conditioning, int8 weight clipping), if the oracle
-   checkpoint becomes available — see item 3 below, this is now gated on
-   that.
-3. **Oracle-side rating conditioning**: narrowed, not closed. One
+   checkpoint becomes available — see item 4, this is gated on that.
+4. **Oracle-side rating conditioning**: narrowed, not closed. One
    hypothesis (student never saw rating variation) is ruled out with
    repo evidence; the deciding experiment (200 positions × 7 ratings on
    the oracle checkpoint) needs the oracle checkpoint, which isn't in
    this repo. If it ever becomes available, run it — cheap (CPU-minutes)
    and it decides where the real fix goes (oracle vs. distillation).
-4. **A cleanly isolated `MinTime` retest**, still open from round 7 —
+5. **A cleanly isolated `MinTime` retest**, still open from round 7 —
    must now also state which `HintExit` it used. Optional polish, not a
    blocker.
-5. **`UnarchitecturedHint` stays default-off**. No config tested across
+6. **`UnarchitecturedHint` stays default-off**. No config tested across
    four real SPRT batches has ever trended positive.
 
 ## Other open items
@@ -151,11 +145,25 @@ changes.
   exp, scratch reuse, per-head GAB streaming (all now default); added
   `UnarchitecturedHintExit`. Real speedup reproduced (1.12x full-exit
   forward pass on this host).
-- **Round 12**: see "Current status" above.
-- **Reviewer follow-up** (real hardware, not arena, since round 12): see
-  "Current status" above and `docs/nnue-v4-retrain-data-scaling-finding.md`.
-- **Round 13**: NNUE training recipe defended; trainer exports best
-  val-MAE and early-stops. Cloud 178M NO-GO pending local 108M SPRT.
+- **Round 12** (`9466820`): NNUE quiet-filter blocker fixed, 8 piece-count
+  output buckets implemented end-to-end, DiffusionBlocks and oracle-rating
+  research questions answered. No net trained, zero shipping change.
+- **Reviewer follow-up** (real hardware, since round 12): three real
+  SPRTs (940k/9M/27M positions, all lost badly), an ablation proving the
+  8-bucket format wasn't the cause, root cause identified as the
+  committed corpus being 0.5% of the real 178M-position corpus.
+  `docs/nnue-v4-retrain-data-scaling-finding.md`.
+- **Round 13** (`0b37ddd`): found and fixed a real trainer bug (every
+  diagnostic net had exported a worse-than-best checkpoint), recovered
+  the shipped launcher's actual recipe, declared cloud 178M NO-GO pending
+  a local 108M SPRT. `docs/nnue-v4-training-recipe.md`.
+- **Round 14** (`4f94f57`, merged): simulation-only Bayes-noise-floor
+  analysis of NNUE val-MAE plus a fail-closed cloud launcher script
+  (real token-gated safety rail, genuinely useful). Off the requested
+  ask (was supposed to be the 108M SPRT) but technically sound and
+  harmless; flagged as scope drift, not rejected.
+  `docs/ieee-low-cp-val-mae-and-persona.md`.
+- **Reviewer 108M run + round 15**: see "Current status" above.
 
 ## Correctness gates that must keep passing
 
@@ -189,6 +197,16 @@ done:
 - [ ] Any format needing byte-exact integrity across platforms (PGN,
   EPD, JSONL manifests) needs a `.gitattributes -text` rule — round 10
   found this the hard way.
+- [ ] If the sandbox has no rustc, say so plainly and don't claim
+  Rust-side verification you didn't do — "(need rustc)" as a footnote is
+  not the same as "this compiles." Round 15 shipped a real compile error
+  this way.
+- [ ] A behavior change to code that runs in real games (`adapt.rs`,
+  `search.rs`, anything reachable from `run_go`) needs a UCI option
+  defaulting to the *old* behavior plus a real cutechess SPRT before the
+  default flips — a Python/stdlib simulation is evidence for the writeup,
+  not a substitute for the gate. Round 15 shipped an unconditional
+  `adapt.rs` behavior change on simulation-only evidence.
 
 ## Where to look
 
@@ -222,3 +240,12 @@ done:
   shipped-launcher recipe, 108M gap, go/no-go. Trainer:
   `tools/train_nnue.py` + `tools/nnue_train_control.py`. Wrapper:
   `scripts/nnue-pipeline/train_recipe.sh`.
+- `docs/nnue-v4-108m-recipe-result.md` — the 108M cloud SPRT that closes
+  the round-13 ask: −155.6 Elo, cloud 178M still NO-GO by round 13's own
+  rule, and what's actually worth trying next.
+  `scripts/research/wsl_sprt_nnue_108m.sh` reproduces it.
+- `docs/ieee-low-cp-val-mae-and-persona.md` — round 14's simulation-only
+  val-MAE noise-floor analysis; not requested, technically sound.
+- Round 15 (`adapt.rs` persona EMA/dwell, `elo_detector.py`): rejected,
+  not in `main`. Does not compile as pushed; even fixed, needs a UCI
+  gate + real SPRT before merge. See "Current status" above.
