@@ -9,89 +9,24 @@ work is not an invitation to revert to or resume development on any of
 them. Any follow-on architecture or training work belongs on top of
 Unarchitectured v1, not as a parallel track exploring an earlier one.
 
-## Current status (round 16 rejected again, closer; round 13 stands as the last merged NNUE work)
+## Current status (round 17 merged, `main` at `63c7262`)
 
-**Reviewer follow-up (real hardware, not arena) closed the round-13 ask.**
-Rented a Verda `CPU.32V.128G` box (~$1, deleted right after), trained the
-defended recipe on all 108M real self-play positions, and ran the real
-SPRT: **−155.6 ± 47.7 Elo vs the shipped default** (188 games), best
-val-MAE 47.8cp — the best number in the whole investigation, but round
-13's own pre-committed rule ("still >100 Elo behind → cloud 178M stays
-NO-GO") still applies even at the optimistic end of that interval.
-**Cloud 178M remains NO-GO.** Full trend table, the go/no-go reasoning,
-and what's actually worth trying next (stronger labels, not more of the
-same): `docs/nnue-v4-108m-recipe-result.md`.
+**NNUE**: reviewer's 108M cloud SPRT closed the round-13 ask —
+**−155.6 ± 47.7 Elo vs the shipped default**, best val-MAE 47.8cp (best
+in the whole investigation). Applying round 13's own pre-committed rule,
+**cloud 178M remains NO-GO** even at the optimistic end of that interval.
+`docs/nnue-v4-108m-recipe-result.md`.
 
-**Round 15 (`01a0581c` @ `b3e1e03`) is rejected, not merged.** Two
-independent problems, either one disqualifying on its own:
-
-1. **It does not compile.** `cargo test --workspace --release` fails:
-   `run_go`'s signature in `uci.rs` still declares
-   `persona: Arc<Mutex<Mode>>` while the call sites were changed to pass
-   `Arc<Mutex<PersonaState>>` — an incomplete rename, caught by rustc in
-   under 10 seconds. Both new docs this round hedge with "(need rustc)",
-   which now reads as "this was never actually compiled" rather than a
-   footnote.
-2. **Even fixed, it changes live adapter behavior with no opt-out and no
-   real SPRT.** `decide_mode` was fully replaced by `PersonaState::update`
-   in the UCI worker's `adaptive_now` path — unconditionally, no new UCI
-   option gating it. The only validation is a Python simulation
-   (`tools/persona_stability_sprt.py`, synthetic AR(1) eval traces) that
-   the round's own doc honestly calls "not a cutechess SPRT." That's a
-   real behavior change to what real opponents actually experience,
-   shipped without the one rule this project has enforced since round 0.
-   The `elo_detector.py` misfire-threshold changes in the same commit
-   have the identical problem: real detection-logic changes, simulation-only
-   validation, no opt-out.
-
-Send back for: (a) fix the compile error, (b) gate both behavior changes
-behind a UCI option that defaults to the *old* behavior until a real
-cutechess SPRT (Adaptive=true both sides, same as
-`scripts/sprt-history/sprt_punish_latch.sh`) validates the new one. The
-underlying ideas (EMA/dwell smoothing, the four misfire cases) may well
-be real improvements — the simulation numbers are plausible — but
-"plausible in simulation" is not the bar this project has held
-`aegis_v4_runtime.rs` or the NNUE retrain to, and it shouldn't be lowered
-here just because the change lives in `adapt.rs` instead.
-
-**Round 16 (same branch, `502eb26`..`72bf78f`) fixed both real problems
-from round 16's ask and is closer, but still rejected — this time on a
-correctness bug in the new logic itself, not on process.** Verified
-independently:
-
-- **Compiles clean** (`cargo test --workspace --release`, after the usual
-  Windows Smart App Control re-touch-and-rebuild — unrelated to this
-  branch). No leftover `<<<<<<<`/`=======`/`>>>>>>>` markers anywhere in
-  the tree (round 16 also had to clean up literal merge-conflict markers
-  left in `README.md` from an earlier commit in the same branch — worth
-  noting for its own sake: that should never have been committed in the
-  first place).
-- **Genuinely gated**: `PersonaSmooth` and `EngineDetectV2` are both new
-  UCI options, both default `false`; with both false, behavior is
-  byte-for-byte the pre-round-15 `decide_mode`/`is_computer` path. This
-  is the actual fix that was asked for.
-- **But two of the new feature's own tests fail**, reproducibly
-  (`cargo test -p unchessed-core --lib`, 116 passed / 2 failed):
-  `persona_state_dwell_ignores_one_move_clinch_spike` (a single CLINCH
-  vote flips immediately — the "2 agreeing plies" dwell claim from the
-  design doc isn't actually enforced for CLINCH) and
-  `persona_state_ema_rejects_single_eval_spike_across_defend` (a
-  sustained −400cp collapse fails to trigger the emergency DEFEND
-  bypass — the exact safety-relevant case the doc's own table
-  describes as "no dwell"). Both are real logic bugs in `PersonaState`,
-  not test-authoring mistakes — read against the doc's own two headline
-  claims, the implementation doesn't yet do what it says it does.
-- **Minor, non-blocking**: `test_search_param_consistency.py`'s new
-  `TestRealRepo::test_is_consistent` hardcodes `checked == 20`; the real
-  repo now has 24 (no actual parameter inconsistencies found — `failures
-  == []` passes — just a stale constant). Update the hardcoded number.
-
-Because both flags default false, none of this reaches real games as
-shipped — the gating is doing its job. But a feature that fails its own
-unit tests isn't ready for a real SPRT yet either. Fix the two
-`PersonaState` bugs, get `cargo test --workspace --release` fully green
-on a machine with rustc (not just "should compile"), then it's ready for
-the real cutechess SPRT gate.
+**Persona/adapter (`PersonaSmooth`, `EngineDetectV2`)**: took three
+rounds to land cleanly (15 rejected — didn't compile, unconditional
+behavior change, simulation-only; 16 rejected — compiled and properly
+UCI-gated, but 2 of its own new tests failed on the exact two claims the
+design doc made; 17 fixed both and is now merged). **Verified
+independently**: `cargo test --workspace --release` 118/118 passing, no
+leftover merge-conflict markers, both new UCI options default `false`
+with byte-identical old behavior when off. This is tooling/gating only —
+**neither flag has a real cutechess SPRT yet**, so neither default may
+flip. Full round-by-round history: "History" below.
 
 ## What's needed next
 
@@ -104,14 +39,12 @@ the real cutechess SPRT gate.
    the shipped net at high node count, or a deeper HCE search), separating
    label-noise from architecture-capacity before assuming either is the
    fix. Not cloud spend on more of the same labels.
-2. **Round 16's `PersonaState` bugs**: fix
-   `persona_state_dwell_ignores_one_move_clinch_spike` and
-   `persona_state_ema_rejects_single_eval_spike_across_defend` (both
-   reproduce on `cargo test -p unchessed-core --lib`), get the full
-   workspace test suite green on a machine with rustc, then it's ready
-   for the real cutechess SPRT gate (`PersonaSmooth`/`EngineDetectV2`
-   both default false already — that part is done). Do not flip either
-   default without that SPRT.
+2. **A real cutechess SPRT for `PersonaSmooth`/`EngineDetectV2`**
+   (Adaptive=true both sides, same shape as
+   `scripts/sprt-history/sprt_punish_latch.sh`), now that the code
+   itself is merged, tested, and correct. Both options still default
+   `false` — this is the only thing standing between them and being
+   flippable. Do not flip either default without it.
 3. **A retrain decision** for round 9's Unarchitectured v1 findings (GAB
    capacity, rating conditioning, int8 weight clipping), if the oracle
    checkpoint becomes available — see item 4, this is gated on that.
@@ -206,7 +139,16 @@ changes.
   ask (was supposed to be the 108M SPRT) but technically sound and
   harmless; flagged as scope drift, not rejected.
   `docs/ieee-low-cp-val-mae-and-persona.md`.
-- **Reviewer 108M run + rounds 15-16**: see "Current status" above.
+- **Reviewer 108M run**: see "Current status" above,
+  `docs/nnue-v4-108m-recipe-result.md`.
+- **Rounds 15-17** (persona/adapter gating, same branch): round 15
+  rejected outright (didn't compile; unconditional live behavior change
+  on simulation-only evidence). Round 16 fixed the process problems
+  (compiled, properly UCI-gated) but 2 of its own new tests failed on
+  its own headline claims. Round 17 fixed both bugs — verified
+  independently (118/118 Rust tests, 377/378 Python, no conflict
+  markers) and merged (`63c7262`). Still needs a real SPRT before either
+  new option's default can flip. See "Current status" above.
 
 ## Correctness gates that must keep passing
 
@@ -289,8 +231,8 @@ done:
   `scripts/research/wsl_sprt_nnue_108m.sh` reproduces it.
 - `docs/ieee-low-cp-val-mae-and-persona.md` — round 14's simulation-only
   val-MAE noise-floor analysis; not requested, technically sound.
-- Rounds 15-16 (`adapt.rs` persona EMA/dwell, `elo_detector.py`):
-  rejected both times, not in `main`. Round 16 fixed the compile break
-  and added proper default-off UCI gating (`PersonaSmooth`,
-  `EngineDetectV2`); still rejected on two failing tests in the new
-  `PersonaState` logic itself. See "Current status" above.
+- `unchessed-core/src/adapt.rs`, `uci.rs` — `PersonaState`
+  (`PersonaSmooth` EMA/dwell) and `OpponentModel` misfire fixes
+  (`EngineDetectV2`), merged in round 17. Both UCI options default
+  `false`; needs a real SPRT before either can flip. See "Current
+  status" above.
