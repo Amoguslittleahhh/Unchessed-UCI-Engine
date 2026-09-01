@@ -1,0 +1,55 @@
+{
+  "seed": 20260901,
+  "n_games_per_strength": 500,
+  "strengths": [
+    0.0,
+    0.25,
+    0.5,
+    0.75,
+    1.0
+  ],
+  "eval_noise_sigma_cp": 50.0,
+  "plies": 40,
+  "legacy": {
+    "mean_flip_rate": 0.1226,
+    "mean_match_share": 0.2844,
+    "mean_clinch_share": 0.0906,
+    "mean_punish_share": 0.6083,
+    "mean_score": 0.7268,
+    "pearson_strength_vs_score": 0.5325,
+    "pearson_flip_vs_score": -0.4408,
+    "wdl": {
+      "W": 1403,
+      "D": 828,
+      "L": 269
+    },
+    "sprt_llr_elo0_0_elo1_5": 23.627,
+    "n_games": 2500
+  },
+  "stable": {
+    "mean_flip_rate": 0.0523,
+    "mean_match_share": 0.3312,
+    "mean_clinch_share": 0.0833,
+    "mean_punish_share": 0.5789,
+    "mean_score": 0.7006,
+    "pearson_strength_vs_score": 0.5288,
+    "pearson_flip_vs_score": -0.3073,
+    "wdl": {
+      "W": 1308,
+      "D": 887,
+      "L": 305
+    },
+    "sprt_llr_elo0_0_elo1_5": 20.867,
+    "n_games": 2500
+  },
+  "flip_rate_reduction": 0.5734,
+  "pearson_lift": -0.0037,
+  "ply_disagreement_rate": 0.273,
+  "note": "Simulation of search-eval traces, not cutechess. Real SPRT still required before claiming Elo. Adaptive stays on.",
+  "engine_contract": {
+    "adaptive_default": true,
+    "unarchitectured_hint_default": false,
+    "ema_alpha": 0.35,
+    "dwell": 2
+  }
+}

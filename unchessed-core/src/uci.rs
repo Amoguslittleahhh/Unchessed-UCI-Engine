@@ -8,8 +8,8 @@ use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 
 use crate::adapt::{
-    decide_mode, difficulty_weight, select_move, AdaptConfig, HeuristicPrior, MaiaPrior, Mode,
-    MovePrior, OpponentModel, Rng,
+    difficulty_weight, select_move, AdaptConfig, HeuristicPrior, MaiaPrior, Mode, MovePrior,
+    OpponentModel, PersonaState, Rng,
 };
 use crate::aegis_v4_runtime::{
     position_to_input, ChessformerWeights, HintKey, InferenceExit, UnarchitecturedHintWorker,
@@ -206,8 +206,8 @@ pub fn run(ident: EngineIdent) {
     let (mut eval_impl, mut eval_desc, mut eval_is_hce): (Arc<dyn Eval>, String, bool) =
         load_default_eval(opt.eval_params);
     let stop = Arc::new(AtomicBool::new(false));
-    // persona persists across moves for hysteresis; worker updates it
-    let persona = Arc::new(Mutex::new(Mode::Match));
+    // persona persists across moves for hysteresis + EMA/dwell; worker updates it
+    let persona = Arc::new(Mutex::new(PersonaState::default()));
     let mut worker: Option<JoinHandle<()>> = None;
     let mut game = Game::new();
     // opponent's clock reading at our previous `go` (for the time signal)
@@ -330,7 +330,7 @@ pub fn run(ident: EngineIdent) {
                 join_worker(&mut worker, &stop);
                 tt.lock().unwrap().clear();
                 *model.lock().unwrap() = OpponentModel::new();
-                *persona.lock().unwrap() = Mode::Match;
+                *persona.lock().unwrap() = PersonaState::default();
                 last_opp_clock = None;
                 game = Game::new();
                 if opt.unarchitectured_hint {
@@ -1455,17 +1455,20 @@ fn run_go(
     // ------------------------------------------------------------------
     if adaptive_now {
         let m = model.lock().unwrap().clone();
-        let mode = decide_mode(&cfg, &m, lines[0].score, pos.fullmove, prev_mode);
+        let mode = {
+            let mut st = persona.lock().unwrap();
+            st.update(&cfg, &m, lines[0].score, pos.fullmove)
+        };
         if mode != prev_mode {
             println!(
-                "info string [Unchessed] persona {} -> {} (eval {} cp, opponent ~{})",
+                "info string [Unchessed] persona {} -> {} (eval {} cp, opponent ~{}, ema {} cp)",
                 prev_mode.name(),
                 mode.name(),
                 lines[0].score,
-                m.estimate()
+                m.estimate(),
+                persona.lock().unwrap().smoothed_eval()
             );
         }
-        *persona.lock().unwrap() = mode;
         let prior: Box<dyn MovePrior> = match &job.policy {
             Some(net) => Box::new(MaiaPrior(Arc::clone(net))),
             None => Box::new(HeuristicPrior),
