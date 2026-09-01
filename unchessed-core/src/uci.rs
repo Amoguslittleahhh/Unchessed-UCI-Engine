@@ -8,7 +8,7 @@ use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 
 use crate::adapt::{
-    difficulty_weight, select_move, AdaptConfig, HeuristicPrior, MaiaPrior, Mode, MovePrior,
+    difficulty_weight, select_move, AdaptConfig, HeuristicPrior, MaiaPrior, MovePrior,
     OpponentModel, PersonaState, Rng,
 };
 use crate::aegis_v4_runtime::{
@@ -61,6 +61,8 @@ struct Options {
     unarchitectured_hint_exit: InferenceExit,
     unarchitectured_file: String,
     unarchitectured_min_time_ms: u64,
+    persona_smooth: bool,
+    engine_detect_v2: bool,
 }
 
 /// Default search thread count: the machine's logical CPU count, capped.
@@ -109,6 +111,8 @@ impl Default for Options {
             unarchitectured_hint_exit: InferenceExit::Layer2Width128,
             unarchitectured_file: String::new(),
             unarchitectured_min_time_ms: 30_000,
+            persona_smooth: false,
+            engine_detect_v2: false,
         }
     }
 }
@@ -120,6 +124,7 @@ impl Options {
             limit_strength: self.limit_strength,
             elo_cap: self.elo,
             contempt: self.contempt,
+            persona_smooth: self.persona_smooth,
         }
     }
 }
@@ -263,6 +268,8 @@ pub fn run(ident: EngineIdent) {
                     println!("option name BookDepth type spin default 16 min 0 max 40");
                     println!("option name PolicyFile type string default ");
                     println!("option name UCI_Opponent type string default ");
+                    println!("option name PersonaSmooth type check default false");
+                    println!("option name EngineDetectV2 type check default false");
                 }
                 // tunable search constants (defaults match prior hard-coded
                 // values; exposed for manual tuning and future SPSA runs)
@@ -329,7 +336,11 @@ pub fn run(ident: EngineIdent) {
             "ucinewgame" => {
                 join_worker(&mut worker, &stop);
                 tt.lock().unwrap().clear();
-                *model.lock().unwrap() = OpponentModel::new();
+                {
+                    let mut m = model.lock().unwrap();
+                    *m = OpponentModel::new();
+                    m.experimental_detect = opt.engine_detect_v2;
+                }
                 *persona.lock().unwrap() = PersonaState::default();
                 last_opp_clock = None;
                 game = Game::new();
@@ -779,6 +790,11 @@ fn handle_setoption(
                 }
             }
         }
+        "personasmooth" => opt.persona_smooth = value.eq_ignore_ascii_case("true"),
+        "enginedetectv2" => {
+            opt.engine_detect_v2 = value.eq_ignore_ascii_case("true");
+            model.lock().unwrap().experimental_detect = opt.engine_detect_v2;
+        }
         "uci_opponent" => {
             let log = model.lock().unwrap().seed_from_uci_opponent(value);
             println!("info string [Unchessed] {}", log);
@@ -1116,7 +1132,7 @@ fn run_go(
     stop: Arc<AtomicBool>,
     book: Arc<Mutex<Book>>,
     model: Arc<Mutex<OpponentModel>>,
-    persona: Arc<Mutex<Mode>>,
+    persona: Arc<Mutex<PersonaState>>,
 ) {
     let tt_guard = tt.lock().unwrap();
     let tt: &TT = &tt_guard;
@@ -1335,7 +1351,7 @@ fn run_go(
         multipv_shown
     };
     let cfg = job.opt.adapt_config();
-    let prev_mode = *persona.lock().unwrap();
+    let prev_mode = persona.lock().unwrap().mode;
     let draw_score = if adaptive_now {
         crate::adapt::draw_score_for(&cfg, prev_mode)
     } else {

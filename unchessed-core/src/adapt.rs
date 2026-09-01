@@ -88,6 +88,8 @@ pub struct OpponentModel {
     /// for the ceiling tell so the climb from the 1500 prior does not
     /// inflate `var_accum` into a veto.
     low_loss_streak: u32,
+    /// Default-off retune. Live search uses this only when UCI EngineDetectV2=true.
+    pub experimental_detect: bool,
 }
 
 impl Default for OpponentModel {
@@ -111,6 +113,7 @@ impl OpponentModel {
             var_accum: 90_000.0, // start wide (~300 sd)
             suspicion: 0.0,
             low_loss_streak: 0,
+            experimental_detect: false,
         }
     }
 
@@ -172,7 +175,11 @@ impl OpponentModel {
     pub fn observe(&mut self, cp_loss: i32, difficulty_weight: f64) {
         self.prev_mean = self.mean;
         self.last_cp_loss = Some(cp_loss);
-        let opening = if self.samples < 8 { 0.5 } else { 1.0 };
+        let opening = if self.experimental_detect && self.samples < 8 {
+            0.5
+        } else {
+            1.0
+        };
         let w = (difficulty_weight * opening).clamp(0.05, 2.0);
         let sample = Self::elo_sample(cp_loss as f64);
         let dev = sample - self.mean;
@@ -198,7 +205,7 @@ impl OpponentModel {
     /// (real middlegame evidence) before suspicion can grow.
     pub fn observe_time(&mut self, used_ms: u64, position_had_choice: bool) {
         let strong = matches!(self.last_cp_loss, Some(l) if l <= 60);
-        let in_opening = self.samples < 8;
+        let in_opening = self.experimental_detect && self.samples < 8;
         if used_ms < 300 && strong && position_had_choice && !in_opening {
             self.suspicion += 1.0;
         } else if used_ms > 1500 {
@@ -231,24 +238,22 @@ impl OpponentModel {
     /// genuinely sustained 2500+ performance (own stress-test confirmed
     /// this separately).
     pub fn engine_suspect(&self) -> bool {
-        // GUI-labelled computers: only *strong* engines force FULL.
-        // Maia (table 1600) and other human-like engines are the MATCH
-        // target of this project — treating them as Stockfish was the
-        // ecosystem misfire (persona never ran vs the labelled opponent
-        // we actually train to imitate).
+        if self.experimental_detect {
+            return self.engine_suspect_v2();
+        }
+        if self.is_computer || self.suspicion >= 3.0 {
+            return true;
+        }
+        self.weight >= 10.0 && self.mean >= 2450.0
+    }
+
+    fn engine_suspect_v2(&self) -> bool {
         if self.is_computer {
             return self.mean >= 2400.0;
         }
-        // Clock tell: 4 instant-strong middlegame replies. 3 was too
-        // hungry in blitz vs 2200+ humans who just play fast.
         if self.suspicion >= 4.0 {
             return true;
         }
-        // Ceiling tell: anonymous opponent pinned at the measurement
-        // ceiling, *and* low volatility (a 2400 human still dribbles
-        // 50–120 cp). Declared humans never take this path — a 2500
-        // titled player is allowed to be strong; MATCH at target~2560
-        // is already near-ceiling play without flipping to FULL.
         if self.declared_elo.is_some() {
             return false;
         }
@@ -284,7 +289,7 @@ impl OpponentModel {
 
     pub fn trend(&self) -> &'static str {
         if !self.is_computer && self.engine_suspect() {
-            return if self.suspicion >= 4.0 {
+            return if self.suspicion >= 3.0 {
                 "instant strong replies — engine suspected"
             } else {
                 "pinned at measurement ceiling — engine suspected"
@@ -345,6 +350,7 @@ pub struct AdaptConfig {
     pub limit_strength: bool,
     pub elo_cap: i32,
     pub contempt: i32,
+    pub persona_smooth: bool,
 }
 
 impl Default for AdaptConfig {
@@ -354,6 +360,7 @@ impl Default for AdaptConfig {
             limit_strength: false,
             elo_cap: 2400,
             contempt: 25,
+            persona_smooth: false,
         }
     }
 }
@@ -421,6 +428,15 @@ impl PersonaState {
         raw_eval_cp: i32,
         fullmove: u16,
     ) -> Mode {
+        if !cfg.persona_smooth {
+            let mode = decide_mode(cfg, model, raw_eval_cp, fullmove, self.mode);
+            self.mode = mode;
+            self.eval_ema = raw_eval_cp as f64;
+            self.ema_init = true;
+            self.dwell = 0;
+            self.candidate = mode;
+            return mode;
+        }
         if !self.ema_init {
             self.eval_ema = raw_eval_cp as f64;
             self.ema_init = true;
@@ -1022,8 +1038,8 @@ mod tests {
 
     #[test]
     fn engine_suspicion_from_ceiling() {
-        // anonymous opponent pinned at the ceiling, long enough, low vol
         let mut m = OpponentModel::new();
+        m.experimental_detect = true;
         for _ in 0..16 {
             m.observe(5, 1.0);
         }
@@ -1031,6 +1047,7 @@ mod tests {
         assert!(m.engine_suspect());
         // 10 clean opening moves is *not* enough (high-level human theory)
         let mut short = OpponentModel::new();
+        short.experimental_detect = true;
         for _ in 0..10 {
             short.observe(5, 1.0);
         }
@@ -1041,6 +1058,7 @@ mod tests {
         );
         // merely-good erratic human is not flagged
         let mut h = OpponentModel::new();
+        h.experimental_detect = true;
         for i in 0..16 {
             h.observe(if i % 3 == 0 { 150 } else { 20 }, 1.0);
         }
@@ -1050,6 +1068,7 @@ mod tests {
     #[test]
     fn engine_suspicion_from_clock() {
         let mut m = OpponentModel::new();
+        m.experimental_detect = true;
         // opening instants must not count
         for _ in 0..7 {
             m.observe(5, 1.0);
@@ -1067,8 +1086,19 @@ mod tests {
     }
 
     #[test]
+    fn default_engine_detect_is_legacy_until_uci_opt_in() {
+        let mut m = OpponentModel::new();
+        assert!(!m.experimental_detect);
+        m.seed_from_uci_opponent("- 1600 computer Maia 2");
+        assert!(m.engine_suspect());
+        m.experimental_detect = true;
+        assert!(!m.engine_suspect());
+    }
+
+    #[test]
     fn maia_computer_does_not_force_full() {
         let mut m = OpponentModel::new();
+        m.experimental_detect = true;
         m.seed_from_uci_opponent("- 1600 computer Maia 2");
         assert!(m.is_computer);
         assert!(!m.engine_suspect(), "Maia is the MATCH target, estimate {}", m.estimate());
@@ -1088,6 +1118,7 @@ mod tests {
     #[test]
     fn declared_human_master_is_not_ceiling_flagged() {
         let mut m = OpponentModel::new();
+        m.experimental_detect = true;
         m.seed_from_uci_opponent("- 2500 human IM_Player");
         for _ in 0..20 {
             m.observe(8, 1.0);
@@ -1106,6 +1137,7 @@ mod tests {
             limit_strength: true,
             elo_cap: 1400,
             contempt: 25,
+            persona_smooth: false,
         };
         let m = OpponentModel::new();
         assert_eq!(decide_mode(&cfg, &m, 0, 10, Mode::Match), Mode::Match);
@@ -1185,7 +1217,8 @@ mod tests {
 
     #[test]
     fn persona_state_dwell_ignores_one_move_clinch_spike() {
-        let cfg = AdaptConfig::default();
+        let mut cfg = AdaptConfig::default();
+        cfg.persona_smooth = true;
         let m = OpponentModel::new();
         let mut s = PersonaState::default();
         // quiet equal game, then one noisy +10 that would enter CLINCH at move 40
@@ -1199,7 +1232,8 @@ mod tests {
 
     #[test]
     fn persona_state_punish_on_blunder_is_immediate() {
-        let cfg = AdaptConfig::default();
+        let mut cfg = AdaptConfig::default();
+        cfg.persona_smooth = true;
         let mut m = OpponentModel::new();
         m.observe(220, 1.0);
         assert!(m.last_was_blunder());
@@ -1211,7 +1245,8 @@ mod tests {
 
     #[test]
     fn persona_state_ema_rejects_single_eval_spike_across_defend() {
-        let cfg = AdaptConfig::default();
+        let mut cfg = AdaptConfig::default();
+        cfg.persona_smooth = true;
         let m = OpponentModel::new();
         let mut s = PersonaState::default();
         s.update(&cfg, &m, 0, 15);
