@@ -8,8 +8,8 @@ use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 
 use crate::adapt::{
-    decide_mode, difficulty_weight, select_move, AdaptConfig, HeuristicPrior, MaiaPrior, Mode,
-    MovePrior, OpponentModel, Rng,
+    difficulty_weight, select_move, AdaptConfig, HeuristicPrior, MaiaPrior, MovePrior,
+    OpponentModel, PersonaState, Rng,
 };
 use crate::aegis_v4_runtime::{
     position_to_input, ChessformerWeights, HintKey, InferenceExit, UnarchitecturedHintWorker,
@@ -61,6 +61,8 @@ struct Options {
     unarchitectured_hint_exit: InferenceExit,
     unarchitectured_file: String,
     unarchitectured_min_time_ms: u64,
+    persona_smooth: bool,
+    engine_detect_v2: bool,
 }
 
 /// Default search thread count: the machine's logical CPU count, capped.
@@ -109,6 +111,8 @@ impl Default for Options {
             unarchitectured_hint_exit: InferenceExit::Layer2Width128,
             unarchitectured_file: String::new(),
             unarchitectured_min_time_ms: 30_000,
+            persona_smooth: false,
+            engine_detect_v2: false,
         }
     }
 }
@@ -120,6 +124,7 @@ impl Options {
             limit_strength: self.limit_strength,
             elo_cap: self.elo,
             contempt: self.contempt,
+            persona_smooth: self.persona_smooth,
         }
     }
 }
@@ -206,8 +211,8 @@ pub fn run(ident: EngineIdent) {
     let (mut eval_impl, mut eval_desc, mut eval_is_hce): (Arc<dyn Eval>, String, bool) =
         load_default_eval(opt.eval_params);
     let stop = Arc::new(AtomicBool::new(false));
-    // persona persists across moves for hysteresis; worker updates it
-    let persona = Arc::new(Mutex::new(Mode::Match));
+    // persona persists across moves for hysteresis + EMA/dwell; worker updates it
+    let persona = Arc::new(Mutex::new(PersonaState::default()));
     let mut worker: Option<JoinHandle<()>> = None;
     let mut game = Game::new();
     // opponent's clock reading at our previous `go` (for the time signal)
@@ -263,6 +268,8 @@ pub fn run(ident: EngineIdent) {
                     println!("option name BookDepth type spin default 16 min 0 max 40");
                     println!("option name PolicyFile type string default ");
                     println!("option name UCI_Opponent type string default ");
+                    println!("option name PersonaSmooth type check default false");
+                    println!("option name EngineDetectV2 type check default false");
                 }
                 // tunable search constants (defaults match prior hard-coded
                 // values; exposed for manual tuning and future SPSA runs)
@@ -329,8 +336,12 @@ pub fn run(ident: EngineIdent) {
             "ucinewgame" => {
                 join_worker(&mut worker, &stop);
                 tt.lock().unwrap().clear();
-                *model.lock().unwrap() = OpponentModel::new();
-                *persona.lock().unwrap() = Mode::Match;
+                {
+                    let mut m = model.lock().unwrap();
+                    *m = OpponentModel::new();
+                    m.experimental_detect = opt.engine_detect_v2;
+                }
+                *persona.lock().unwrap() = PersonaState::default();
                 last_opp_clock = None;
                 game = Game::new();
                 if opt.unarchitectured_hint {
@@ -779,6 +790,11 @@ fn handle_setoption(
                 }
             }
         }
+        "personasmooth" => opt.persona_smooth = value.eq_ignore_ascii_case("true"),
+        "enginedetectv2" => {
+            opt.engine_detect_v2 = value.eq_ignore_ascii_case("true");
+            model.lock().unwrap().experimental_detect = opt.engine_detect_v2;
+        }
         "uci_opponent" => {
             let log = model.lock().unwrap().seed_from_uci_opponent(value);
             println!("info string [Unchessed] {}", log);
@@ -1116,7 +1132,7 @@ fn run_go(
     stop: Arc<AtomicBool>,
     book: Arc<Mutex<Book>>,
     model: Arc<Mutex<OpponentModel>>,
-    persona: Arc<Mutex<Mode>>,
+    persona: Arc<Mutex<PersonaState>>,
 ) {
     let tt_guard = tt.lock().unwrap();
     let tt: &TT = &tt_guard;
@@ -1335,7 +1351,7 @@ fn run_go(
         multipv_shown
     };
     let cfg = job.opt.adapt_config();
-    let prev_mode = *persona.lock().unwrap();
+    let prev_mode = persona.lock().unwrap().mode;
     let draw_score = if adaptive_now {
         crate::adapt::draw_score_for(&cfg, prev_mode)
     } else {
@@ -1455,17 +1471,20 @@ fn run_go(
     // ------------------------------------------------------------------
     if adaptive_now {
         let m = model.lock().unwrap().clone();
-        let mode = decide_mode(&cfg, &m, lines[0].score, pos.fullmove, prev_mode);
+        let mode = {
+            let mut st = persona.lock().unwrap();
+            st.update(&cfg, &m, lines[0].score, pos.fullmove)
+        };
         if mode != prev_mode {
             println!(
-                "info string [Unchessed] persona {} -> {} (eval {} cp, opponent ~{})",
+                "info string [Unchessed] persona {} -> {} (eval {} cp, opponent ~{}, ema {} cp)",
                 prev_mode.name(),
                 mode.name(),
                 lines[0].score,
-                m.estimate()
+                m.estimate(),
+                persona.lock().unwrap().smoothed_eval()
             );
         }
-        *persona.lock().unwrap() = mode;
         let prior: Box<dyn MovePrior> = match &job.policy {
             Some(net) => Box::new(MaiaPrior(Arc::clone(net))),
             None => Box::new(HeuristicPrior),
@@ -1628,6 +1647,15 @@ mod tests {
         // The advertised UCI default and the actual default must agree,
         // otherwise a GUI showing "default 1" would mislead the user.
         assert_eq!(Options::default().threads, default_threads());
+    }
+
+    #[test]
+    fn persona_and_detector_experiments_default_off() {
+        let o = Options::default();
+        assert!(!o.persona_smooth);
+        assert!(!o.engine_detect_v2);
+        assert!(!o.unarchitectured_hint);
+        assert!(o.adaptive);
     }
 
     // Regression test for a real bug caught via a live game log: GUIs (En

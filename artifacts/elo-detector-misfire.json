@@ -1,0 +1,30 @@
+{
+  "human_declared_bands": {
+    "1200": {
+      "n": 200,
+      "engine_flags": 0,
+      "rate": 0.0
+    },
+    "1600": {
+      "n": 200,
+      "engine_flags": 0,
+      "rate": 0.0
+    },
+    "2000": {
+      "n": 200,
+      "engine_flags": 0,
+      "rate": 0.0
+    },
+    "2200": {
+      "n": 200,
+      "engine_flags": 0,
+      "rate": 0.0
+    },
+    "2500": {
+      "n": 200,
+      "engine_flags": 0,
+      "rate": 0.0
+    }
+  },
+  "seed": 20260901
+}
