@@ -61,6 +61,14 @@ EVAL_PARAM_FIELDS = {
 CHECK_PARAM_FIELDS = {
     "probcutseefilter": "probcut_see_filter",
 }
+# Adapter experiments: advertised check default must match Options::default()
+# (false until a real Adaptive-on SPRT). Not SearchParams fields.
+ADAPTER_CHECK_FIELDS = {
+    "personasmooth": "persona_smooth",
+    "enginedetectv2": "engine_detect_v2",
+    "unarchitecturedhint": "unarchitectured_hint",
+    "adaptive": "adaptive",
+}
 MINTIME_OPTION = "unarchitecturedmintime"
 MINTIME_FIELD = "unarchitectured_min_time_ms"
 
@@ -147,6 +155,7 @@ def check(repo: Path) -> dict:
 
     search_defaults = parse_default_block(search_rs, "SearchParams")
     eval_defaults = parse_default_block(eval_rs, "EvalParams")
+    options_defaults = parse_default_block(uci_rs, "Options")
     advertised = parse_uci_advertised(uci_rs)
     clamps = parse_handler_clamps(uci_rs)
     mintime_struct = parse_mintime_struct_default(uci_rs)
@@ -200,6 +209,22 @@ def check(repo: Path) -> dict:
         elif adv["default"] != struct_val:
             failures.append(
                 f"{name}: advertised default {adv['default']} != struct default {struct_val}"
+            )
+        params[name] = rec
+
+    for name, field in ADAPTER_CHECK_FIELDS.items():
+        rec: dict = {"field": field}
+        adv = advertised.get(name)
+        struct_val = options_defaults.get(field)
+        rec["advertised"] = adv
+        rec["struct_default"] = struct_val
+        if adv is None or adv.get("type") != "check":
+            failures.append(f"{name}: UCI check option not found")
+        elif struct_val is None:
+            failures.append(f"{name}: Options field {field} not found in Default impl")
+        elif adv["default"] != struct_val:
+            failures.append(
+                f"{name}: advertised default {adv['default']} != Options default {struct_val}"
             )
         params[name] = rec
 

@@ -1649,6 +1649,15 @@ mod tests {
         assert_eq!(Options::default().threads, default_threads());
     }
 
+    #[test]
+    fn persona_and_detector_experiments_default_off() {
+        let o = Options::default();
+        assert!(!o.persona_smooth);
+        assert!(!o.engine_detect_v2);
+        assert!(!o.unarchitectured_hint);
+        assert!(o.adaptive);
+    }
+
     // Regression test for a real bug caught via a live game log: GUIs (En
     // Croissant, cutechess-cli, etc.) resend the full move list from
     // startpos on every `position` command rather than just the newest
