@@ -313,12 +313,9 @@ switches, book/troll choices).
 
 ## Docs index
 
-<<<<<<< HEAD
-=======
 - **Round 16 UCI gates:** `round-16-uci-gates.md` (`PersonaSmooth` / `EngineDetectV2` default **false**; UnarchitecturedHint not done).
 - **Live Elo detector (high-level misfires):** `elo-detector-high-level-integration.md` (Maia≠FULL, ceiling/clock tells retuned).
 - **Persona stability / SPRT correlation:** `persona-stability-and-sprt-correlation.md` (EMA+dwell; 57% fewer mode flips in sim).
->>>>>>> ef4f210 (Persona EMA/dwell, Elo-detector high-level gates, fail-closed A100 v4 path)
 - **IEEE-style report (cloud speed/quality, persona-on):** `ieee-cloud-nnue-speed-quality.pdf` (LaTeX source `ieee-cloud-nnue-speed-quality.tex`).
 - **IEEE-style report (val-MAE floors vs persona):** `ieee-low-cp-val-mae-and-persona.md`
   (simulation + committed SPRTs; sub-20 cp is NO-GO on current HCE labels;
