@@ -1,72 +1,84 @@
 #!/bin/bash
 # Idempotent Rust toolchain bootstrap for a fresh/ephemeral sandbox.
 #
-# Why this exists: multiple arena rounds (15, 18) pushed Rust changes
-# that don't compile, because the sandbox had no rustc and the round's
-# own doc just noted "(need rustc)" as a caveat instead of installing
-# one. Arena's sandbox (Debian 12 KVM/E2B-style VM) filters outbound
-# HTTPS: GitHub's HTML/API is reachable, but rustup.rs and the Debian
-# package CDN often fail TLS. There is no single install path known to
-# work through that filter yet, so this tries a few and reports exactly
-# what happened with each -- silence is not an acceptable outcome here.
+# Tries, in order:
+#   1. rustc/cargo already on PATH
+#   2. existing rustup at $HOME/.cargo/env
+#   3. Debian/Ubuntu apt (rustc + cargo)
+#   4. official rustup installer (https://sh.rustup.rs)
 #
-# Usage: source this (not just execute it) so cargo/rustc land on PATH
-# in the current shell without needing a fresh login:
+# Each step prints what it did. If both apt and rustup fail, that is a
+# real environment blocker — paste this script's stdout into the round
+# doc instead of pushing unbuilt Rust.
+#
+# Usage (source so PATH updates in the current shell):
 #   source scripts/setup-rust-toolchain.sh
 set -u
 
+report() { echo "[setup-rust-toolchain] $*"; }
+
 if command -v cargo >/dev/null 2>&1 && command -v rustc >/dev/null 2>&1; then
-  echo "rustc/cargo already on PATH: $(rustc --version), $(cargo --version)"
+  report "already on PATH: $(rustc --version), $(cargo --version)"
   return 0 2>/dev/null || exit 0
 fi
 
 if [ -f "$HOME/.cargo/env" ]; then
-  # rustup was installed before in this filesystem, just not sourced yet
   # shellcheck disable=SC1091
   . "$HOME/.cargo/env"
-  if command -v cargo >/dev/null 2>&1; then
-    echo "found existing rustup install, sourced $HOME/.cargo/env: $(rustc --version)"
+  if command -v cargo >/dev/null 2>&1 && command -v rustc >/dev/null 2>&1; then
+    report "sourced $HOME/.cargo/env: $(rustc --version), $(cargo --version)"
     return 0 2>/dev/null || exit 0
   fi
+  report "found $HOME/.cargo/env but rustc/cargo still missing"
 fi
 
-echo "no rustc found -- trying install paths in order, reporting each result:"
+APT_OK=0
+RUSTUP_OK=0
 
-# Path 1: apt (Debian's own repos may resolve through a different route
-# than the rustup.rs/CDN hosts that are known to fail here -- worth
-# trying independently rather than assuming the same filter blocks it).
+report "apt path: trying rustc + cargo..."
 if command -v apt-get >/dev/null 2>&1; then
-  echo "-- trying apt-get install rustc cargo --"
-  if apt-get update -qq 2>&1 | tail -5 && apt-get install -y -qq rustc cargo 2>&1 | tail -5; then
+  if sudo DEBIAN_FRONTEND=noninteractive apt-get update -qq && \
+     sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq rustc cargo; then
     if command -v rustc >/dev/null 2>&1 && command -v cargo >/dev/null 2>&1; then
-      echo "apt install worked: $(rustc --version), $(cargo --version)"
-      echo "note: Debian's apt rustc/cargo can lag the 'stable' channel that"
-      echo "rust-toolchain.toml pins -- if cargo complains about the channel,"
-      echo "that mismatch is expected; report the actual version back."
-      return 0 2>/dev/null || exit 0
+      report "apt path: OK — $(rustc --version), $(cargo --version)"
+      APT_OK=1
+    else
+      report "apt path: packages claimed install but rustc/cargo not on PATH"
     fi
+  else
+    report "apt path: FAILED (update/install error; often a filtered Debian CDN)"
   fi
-  echo "apt path did not produce a working rustc/cargo, moving on."
 else
-  echo "no apt-get on this system, skipping that path."
+  report "apt path: skipped (no apt-get)"
 fi
 
-# Path 2: rustup official installer.
-echo "-- trying rustup (https://sh.rustup.rs) --"
-if curl --proto '=https' --tlsv1.2 -sSf --connect-timeout 10 https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile default 2>&1 | tail -20; then
+if [ "$APT_OK" -eq 1 ]; then
+  return 0 2>/dev/null || exit 0
+fi
+
+report "rustup path: curl https://sh.rustup.rs ..."
+set +e
+set -o pipefail
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile default
+RUSTUP_STATUS=$?
+set +o pipefail
+if [ "$RUSTUP_STATUS" -eq 0 ] && [ -f "$HOME/.cargo/env" ]; then
   # shellcheck disable=SC1091
-  . "$HOME/.cargo/env" 2>/dev/null || true
+  . "$HOME/.cargo/env"
   if command -v rustc >/dev/null 2>&1 && command -v cargo >/dev/null 2>&1; then
-    echo "rustup install worked: $(rustc --version), $(cargo --version)"
-    return 0 2>/dev/null || exit 0
+    report "rustup path: OK — $(rustc --version), $(cargo --version)"
+    RUSTUP_OK=1
+  else
+    report "rustup path: installer returned 0 but rustc/cargo not on PATH"
   fi
+else
+  report "rustup path: FAILED status=$RUSTUP_STATUS (often TLS to sh.rustup.rs / static.rust-lang.org)"
 fi
-echo "rustup path did not produce a working rustc/cargo."
 
-echo "ERROR: no install path worked in this sandbox." >&2
-echo "This is a real, reportable blocker -- put the exact curl/apt error output" >&2
-echo "from above in the round's doc instead of silently pushing unbuilt code." >&2
-echo "If someone with access to this sandbox's network policy can add an allowed" >&2
-echo "host (an internal mirror, or a proxy for static.rust-lang.org/rustup.rs)," >&2
-echo "that is the actual fix; this script cannot work around a network it cannot reach." >&2
+if [ "$RUSTUP_OK" -eq 1 ]; then
+  return 0 2>/dev/null || exit 0
+fi
+
+report "BLOCKER: apt FAILED and rustup FAILED. No rustc in this environment."
+report "Do not push unbuilt .rs changes as verified. Paste this log in the round doc."
 return 1 2>/dev/null || exit 1

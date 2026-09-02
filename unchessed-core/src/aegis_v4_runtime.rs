@@ -17,6 +17,7 @@
 
 use crate::board::{file_of, Move, Position, BISHOP, BK, BQ, KNIGHT, NO_EP, QUEEN, ROOK, WK, WQ};
 use crate::unarchitectured_v1::TensorPackage;
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering as AtomicOrdering};
 use std::sync::mpsc::{sync_channel, SyncSender, TrySendError};
@@ -1127,20 +1128,24 @@ fn linear_quantized_sequential(
     let dot_four_two = *DOT4X2_I16_I8_KERNEL.get_or_init(select_dot4x2_i16_i8_kernel);
 
     const TOKEN_BLOCK: usize = 4;
-    for output_start in (0..out_width).step_by(2) {
-        let output_end = (output_start + 2).min(out_width);
-        let first_weight_start = output_start * weight_stride;
-        let first_weight = &weight.data[first_weight_start..first_weight_start + in_width];
-        if output_end - output_start == 2 {
-            let second_weight_start = (output_start + 1) * weight_stride;
-            let second_weight = &weight.data[second_weight_start..second_weight_start + in_width];
-            let initial_0 = bias.map(|values| values.get(output_start)).unwrap_or(0.0);
-            let initial_1 = bias
-                .map(|values| values.get(output_start + 1))
-                .unwrap_or(0.0);
-            for token_start in (0..tokens).step_by(TOKEN_BLOCK) {
-                let token_end = (token_start + TOKEN_BLOCK).min(tokens);
-                if token_end - token_start == TOKEN_BLOCK {
+    // Token-outer, output-inner: the 4 activation rows stay hot while we
+    // stream weight pairs. Same i16×i8 products as the old output-outer loop.
+    for token_start in (0..tokens).step_by(TOKEN_BLOCK) {
+        let token_end = (token_start + TOKEN_BLOCK).min(tokens);
+        let full_block = token_end - token_start == TOKEN_BLOCK;
+        for output_start in (0..out_width).step_by(2) {
+            let output_end = (output_start + 2).min(out_width);
+            let first_weight_start = output_start * weight_stride;
+            let first_weight = &weight.data[first_weight_start..first_weight_start + in_width];
+            if output_end - output_start == 2 {
+                let second_weight_start = (output_start + 1) * weight_stride;
+                let second_weight =
+                    &weight.data[second_weight_start..second_weight_start + in_width];
+                let initial_0 = bias.map(|values| values.get(output_start)).unwrap_or(0.0);
+                let initial_1 = bias
+                    .map(|values| values.get(output_start + 1))
+                    .unwrap_or(0.0);
+                if full_block {
                     let sums = dot_four_two(
                         &values[token_start * in_width..],
                         in_width,
@@ -1177,18 +1182,18 @@ fn linear_quantized_sequential(
                         }
                     }
                 }
-            }
-        } else {
-            let initial = bias.map(|values| values.get(output_start)).unwrap_or(0.0);
-            for token in 0..tokens {
-                let input = &values[token * in_width..(token + 1) * in_width];
-                let sum = input
-                    .iter()
-                    .zip(first_weight)
-                    .map(|(&activation, &weight)| i32::from(activation) * i32::from(weight))
-                    .sum::<i32>();
-                out[token * out_width + output_start] =
-                    initial + sum as f32 * activation_scales[token] * weight.scale;
+            } else {
+                let initial = bias.map(|values| values.get(output_start)).unwrap_or(0.0);
+                for token in token_start..token_end {
+                    let input = &values[token * in_width..(token + 1) * in_width];
+                    let sum = input
+                        .iter()
+                        .zip(first_weight)
+                        .map(|(&activation, &weight)| i32::from(activation) * i32::from(weight))
+                        .sum::<i32>();
+                    out[token * out_width + output_start] =
+                        initial + sum as f32 * activation_scales[token] * weight.scale;
+                }
             }
         }
     }
@@ -1580,11 +1585,11 @@ fn attention_heads(
     width: usize,
     head_start: usize,
     head_end: usize,
-) -> Vec<f32> {
+    destination: &mut [f32],
+) {
     let tokens = 64;
     let head_dim = width / HEADS;
     let scale = 1.0 / (head_dim as f32).sqrt();
-    let mut output = vec![0.0f32; (head_end - head_start) * tokens * head_dim];
     let mut scores = [0.0f32; 64];
     let dot = *DOT_KERNEL.get_or_init(select_dot_kernel);
     let axpy = *AXPY_KERNEL.get_or_init(select_axpy_kernel);
@@ -1601,8 +1606,9 @@ fn attention_heads(
                 max_score = max_score.max(score);
             }
             let sum = softmax8_dispatch(&mut scores, max_score);
-            let output_base = (local_head * tokens + i) * head_dim;
-            let row = &mut output[output_base..output_base + head_dim];
+            let output_base = i * width + h * head_dim;
+            let row = &mut destination[output_base..output_base + head_dim];
+            row.fill(0.0);
             let inverse_sum = 1.0 / sum;
             for j in 0..tokens {
                 let value_base = j * width + h * head_dim;
@@ -1614,7 +1620,6 @@ fn attention_heads(
             }
         }
     }
-    output
 }
 
 pub static ATTN_TOGGLE: AtomicU64 = AtomicU64::new(0);
@@ -1648,14 +1653,14 @@ unsafe fn attention_heads_inlined(
     width: usize,
     head_start: usize,
     head_end: usize,
-) -> Vec<f32> {
+    destination: &mut [f32],
+) {
     use std::arch::x86_64::*;
     let tokens = 64;
     let head_dim = width / HEADS;
     let chunks = head_dim / 8;
     debug_assert!(head_dim % 8 == 0, "inlined attention expects head_dim % 8 == 0");
     let scale = 1.0 / (head_dim as f32).sqrt();
-    let mut output = vec![0.0f32; (head_end - head_start) * tokens * head_dim];
     let mut scores = [0.0f32; 64];
     for h in head_start..head_end {
         let local_head = h - head_start;
@@ -1688,8 +1693,8 @@ unsafe fn attention_heads_inlined(
             for score in &mut scores {
                 *score *= inverse_sum;
             }
-            let output_base = (local_head * tokens + i) * head_dim;
-            let row = &mut output[output_base..output_base + head_dim];
+            let output_base = i * width + h * head_dim;
+            let row = &mut destination[output_base..output_base + head_dim];
             let mut acc = [_mm256_setzero_ps(); 4];
             for j in 0..tokens {
                 let p = _mm256_set1_ps(scores[j]);
@@ -1704,7 +1709,6 @@ unsafe fn attention_heads_inlined(
             }
         }
     }
-    output
 }
 
 fn attention_heads_dispatch(
@@ -1715,37 +1719,38 @@ fn attention_heads_dispatch(
     width: usize,
     head_start: usize,
     head_end: usize,
-) -> Vec<f32> {
+    destination: &mut [f32],
+) {
     static INIT: std::sync::Once = std::sync::Once::new();
     INIT.call_once(|| ATTN_TOGGLE.store(attention_toggle_initial(), AtomicOrdering::Relaxed));
     if ATTN_TOGGLE.load(AtomicOrdering::Relaxed) != 0 {
         #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
         if std::is_x86_feature_detected!("avx2") && std::is_x86_feature_detected!("fma") {
-            return unsafe {
-                attention_heads_inlined(q, k, v, geometric_bias, width, head_start, head_end)
+            unsafe {
+                attention_heads_inlined(
+                    q,
+                    k,
+                    v,
+                    geometric_bias,
+                    width,
+                    head_start,
+                    head_end,
+                    destination,
+                )
             };
+            return;
         }
     }
-    attention_heads(q, k, v, geometric_bias, width, head_start, head_end)
-}
-
-fn copy_attention_heads(
-    source: &[f32],
-    destination: &mut [f32],
-    width: usize,
-    head_start: usize,
-    head_end: usize,
-) {
-    let head_dim = width / HEADS;
-    for h in head_start..head_end {
-        let local_head = h - head_start;
-        for token in 0..64 {
-            let source_base = (local_head * 64 + token) * head_dim;
-            let destination_base = token * width + h * head_dim;
-            destination[destination_base..destination_base + head_dim]
-                .copy_from_slice(&source[source_base..source_base + head_dim]);
-        }
-    }
+    attention_heads(
+        q,
+        k,
+        v,
+        geometric_bias,
+        width,
+        head_start,
+        head_end,
+        destination,
+    )
 }
 
 struct LayerTensorNames {
@@ -1903,6 +1908,24 @@ impl BlockScratch {
     }
 }
 
+thread_local! {
+    static BLOCK_SCRATCH: RefCell<Option<(usize, BlockScratch)>> = const { RefCell::new(None) };
+}
+
+fn with_block_scratch<R>(width: usize, f: impl FnOnce(&mut BlockScratch) -> R) -> R {
+    BLOCK_SCRATCH.with(|cell| {
+        let mut slot = cell.borrow_mut();
+        let scratch = match slot.as_mut() {
+            Some((cached_width, scratch)) if *cached_width == width => scratch,
+            _ => {
+                *slot = Some((width, BlockScratch::new(width)));
+                &mut slot.as_mut().unwrap().1
+            }
+        };
+        f(scratch)
+    })
+}
+
 fn elastic_block(
     values: &mut [f32; 64 * D_MODEL],
     width: usize,
@@ -1987,13 +2010,40 @@ fn elastic_block(
             }
         }
         let split = HEADS / 2;
+        let mut left_buf = vec![0.0f32; tokens * width];
+        let mut right_buf = vec![0.0f32; tokens * width];
         std::thread::scope(|scope| {
-            let left = scope.spawn(|| attention_heads_dispatch(&q, &k, &v, &bias_full[..split * 64 * 64], width, 0, split));
-            let right = attention_heads_dispatch(&q, &k, &v, &bias_full[split * 64 * 64..], width, split, HEADS);
-            let left = left.join().expect("attention worker panicked");
-            copy_attention_heads(&left, &mut attended[..], width, 0, split);
-            copy_attention_heads(&right, &mut attended[..], width, split, HEADS);
+            scope.spawn(|| {
+                attention_heads_dispatch(
+                    &q,
+                    &k,
+                    &v,
+                    &bias_full[..split * 64 * 64],
+                    width,
+                    0,
+                    split,
+                    &mut left_buf,
+                );
+            });
+            attention_heads_dispatch(
+                &q,
+                &k,
+                &v,
+                &bias_full[split * 64 * 64..],
+                width,
+                split,
+                HEADS,
+                &mut right_buf,
+            );
         });
+        let head_dim = width / HEADS;
+        for token in 0..tokens {
+            let dst = token * width;
+            attended[dst..dst + split * head_dim]
+                .copy_from_slice(&left_buf[dst..dst + split * head_dim]);
+            attended[dst + split * head_dim..dst + width]
+                .copy_from_slice(&right_buf[dst + split * head_dim..dst + width]);
+        }
     } else {
         let bias = &mut scratch.head_bias;
         for h in 0..HEADS {
@@ -2010,8 +2060,7 @@ fn elastic_block(
                     bias,
                 );
             }
-            let head_out = attention_heads_dispatch(&q, &k, &v, bias, width, h, h + 1);
-            copy_attention_heads(&head_out, attended, width, h, h + 1);
+            attention_heads_dispatch(&q, &k, &v, bias, width, h, h + 1, attended);
         }
     }
 
@@ -2217,34 +2266,35 @@ pub fn forward_at_exit(
         }
     }
 
-    let mut scratch = BlockScratch::new(width);
-    for layer_names in LAYER_TENSOR_NAMES.iter().take(layers) {
-        let coeff_weight = weights.t(layer_names.coefficients); // (HEADS*GAB_TEMPLATES, GAB_HIDDEN)
-        let mut coefficients = [0f32; HEADS * GAB_TEMPLATES];
-        for o in 0..HEADS * GAB_TEMPLATES {
-            let row = o * GAB_HIDDEN;
-            coefficients[o] = dot_kernel(&context, &coeff_weight.data[row..row + GAB_HIDDEN]);
+    with_block_scratch(width, |scratch| {
+        for layer_names in LAYER_TENSOR_NAMES.iter().take(layers) {
+            let coeff_weight = weights.t(layer_names.coefficients); // (HEADS*GAB_TEMPLATES, GAB_HIDDEN)
+            let mut coefficients = [0f32; HEADS * GAB_TEMPLATES];
+            for o in 0..HEADS * GAB_TEMPLATES {
+                let row = o * GAB_HIDDEN;
+                coefficients[o] = dot_kernel(&context, &coeff_weight.data[row..row + GAB_HIDDEN]);
+            }
+            let block = ElasticBlockWeights {
+                norm_attention: weights.t(layer_names.norm_attention),
+                qkv: weights.t(layer_names.qkv),
+                project: weights.t(layer_names.project),
+                project_bias: weights.t(layer_names.project_bias),
+                norm_ffn: weights.t(layer_names.norm_ffn),
+                up: weights.t(layer_names.up),
+                up_bias: weights.t(layer_names.up_bias),
+                down: weights.t(layer_names.down),
+                down_bias: weights.t(layer_names.down_bias),
+            };
+            elastic_block(
+                &mut values,
+                width,
+                &block,
+                &coefficients,
+                weights.t("gab.templates"),
+                scratch,
+            );
         }
-        let block = ElasticBlockWeights {
-            norm_attention: weights.t(layer_names.norm_attention),
-            qkv: weights.t(layer_names.qkv),
-            project: weights.t(layer_names.project),
-            project_bias: weights.t(layer_names.project_bias),
-            norm_ffn: weights.t(layer_names.norm_ffn),
-            up: weights.t(layer_names.up),
-            up_bias: weights.t(layer_names.up_bias),
-            down: weights.t(layer_names.down),
-            down_bias: weights.t(layer_names.down_bias),
-        };
-        elastic_block(
-            &mut values,
-            width,
-            &block,
-            &coefficients,
-            weights.t("gab.templates"),
-            &mut scratch,
-        );
-    }
+    });
 
 
     // --- Final norm + pooling ---
