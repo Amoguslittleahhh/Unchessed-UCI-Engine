@@ -15,13 +15,13 @@ use crate::aegis_v4_runtime::{
     position_to_input, ChessformerWeights, HintKey, InferenceExit, UnarchitecturedHintWorker,
     POLICY_GUIDE,
 };
-use crate::policy::PolicyNet;
 use crate::board::*;
 use crate::book::{Book, BookEntry, Tier};
 use crate::eval::{Eval, EvalParams, Hce};
 use crate::fen;
-use crate::nnue::Nnue;
 use crate::movegen::{legal, parse_uci_move};
+use crate::nnue::Nnue;
+use crate::policy::PolicyNet;
 use crate::search::{self, InfoEvent, Limits, Line, SearchParams};
 use crate::tt::TT;
 use crate::unarchitectured_v1::TensorPackage;
@@ -63,6 +63,9 @@ struct Options {
     unarchitectured_min_time_ms: u64,
     persona_smooth: bool,
     engine_detect_v2: bool,
+    /// Default-off diagnostic output. This is deliberately not part of
+    /// AdaptConfig and must never influence search, selection, or model state.
+    adapter_telemetry: bool,
 }
 
 /// Default search thread count: the machine's logical CPU count, capped.
@@ -113,6 +116,7 @@ impl Default for Options {
             unarchitectured_min_time_ms: 30_000,
             persona_smooth: false,
             engine_detect_v2: false,
+            adapter_telemetry: false,
         }
     }
 }
@@ -164,6 +168,8 @@ fn load_unarchitectured_candidate(option: &str) -> Result<UnarchitecturedCandida
 struct PendingObs {
     pre: Position,
     mv: Move,
+    /// One-based game ply after this opponent move was played.
+    ply: u32,
 }
 
 struct Game {
@@ -173,16 +179,24 @@ struct Game {
     /// plies already fed to the opponent model
     observed_plies: usize,
     out_of_book_logged: bool,
+    /// Process-local telemetry identity. These fields are observation-only and
+    /// are advanced only for opt-in telemetry records.
+    game_id: u64,
+    decision_index: u64,
+    observation_index: u64,
 }
 
 impl Game {
-    fn new() -> Game {
+    fn new(game_id: u64) -> Game {
         let p = fen::startpos();
         Game {
             positions: vec![p],
             current: p,
             observed_plies: 0,
             out_of_book_logged: false,
+            game_id,
+            decision_index: 0,
+            observation_index: 0,
         }
     }
 }
@@ -204,8 +218,7 @@ pub fn run(ident: EngineIdent) {
         }
     }));
     let model = Arc::new(Mutex::new(OpponentModel::new()));
-    let policy: Arc<Mutex<Option<Arc<PolicyNet>>>> =
-        Arc::new(Mutex::new(load_default_policy()));
+    let policy: Arc<Mutex<Option<Arc<PolicyNet>>>> = Arc::new(Mutex::new(load_default_policy()));
     let unarchitectured_candidate: Arc<Mutex<Option<UnarchitecturedCandidate>>> =
         Arc::new(Mutex::new(None));
     let (mut eval_impl, mut eval_desc, mut eval_is_hce): (Arc<dyn Eval>, String, bool) =
@@ -214,7 +227,10 @@ pub fn run(ident: EngineIdent) {
     // persona persists across moves for hysteresis + EMA/dwell; worker updates it
     let persona = Arc::new(Mutex::new(PersonaState::default()));
     let mut worker: Option<JoinHandle<()>> = None;
-    let mut game = Game::new();
+    let mut game = Game::new(0);
+    // `ucinewgame` owns logical game boundaries. The initial pre-newgame
+    // position remains game 0 for permissive UCI clients.
+    let mut next_game_id = 0u64;
     // opponent's clock reading at our previous `go` (for the time signal)
     let mut last_opp_clock: Option<u64> = None;
 
@@ -246,13 +262,13 @@ pub fn run(ident: EngineIdent) {
                     default_threads()
                 );
                 println!("option name Clear Hash type button");
-                println!("option name MultiPV type spin default {} min 1 max 8",
-                    if ident.adaptive_engine { 1 } else { 3 });
+                println!(
+                    "option name MultiPV type spin default {} min 1 max 8",
+                    if ident.adaptive_engine { 1 } else { 3 }
+                );
                 println!("option name EvalFile type string default ");
                 println!("option name UnarchitecturedHint type check default false");
-                println!(
-                    "option name UnarchitecturedHintExit type string default 2/128"
-                );
+                println!("option name UnarchitecturedHintExit type string default 2/128");
                 println!("option name UnarchitecturedFile type string default ");
                 println!(
                     "option name UnarchitecturedMinTime type spin default 30000 min 1000 max 600000"
@@ -270,6 +286,7 @@ pub fn run(ident: EngineIdent) {
                     println!("option name UCI_Opponent type string default ");
                     println!("option name PersonaSmooth type check default false");
                     println!("option name EngineDetectV2 type check default false");
+                    println!("option name AdapterTelemetry type check default false");
                 }
                 // tunable search constants (defaults match prior hard-coded
                 // values; exposed for manual tuning and future SPSA runs)
@@ -343,7 +360,8 @@ pub fn run(ident: EngineIdent) {
                 }
                 *persona.lock().unwrap() = PersonaState::default();
                 last_opp_clock = None;
-                game = Game::new();
+                next_game_id = next_game_id.saturating_add(1);
+                game = Game::new(next_game_id);
                 if opt.unarchitectured_hint {
                     match load_unarchitectured_candidate(&opt.unarchitectured_file) {
                         Ok(candidate) => {
@@ -371,10 +389,43 @@ pub fn run(ident: EngineIdent) {
                 join_worker(&mut worker, &stop);
                 let limits = parse_go(&line);
                 let pending = collect_pending(&mut game);
+                let telemetry_enabled = ident.adaptive_engine && opt.adapter_telemetry;
+                let observation_indices = if telemetry_enabled {
+                    (0..pending.len())
+                        .map(|_| {
+                            game.observation_index = game.observation_index.saturating_add(1);
+                            game.observation_index
+                        })
+                        .collect()
+                } else {
+                    Vec::new()
+                };
+                let decision_index = if telemetry_enabled
+                    && (opt.adaptive || opt.limit_strength)
+                    && limits.is_game_mode()
+                {
+                    game.decision_index = game.decision_index.saturating_add(1);
+                    Some(game.decision_index)
+                } else {
+                    None
+                };
+                let telemetry_run = if telemetry_enabled {
+                    telemetry_run_id()
+                } else {
+                    String::new()
+                };
                 // opponent time signal: how long did their last move take?
                 let opp_is_white = matches!(game.current.side, Color::Black);
-                let opp_clock_now = if opp_is_white { limits.wtime } else { limits.btime };
-                let opp_inc = if opp_is_white { limits.winc } else { limits.binc };
+                let opp_clock_now = if opp_is_white {
+                    limits.wtime
+                } else {
+                    limits.btime
+                };
+                let opp_inc = if opp_is_white {
+                    limits.winc
+                } else {
+                    limits.binc
+                };
                 let opp_time_used = match (last_opp_clock, opp_clock_now, &pending[..]) {
                     (Some(prev), Some(now), [_, ..]) => {
                         Some((prev + opp_inc.unwrap_or(0)).saturating_sub(now))
@@ -398,6 +449,10 @@ pub fn run(ident: EngineIdent) {
                     eval: Arc::clone(&eval_impl),
                     unarchitectured_candidate: Arc::clone(&unarchitectured_candidate),
                     opp_time_used,
+                    game_id: game.game_id,
+                    decision_index,
+                    observation_indices,
+                    telemetry_run,
                 };
                 // the worker decides book state transitions; mirror the flag
                 // optimistically so the log line prints only once
@@ -433,11 +488,15 @@ pub fn run(ident: EngineIdent) {
                         let ml = legal(&game.current);
                         let moves: Vec<Move> = ml.as_slice().to_vec();
                         let probs = net.priors(&game.current, &moves, elo);
-                        let mut ranked: Vec<(Move, f64)> =
-                            moves.into_iter().zip(probs).collect();
+                        let mut ranked: Vec<(Move, f64)> = moves.into_iter().zip(probs).collect();
                         ranked.sort_by(|a, b| b.1.total_cmp(&a.1));
                         for (m, p) in ranked.iter().take(8) {
-                            println!("info string [Unchessed] policy@{} {} {:.1}%", elo, m.uci(), p * 100.0);
+                            println!(
+                                "info string [Unchessed] policy@{} {} {:.1}%",
+                                elo,
+                                m.uci(),
+                                p * 100.0
+                            );
                         }
                     }
                     None => println!("info string [Unchessed] no policy net loaded"),
@@ -791,6 +850,7 @@ fn handle_setoption(
             }
         }
         "personasmooth" => opt.persona_smooth = value.eq_ignore_ascii_case("true"),
+        "adaptertelemetry" => opt.adapter_telemetry = value.eq_ignore_ascii_case("true"),
         "enginedetectv2" => {
             opt.engine_detect_v2 = value.eq_ignore_ascii_case("true");
             model.lock().unwrap().experimental_detect = opt.engine_detect_v2;
@@ -858,6 +918,9 @@ fn parse_position(line: &str, old: &Game) -> Option<Game> {
                 current: pos,
                 observed_plies: 0,
                 out_of_book_logged: false,
+                game_id: old.game_id,
+                decision_index: old.decision_index,
+                observation_index: old.observation_index,
             };
             if saw_moves {
                 for t in toks {
@@ -876,6 +939,9 @@ fn parse_position(line: &str, old: &Game) -> Option<Game> {
         current: start,
         observed_plies: 0,
         out_of_book_logged: false,
+        game_id: old.game_id,
+        decision_index: old.decision_index,
+        observation_index: old.observation_index,
     };
     if toks.peek() == Some(&"moves") {
         toks.next();
@@ -935,7 +1001,11 @@ fn collect_pending(game: &mut Game) -> Vec<PendingObs> {
                 .copied()
                 .find(|m| pre.make(*m).hash == post.hash)
             {
-                out.push(PendingObs { pre, mv });
+                out.push(PendingObs {
+                    pre,
+                    mv,
+                    ply: (i + 1) as u32,
+                });
             }
         }
     }
@@ -943,7 +1013,11 @@ fn collect_pending(game: &mut Game) -> Vec<PendingObs> {
     out
 }
 
-fn unarchitectured_input(pos: &Position, legal_moves: &[Move], rating: i32) -> crate::aegis_v4_runtime::PositionInput {
+fn unarchitectured_input(
+    pos: &Position,
+    legal_moves: &[Move],
+    rating: i32,
+) -> crate::aegis_v4_runtime::PositionInput {
     position_to_input(
         pos,
         legal_moves,
@@ -1020,9 +1094,7 @@ fn prepare_unarchitectured_root_hints(
         {
             let guard = candidate.lock().unwrap();
             if let Some(candidate) = guard.as_ref() {
-                let _ = candidate
-                    .worker
-                    .try_submit(pos.hash, input, exit);
+                let _ = candidate.worker.try_submit(pos.hash, input, exit);
             }
         }
         let deadline = std::time::Instant::now() + std::time::Duration::from_millis(100);
@@ -1096,6 +1168,133 @@ struct GoJob {
     unarchitectured_candidate: Arc<Mutex<Option<UnarchitecturedCandidate>>>,
     /// milliseconds the opponent spent on their last move, if known
     opp_time_used: Option<u64>,
+    /// Telemetry identity captured by the command thread before the worker.
+    game_id: u64,
+    decision_index: Option<u64>,
+    observation_indices: Vec<u64>,
+    telemetry_run: String,
+}
+
+fn telemetry_run_id() -> String {
+    let candidate = std::env::var("UNCHESSED_TELEMETRY_RUN").unwrap_or_else(|_| "none".to_string());
+    if !candidate.is_empty()
+        && candidate
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.'))
+    {
+        candidate
+    } else {
+        "none".to_string()
+    }
+}
+
+fn telemetry_enabled(job: &GoJob) -> bool {
+    job.ident_adaptive && job.opt.adapter_telemetry
+}
+
+fn telemetry_option_fields(job: &GoJob) -> (u8, u8, u8, u8, u8) {
+    (
+        job.opt.adaptive as u8,
+        job.opt.limit_strength as u8,
+        job.opt.persona_smooth as u8,
+        job.opt.engine_detect_v2 as u8,
+        job.opt.own_book as u8,
+    )
+}
+
+fn telemetry_clock_fields(job: &GoJob) -> (u8, String) {
+    match job.opp_time_used {
+        Some(milliseconds) => (1, milliseconds.to_string()),
+        None => (0, "none".to_string()),
+    }
+}
+
+fn telemetry_action_full(job: &GoJob, suspect: bool) -> u8 {
+    (job.opt.adaptive && !job.opt.limit_strength && suspect) as u8
+}
+
+#[allow(clippy::too_many_arguments)]
+fn emit_observation_telemetry(
+    job: &GoJob,
+    event: &str,
+    observation: u64,
+    ply: u32,
+    source: &str,
+    reason: Option<&str>,
+    low_time: bool,
+    cp_loss: Option<i32>,
+    difficulty_weight_milli: Option<i32>,
+    legal_count: Option<usize>,
+    had_choice: Option<bool>,
+    snapshot: crate::adapt::OpponentTelemetrySnapshot,
+) {
+    let (adaptive, limit_strength, persona_smooth, engine_detect_v2, own_book) =
+        telemetry_option_fields(job);
+    let (clock_available, opp_time_used_ms) = telemetry_clock_fields(job);
+    let reason_fields = match reason {
+        Some(reason) => format!(" reason={reason}"),
+        None => String::new(),
+    };
+    let cp_loss = cp_loss
+        .map(|n| n.to_string())
+        .unwrap_or_else(|| "none".to_string());
+    let difficulty_weight_milli = difficulty_weight_milli
+        .map(|n| n.to_string())
+        .unwrap_or_else(|| "none".to_string());
+    let legal_count = legal_count
+        .map(|n| n.to_string())
+        .unwrap_or_else(|| "none".to_string());
+    let had_choice = had_choice
+        .map(|value| (value as u8).to_string())
+        .unwrap_or_else(|| "none".to_string());
+    let declared_elo = snapshot
+        .declared_elo
+        .map(|n| n.to_string())
+        .unwrap_or_else(|| "none".to_string());
+    println!(
+        "info string [UnchessedTelemetry] v=1 event={event} run={} game={} ply={ply} observation={observation} source={source}{reason_fields} adaptive={adaptive} limit_strength={limit_strength} persona_smooth={persona_smooth} engine_detect_v2={engine_detect_v2} own_book={own_book} adapter_telemetry=1 low_time={} clock_available={clock_available} opp_time_used_ms={opp_time_used_ms} cp_loss={cp_loss} difficulty_weight_milli={difficulty_weight_milli} legal_count={legal_count} had_choice={had_choice} estimate_elo={} confidence_cp={} weight_milli={} suspicion_milli={} low_loss_streak={} samples={} is_computer={} declared_elo={declared_elo} suspect={} suspect_reason={} action_full={}",
+        job.telemetry_run,
+        job.game_id,
+        low_time as u8,
+        snapshot.estimate_elo,
+        snapshot.confidence_cp,
+        snapshot.weight_milli,
+        snapshot.suspicion_milli,
+        snapshot.low_loss_streak,
+        snapshot.samples,
+        snapshot.is_computer as u8,
+        snapshot.suspect as u8,
+        snapshot.suspect_reason.name(),
+        telemetry_action_full(job, snapshot.suspect),
+    );
+}
+
+fn emit_persona_decision_telemetry(
+    job: &GoJob,
+    decision: u64,
+    ply: u32,
+    raw_eval_cp: i32,
+    snapshot: crate::adapt::PersonaTelemetrySnapshot,
+    update: crate::adapt::PersonaUpdate,
+    selected_move: Move,
+    suspect: bool,
+) {
+    let (adaptive, limit_strength, persona_smooth, engine_detect_v2, own_book) =
+        telemetry_option_fields(job);
+    println!(
+        "info string [UnchessedTelemetry] v=1 event=persona_decision run={} game={} ply={ply} decision={decision} raw_eval_cp={raw_eval_cp} ema_cp={} mode_before={} mode_after={} candidate={} dwell={} emergency={} adaptive={adaptive} limit_strength={limit_strength} persona_smooth={persona_smooth} engine_detect_v2={engine_detect_v2} own_book={own_book} adapter_telemetry=1 suspect={} action_full={} selected_move={}",
+        job.telemetry_run,
+        job.game_id,
+        snapshot.ema_cp,
+        update.mode_before.name(),
+        update.mode_after.name(),
+        snapshot.candidate.name(),
+        snapshot.dwell,
+        update.emergency.name(),
+        suspect as u8,
+        telemetry_action_full(job, suspect),
+        selected_move.uci(),
+    );
 }
 
 fn print_info(ev: &InfoEvent, multipv_shown: usize) {
@@ -1170,13 +1369,30 @@ fn run_go(
     // ------------------------------------------------------------------
     if adaptive_now && !low_time && !job.pending.is_empty() {
         let mut m = model.lock().unwrap();
-        for obs in &job.pending {
+        for (ordinal, obs) in job.pending.iter().enumerate() {
+            let observation = job.observation_indices.get(ordinal).copied();
             let was_book = {
                 let b = book.lock().unwrap();
                 b.probe(&obs.pre).iter().any(|e| e.mv == obs.mv)
             };
             if was_book {
                 m.observe_book_move(job.game_plies);
+                if telemetry_enabled(&job) {
+                    emit_observation_telemetry(
+                        &job,
+                        "opponent_observation",
+                        observation.expect("telemetry observation index"),
+                        obs.ply,
+                        "book",
+                        None,
+                        low_time,
+                        None,
+                        None,
+                        None,
+                        None,
+                        m.telemetry_snapshot(),
+                    );
+                }
                 continue;
             }
             // Analysis of the pre-move position (opponent to move) used as the
@@ -1213,6 +1429,22 @@ fn run_go(
                 &mut |_| {},
             );
             if pre_lines.is_empty() {
+                if telemetry_enabled(&job) {
+                    emit_observation_telemetry(
+                        &job,
+                        "observation_skipped",
+                        observation.expect("telemetry observation index"),
+                        obs.ply,
+                        "probe",
+                        Some("probe_empty"),
+                        low_time,
+                        None,
+                        None,
+                        None,
+                        None,
+                        m.telemetry_snapshot(),
+                    );
+                }
                 continue;
             }
             let best = pre_lines[0].score;
@@ -1252,9 +1484,25 @@ fn run_go(
             m.observe(cp_loss, w);
             // clock signal: instant strong replies in positions with real
             // choice are the classic engine tell
+            let had_choice = lc > 8 && w >= 0.8;
             if let Some(used) = job.opp_time_used {
-                let had_choice = lc > 8 && w >= 0.8;
                 m.observe_time(used, had_choice);
+            }
+            if telemetry_enabled(&job) {
+                emit_observation_telemetry(
+                    &job,
+                    "opponent_observation",
+                    observation.expect("telemetry observation index"),
+                    obs.ply,
+                    "probe",
+                    None,
+                    low_time,
+                    Some(cp_loss),
+                    Some((w * 1000.0).round() as i32),
+                    Some(lc),
+                    Some(had_choice),
+                    m.telemetry_snapshot(),
+                );
             }
             println!(
                 "info string [Unchessed] opponent move {} cp-loss {} -> estimate ~{} (\u{00b1}{}), {}",
@@ -1263,6 +1511,29 @@ fn run_go(
                 m.estimate(),
                 m.confidence(),
                 m.trend()
+            );
+        }
+    } else if telemetry_enabled(&job) && !job.pending.is_empty() {
+        let reason = if low_time {
+            "low_time"
+        } else {
+            "adaptation_inactive"
+        };
+        let snapshot = model.lock().unwrap().telemetry_snapshot();
+        for (ordinal, obs) in job.pending.iter().enumerate() {
+            emit_observation_telemetry(
+                &job,
+                "observation_skipped",
+                job.observation_indices[ordinal],
+                obs.ply,
+                "probe",
+                Some(reason),
+                low_time,
+                None,
+                None,
+                None,
+                None,
+                snapshot,
             );
         }
     }
@@ -1471,10 +1742,17 @@ fn run_go(
     // ------------------------------------------------------------------
     if adaptive_now {
         let m = model.lock().unwrap().clone();
-        let mode = {
+        let (update, persona_snapshot) = {
             let mut st = persona.lock().unwrap();
-            st.update(&cfg, &m, lines[0].score, pos.fullmove)
+            let update = st.update_with_record(&cfg, &m, lines[0].score, pos.fullmove);
+            let snapshot = if telemetry_enabled(&job) {
+                Some(st.telemetry_snapshot())
+            } else {
+                None
+            };
+            (update, snapshot)
         };
+        let mode = update.mode_after;
         if mode != prev_mode {
             println!(
                 "info string [Unchessed] persona {} -> {} (eval {} cp, opponent ~{}, ema {} cp)",
@@ -1512,7 +1790,28 @@ fn run_go(
                 &mut |_| {},
             )
         };
-        let sel = select_move(&pos, &lines, mode, &cfg, &m, prior.as_ref(), &mut rng, &mut probe);
+        let sel = select_move(
+            &pos,
+            &lines,
+            mode,
+            &cfg,
+            &m,
+            prior.as_ref(),
+            &mut rng,
+            &mut probe,
+        );
+        if let (Some(decision), Some(snapshot)) = (job.decision_index, persona_snapshot) {
+            emit_persona_decision_telemetry(
+                &job,
+                decision,
+                job.game_plies,
+                lines[0].score,
+                snapshot,
+                update,
+                sel.mv,
+                m.engine_suspect(),
+            );
+        }
         println!(
             "info string [Unchessed] mode={} opponent~{} (\u{00b1}{}) eval {} cp: {}",
             mode.name(),
@@ -1658,6 +1957,86 @@ mod tests {
         assert!(o.adaptive);
     }
 
+    #[test]
+    fn adapter_telemetry_defaults_off_and_is_not_adapt_config() {
+        let mut options = Options::default();
+        assert!(!options.adapter_telemetry);
+        let before = options.adapt_config();
+        options.adapter_telemetry = true;
+        let after = options.adapt_config();
+        assert_eq!(before.adaptive, after.adaptive);
+        assert_eq!(before.limit_strength, after.limit_strength);
+        assert_eq!(before.elo_cap, after.elo_cap);
+        assert_eq!(before.contempt, after.contempt);
+        assert_eq!(before.persona_smooth, after.persona_smooth);
+        assert!(!Options::default().persona_smooth);
+        assert!(!Options::default().engine_detect_v2);
+    }
+
+    #[test]
+    fn adapter_telemetry_is_adapter_only_and_boolean_case_insensitive() {
+        let tt = Arc::new(Mutex::new(TT::new(1)));
+        let book = Arc::new(Mutex::new(Book::new().expect("embedded book")));
+        let model = Arc::new(Mutex::new(OpponentModel::new()));
+        let policy = Arc::new(Mutex::new(None));
+        let unarchitectured = Arc::new(Mutex::new(None));
+        let mut opt = Options::default();
+        let mut eval: Arc<dyn Eval> = Arc::new(Hce::new(opt.eval_params));
+        let mut desc = String::new();
+        let mut is_hce = true;
+        handle_setoption(
+            "setoption name AdapterTelemetry value TRUE",
+            &mut opt,
+            &tt,
+            &book,
+            &model,
+            &policy,
+            &unarchitectured,
+            &mut eval,
+            &mut desc,
+            &mut is_hce,
+        );
+        assert!(opt.adapter_telemetry);
+        handle_setoption(
+            "setoption name AdapterTelemetry value false",
+            &mut opt,
+            &tt,
+            &book,
+            &model,
+            &policy,
+            &unarchitectured,
+            &mut eval,
+            &mut desc,
+            &mut is_hce,
+        );
+        assert!(!opt.adapter_telemetry);
+    }
+
+    #[test]
+    fn telemetry_indexes_are_reset_per_new_game_and_preserved_on_position_resend() {
+        let mut game = Game::new(7);
+        assert_eq!(
+            (game.game_id, game.decision_index, game.observation_index),
+            (7, 0, 0)
+        );
+        game.decision_index = 4;
+        game.observation_index = 9;
+        let resent = parse_position("position startpos moves e2e4", &game).expect("position");
+        assert_eq!(
+            (
+                resent.game_id,
+                resent.decision_index,
+                resent.observation_index
+            ),
+            (7, 4, 9)
+        );
+        let next = Game::new(8);
+        assert_eq!(
+            (next.game_id, next.decision_index, next.observation_index),
+            (8, 0, 0)
+        );
+    }
+
     // Regression test for a real bug caught via a live game log: GUIs (En
     // Croissant, cutechess-cli, etc.) resend the full move list from
     // startpos on every `position` command rather than just the newest
@@ -1668,7 +2047,7 @@ mod tests {
     // more heavily as the game went on and distorting the estimate.
     #[test]
     fn position_carries_observed_plies_across_gui_resends() {
-        let g0 = Game::new();
+        let g0 = Game::new(0);
 
         // turn 1: GUI sends "position startpos moves e2e4"
         let mut g1 = parse_position("position startpos moves e2e4", &g0).unwrap();
@@ -1775,7 +2154,10 @@ mod tests {
         );
         assert_eq!(prepared.source, "exact");
         assert_eq!(prepared.hints.len(), moves.len);
-        assert!(prepared.hints.iter().all(|hint| hint.policy_score.is_finite()));
+        assert!(prepared
+            .hints
+            .iter()
+            .all(|hint| hint.policy_score.is_finite()));
 
         // A shorter move list produces a different `HintKey` (it embeds the
         // full `legal_actions` vector), so `latest_exact` misses the stale
@@ -1833,10 +2215,7 @@ mod tests {
         );
         assert_eq!(InferenceExit::from_option_name("3/160"), None);
         assert_eq!(InferenceExit::from_option_name(""), None);
-        assert_eq!(
-            InferenceExit::Layer4Width192.option_name(),
-            "4/192"
-        );
+        assert_eq!(InferenceExit::Layer4Width192.option_name(), "4/192");
 
         // End-to-end: the exit chosen by the caller drives both the cache
         // key and the worker submission (each exit is a distinct HintKey,
@@ -1871,10 +2250,7 @@ mod tests {
                 .as_ref()
                 .and_then(|candidate| candidate.worker.latest_exact(&key))
                 .is_some();
-            assert!(
-                held,
-                "a 4/192 result must be cacheable under the 4/192 key"
-            );
+            assert!(held, "a 4/192 result must be cacheable under the 4/192 key");
             assert_eq!(prepared.hints.len(), moves.len);
         } else {
             // first 4/192 request may still be in flight within the wait
@@ -1934,7 +2310,10 @@ mod tests {
 
     #[test]
     fn setoption_kv_parses_a_normal_value() {
-        assert_eq!(parse_setoption_kv("PassedPawnMgPct value 40"), ("PassedPawnMgPct", "40"));
+        assert_eq!(
+            parse_setoption_kv("PassedPawnMgPct value 40"),
+            ("PassedPawnMgPct", "40")
+        );
     }
 
     #[test]
@@ -1950,7 +2329,7 @@ mod tests {
 
     #[test]
     fn position_resets_observed_plies_for_a_genuinely_different_game() {
-        let g0 = Game::new();
+        let g0 = Game::new(0);
         let mut g1 = parse_position("position startpos moves e2e4", &g0).unwrap();
         g1.observed_plies = 1;
 

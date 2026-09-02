@@ -267,8 +267,24 @@ struct Searcher<'a> {
 }
 
 impl<'a> Searcher<'a> {
+    /// Return true before entering a node that would exceed an explicit UCI
+    /// `go nodes N` budget. The counter therefore remains the exact number of
+    /// visited nodes and never rounds up to the periodic stop/time poll.
+    #[inline]
+    fn node_limit_reached(&mut self) -> bool {
+        if let Some(n) = self.node_limit {
+            if self.nodes >= n {
+                self.abort = true;
+                return true;
+            }
+        }
+        false
+    }
+
     #[inline]
     fn check_limits(&mut self) {
+        // Stop and wall-clock polling retain their existing 2,048-node
+        // cadence. Explicit node budgets are handled before each node above.
         if self.nodes & 2047 == 0 {
             if self.stop.load(Ordering::Relaxed) {
                 self.abort = true;
@@ -276,12 +292,6 @@ impl<'a> Searcher<'a> {
             }
             if let Some(h) = self.hard_ms {
                 if self.start.elapsed().as_millis() as u64 >= h {
-                    self.abort = true;
-                    return;
-                }
-            }
-            if let Some(n) = self.node_limit {
-                if self.nodes >= n {
                     self.abort = true;
                 }
             }
@@ -339,14 +349,7 @@ impl<'a> Searcher<'a> {
     }
 
     #[inline]
-    fn move_score(
-        &self,
-        pos: &Position,
-        m: Move,
-        tt_mv: Move,
-        ply: usize,
-        pins: &LazyPins,
-    ) -> i32 {
+    fn move_score(&self, pos: &Position, m: Move, tt_mv: Move, ply: usize, pins: &LazyPins) -> i32 {
         if m == tt_mv {
             return 1 << 22;
         }
@@ -375,6 +378,9 @@ impl<'a> Searcher<'a> {
     }
 
     fn qsearch(&mut self, pos: &Position, mut alpha: i32, beta: i32, ply: usize) -> i32 {
+        if self.abort || self.node_limit_reached() {
+            return 0;
+        }
         self.nodes += 1;
         self.check_limits();
         if self.abort {
@@ -457,7 +463,9 @@ impl<'a> Searcher<'a> {
                 continue;
             }
             any_legal = true;
-            let child_state = self.eval.update_state(pos, &next, m, &self.eval_states[ply]);
+            let child_state = self
+                .eval
+                .update_state(pos, &next, m, &self.eval_states[ply]);
             self.eval_states[ply + 1] = child_state;
             let sc = -self.qsearch(&next, -beta, -alpha, ply + 1);
             if self.abort {
@@ -491,6 +499,9 @@ impl<'a> Searcher<'a> {
         is_pv: bool,
         allow_null: bool,
     ) -> i32 {
+        if self.abort || self.node_limit_reached() {
+            return 0;
+        }
         if ply < MAX_PLY {
             self.pv_len[ply] = 0;
         }
@@ -584,11 +595,7 @@ impl<'a> Searcher<'a> {
         // past beta at reduced depth; if so, trust it and cut. A known-risky
         // (not fully sound) pruning technique — the margin trades a little
         // tactical accuracy for speed, same tradeoff class as null-move.
-        if !is_pv
-            && !in_chk
-            && depth >= self.params.probcut_min_depth
-            && beta.abs() < MATE_IN_MAX
-        {
+        if !is_pv && !in_chk && depth >= self.params.probcut_min_depth && beta.abs() < MATE_IN_MAX {
             let beta_cut = beta + self.params.probcut_margin;
             let rdepth = depth - self.params.probcut_reduction;
             if rdepth >= 1 {
@@ -638,7 +645,9 @@ impl<'a> Searcher<'a> {
                     if !king_safe_after(&next, pos.side) {
                         continue;
                     }
-                    let child_state = self.eval.update_state(pos, &next, m, &self.eval_states[ply]);
+                    let child_state = self
+                        .eval
+                        .update_state(pos, &next, m, &self.eval_states[ply]);
                     self.eval_states[ply + 1] = child_state;
                     let sc = -self.negamax(
                         &next,
@@ -748,7 +757,9 @@ impl<'a> Searcher<'a> {
             // reads `eval_states[ply + 1]`, and the futility test itself
             // depends only on `static_eval`/`depth`/`alpha`/move flags, so
             // the pruning decision -- and the tree -- is unchanged.
-            let child_state = self.eval.update_state(pos, &next, m, &self.eval_states[ply]);
+            let child_state = self
+                .eval
+                .update_state(pos, &next, m, &self.eval_states[ply]);
             self.eval_states[ply + 1] = child_state;
 
             let mut sc;
@@ -764,9 +775,12 @@ impl<'a> Searcher<'a> {
                     && !in_chk
                     && !gives_check
                 {
-                    r = 1
-                        + if legal_count > self.params.lmr_big_movenum { 1 } else { 0 }
-                        + if !is_pv { 1 } else { 0 };
+                    r =
+                        1 + if legal_count > self.params.lmr_big_movenum {
+                            1
+                        } else {
+                            0
+                        } + if !is_pv { 1 } else { 0 };
                     r = r.min(nd - 1).max(0);
                 }
                 sc = -self.negamax(&next, nd - r, -(alpha + 1), -alpha, ply + 1, false, true);
@@ -851,8 +865,19 @@ pub fn go(
     info: &mut dyn FnMut(&InfoEvent),
 ) -> Vec<Line> {
     go_with_root_hints(
-        pos, eval, limits, multipv, tt, stop, history, draw_score, params,
-        start_depth, &[], std::time::Duration::ZERO, info,
+        pos,
+        eval,
+        limits,
+        multipv,
+        tt,
+        stop,
+        history,
+        draw_score,
+        params,
+        start_depth,
+        &[],
+        std::time::Duration::ZERO,
+        info,
     )
 }
 
@@ -915,7 +940,10 @@ pub fn go_with_root_hints(
     let now = Instant::now();
     let start = now.checked_sub(preprocessing_elapsed).unwrap_or(now);
     let (base_soft, hard_ms) = limits.budget(pos.side);
-    let max_depth = limits.depth.unwrap_or(MAX_PLY as i32 - 1).clamp(1, MAX_PLY as i32 - 1);
+    let max_depth = limits
+        .depth
+        .unwrap_or(MAX_PLY as i32 - 1)
+        .clamp(1, MAX_PLY as i32 - 1);
 
     let root_moves_list = legal(pos);
     if root_moves_list.len == 0 {
@@ -931,10 +959,8 @@ pub fn go_with_root_hints(
         let sharp = if root_in_check { 1.25 } else { 1.0 };
         width * sharp
     };
-    let mut soft_ms = base_soft.map(|s| {
-        ((s as f64 * situation) as u64)
-            .clamp(3, hard_ms.unwrap_or(u64::MAX))
-    });
+    let mut soft_ms =
+        base_soft.map(|s| ((s as f64 * situation) as u64).clamp(3, hard_ms.unwrap_or(u64::MAX)));
 
     struct RootMove {
         mv: Move,
@@ -1065,8 +1091,10 @@ pub fn go_with_root_hints(
                 }
 
                 let result = best_idx.map(|bi| roots[bi].score);
-                let failed_low = window_lo > -MATE && result.map(|r| r <= window_lo).unwrap_or(true);
-                let failed_high = window_hi < MATE && result.map(|r| r >= window_hi).unwrap_or(false);
+                let failed_low =
+                    window_lo > -MATE && result.map(|r| r <= window_lo).unwrap_or(true);
+                let failed_high =
+                    window_hi < MATE && result.map(|r| r >= window_hi).unwrap_or(false);
                 if !failed_low && !failed_high {
                     break;
                 }
@@ -1263,6 +1291,89 @@ mod tests {
         assert!(q2 > s2, "winning the queen must improve the score");
     }
 
+    fn searcher_with_node_limit<'a>(
+        tt: &'a TT,
+        eval: &'a Hce,
+        stop: &'a AtomicBool,
+        node_limit: u64,
+    ) -> Searcher<'a> {
+        let pos = fen::startpos();
+        Searcher {
+            tt,
+            eval,
+            params: SearchParams::default(),
+            stop,
+            start: Instant::now(),
+            hard_ms: None,
+            node_limit: Some(node_limit),
+            nodes: 0,
+            abort: false,
+            root_draw: 0,
+            killers: [[Move::NONE; 2]; MAX_PLY],
+            history: [[[0; 64]; 64]; 2],
+            path: Vec::new(),
+            pv_table: [[Move::NONE; MAX_PLY]; MAX_PLY],
+            pv_len: [0; MAX_PLY],
+            eval_states: vec![eval.initial_state(&pos); MAX_PLY + 1],
+        }
+    }
+
+    /// Exact explicit budgets must not be rounded to the next 2,048-node
+    /// asynchronous stop/time polling boundary.
+    #[test]
+    fn node_limits_abort_at_each_requested_node() {
+        let pos = fen::startpos();
+        for limit in [1, 2_047, 2_048, 2_049, 25_000] {
+            let tt = TT::new(16);
+            let eval = Hce::default();
+            let stop = AtomicBool::new(false);
+            let mut searcher = searcher_with_node_limit(&tt, &eval, &stop, limit);
+
+            // A fresh TT and deliberately deep search ensure every requested
+            // budget is reached through the real negamax/qsearch accounting.
+            let _ = searcher.negamax(&pos, 32, -MATE, MATE, 0, true, true);
+
+            assert!(searcher.abort, "limit {limit} did not abort the search");
+            assert_eq!(
+                searcher.nodes, limit,
+                "limit {limit} must stop at exactly that visited-node count"
+            );
+        }
+    }
+
+    /// A tiny public `go` node budget can abort before depth 1 completes; it
+    /// must still return the documented first-legal-move fallback.
+    #[test]
+    fn node_limited_go_returns_a_legal_fallback_move() {
+        let pos = fen::startpos();
+        let tt = TT::new(16);
+        let stop = AtomicBool::new(false);
+        let lines = go(
+            &pos,
+            &Hce::default(),
+            &Limits {
+                nodes: Some(1),
+                ..Default::default()
+            },
+            1,
+            &tt,
+            &stop,
+            &[],
+            0,
+            SearchParams::default(),
+            1,
+            &mut |_| {},
+        );
+
+        assert_eq!(lines.len(), 1, "node-limited search must return a line");
+        assert!(
+            legal(&pos).as_slice().contains(&lines[0].mv),
+            "fallback move {} must be legal",
+            lines[0].mv.uci()
+        );
+        assert_eq!(lines[0].depth, 0, "one node cannot complete depth 1");
+    }
+
     fn best_move(fen: &str, depth: i32) -> (String, i32) {
         let pos = fen::parse(fen).unwrap();
         let mut tt = TT::new(16);
@@ -1320,16 +1431,32 @@ mod tests {
         // (id, fen, expected uci)
         let suite = [
             ("backrank-rook", "6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1", "a1a8"),
-            ("backrank-rook-black", "r5k1/8/8/8/8/8/5PPP/6K1 b - - 0 1", "a8a1"),
+            (
+                "backrank-rook-black",
+                "r5k1/8/8/8/8/8/5PPP/6K1 b - - 0 1",
+                "a8a1",
+            ),
             (
                 "backrank-full-shield",
                 "6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1",
                 "a1a8",
             ),
-            ("smothered-knight", "6rk/6pp/8/6N1/8/8/8/6K1 w - - 0 1", "g5f7"),
-            ("queen-support-king", "7k/5K2/Q7/8/8/8/8/8 w - - 0 1", "a6h6"),
+            (
+                "smothered-knight",
+                "6rk/6pp/8/6N1/8/8/8/6K1 w - - 0 1",
+                "g5f7",
+            ),
+            (
+                "queen-support-king",
+                "7k/5K2/Q7/8/8/8/8/8 w - - 0 1",
+                "a6h6",
+            ),
             ("corner-queen", "k7/8/2K5/8/8/8/8/1Q6 w - - 0 1", "b1b7"),
-            ("ladder-two-rooks", "7k/R7/1R6/8/8/8/8/6K1 w - - 0 1", "b6b8"),
+            (
+                "ladder-two-rooks",
+                "7k/R7/1R6/8/8/8/8/6K1 w - - 0 1",
+                "b6b8",
+            ),
         ];
 
         for (id, fen, expected) in suite {
@@ -1344,16 +1471,30 @@ mod tests {
     fn root_hints_cannot_override_a_forced_mate() {
         let pos = fen::parse("6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1").unwrap();
         let moves = legal(&pos);
-        let hints = moves.as_slice().iter().map(|&mv| RootHint {
-            mv,
-            // Deliberately put Ra8# last.
-            policy_score: if mv.uci() == "a1a8" { -1000.0 } else { 1000.0 },
-        }).collect::<Vec<_>>();
+        let hints = moves
+            .as_slice()
+            .iter()
+            .map(|&mv| RootHint {
+                mv,
+                // Deliberately put Ra8# last.
+                policy_score: if mv.uci() == "a1a8" { -1000.0 } else { 1000.0 },
+            })
+            .collect::<Vec<_>>();
         let tt = TT::new(4);
         let stop = AtomicBool::new(false);
         let lines = go_with_root_hints(
-            &pos, &Hce::default(), &Limits::depth(4), 1, &tt, &stop, &[], 0,
-            SearchParams::default(), 1, &hints, std::time::Duration::ZERO,
+            &pos,
+            &Hce::default(),
+            &Limits::depth(4),
+            1,
+            &tt,
+            &stop,
+            &[],
+            0,
+            SearchParams::default(),
+            1,
+            &hints,
+            std::time::Duration::ZERO,
             &mut |_| {},
         );
         assert_eq!(lines[0].mv.uci(), "a1a8");
@@ -1364,15 +1505,29 @@ mod tests {
     fn root_hints_cannot_override_black_back_rank_mate() {
         let pos = fen::parse("r5k1/5ppp/8/8/8/8/5PPP/6K1 b - - 0 1").unwrap();
         let moves = legal(&pos);
-        let hints = moves.as_slice().iter().map(|&mv| RootHint {
-            mv,
-            policy_score: if mv.uci() == "a8a1" { -1000.0 } else { 1000.0 },
-        }).collect::<Vec<_>>();
+        let hints = moves
+            .as_slice()
+            .iter()
+            .map(|&mv| RootHint {
+                mv,
+                policy_score: if mv.uci() == "a8a1" { -1000.0 } else { 1000.0 },
+            })
+            .collect::<Vec<_>>();
         let tt = TT::new(4);
         let stop = AtomicBool::new(false);
         let lines = go_with_root_hints(
-            &pos, &Hce::default(), &Limits::depth(4), 1, &tt, &stop, &[], 0,
-            SearchParams::default(), 1, &hints, std::time::Duration::ZERO,
+            &pos,
+            &Hce::default(),
+            &Limits::depth(4),
+            1,
+            &tt,
+            &stop,
+            &[],
+            0,
+            SearchParams::default(),
+            1,
+            &hints,
+            std::time::Duration::ZERO,
             &mut |_| {},
         );
         assert_eq!(lines[0].mv.uci(), "a8a1");
@@ -1385,16 +1540,39 @@ mod tests {
         let stop = AtomicBool::new(false);
         let baseline_tt = TT::new(4);
         let baseline = go(
-            &pos, &Hce::default(), &Limits::depth(3), 1, &baseline_tt, &stop,
-            &[], 0, SearchParams::default(), 1, &mut |_| {},
+            &pos,
+            &Hce::default(),
+            &Limits::depth(3),
+            1,
+            &baseline_tt,
+            &stop,
+            &[],
+            0,
+            SearchParams::default(),
+            1,
+            &mut |_| {},
         );
         let hinted_tt = TT::new(4);
         let hinted = go_with_root_hints(
-            &pos, &Hce::default(), &Limits::depth(3), 1, &hinted_tt, &stop,
-            &[], 0, SearchParams::default(), 1,
+            &pos,
+            &Hce::default(),
+            &Limits::depth(3),
+            1,
+            &hinted_tt,
+            &stop,
+            &[],
+            0,
+            SearchParams::default(),
+            1,
             &[
-                RootHint { mv: Move(0xffff), policy_score: 1000.0 },
-                RootHint { mv: legal(&pos).as_slice()[0], policy_score: f32::NAN },
+                RootHint {
+                    mv: Move(0xffff),
+                    policy_score: 1000.0,
+                },
+                RootHint {
+                    mv: legal(&pos).as_slice()[0],
+                    policy_score: f32::NAN,
+                },
             ],
             std::time::Duration::ZERO,
             &mut |_| {},
@@ -1410,9 +1588,20 @@ mod tests {
         let tt = TT::new(4);
         let stop = AtomicBool::new(false);
         let lines = go_with_root_hints(
-            &pos, &Hce::default(), &Limits::depth(4), 1, &tt, &stop, &[], 0,
-            SearchParams::default(), 1,
-            &[RootHint { mv: Move(0xffff), policy_score: 1000.0 }],
+            &pos,
+            &Hce::default(),
+            &Limits::depth(4),
+            1,
+            &tt,
+            &stop,
+            &[],
+            0,
+            SearchParams::default(),
+            1,
+            &[RootHint {
+                mv: Move(0xffff),
+                policy_score: 1000.0,
+            }],
             std::time::Duration::ZERO,
             &mut |_| {},
         );
@@ -1428,10 +1617,22 @@ mod tests {
         let stop = AtomicBool::new(false);
         let started = Instant::now();
         let lines = go_with_root_hints(
-            &pos, &Hce::default(), &Limits::movetime(10), 1, &tt, &stop, &[], 0,
-            SearchParams::default(), 1,
-            &[RootHint { mv: moves.as_slice()[0], policy_score: -1000.0 }],
-            std::time::Duration::from_millis(20), &mut |_| {},
+            &pos,
+            &Hce::default(),
+            &Limits::movetime(10),
+            1,
+            &tt,
+            &stop,
+            &[],
+            0,
+            SearchParams::default(),
+            1,
+            &[RootHint {
+                mv: moves.as_slice()[0],
+                policy_score: -1000.0,
+            }],
+            std::time::Duration::from_millis(20),
+            &mut |_| {},
         );
         assert_eq!(lines[0].mv, moves.as_slice()[0]);
         assert!(started.elapsed() < std::time::Duration::from_secs(1));
@@ -1445,15 +1646,30 @@ mod tests {
     fn precharged_root_hints_keep_only_move_under_knight_check() {
         let pos = fen::parse("k7/1p6/1N6/8/5B2/8/8/7K b - - 0 1").unwrap();
         let moves = legal(&pos);
-        assert_eq!(moves.len, 1, "expected exactly one legal move under this knight check");
+        assert_eq!(
+            moves.len, 1,
+            "expected exactly one legal move under this knight check"
+        );
         let tt = TT::new(4);
         let stop = AtomicBool::new(false);
         let started = Instant::now();
         let lines = go_with_root_hints(
-            &pos, &Hce::default(), &Limits::movetime(10), 1, &tt, &stop, &[], 0,
-            SearchParams::default(), 1,
-            &[RootHint { mv: moves.as_slice()[0], policy_score: -1000.0 }],
-            std::time::Duration::from_millis(20), &mut |_| {},
+            &pos,
+            &Hce::default(),
+            &Limits::movetime(10),
+            1,
+            &tt,
+            &stop,
+            &[],
+            0,
+            SearchParams::default(),
+            1,
+            &[RootHint {
+                mv: moves.as_slice()[0],
+                policy_score: -1000.0,
+            }],
+            std::time::Duration::from_millis(20),
+            &mut |_| {},
         );
         assert_eq!(lines[0].mv, moves.as_slice()[0]);
         assert!(started.elapsed() < std::time::Duration::from_secs(1));
@@ -1466,15 +1682,30 @@ mod tests {
     fn precharged_root_hints_keep_only_move_under_bishop_check() {
         let pos = fen::parse("7k/8/8/8/8/2B5/8/1K4R1 b - - 0 1").unwrap();
         let moves = legal(&pos);
-        assert_eq!(moves.len, 1, "expected exactly one legal move under this bishop check");
+        assert_eq!(
+            moves.len, 1,
+            "expected exactly one legal move under this bishop check"
+        );
         let tt = TT::new(4);
         let stop = AtomicBool::new(false);
         let started = Instant::now();
         let lines = go_with_root_hints(
-            &pos, &Hce::default(), &Limits::movetime(10), 1, &tt, &stop, &[], 0,
-            SearchParams::default(), 1,
-            &[RootHint { mv: moves.as_slice()[0], policy_score: -1000.0 }],
-            std::time::Duration::from_millis(20), &mut |_| {},
+            &pos,
+            &Hce::default(),
+            &Limits::movetime(10),
+            1,
+            &tt,
+            &stop,
+            &[],
+            0,
+            SearchParams::default(),
+            1,
+            &[RootHint {
+                mv: moves.as_slice()[0],
+                policy_score: -1000.0,
+            }],
+            std::time::Duration::from_millis(20),
+            &mut |_| {},
         );
         assert_eq!(lines[0].mv, moves.as_slice()[0]);
         assert!(started.elapsed() < std::time::Duration::from_secs(1));
@@ -1487,15 +1718,30 @@ mod tests {
     fn precharged_root_hints_keep_only_move_under_queen_check() {
         let pos = fen::parse("7k/8/8/8/8/8/8/QK4R1 b - - 0 1").unwrap();
         let moves = legal(&pos);
-        assert_eq!(moves.len, 1, "expected exactly one legal move under this queen check");
+        assert_eq!(
+            moves.len, 1,
+            "expected exactly one legal move under this queen check"
+        );
         let tt = TT::new(4);
         let stop = AtomicBool::new(false);
         let started = Instant::now();
         let lines = go_with_root_hints(
-            &pos, &Hce::default(), &Limits::movetime(10), 1, &tt, &stop, &[], 0,
-            SearchParams::default(), 1,
-            &[RootHint { mv: moves.as_slice()[0], policy_score: -1000.0 }],
-            std::time::Duration::from_millis(20), &mut |_| {},
+            &pos,
+            &Hce::default(),
+            &Limits::movetime(10),
+            1,
+            &tt,
+            &stop,
+            &[],
+            0,
+            SearchParams::default(),
+            1,
+            &[RootHint {
+                mv: moves.as_slice()[0],
+                policy_score: -1000.0,
+            }],
+            std::time::Duration::from_millis(20),
+            &mut |_| {},
         );
         assert_eq!(lines[0].mv, moves.as_slice()[0]);
         assert!(started.elapsed() < std::time::Duration::from_secs(1));
@@ -1508,15 +1754,29 @@ mod tests {
     fn root_hints_cannot_override_king_and_queen_mate() {
         let pos = fen::parse("7k/5K2/Q7/8/8/8/8/8 w - - 0 1").unwrap();
         let moves = legal(&pos);
-        let hints = moves.as_slice().iter().map(|&mv| RootHint {
-            mv,
-            policy_score: if mv.uci() == "a6h6" { -1000.0 } else { 1000.0 },
-        }).collect::<Vec<_>>();
+        let hints = moves
+            .as_slice()
+            .iter()
+            .map(|&mv| RootHint {
+                mv,
+                policy_score: if mv.uci() == "a6h6" { -1000.0 } else { 1000.0 },
+            })
+            .collect::<Vec<_>>();
         let tt = TT::new(4);
         let stop = AtomicBool::new(false);
         let lines = go_with_root_hints(
-            &pos, &Hce::default(), &Limits::depth(4), 1, &tt, &stop, &[], 0,
-            SearchParams::default(), 1, &hints, std::time::Duration::ZERO,
+            &pos,
+            &Hce::default(),
+            &Limits::depth(4),
+            1,
+            &tt,
+            &stop,
+            &[],
+            0,
+            SearchParams::default(),
+            1,
+            &hints,
+            std::time::Duration::ZERO,
             &mut |_| {},
         );
         assert_eq!(lines[0].mv.uci(), "a6h6");
@@ -1529,10 +1789,7 @@ mod tests {
     /// this position. Any legal move missing from the list gets the minimum
     /// logit, so the mapping stays total even if movegen order differs.
     fn hints_from_recorded_logits(pos: &Position, scored: &[(&str, f32)]) -> Vec<RootHint> {
-        let floor = scored
-            .iter()
-            .map(|&(_, s)| s)
-            .fold(f32::INFINITY, f32::min);
+        let floor = scored.iter().map(|&(_, s)| s).fold(f32::INFINITY, f32::min);
         legal(pos)
             .as_slice()
             .iter()
@@ -1603,8 +1860,18 @@ mod tests {
         let tt = TT::new(4);
         let stop = AtomicBool::new(false);
         let lines = go_with_root_hints(
-            &pos, &Hce::default(), &Limits::depth(4), 1, &tt, &stop, &[], 0,
-            SearchParams::default(), 1, &hints, std::time::Duration::ZERO,
+            &pos,
+            &Hce::default(),
+            &Limits::depth(4),
+            1,
+            &tt,
+            &stop,
+            &[],
+            0,
+            SearchParams::default(),
+            1,
+            &hints,
+            std::time::Duration::ZERO,
             &mut |_| {},
         );
         assert_eq!(lines[0].mv.uci(), "a1a8");
@@ -1627,10 +1894,9 @@ mod tests {
     /// real ranking cannot make the search return an illegal or absurd move.
     #[test]
     fn real_checkpoint_ranking_keeps_middlegame_search_sound() {
-        let pos = fen::parse(
-            "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/3P1N2/PPP2PPP/RNBQK2R w KQkq - 0 1",
-        )
-        .unwrap();
+        let pos =
+            fen::parse("r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/3P1N2/PPP2PPP/RNBQK2R w KQkq - 0 1")
+                .unwrap();
         let scored = [
             ("c4f7", -1.774796f32), // the sacrifice, ranked 18th
             ("c4e6", -2.502336),
@@ -1675,14 +1941,23 @@ mod tests {
         let tt = TT::new(4);
         let stop = AtomicBool::new(false);
         let lines = go_with_root_hints(
-            &pos, &Hce::default(), &Limits::depth(6), 1, &tt, &stop, &[], 0,
-            SearchParams::default(), 1, &hints, std::time::Duration::ZERO,
+            &pos,
+            &Hce::default(),
+            &Limits::depth(6),
+            1,
+            &tt,
+            &stop,
+            &[],
+            0,
+            SearchParams::default(),
+            1,
+            &hints,
+            std::time::Duration::ZERO,
             &mut |_| {},
         );
 
         // The returned move must be one of the position's real legal moves.
-        let legal_ucis: Vec<String> =
-            legal(&pos).as_slice().iter().map(|m| m.uci()).collect();
+        let legal_ucis: Vec<String> = legal(&pos).as_slice().iter().map(|m| m.uci()).collect();
         assert!(
             legal_ucis.contains(&lines[0].mv.uci()),
             "search returned {} which is not legal here",
@@ -1717,18 +1992,24 @@ mod tests {
     #[test]
     fn game_mode_detection() {
         assert!(Limits::movetime(500).is_game_mode());
-        assert!(Limits::depth(10).is_game_mode(), "fixed-depth matches are games");
+        assert!(
+            Limits::depth(10).is_game_mode(),
+            "fixed-depth matches are games"
+        );
         assert!(Limits {
             wtime: Some(60_000),
             btime: Some(60_000),
             ..Default::default()
         }
         .is_game_mode());
-        assert!(!Limits {
-            infinite: true,
-            ..Default::default()
-        }
-        .is_game_mode(), "go infinite is analysis");
+        assert!(
+            !Limits {
+                infinite: true,
+                ..Default::default()
+            }
+            .is_game_mode(),
+            "go infinite is analysis"
+        );
         assert!(!Limits::default().is_game_mode());
     }
 
@@ -1748,8 +2029,14 @@ mod tests {
         let mid = soft_for(20_000);
         let low = soft_for(5_000);
         let panic = soft_for(1_000);
-        assert!(full > mid && mid > low && low >= panic,
-            "budgets must shrink: {} {} {} {}", full, mid, low, panic);
+        assert!(
+            full > mid && mid > low && low >= panic,
+            "budgets must shrink: {} {} {} {}",
+            full,
+            mid,
+            low,
+            panic
+        );
         // low clock spends a much smaller *fraction* of remaining time too
         assert!((low as f64) / 5_000.0 < (full as f64) / 180_000.0 * 0.8);
         // panic mode is near-instant

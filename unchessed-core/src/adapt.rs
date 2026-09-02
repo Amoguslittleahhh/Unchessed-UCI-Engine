@@ -92,6 +92,56 @@ pub struct OpponentModel {
     pub experimental_detect: bool,
 }
 
+/// Stable explanation for the detector rule currently in effect.
+///
+/// This describes the product policy rather than the opponent's actual origin:
+/// V2 intentionally does not flag a declared low-rated computer such as Maia.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SuspectReason {
+    None,
+    LegacyComputer,
+    LegacyClock,
+    LegacyCeiling,
+    V2ComputerThreshold,
+    V2ClockThreshold,
+    V2DeclaredExempt,
+    V2AnonymousCeiling,
+}
+
+impl SuspectReason {
+    pub fn name(self) -> &'static str {
+        match self {
+            SuspectReason::None => "none",
+            SuspectReason::LegacyComputer => "legacy_computer",
+            SuspectReason::LegacyClock => "legacy_clock",
+            SuspectReason::LegacyCeiling => "legacy_ceiling",
+            SuspectReason::V2ComputerThreshold => "v2_computer_threshold",
+            SuspectReason::V2ClockThreshold => "v2_clock_threshold",
+            SuspectReason::V2DeclaredExempt => "v2_declared_exempt",
+            SuspectReason::V2AnonymousCeiling => "v2_anonymous_ceiling",
+        }
+    }
+
+    pub fn is_suspect(self) -> bool {
+        !matches!(self, SuspectReason::None | SuspectReason::V2DeclaredExempt)
+    }
+}
+
+/// Read-only view of the live opponent model for opt-in UCI telemetry.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct OpponentTelemetrySnapshot {
+    pub estimate_elo: i32,
+    pub confidence_cp: i32,
+    pub weight_milli: i32,
+    pub suspicion_milli: i32,
+    pub low_loss_streak: u32,
+    pub samples: u32,
+    pub is_computer: bool,
+    pub declared_elo: Option<i32>,
+    pub suspect: bool,
+    pub suspect_reason: SuspectReason,
+}
+
 impl Default for OpponentModel {
     fn default() -> Self {
         Self::new()
@@ -125,7 +175,11 @@ impl OpponentModel {
         let elo_tok = toks.next().unwrap_or("-");
         let kind = toks.next().unwrap_or("human");
         let name: String = toks.collect::<Vec<_>>().join(" ");
-        self.opponent_name = if name.is_empty() { None } else { Some(name.clone()) };
+        self.opponent_name = if name.is_empty() {
+            None
+        } else {
+            Some(name.clone())
+        };
         self.is_computer = kind.eq_ignore_ascii_case("computer");
         self.declared_elo = elo_tok.parse::<i32>().ok().filter(|e| *e > 0);
 
@@ -135,17 +189,16 @@ impl OpponentModel {
                 .iter()
                 .find(|(k, _)| lower.contains(k))
                 .map(|&(k, e)| (k, e));
-            let seed = self
-                .declared_elo
-                .or(known.map(|(_, e)| e))
-                .unwrap_or(2800);
+            let seed = self.declared_elo.or(known.map(|(_, e)| e)).unwrap_or(2800);
             self.mean = seed as f64;
             self.weight = 6.0; // strong prior for engines
             self.prev_mean = self.mean;
             match known {
                 Some((k, e)) => format!(
                     "opponent: {} (computer, known engine '{}', seeded ~{})",
-                    name, k, seed.max(e.min(seed))
+                    name,
+                    k,
+                    seed.max(e.min(seed))
                 ),
                 None => format!("opponent: {} (computer, seeded ~{})", name, seed),
             }
@@ -238,29 +291,66 @@ impl OpponentModel {
     /// genuinely sustained 2500+ performance (own stress-test confirmed
     /// this separately).
     pub fn engine_suspect(&self) -> bool {
-        if self.experimental_detect {
-            return self.engine_suspect_v2();
-        }
-        if self.is_computer || self.suspicion >= 3.0 {
-            return true;
-        }
-        self.weight >= 10.0 && self.mean >= 2450.0
+        self.suspect_reason().is_suspect()
     }
 
-    fn engine_suspect_v2(&self) -> bool {
+    /// Return the stable detector rule which determines `engine_suspect()`.
+    /// Keeping this in the model makes telemetry observational: the UCI layer
+    /// never reaches into private detector state or reimplements thresholds.
+    pub fn suspect_reason(&self) -> SuspectReason {
+        if self.experimental_detect {
+            return self.suspect_reason_v2();
+        }
         if self.is_computer {
-            return self.mean >= 2400.0;
+            return SuspectReason::LegacyComputer;
+        }
+        if self.suspicion >= 3.0 {
+            return SuspectReason::LegacyClock;
+        }
+        if self.weight >= 10.0 && self.mean >= 2450.0 {
+            SuspectReason::LegacyCeiling
+        } else {
+            SuspectReason::None
+        }
+    }
+
+    fn suspect_reason_v2(&self) -> SuspectReason {
+        if self.is_computer && self.mean >= 2400.0 {
+            return SuspectReason::V2ComputerThreshold;
         }
         if self.suspicion >= 4.0 {
-            return true;
+            return SuspectReason::V2ClockThreshold;
         }
         if self.declared_elo.is_some() {
-            return false;
+            return SuspectReason::V2DeclaredExempt;
         }
-        self.weight >= 11.0
+        if self.weight >= 11.0
             && self.samples >= 16
             && self.mean >= 2500.0
             && self.low_loss_streak >= 12
+        {
+            SuspectReason::V2AnonymousCeiling
+        } else {
+            SuspectReason::None
+        }
+    }
+
+    /// Read-only telemetry snapshot. Calling this method has no effect on the
+    /// model, detector, search, timing, or random-number state.
+    pub fn telemetry_snapshot(&self) -> OpponentTelemetrySnapshot {
+        let suspect_reason = self.suspect_reason();
+        OpponentTelemetrySnapshot {
+            estimate_elo: self.estimate(),
+            confidence_cp: self.confidence(),
+            weight_milli: (self.weight * 1000.0).round() as i32,
+            suspicion_milli: (self.suspicion * 1000.0).round() as i32,
+            low_loss_streak: self.low_loss_streak,
+            samples: self.samples,
+            is_computer: self.is_computer,
+            declared_elo: self.declared_elo,
+            suspect: suspect_reason.is_suspect(),
+            suspect_reason,
+        }
     }
 
     /// Spread of recent per-move Elo samples.
@@ -395,6 +485,43 @@ pub struct PersonaState {
     candidate: Mode,
 }
 
+/// Stable explanation for a persona transition that bypassed dwell.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PersonaEmergency {
+    None,
+    Full,
+    Defend,
+    Punish,
+}
+
+impl PersonaEmergency {
+    pub fn name(self) -> &'static str {
+        match self {
+            PersonaEmergency::None => "none",
+            PersonaEmergency::Full => "full",
+            PersonaEmergency::Defend => "defend",
+            PersonaEmergency::Punish => "punish",
+        }
+    }
+}
+
+/// Result of one persona update, used only by opt-in diagnostics.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PersonaUpdate {
+    pub mode_before: Mode,
+    pub mode_after: Mode,
+    pub emergency: PersonaEmergency,
+}
+
+/// Read-only view of persona state for opt-in UCI telemetry.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PersonaTelemetrySnapshot {
+    pub mode: Mode,
+    pub ema_cp: i32,
+    pub candidate: Mode,
+    pub dwell: u8,
+}
+
 impl Default for PersonaState {
     fn default() -> Self {
         PersonaState {
@@ -428,6 +555,21 @@ impl PersonaState {
         raw_eval_cp: i32,
         fullmove: u16,
     ) -> Mode {
+        self.update_with_record(cfg, model, raw_eval_cp, fullmove)
+            .mode_after
+    }
+
+    /// Update the state machine and return the same result as `update()` plus
+    /// a diagnostic transition record. This is a factoring of the existing
+    /// decision path, not a separate telemetry decision path.
+    pub fn update_with_record(
+        &mut self,
+        cfg: &AdaptConfig,
+        model: &OpponentModel,
+        raw_eval_cp: i32,
+        fullmove: u16,
+    ) -> PersonaUpdate {
+        let mode_before = self.mode;
         if !cfg.persona_smooth {
             let mode = decide_mode(cfg, model, raw_eval_cp, fullmove, self.mode);
             self.mode = mode;
@@ -435,7 +577,11 @@ impl PersonaState {
             self.ema_init = true;
             self.dwell = 0;
             self.candidate = mode;
-            return mode;
+            return PersonaUpdate {
+                mode_before,
+                mode_after: mode,
+                emergency: PersonaEmergency::None,
+            };
         }
         if !self.ema_init {
             // Seed the filter only; a first ply is not a persona vote.
@@ -443,10 +589,13 @@ impl PersonaState {
             // collapse on ply 1) would skip the dwell / mix seed with vote.
             self.eval_ema = raw_eval_cp as f64;
             self.ema_init = true;
-            return self.mode;
+            return PersonaUpdate {
+                mode_before,
+                mode_after: self.mode,
+                emergency: PersonaEmergency::None,
+            };
         }
-        self.eval_ema =
-            Self::ALPHA * raw_eval_cp as f64 + (1.0 - Self::ALPHA) * self.eval_ema;
+        self.eval_ema = Self::ALPHA * raw_eval_cp as f64 + (1.0 - Self::ALPHA) * self.eval_ema;
         let smoothed = self.eval_ema.round() as i32;
 
         // Low confidence → require a clearer eval before leaving MATCH.
@@ -462,17 +611,21 @@ impl PersonaState {
         let emergency_full = model.engine_suspect() && !cfg.limit_strength && cfg.adaptive;
 
         if emergency_full || emergency_defend || emergency_punish {
-            let mode = if emergency_full {
-                Mode::Full
+            let (mode, emergency) = if emergency_full {
+                (Mode::Full, PersonaEmergency::Full)
             } else if emergency_defend {
-                Mode::Defend
+                (Mode::Defend, PersonaEmergency::Defend)
             } else {
-                Mode::Punish
+                (Mode::Punish, PersonaEmergency::Punish)
             };
             self.mode = mode;
             self.dwell = 0;
             self.candidate = mode;
-            return mode;
+            return PersonaUpdate {
+                mode_before,
+                mode_after: mode,
+                emergency,
+            };
         }
 
         let mut proposed = decide_mode(cfg, model, smoothed, fullmove, self.mode);
@@ -485,20 +638,43 @@ impl PersonaState {
         if proposed == self.mode {
             self.dwell = 0;
             self.candidate = proposed;
-            return self.mode;
+            return PersonaUpdate {
+                mode_before,
+                mode_after: self.mode,
+                emergency: PersonaEmergency::None,
+            };
         }
         // Introducing a candidate does not count as an agreeing ply.
         if proposed != self.candidate {
             self.candidate = proposed;
             self.dwell = 0;
-            return self.mode;
+            return PersonaUpdate {
+                mode_before,
+                mode_after: self.mode,
+                emergency: PersonaEmergency::None,
+            };
         }
         self.dwell = self.dwell.saturating_add(1);
         if self.dwell >= Self::DWELL {
             self.mode = proposed;
             self.dwell = 0;
         }
-        self.mode
+        PersonaUpdate {
+            mode_before,
+            mode_after: self.mode,
+            emergency: PersonaEmergency::None,
+        }
+    }
+
+    /// Read-only telemetry snapshot. Calling this method does not participate
+    /// in persona selection or alter the state machine.
+    pub fn telemetry_snapshot(&self) -> PersonaTelemetrySnapshot {
+        PersonaTelemetrySnapshot {
+            mode: self.mode,
+            ema_cp: self.smoothed_eval(),
+            candidate: self.candidate,
+            dwell: self.dwell,
+        }
     }
 }
 
@@ -512,7 +688,11 @@ pub fn decide_mode(
     if !cfg.adaptive {
         // UCI semantics: with UCI_LimitStrength the engine plays AT UCI_Elo
         // even when adaptation is off.
-        return if cfg.limit_strength { Mode::Match } else { Mode::Full };
+        return if cfg.limit_strength {
+            Mode::Match
+        } else {
+            Mode::Full
+        };
     }
     // a suspected engine gets our best chess, not a blended-down imitation
     if model.engine_suspect() && !cfg.limit_strength {
@@ -697,7 +877,11 @@ impl HeuristicPrior {
         // 3.Kd2 get sampled as a "human blunder", forfeiting all castling
         // rights on move 3 for no tactical reason and losing the game.
         if piece == KING && mv.kind() != MK_CASTLE {
-            let own_castle = if let Color::White = us { WK | WQ } else { BK | BQ };
+            let own_castle = if let Color::White = us {
+                WK | WQ
+            } else {
+                BK | BQ
+            };
             if (pos.castling & own_castle) != 0 && (next.castling & own_castle) == 0 {
                 return blended * 0.15;
             }
@@ -767,10 +951,18 @@ pub fn select_move(
                 }
                 let is_cap = pos.board[l.mv.to() as usize] != NO_PIECE || l.mv.kind() == MK_EP;
                 let gives_check = in_check(&pos.make(l.mv));
-                let preferred = if far_ahead { is_cap } else { is_cap || gives_check };
+                let preferred = if far_ahead {
+                    is_cap
+                } else {
+                    is_cap || gives_check
+                };
                 if preferred {
                     pick = l.mv;
-                    why = if is_cap { "forcing capture" } else { "forcing check" };
+                    why = if is_cap {
+                        "forcing capture"
+                    } else {
+                        "forcing check"
+                    };
                     break;
                 }
             }
@@ -784,8 +976,7 @@ pub fn select_move(
             // opponent's best reply is far better than their second-best
             // (narrow path), while our eval stays acceptable.
             let budget_loss = 40;
-            let both_queens_now =
-                pos.bb[0][QUEEN] != 0 && pos.bb[1][QUEEN] != 0;
+            let both_queens_now = pos.bb[0][QUEEN] != 0 && pos.bb[1][QUEEN] != 0;
             let mut best_score = f64::MIN;
             let mut pick = best.mv;
             let mut picked_gap = 0;
@@ -1082,7 +1273,10 @@ mod tests {
             m.observe(5, 1.0);
             m.observe_time(80, true);
         }
-        assert!(!m.engine_suspect(), "opening premoves are not an engine tell");
+        assert!(
+            !m.engine_suspect(),
+            "opening premoves are not an engine tell"
+        );
         // middlegame: 4 instant-strong replies after sample>=8
         for _ in 0..4 {
             m.observe(5, 1.0);
@@ -1109,7 +1303,11 @@ mod tests {
         m.experimental_detect = true;
         m.seed_from_uci_opponent("- 1600 computer Maia 2");
         assert!(m.is_computer);
-        assert!(!m.engine_suspect(), "Maia is the MATCH target, estimate {}", m.estimate());
+        assert!(
+            !m.engine_suspect(),
+            "Maia is the MATCH target, estimate {}",
+            m.estimate()
+        );
         let cfg = AdaptConfig::default();
         assert_ne!(decide_mode(&cfg, &m, 0, 10, Mode::Match), Mode::Full);
     }
@@ -1169,8 +1367,18 @@ mod tests {
         let mvs: Vec<crate::board::Move> = ml.as_slice().to_vec();
         // candidate 1 is "getting mated" — must never be picked
         let lines = vec![
-            Line { mv: mvs[0], score: 20, depth: 8, pv: vec![mvs[0]] },
-            Line { mv: mvs[1], score: -(MATE - 6), depth: 8, pv: vec![mvs[1]] },
+            Line {
+                mv: mvs[0],
+                score: 20,
+                depth: 8,
+                pv: vec![mvs[0]],
+            },
+            Line {
+                mv: mvs[1],
+                score: -(MATE - 6),
+                depth: 8,
+                pv: vec![mvs[1]],
+            },
         ];
         let cfg = AdaptConfig::default();
         let mut m = OpponentModel::new();
@@ -1181,7 +1389,13 @@ mod tests {
         let mut rng = Rng::new(1234);
         for _ in 0..200 {
             let sel = select_move(
-                &pos, &lines, Mode::Match, &cfg, &m, &prior, &mut rng,
+                &pos,
+                &lines,
+                Mode::Match,
+                &cfg,
+                &m,
+                &prior,
+                &mut rng,
                 &mut |_p| Vec::new(),
             );
             assert_eq!(sel.mv, mvs[0], "sampled a move that walks into mate");

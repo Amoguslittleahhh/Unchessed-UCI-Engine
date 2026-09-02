@@ -1,9 +1,9 @@
 //! Strict scalar-side loader for the canonical `UNARCHV1` tensor container.
 //!
 //! This module validates package structure and exposes typed tensor sections.
-//! It intentionally does not claim neural-forward support yet; runtime
-//! readiness remains false until the complete scalar graph is implemented and
-//! compared with exported reference vectors.
+//! The neural forward pass is implemented separately in
+//! `aegis_v4_runtime.rs`; this module remains responsible for package parsing
+//! and validation only.
 
 use std::path::Path;
 
