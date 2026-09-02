@@ -232,13 +232,17 @@ done:
   found this the hard way.
 - [ ] **Run `source scripts/setup-rust-toolchain.sh` first, every round
   that touches any `.rs` file.** It's idempotent (safe to re-run, no-ops
-  if rustc is already there) and tries apt then rustup, reporting
-  exactly what happened with each — known blocker in this sandbox
-  specifically: outbound HTTPS is filtered, GitHub HTML/API works but
-  `rustup.rs`/the Debian CDN often fail TLS. If the script's output
-  says both paths failed, paste that actual output into the round's
-  doc — that is a real, reportable environment blocker, not something
-  to route around with "(need rustc)" as a footnote. "(need rustc)" is
+  if rustc is already there) and now tries three independent paths —
+  apt, rustup, then Homebrew (`raw.githubusercontent.com` +
+  `ghcr.io`, both distinct infrastructure from the first two, added
+  since GitHub HTML/API is the one thing confirmed reachable from this
+  sandbox) — reporting exactly what happened with each. The Homebrew
+  path is untested against this sandbox as of this writing; if it
+  works, that's the real fix, report it plainly. If the script's output
+  says all three paths failed, paste that actual output into the
+  round's doc — that is a real, reportable environment blocker, not
+  something to route around with "(need rustc)" as a footnote. "(need
+  rustc)" is
   not the same as "this compiles" — rounds 15 and 18 both shipped real
   compile errors this way, after the toolchain script would have caught
   them in seconds if it had existed and been run.
