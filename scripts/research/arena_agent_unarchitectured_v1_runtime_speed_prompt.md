@@ -9,7 +9,7 @@ work is not an invitation to revert to or resume development on any of
 them. Any follow-on architecture or training work belongs on top of
 Unarchitectured v1, not as a parallel track exploring an earlier one.
 
-## Current status (round 17 merged, `main` at `63c7262`)
+## Current status (round 18 rejected — does not compile; round 17 stands)
 
 **NNUE**: reviewer's 108M cloud SPRT closed the round-13 ask —
 **−155.6 ± 47.7 Elo vs the shipped default**, best val-MAE 47.8cp (best
@@ -28,9 +28,47 @@ with byte-identical old behavior when off. This is tooling/gating only —
 **neither flag has a real cutechess SPRT yet**, so neither default may
 flip. Full round-by-round history: "History" below.
 
+**Round 18 (`01a0581c` @ `aaf6545`, "GEMM tiling and scratch reuse" for
+`aegis_v4_runtime.rs`) is rejected — a genuinely incomplete refactor,
+not a small slip.** `cargo test --workspace --release` fails with **9
+separate errors**:
+
+- `with_block_scratch` and `BLOCK_SCRATCH` are each **defined twice**
+  (E0428) — duplicate definitions, not just a naming collision.
+- `attention_heads_dispatch`'s call sites **disagree with each other**
+  on argument count: some pass 7 args, some pass 8 (the new `attended`
+  buffer), and neither the "7" nor the "8" call sites agree with the
+  function's own declared signature at every site (`E0061` x5,
+  `E0308` x2). This isn't one call site lagging behind a rename — it's
+  the refactor applied inconsistently across the file.
+- A trailing ~13-line duplicated fragment of the last test in the file
+  sat after the module's real closing `}`, an obvious copy-paste
+  artifact — fixed that one locally to see the real errors underneath,
+  then found the 9 above. Left unfixed on this branch; the file needs a
+  full pass, not another surface patch.
+
+Same root cause as every prior compile failure this project has seen
+from this source: **no rustc in the sandbox**, and the doc's own
+"(no rustc here)" disclosure is honest about that but doesn't change
+that untested code got pushed as a finished commit. The underlying idea
+(token-outer GEMM tiling, writing attention output through into
+existing scratch instead of a fresh `Vec` per head) is a reasonable,
+recognizable optimization pattern and may well be worth doing — but it
+needs to actually build and pass
+`start_position_matches_python_reference`,
+`midgame_position_matches_python_reference`, and
+`position_to_input_matches_hand_built_start_position` before it's
+reviewable at all, let alone benchmarked.
+
 ## What's needed next
 
-1. **NNUE: not more data.** The 108M result plus last round's Bayes-floor
+1. **Fix round 18's `aegis_v4_runtime.rs` refactor properly, on a machine
+   with rustc, before pushing.** 9 real compile errors (duplicate
+   definitions, inconsistent call-site arg counts) — see "Current
+   status." The idea (GEMM tiling, attention scratch reuse) is fine; the
+   execution needs to actually compile and pass the three parity gates
+   this time, not get pushed on faith.
+2. **NNUE: not more data.** The 108M result plus last round's Bayes-floor
    analysis (`docs/ieee-low-cp-val-mae-and-persona.md`, itself simulation-only
    but methodologically sound and independently reproduced) both point the
    same direction: the current 5000-node HCE labels cap achievable val-MAE
@@ -39,25 +77,25 @@ flip. Full round-by-round history: "History" below.
    the shipped net at high node count, or a deeper HCE search), separating
    label-noise from architecture-capacity before assuming either is the
    fix. Not cloud spend on more of the same labels.
-2. **A real cutechess SPRT for `PersonaSmooth`/`EngineDetectV2`**
+3. **A real cutechess SPRT for `PersonaSmooth`/`EngineDetectV2`**
    (Adaptive=true both sides, same shape as
    `scripts/sprt-history/sprt_punish_latch.sh`), now that the code
    itself is merged, tested, and correct. Both options still default
    `false` — this is the only thing standing between them and being
    flippable. Do not flip either default without it.
-3. **A retrain decision** for round 9's Unarchitectured v1 findings (GAB
+4. **A retrain decision** for round 9's Unarchitectured v1 findings (GAB
    capacity, rating conditioning, int8 weight clipping), if the oracle
-   checkpoint becomes available — see item 4, this is gated on that.
-4. **Oracle-side rating conditioning**: narrowed, not closed. One
+   checkpoint becomes available — see item 5, this is gated on that.
+5. **Oracle-side rating conditioning**: narrowed, not closed. One
    hypothesis (student never saw rating variation) is ruled out with
    repo evidence; the deciding experiment (200 positions × 7 ratings on
    the oracle checkpoint) needs the oracle checkpoint, which isn't in
    this repo. If it ever becomes available, run it — cheap (CPU-minutes)
    and it decides where the real fix goes (oracle vs. distillation).
-5. **A cleanly isolated `MinTime` retest**, still open from round 7 —
+6. **A cleanly isolated `MinTime` retest**, still open from round 7 —
    must now also state which `HintExit` it used. Optional polish, not a
    blocker.
-6. **`UnarchitecturedHint` stays default-off**. No config tested across
+7. **`UnarchitecturedHint` stays default-off**. No config tested across
    four real SPRT batches has ever trended positive.
 
 ## Other open items
@@ -148,7 +186,11 @@ changes.
   its own headline claims. Round 17 fixed both bugs — verified
   independently (118/118 Rust tests, 377/378 Python, no conflict
   markers) and merged (`63c7262`). Still needs a real SPRT before either
-  new option's default can flip. See "Current status" above.
+  new option's default can flip.
+- **Round 18**: rejected, not merged. 9 real compile errors in an
+  `aegis_v4_runtime.rs` GEMM-tiling refactor (duplicate definitions,
+  inconsistent call-site argument counts) plus a trailing duplicated
+  code fragment. See "Current status" above.
 
 ## Correctness gates that must keep passing
 
