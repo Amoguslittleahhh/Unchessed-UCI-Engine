@@ -32,6 +32,12 @@ fresh `Vec` per head.
   first ID pass) as documented previously. This commit does not re-open
   that wiring.
 
+Follow-up compile pass: one `attention_heads_dispatch` taking
+`destination: &mut [f32]`, one thread-local `BlockScratch`, trailing
+duplicated test fragment removed. Still **no rustc here**
+(`curl https://sh.rustup.rs` → TLS `SSL_ERROR_SYSCALL`). Parity tests
+were not executed in this sandbox.
+
 Parity gates that must still hold after this change:
 `start_position_matches_python_reference`,
 `midgame_position_matches_python_reference`,
