@@ -1719,36 +1719,38 @@ fn attention_heads_dispatch(
     width: usize,
     head_start: usize,
     head_end: usize,
-) -> Vec<f32> {
+    destination: &mut [f32],
+) {
     static INIT: std::sync::Once = std::sync::Once::new();
     INIT.call_once(|| ATTN_TOGGLE.store(attention_toggle_initial(), AtomicOrdering::Relaxed));
     if ATTN_TOGGLE.load(AtomicOrdering::Relaxed) != 0 {
         #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
         if std::is_x86_feature_detected!("avx2") && std::is_x86_feature_detected!("fma") {
-            return unsafe {
-                attention_heads_inlined(q, k, v, geometric_bias, width, head_start, head_end)
+            unsafe {
+                attention_heads_inlined(
+                    q,
+                    k,
+                    v,
+                    geometric_bias,
+                    width,
+                    head_start,
+                    head_end,
+                    destination,
+                )
             };
+            return;
         }
     }
-    attention_heads(q, k, v, geometric_bias, width, head_start, head_end)
-}
-
-thread_local! {
-    static BLOCK_SCRATCH: RefCell<Option<(usize, BlockScratch)>> = const { RefCell::new(None) };
-}
-
-fn with_block_scratch<R>(width: usize, f: impl FnOnce(&mut BlockScratch) -> R) -> R {
-    BLOCK_SCRATCH.with(|cell| {
-        let mut slot = cell.borrow_mut();
-        let scratch = match slot.as_mut() {
-            Some((cached_width, scratch)) if *cached_width == width => scratch,
-            _ => {
-                *slot = Some((width, BlockScratch::new(width)));
-                &mut slot.as_mut().unwrap().1
-            }
-        };
-        f(scratch)
-    })
+    attention_heads(
+        q,
+        k,
+        v,
+        geometric_bias,
+        width,
+        head_start,
+        head_end,
+        destination,
+    )
 }
 
 struct LayerTensorNames {
@@ -2264,34 +2266,35 @@ pub fn forward_at_exit(
         }
     }
 
-    let mut scratch = BlockScratch::new(width);
-    for layer_names in LAYER_TENSOR_NAMES.iter().take(layers) {
-        let coeff_weight = weights.t(layer_names.coefficients); // (HEADS*GAB_TEMPLATES, GAB_HIDDEN)
-        let mut coefficients = [0f32; HEADS * GAB_TEMPLATES];
-        for o in 0..HEADS * GAB_TEMPLATES {
-            let row = o * GAB_HIDDEN;
-            coefficients[o] = dot_kernel(&context, &coeff_weight.data[row..row + GAB_HIDDEN]);
+    with_block_scratch(width, |scratch| {
+        for layer_names in LAYER_TENSOR_NAMES.iter().take(layers) {
+            let coeff_weight = weights.t(layer_names.coefficients); // (HEADS*GAB_TEMPLATES, GAB_HIDDEN)
+            let mut coefficients = [0f32; HEADS * GAB_TEMPLATES];
+            for o in 0..HEADS * GAB_TEMPLATES {
+                let row = o * GAB_HIDDEN;
+                coefficients[o] = dot_kernel(&context, &coeff_weight.data[row..row + GAB_HIDDEN]);
+            }
+            let block = ElasticBlockWeights {
+                norm_attention: weights.t(layer_names.norm_attention),
+                qkv: weights.t(layer_names.qkv),
+                project: weights.t(layer_names.project),
+                project_bias: weights.t(layer_names.project_bias),
+                norm_ffn: weights.t(layer_names.norm_ffn),
+                up: weights.t(layer_names.up),
+                up_bias: weights.t(layer_names.up_bias),
+                down: weights.t(layer_names.down),
+                down_bias: weights.t(layer_names.down_bias),
+            };
+            elastic_block(
+                &mut values,
+                width,
+                &block,
+                &coefficients,
+                weights.t("gab.templates"),
+                scratch,
+            );
         }
-        let block = ElasticBlockWeights {
-            norm_attention: weights.t(layer_names.norm_attention),
-            qkv: weights.t(layer_names.qkv),
-            project: weights.t(layer_names.project),
-            project_bias: weights.t(layer_names.project_bias),
-            norm_ffn: weights.t(layer_names.norm_ffn),
-            up: weights.t(layer_names.up),
-            up_bias: weights.t(layer_names.up_bias),
-            down: weights.t(layer_names.down),
-            down_bias: weights.t(layer_names.down_bias),
-        };
-        elastic_block(
-            &mut values,
-            width,
-            &block,
-            &coefficients,
-            weights.t("gab.templates"),
-            &mut scratch,
-        );
-    }
+    });
 
 
     // --- Final norm + pooling ---
@@ -3594,19 +3597,6 @@ mod tests {
         let weights = load_reference_weights();
         let live_output = forward(&weights, &live_input);
         let best = (0..live_input.legal_actions.len())
-            .max_by(|&a, &b| {
-                live_output.logits[a]
-                    .partial_cmp(&live_output.logits[b])
-                    .unwrap()
-            })
-            .unwrap();
-        assert_eq!(
-            live_input.legal_actions[best], 1350,
-            "live conversion should still pick g1-f3 as the best move"
-        );
-    }
-}
-.live_input.legal_actions.len())
             .max_by(|&a, &b| {
                 live_output.logits[a]
                     .partial_cmp(&live_output.logits[b])
