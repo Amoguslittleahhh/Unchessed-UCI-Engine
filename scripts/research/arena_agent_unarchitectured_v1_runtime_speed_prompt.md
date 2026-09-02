@@ -9,7 +9,7 @@ work is not an invitation to revert to or resume development on any of
 them. Any follow-on architecture or training work belongs on top of
 Unarchitectured v1, not as a parallel track exploring an earlier one.
 
-## Current status (round 19 merged, `main` at `097f40a`)
+## Current status (round 20 merged + real SPRT run, `main` at `bc03ca0`+)
 
 **NNUE**: reviewer's 108M cloud SPRT closed the round-13 ask —
 **−155.6 ± 47.7 Elo vs the shipped default**, best val-MAE 47.8cp (best
@@ -20,9 +20,17 @@ in the whole investigation). Applying round 13's own pre-committed rule,
 **Persona/adapter (`PersonaSmooth`, `EngineDetectV2`)**: merged in round
 17 after two rejections (15: didn't compile, unconditional behavior
 change, simulation-only; 16: compiled and gated, but 2 tests failed on
-its own design claims). Both UCI options default `false`, old behavior
-byte-identical when off. **Still no real cutechess SPRT** — neither
-default may flip until one runs.
+its own design claims). Round 20 added the real cutechess SPRT harness
+(arena can't run cutechess); **reviewer ran it for real** (`tc=5+0.05`,
+`elo0=0 elo1=5`, Adaptive=true both sides): interrupted by a machine
+restart at 5537/10000 games, score **2125-2095-1317 (0.503, ≈+2.1 Elo)**
+— flat and stable for the last ~2300 games before interruption, never
+trending toward either bound. Treated as conclusive enough without a
+formal SPRT pass: **no Elo objection to flipping either default**, but
+neither was designed to *gain* Elo (they fix flip-flop/misfire
+behavior, not strength) — whether to flip is a product call, not an Elo
+one. Both options still default `false` pending that call. Full
+writeup: `docs/persona-smooth-detect-sprt-result.md`.
 
 **Unarchitectured v1 runtime speed (the original ask)**: round 18's
 GEMM-tiling/scratch-reuse refactor didn't compile (9 errors — duplicate
@@ -65,12 +73,11 @@ merge, same as always — that discipline is exactly what caught rounds
    the shipped net at high node count, or a deeper HCE search), separating
    label-noise from architecture-capacity before assuming either is the
    fix. Not cloud spend on more of the same labels.
-2. **A real cutechess SPRT for `PersonaSmooth`/`EngineDetectV2`**
-   (Adaptive=true both sides, same shape as
-   `scripts/sprt-history/sprt_punish_latch.sh`), now that the code
-   itself is merged, tested, and correct. Both options still default
-   `false` — this is the only thing standing between them and being
-   flippable. Do not flip either default without it.
+2. **A product decision on `PersonaSmooth`/`EngineDetectV2` defaults.**
+   The real SPRT is done — no Elo objection either way (see "Current
+   status"). Whether to flip the defaults to `true` is now about whether
+   the flip-flop/misfire fixes are wanted, not about strength. Project
+   owner's call.
 3. **A retrain decision** for round 9's Unarchitectured v1 findings (GAB
    capacity, rating conditioning, int8 weight clipping), if the oracle
    checkpoint becomes available — see item 4, this is gated on that.
@@ -173,19 +180,23 @@ changes.
   (compiled, properly UCI-gated) but 2 of its own new tests failed on
   its own headline claims. Round 17 fixed both bugs — verified
   independently (118/118 Rust tests, 377/378 Python, no conflict
-  markers) and merged (`63c7262`). Still needs a real SPRT before either
-  new option's default can flip.
+  markers) and merged (`63c7262`).
 - **Round 18**: rejected, not merged. 9 real compile errors in an
   `aegis_v4_runtime.rs` GEMM-tiling refactor. **Round 19** fixed all of
   them and added a real toolchain bootstrap after identifying the actual
   root cause (arena's sandbox filters outbound HTTPS to
   `rustup.rs`/Debian's CDN). Verified independently (118/118 Rust tests,
   three parity gates pass by name, 7.46ms/call measured) and merged
-  (`097f40a`). See "Current status" above.
-- **Round 18**: rejected, not merged. 9 real compile errors in an
-  `aegis_v4_runtime.rs` GEMM-tiling refactor (duplicate definitions,
-  inconsistent call-site argument counts) plus a trailing duplicated
-  code fragment. See "Current status" above.
+  (`097f40a`).
+- **Round 20** (`8a82513`): committed the real cutechess SPRT harness
+  for `PersonaSmooth`/`EngineDetectV2` (arena can't run it — no
+  cutechess in the sandbox). Reviewer ran it for real: interrupted at
+  5537/10000 games by a machine restart, score 0.503 (≈+2.1 Elo), flat
+  and stable for ~2300 games before interruption. Treated as conclusive
+  enough — no Elo objection to flipping either default; whether to flip
+  is now a product call about the flip-flop/misfire fixes, not an Elo
+  one. See "Current status" above,
+  `docs/persona-smooth-detect-sprt-result.md`.
 
 ## Correctness gates that must keep passing
 
@@ -281,5 +292,9 @@ done:
 - `unchessed-core/src/adapt.rs`, `uci.rs` — `PersonaState`
   (`PersonaSmooth` EMA/dwell) and `OpponentModel` misfire fixes
   (`EngineDetectV2`), merged in round 17. Both UCI options default
-  `false`; needs a real SPRT before either can flip. See "Current
-  status" above.
+  `false`. Real SPRT done, no Elo objection either way — flipping is now
+  a product call. See "Current status" above.
+- `docs/persona-smooth-detect-sprt-result.md` — the real cutechess SPRT
+  for `PersonaSmooth`/`EngineDetectV2` (round 20's harness, run on this
+  reviewer's hardware). `scripts/research/wsl_sprt_persona_run.sh`
+  reproduces it.
