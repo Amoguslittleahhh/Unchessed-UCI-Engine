@@ -50,7 +50,17 @@ separate errors**:
 Same root cause as every prior compile failure this project has seen
 from this source: **no rustc in the sandbox**, and the doc's own
 "(no rustc here)" disclosure is honest about that but doesn't change
-that untested code got pushed as a finished commit. The underlying idea
+that untested code got pushed as a finished commit. Now explained and
+addressed: arena's sandbox (Debian 12 KVM/E2B-style VM) filters
+outbound HTTPS — GitHub HTML/API works, but `rustup.rs`/the Debian CDN
+often fail TLS, which is presumably why no prior round ever had a
+working toolchain despite round 10 once finding one. Added
+`scripts/setup-rust-toolchain.sh` (tries apt then rustup, idempotent,
+reports exactly what happened with each) and a `rust-toolchain.toml`
+pin at the repo root. Run the script first, every round touching
+`.rs` — see the pre-flight checklist. If it reports both paths failed,
+that's a real environment blocker to document, not a reason to skip
+verification. The underlying idea
 (token-outer GEMM tiling, writing attention output through into
 existing scratch instead of a fresh `Vec` per head) is a reasonable,
 recognizable optimization pattern and may well be worth doing — but it
@@ -224,10 +234,18 @@ done:
 - [ ] Any format needing byte-exact integrity across platforms (PGN,
   EPD, JSONL manifests) needs a `.gitattributes -text` rule — round 10
   found this the hard way.
-- [ ] If the sandbox has no rustc, say so plainly and don't claim
-  Rust-side verification you didn't do — "(need rustc)" as a footnote is
-  not the same as "this compiles." Round 15 shipped a real compile error
-  this way.
+- [ ] **Run `source scripts/setup-rust-toolchain.sh` first, every round
+  that touches any `.rs` file.** It's idempotent (safe to re-run, no-ops
+  if rustc is already there) and tries apt then rustup, reporting
+  exactly what happened with each — known blocker in this sandbox
+  specifically: outbound HTTPS is filtered, GitHub HTML/API works but
+  `rustup.rs`/the Debian CDN often fail TLS. If the script's output
+  says both paths failed, paste that actual output into the round's
+  doc — that is a real, reportable environment blocker, not something
+  to route around with "(need rustc)" as a footnote. "(need rustc)" is
+  not the same as "this compiles" — rounds 15 and 18 both shipped real
+  compile errors this way, after the toolchain script would have caught
+  them in seconds if it had existed and been run.
 - [ ] A behavior change to code that runs in real games (`adapt.rs`,
   `search.rs`, anything reachable from `run_go`) needs a UCI option
   defaulting to the *old* behavior plus a real cutechess SPRT before the
@@ -237,6 +255,8 @@ done:
 
 ## Where to look
 
+- `scripts/setup-rust-toolchain.sh`, `rust-toolchain.toml` — run the
+  script first, every round touching `.rs`. See the pre-flight checklist.
 - `unchessed-core/src/aegis_v4_runtime.rs` — the runtime module, forward
   pass, and all correctness tests.
 - `tools/reference_forward_unarchitectured_v1.py` — the independent
