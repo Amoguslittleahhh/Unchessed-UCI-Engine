@@ -1,6 +1,7 @@
 //! FEN parsing and serialization.
 
 use crate::board::*;
+use crate::movegen::attacked;
 
 pub const START_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
@@ -87,6 +88,21 @@ pub fn parse(fen: &str) -> Result<Position, String> {
 
     if pos.bb[0][KING].count_ones() != 1 || pos.bb[1][KING].count_ones() != 1 {
         return Err("each side needs exactly one king".into());
+    }
+
+    // The side NOT to move must not be in check -- otherwise the side to move
+    // could simply capture that king, which is impossible in a real game (the
+    // opponent would have had to already be in check on their own turn and
+    // failed to address it). This also catches the degenerate "adjacent
+    // kings" case, since a king itself attacks all its neighboring squares.
+    // Without this check, downstream code that assumes every king square is
+    // a normal, uncapturable king (e.g. NNUE king-bucket lookups) can be fed
+    // a position where the "opponent" king is effectively already gone,
+    // which previously caused an out-of-bounds panic instead of a UCI error.
+    let non_mover = pos.side.flip();
+    let non_mover_king = pos.bb[non_mover.idx()][KING].trailing_zeros() as u8;
+    if attacked(&pos, non_mover_king, pos.side) {
+        return Err("illegal position: side not to move is in check".into());
     }
 
     pos.hash = pos.compute_hash();

@@ -204,7 +204,7 @@ mod tests {
 
     #[test]
     fn rank_disambiguation() {
-        let pos = fen::parse("k7/8/8/8/R7/8/R6K/8 w - - 0 1").unwrap();
+        let pos = fen::parse("1k6/8/8/8/R7/8/R6K/8 w - - 0 1").unwrap();
         assert_eq!(parse_san(&pos, "R4a3").unwrap().uci(), "a4a3");
         assert_eq!(parse_san(&pos, "R2a3").unwrap().uci(), "a2a3");
         // plain "Ra3" is ambiguous -> refuse
