@@ -389,6 +389,28 @@ fn nnue_min_base_secs() -> u32 {
         .unwrap_or(NNUE_MIN_BASE_SECS)
 }
 
+/// Override for the fixed-node HCE label search budget, so the same
+/// deterministic PGN replay can be re-labeled at a deeper node count for
+/// a label-noise comparison without touching the shipped 5000-node default.
+fn nnue_label_nodes() -> u64 {
+    std::env::var("UNCHESSED_NNUE_LABEL_NODES")
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+        .unwrap_or(NNUE_LABEL_NODES)
+}
+
+/// Optional second node budget: when set, every accepted sample also gets a
+/// second search at this depth on the *same* position, printed as a
+/// `LABEL_COMPARE old=.. new=..` line -- the only way to get a real paired
+/// label-noise comparison, since the M2 quiet filter uses the primary
+/// label search's own score and so changing that budget changes which
+/// positions get selected, not just their recorded score.
+fn nnue_label_nodes_compare() -> Option<u64> {
+    std::env::var("UNCHESSED_NNUE_LABEL_NODES_COMPARE")
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+}
+
 fn quiet_margins() -> (i32, i32) {
     let read = |name: &str, default: i32| {
         std::env::var(name)
@@ -434,6 +456,8 @@ fn run_nnue(args: &[String]) {
     let mut noisy_search = 0u64;
     let (quiet_margin_qsearch, quiet_margin_search) = quiet_margins();
     let min_base_secs = nnue_min_base_secs();
+    let label_nodes = nnue_label_nodes();
+    let label_nodes_compare = nnue_label_nodes_compare();
     let mut hist = QuietHistogram::new();
 
     'files: for path in &args[6..] {
@@ -458,7 +482,7 @@ fn run_nnue(args: &[String]) {
                             &headers, &movetext, &mut out, &tt, &mut rng, &mut samples,
                             max_positions, &mut used_games, &start,
                             quiet_margin_qsearch, quiet_margin_search,
-                            min_base_secs, &mut noisy_qsearch, &mut noisy_search,
+                            min_base_secs, label_nodes, label_nodes_compare, &mut noisy_qsearch, &mut noisy_search,
 
                             &mut hist,
                         );
@@ -484,7 +508,7 @@ fn run_nnue(args: &[String]) {
                     &headers, &movetext, &mut out, &tt, &mut rng, &mut samples,
                     max_positions, &mut used_games, &start,
                     quiet_margin_qsearch, quiet_margin_search,
-                    min_base_secs, &mut noisy_qsearch, &mut noisy_search,
+                    min_base_secs, label_nodes, label_nodes_compare, &mut noisy_qsearch, &mut noisy_search,
 
                     &mut hist,
                 );
@@ -563,7 +587,9 @@ fn run_nnue_stream(args: &[String]) {
     let max_positions_per_worker: u64 = args[4].parse().expect("max_positions_per_worker");
     let (quiet_margin_qsearch, quiet_margin_search) = quiet_margins();
     let min_base_secs = nnue_min_base_secs();
+    let label_nodes = nnue_label_nodes();
     assert!(n_workers > 0, "need at least 1 worker");
+    let label_nodes_compare = nnue_label_nodes_compare();
     std::fs::create_dir_all(&out_dir).unwrap_or_else(|e| panic!("create {}: {}", out_dir, e));
 
     let mut senders = Vec::with_capacity(n_workers);
@@ -600,7 +626,7 @@ fn run_nnue_stream(args: &[String]) {
                     &h, &movetext, &mut out, &tt, &mut rng, &mut samples,
                     max_positions_per_worker, &mut used_games, &start,
                     quiet_margin_qsearch, quiet_margin_search,
-                    min_base_secs, &mut noisy_qsearch, &mut noisy_search,
+                    min_base_secs, label_nodes, label_nodes_compare, &mut noisy_qsearch, &mut noisy_search,
 
                     &mut hist,
                 );
@@ -772,6 +798,8 @@ fn process_nnue_game(
     quiet_margin_qsearch: i32,
     quiet_margin_search: i32,
     min_base_secs: u32,
+    label_nodes: u64,
+    label_nodes_compare: Option<u64>,
     noisy_qsearch: &mut u64,
     noisy_search: &mut u64,
     hist: &mut QuietHistogram,
@@ -875,7 +903,7 @@ fn process_nnue_game(
 
         // label with a shallow fixed-node HCE search
         let limits = Limits {
-            nodes: Some(NNUE_LABEL_NODES),
+            nodes: Some(label_nodes),
             ..Default::default()
         };
         let stop = AtomicBool::new(false);
@@ -919,6 +947,41 @@ fn process_nnue_game(
         if quiet_margin_search > 0 && gap_s > quiet_margin_search {
             *noisy_search += 1;
             continue;
+        }
+
+        // Optional diagnostic side-channel: on this exact same,
+        // already-quiet-filtered, fully-legal position (real castling
+        // rights/en passant included, since `p` came from live SAN
+        // replay, not a reconstructed shard), also run a deeper search
+        // and print the (label, deeper) pair. This never touches the
+        // real output file or the position-selection logic above --
+        // comparing two full separate generation passes at different
+        // node budgets does NOT give matched positions, because the M2
+        // filter above uses the same node budget the label does, so a
+        // deeper budget accepts/rejects a different position set. This
+        // side-channel is the only way to get a true paired comparison.
+        if let Some(compare_nodes) = label_nodes_compare {
+            let compare_limits = Limits {
+                nodes: Some(compare_nodes),
+                ..Default::default()
+            };
+            let compare_stop = AtomicBool::new(false);
+            let compare_lines = search::go(
+                p,
+                &Hce::default(),
+                &compare_limits,
+                1,
+                tt,
+                &compare_stop,
+                &[],
+                0,
+                search::SearchParams::default(),
+                1,
+                &mut |_| {},
+            );
+            if let Some(cl) = compare_lines.first() {
+                eprintln!("LABEL_COMPARE old={} new={}", l.score, cl.score);
+            }
         }
 
         if write_nnue_sample(out, p, l.score, wdl_white).is_ok() {
