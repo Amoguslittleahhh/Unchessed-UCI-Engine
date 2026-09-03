@@ -3,13 +3,13 @@
 **Investigation ID:** `13-nnue-ceiling`
 **Tier:** 1 (cheap research/design)
 **Repository/branch:** `/home/ubuntu/Unchessed-UCI-Engine`, `manus/research-facilities`
-**Decision:** **Pursue one cheap, offline coverage-versus-capacity diagnostic; defer any architecture expansion or large retrain until it is run.** The leading explanation is currently **effective data volume and support at reachable positions**, not proven lack of parameter capacity. This is a ranking of hypotheses, not a strength claim.
+**Decision:** **Closed for piece-count resampling/reweighting at this scale.** Capacity versus broad reachable-data support remains untested; neither is claimed as the cause of the ceiling. No implementation, retrain, default change, Tier 2/3 work, cloud spend, commit, or push was started.
 
 ## Executive answer
 
 The new paired label measurement materially changes the ceiling analysis. Fresh labels generated during PGN replay differed from the existing labels by only **17–22 cp MAE**, with **Pearson 0.93–0.98** across four PGN sources and 10x/20x depth multipliers ([real measurement][1]). Thus the old simulated 50–56 cp noise-floor argument is no longer a defensible primary explanation.
 
-The repository evidence does **not** yet isolate architecture from data. The strongest observed signal is that additional records helped substantially but with diminishing returns: under the fixed v4 architecture and recipe, the measured gap to the shipped v3 default fell from **−796.5 Elo at 0.959M positions**, to **−383.5 at 9M**, **−307.1 at 27M**, and **−155.6 ± 47.7 at 108M**. The 27M→108M step bought approximately 89 Elo, so raw data volume is clearly load-bearing. However, the records are sampled from a narrow generator/distribution and raw count is not effective support: repeated or near-identical positions, overrepresented openings/material bands, and sparse king-bucket/piece-count regions can leave much of the reachable state space uncovered.
+The repository evidence does **not** isolate architecture from data. The two new real experiments close the piece-count intervention axis: hard resampling improved **4 of 7 rare/mid buckets by 5.7%–37.2% relative MAE**, while the two common buckets (57% of real games) regressed **10.9% and 13.9%**; clipped inverse-frequency soft weighting **[0.25×, 20×]** then made bucket 2 **19.5% worse**. The rare pools had only **44 and 1,030 examples out of 98,000**, consistent with overfitting rather than learning generalizable rare-position structure.
 
 Capacity remains plausible but is not the best first bet. The v4 feature scheme is a checked implementation of Stockfish-style `HalfKAv2_hm`, with a 256-wide accumulator, SCReLU, two perspectives, factorized training table, and eight piece-count output heads. The exported model has **5,767,937 parameters** and the architecture audit found the feature mapping correct. Yet no full-scale width/depth ablation exists, and v4 did not beat v3 despite being structurally more modern. That negative result is ambiguous: v4 was trained from scratch on the available corpus, uses a different feature/head/training recipe, and was not a matched-capacity experiment against a fixed held-out reachable-position set.
 
@@ -60,9 +60,37 @@ This test is cheap because it uses existing training code, CPU-feasible subsets,
 
 A stronger but still cheap variant is a **learning-curve by unique-position mass**: train current v4 on 0.25×, 0.5×, 1× and 2× *deduplicated/coverage-balanced* sample mass, using a fixed held-out fresh-game set. A continuing slope in weighted held-out MAE argues for data; a flat curve with a train–test gap argues for capacity or representation. The curve must use steps/optimization budget normalized explicitly; fixed epoch counts are not comparable across data sizes.
 
+## Closure of the piece-count axis
+
+The hard-resampling result is **not a clean win**: improving four rare/mid material buckets by 5.7%–37.2% relative MAE came at the expense of common buckets representing 57% of real games. The soft-weighting follow-up was negative for the intended rare-bucket rescue: **bucket 2 regressed 19.5%**, with rare pools of only **44 and 1,030 examples out of 98,000**. Per the predeclared rule in the supplied soft-reweighting design, **piece-count-bucket resampling and reweighting are closed at this data scale**. These results do not prove that the model lacks capacity or that more raw data is the answer.
+
+The three referenced experiment files (`docs/nnue-coverage-capacity-matrix-178m.md`, `docs/nnue-soft-reweighting-result.md`, and `docs/reinforcement/32-nnue-soft-reweighting.md`) are absent from the working tree and reachable Git history in this checkout. The exact figures above are verified against `pasted_content_7.txt`, not independently recomputed here; no missing bucket names, absolute MAEs, seeds, or logs are invented.
+
+## Mandatory real-world check
+
+I ran the existing release engine on real positions with the shipped NNUE:
+
+```text
+printf 'uci\nsetoption name EvalFile value /home/ubuntu/Unchessed-UCI-Engine/unchessed-nnue.bin\nisready\nposition startpos\ngo depth 3\nposition fen r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/2N2N2/PPPP1PPP/R1BQK2R w KQkq - 2 5\ngo depth 3\nquit\n' | timeout 30s target/release/unchessed-adapter 2>&1
+```
+
+Exact relevant output:
+
+```text
+info string [Unchessed] NNUE loaded from '/home/ubuntu/Unchessed-UCI-Engine/unchessed-nnue.bin'
+readyok
+bestmove e2e4
+info depth 1 multipv 1 score cp 12 nodes 42 nps 42000 hashfull 0 time 0 pv d2d3
+info depth 2 multipv 1 score cp 23 nodes 311 nps 311000 hashfull 0 time 1 pv a2a4 d7d6
+info depth 3 multipv 1 score cp 13 nodes 1445 nps 722500 hashfull 0 time 2 pv d2d3 d7d6 a2a3
+bestmove f3h4
+```
+
+This verifies local NNUE loading and real-position search, **not** strength, MAE, or experimental-net comparison. The full gate was attempted with `bash scripts/build-and-test.sh` and blocked before compilation: `lock file version 4 requires -Znext-lockfile-bump` (exit 101). No lockfile/toolchain edits were made.
+
 ## Recommendation and gate
 
-**Pursue:** the coverage/capacity matrix and report-only coverage instrumentation. This is Tier 1, offline, and directly tests the requested distinction.
+**Recommendation: close this thread and redirect effort.** Do not pursue another piece-count sampling/reweighting variant.
 
 **Defer:** any architecture widening, `Full_Threats` feature-set change, 178M/500M “more of the same” retrain, or cloud spend. The 108M result is still more than 100 Elo behind the shipped default at the optimistic confidence bound, and the project has no evidence that another raw-volume point will close that gap. A capacity experiment should not be started as a blind full retrain; it should follow the matched diagnostic.
 
@@ -70,7 +98,7 @@ A stronger but still cheap variant is a **learning-curve by unique-position mass
 
 ## What was actually inspected and not run
 
-I read the master brief, reinforcement reports `00`–`12` where present, the NNUE architecture audit, quiet-filter documentation, v4 scaling/results reports, the v4 trainer, and the relevant NNUE runtime/generation references. I used authoritative Stockfish documentation and its training-dataset guidance, plus the recent dataset study. I did **not** run a new training job, generate labels, compute deduplication/coverage statistics, run an Elo match, or change engine defaults. The proposed matrix is design-only. Existing reported measurements are cited as prior evidence, not newly reproduced here.
+I read the master brief, reinforcement reports `00`–`12` where present, the NNUE architecture audit, quiet-filter documentation, v4 scaling/results reports, the v4 trainer, and the relevant NNUE runtime/generation references. I used authoritative Stockfish documentation and its training-dataset guidance, plus the recent dataset study. I did **not** run a new training job, generate labels, compute deduplication/coverage statistics, or run an Elo match; the referenced experiment artifacts are absent here. I **did** run the real UCI/NNUE position check above and the repository build gate, which exposed the Cargo lockfile blocker. Existing reported measurements are supplied project evidence, not newly reproduced here.
 
 ## References
 
@@ -86,6 +114,6 @@ I read the master brief, reinforcement reports `00`–`12` where present, the NN
 
 ## Status
 
-**No source code or defaults changed. No Tier 2/3 work or compute spend started.** The report's conclusion is a research priority, not authorization for retraining or promotion.
+**No source code or defaults changed. No Tier 2/3 work or compute spend started.** **CLOSED — piece-count resampling/reweighting at this scale; capacity remains open only as an untested hypothesis.**
 
 **Report file:** `/home/ubuntu/Unchessed-UCI-Engine/docs/reinforcement/13-nnue-ceiling.md`
