@@ -140,9 +140,9 @@ The NNUE label-noise record was also corrected using a real paired measurement o
 No human-versus-engine or human-versus-human chess game was played in the current task. The assistant did not operate a chessboard as a human player, select moves interactively, or complete a human game against the engine. Position analysis and interpretation of UCI output are not human playing evidence.
 
 \subsection{Engine-versus-engine play}
-No new engine-versus-engine chess match was launched during the Tier 2.2 CPU calibration rerun. The calibration used toy episodes, not chess positions, and no chess self-play, policy-head training, NNUE update, match, or SPRT was performed.
+The original Tier 2.2 CPU calibration rerun used toy episodes rather than chess positions. A subsequent bounded Cutechess gate launched real chess games. Four Unchessed-versus-Unchessed adapter games completed successfully, producing two wins for each binary when colors were alternated plus one draw by insufficient mating material; the aggregate was 2--1--1 for the first named adapter. A second four-game gate paired Unchessed with packaged Stockfish 16. All four games completed: Unchessed scored 0--4--0, with two losses as White and two as Black. Both gates used one thread, 16 MiB hash, disabled Unchessed book, the shipped NNUE for Unchessed, and 1+0.1 time control. PGNs and logs are retained in the repository. These are bounded runtime and game-completion observations, not a statistically powered strength claim or SPRT decision.
 
-Earlier repository work contains historical playing evidence that must remain separate from the current rerun. A prior combined Persona-related experiment stopped at approximately 5,537 games without reaching an SPRT decision. Historical search/tuning work also contains small SPSA iterations, including a 12-game experiment. These records are neither a new match nor positive strength evidence. They are underpowered or interrupted and cannot justify a default change.
+Earlier repository work contains historical playing evidence that must remain separate from these bounded gates. A prior combined Persona-related experiment stopped at approximately 5,537 games without reaching an SPRT decision. Historical search/tuning work also contains small SPSA iterations, including a 12-game experiment. These records, like the new four-game Stockfish gate, are not statistically powered strength evidence and cannot justify a default change.
 
 \subsection{What would constitute playing evidence}
 A meaningful engine comparison would freeze the exact binaries, NNUE files, UCI options, opening set, hardware, thread count, hash size, time control, adjudication rules, and randomization policy. It would retain raw PGNs, engine logs, manifests, and result recomputation inputs. The candidate would then be compared against the incumbent in paired games and analyzed with a declared SPRT or equivalent statistical plan. A continuous controller can improve operations, but it does not replace provenance or statistical validity \cite{stockfishfishtest,fastchess}.
@@ -158,7 +158,7 @@ Evidence type & Status in this work \\
 \midrule
 Human versus engine & Not run \\
 Human versus human & Not run \\
-New engine versus engine chess match & Not run \\
+New engine versus engine chess match & Run: two bounded 4-game gates \\
 Chess self-play for RL & Not run \\
 Toy CPU calibration episodes & Run; explicitly not chess \\
 Historical Persona match & Approximately 5,537 games; no SPRT decision \\

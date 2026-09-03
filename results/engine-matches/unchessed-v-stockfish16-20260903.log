@@ -1,0 +1,28 @@
+Warning: Stockfish16 doesn't have option OwnBook
+Started game 1 of 4 (Unchessed vs Stockfish16)
+Finished game 1 (Unchessed vs Stockfish16): 0-1 {Black mates}
+Score of Unchessed vs Stockfish16: 0 - 1 - 0  [0.000] 1
+Started game 2 of 4 (Stockfish16 vs Unchessed)
+Finished game 2 (Stockfish16 vs Unchessed): 1-0 {White mates}
+Score of Unchessed vs Stockfish16: 0 - 2 - 0  [0.000] 2
+Started game 3 of 4 (Unchessed vs Stockfish16)
+Finished game 3 (Unchessed vs Stockfish16): 0-1 {Black mates}
+Score of Unchessed vs Stockfish16: 0 - 3 - 0  [0.000] 3
+Started game 4 of 4 (Stockfish16 vs Unchessed)
+Finished game 4 (Stockfish16 vs Unchessed): 1-0 {White mates}
+Score of Unchessed vs Stockfish16: 0 - 4 - 0  [0.000] 4
+...      Unchessed playing White: 0 - 2 - 0  [0.000] 2
+...      Unchessed playing Black: 0 - 2 - 0  [0.000] 2
+...      White vs Black: 2 - 2 - 0  [0.500] 4
+Elo difference: -inf +/- nan, LOS: 2.3 %, DrawRatio: 0.0 %
+SPRT: llr 0 (0.0%), lbound -inf, ubound inf
+
+Player: Unchessed
+   "Loss: Black mates": 2
+   "Loss: White mates": 2
+Player: Stockfish16
+   "Win: Black mates": 2
+   "Win: White mates": 2
+Finished match
+
+[exit=0]
