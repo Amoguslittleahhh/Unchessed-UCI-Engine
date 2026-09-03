@@ -44,17 +44,23 @@ filters, so the position set is identical by construction.
 
 ## Result
 
-Two samples, two different PGN sources, same 10x depth multiplier
-(5000 → 50000 nodes):
+Four samples, four different PGN sources, two depth multipliers:
 
-| Source | n | MAE | RMS | Sign flips | Pearson |
-|---|---|---|---|---|---|
-| `data/training-elo/elo-1700.pgn` | 300 | 20.96cp | 31.94cp | 11 (3.7%) | 0.983 |
-| `data/training/leagues/bl0607.pgn` | 1000 | 17.41cp | 26.90cp | 66 (6.6%) | 0.957 |
+| Source | Nodes (multiplier) | n | MAE | RMS | Sign flips | Pearson |
+|---|---|---|---|---|---|---|
+| `data/training-elo/elo-1700.pgn` | 50000 (10x) | 300 | 20.96cp | 31.94cp | 11 (3.7%) | 0.983 |
+| `data/training/leagues/bl0607.pgn` | 50000 (10x) | 1000 | 17.41cp | 26.90cp | 66 (6.6%) | 0.957 |
+| `data/training-elo/elo-2500.pgn` | 100000 (20x) | 800 | 21.20cp | 34.20cp | 70 (8.8%) | 0.929 |
+| `data/training/players/Carlsen.pgn` | 100000 (20x) | 800 | 21.99cp | 36.05cp | 63 (7.9%) | 0.940 |
 
-Consistent across two independent sources: **~17-21cp MAE, Pearson
-0.96-0.98** between a 5000-node label and the same position searched
-10x deeper.
+Consistent across four independent sources and two depth multipliers:
+**~17-22cp MAE, Pearson 0.93-0.98** between a 5000-node label and the
+same position searched 10-20x deeper. Going from 10x to 20x depth moved
+MAE only slightly (≈+1-4cp) while Pearson eased down modestly
+(0.96-0.98 → 0.93-0.94) and sign-flips ticked up (3.7-6.6% → 7.9-8.8%)
+— a mild, sub-linear growth pattern consistent with real but bounded
+search instability, not a runaway blowup that would suggest the 5000
+vs 50000/100000 gap is somehow a special case.
 
 ## Why this matters: it contradicts the working theory
 
@@ -102,11 +108,15 @@ different, unaddressed question.
 
 ## What's actually next
 
-1. **Scale this measurement up** — more positions, more PGN sources,
-   and a larger depth multiplier (this only tested 10x; the label-noise
-   theory's own numbers assumed something closer to Stockfish-strength
-   search, i.e. far deeper than 10x) — before revising the label-noise
-   theory's conclusion with confidence.
+1. **Partially done, could go further.** Four samples across four PGN
+   sources and two depth multipliers (10x, 20x) now agree with each
+   other — that's enough to call the ~50-56cp assumption genuinely
+   contradicted at this scale, not a fluke. What's still untested: a
+   much larger depth multiplier (the label-noise theory's own numbers
+   assumed something closer to Stockfish-strength search, i.e. far
+   beyond 20x) — worth doing only if there's a specific reason to think
+   the relationship changes qualitatively at that range, not as a
+   default next step.
 2. **If the low-noise finding holds at scale**, the NNUE strength
    ceiling is more likely architecture, effective-data-volume, or
    something not yet isolated — not primarily label noise from search
