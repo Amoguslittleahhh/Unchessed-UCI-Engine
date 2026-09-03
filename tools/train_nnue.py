@@ -176,7 +176,7 @@ def screlu(x):
     return v * v
 
 
-def wdl_loss(raw, target):
+def wdl_loss(raw, target, weight=None):
     # |sigmoid(raw) - target|^2.5, not plain MSE (exponent 2) -- matches
     # Stockfish's nnue-pytorch recipe, which weights positions near the
     # 50%-win boundary (the most decision-relevant ones) more heavily than
@@ -197,7 +197,19 @@ def wdl_loss(raw, target):
     # (bounded by 1/(2*sqrt(eps))) with a negligible accuracy cost, since
     # diff^2 is also -> 0 in that same regime.
     diff = torch.sigmoid(raw) - target
-    return (diff * diff * (diff.abs() + 1e-8).sqrt()).mean()
+    per_sample = diff * diff * (diff.abs() + 1e-8).sqrt()
+    if weight is None:
+        return per_sample.mean()
+    return (per_sample * weight).sum() / weight.sum()
+
+
+# Predeclared inverse-pool-frequency weights (docs/reinforcement/32-nnue-soft-reweighting.md),
+# derived from the 27M-record 178M-corpus pool counts, clipped to [0.25x, 20x] and
+# normalized so the RAW-sampled average weight is close to 1. Off by default --
+# only applied when NNUE_BUCKET_WEIGHTS=1, so the existing recipe is untouched.
+BUCKET_WEIGHT = torch.tensor(
+    [20.0, 20.0, 11.7, 2.0, 0.87, 0.58, 0.45, 0.44], dtype=torch.float32, device=DEVICE
+)
 
 
 class Nnue(nn.Module):
@@ -466,6 +478,9 @@ def train(shards, out_path, epochs):
     )
     patience, min_delta = recipe_from_env()
     stopper = EarlyStop(patience, min_delta)
+    use_bucket_weights = os.environ.get("NNUE_BUCKET_WEIGHTS") == "1"
+    if use_bucket_weights:
+        print(f"per-bucket loss weighting enabled: {BUCKET_WEIGHT.tolist()}", flush=True)
     n_train = len(train_idx)
     print(
         f"recipe: max_epochs={epochs} early_stop_patience={patience} "
@@ -494,11 +509,12 @@ def train(shards, out_path, epochs):
         running = steps = 0
         for si, so, sv, ni, no, nv, target, _, bkt in train_iter:
             opt.zero_grad(set_to_none=True)
+            w = BUCKET_WEIGHT[bkt] if use_bucket_weights else None
             if use_amp:
                 with torch.autocast(device_type="cuda", dtype=amp_dtype):
-                    loss = wdl_loss(model(si, so, sv, ni, no, nv, bkt), target)
+                    loss = wdl_loss(model(si, so, sv, ni, no, nv, bkt), target, w)
             else:
-                loss = wdl_loss(model(si, so, sv, ni, no, nv, bkt), target)
+                loss = wdl_loss(model(si, so, sv, ni, no, nv, bkt), target, w)
             loss.backward()
             opt.step()
             running += loss.item()
