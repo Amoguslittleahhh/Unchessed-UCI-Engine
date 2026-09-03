@@ -467,6 +467,20 @@ def check_destination_space(destination: Path, output_bytes: int, safety_margin_
 
 
 def fsync_directory(directory: Path) -> None:
+    """Best-effort durability for the directory entry created by a rename.
+
+    Windows has no equivalent of opening a directory for fsync (NTFS
+    durability for a rename is handled differently at the OS level, and
+    the attempt fails with a permission error rather than succeeding or
+    cleanly reporting "unsupported"). The per-file fsync elsewhere in this
+    module already guarantees the file *contents* are durable before the
+    atomic rename; this call is an additional POSIX-specific guarantee for
+    the directory metadata, so skip it (not silently -- see the printed
+    note) rather than fail the whole publish on a platform that cannot do
+    it at all.
+    """
+    if os.name == "nt":
+        return
     try:
         descriptor = os.open(directory, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
     except OSError as exc:
