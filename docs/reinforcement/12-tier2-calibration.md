@@ -35,6 +35,16 @@ The focused calibration suite completed **4 passed**. Relevant repository regres
 
 A passing result means only that the smallest deterministic replay/value-learning plumbing can be exercised on a toy domain. It does not establish that the existing NNUE can support AlphaZero policy/value training, that a chess MCTS is affordable, or that self-play would improve playing strength. A failure would have been a stop/defer result and would not have justified buying compute.
 
+## Fresh rerun
+
+On 2026-09-03, the approved bounded command was rerun with the upgraded sandbox toolchain:
+
+```text
+python3 tools/rl_calibration.py --seed 17 --games 100 --updates 25 --learning-rate 0.05 --json /tmp/rl-calibration-tier2-rerun.json
+```
+
+The run completed with **100/100 games**, **451 replay records**, **0 legal-mask violations**, and replay SHA-256 `c6dfbf10d7896c95b898ee406426917747e7907976953df9b4fb186cf8d6a1e1`. Held-out loss decreased from `0.22666666666666666` to `4.4702117962524e-32`. The focused test command `python3 -m pytest tools/test_rl_calibration.py -q` passed **4 tests**. The release workspace regression command `. "$HOME/.cargo/env" && cargo test --workspace --release` passed **123 tests, 0 failed, 6 ignored**. These are repeatability and plumbing results only; they are not chess, NNUE, self-play, or Elo evidence.
+
 If the bounded tests pass, the recommended next step remains **defer full RL** until a real chess legal-state prototype, NNUE throughput benchmark, policy/value architecture, and explicit Tier 3 approval exist. The missing policy head and MCTS are architectural blockers, not problems this toy test resolves. Any future chess candidate or default integration still requires the repository's real paired-game SPRT gate.
 
 ## Budget and scope compliance
