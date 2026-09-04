@@ -833,6 +833,8 @@ pub struct ForwardOutput {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct HintKey {
     pub position_hash: u64,
+    pub ep_file: u8,
+    pub halfmove_bucket: u8,
     pub rating: i64,
     pub time_class: usize,
     pub policy_kind: usize,
@@ -844,6 +846,8 @@ impl HintKey {
     pub fn new(position_hash: u64, input: &PositionInput, exit: InferenceExit) -> Self {
         Self {
             position_hash,
+            ep_file: input.ep_file,
+            halfmove_bucket: input.halfmove_clock / 8,
             rating: input.rating,
             time_class: input.time_class,
             policy_kind: input.policy_kind,
@@ -2706,6 +2710,22 @@ mod tests {
             policy_kind: POLICY_GUIDE,
             legal_actions: actions,
         }
+    }
+
+    #[test]
+    fn hint_key_binds_rule_state_inputs() {
+        let base = start_position_input();
+        let mut dead_ep = base.clone();
+        dead_ep.ep_file = 3;
+        let mut later = base.clone();
+        later.halfmove_clock = 16;
+
+        let a = HintKey::new(0x1234, &base, InferenceExit::Layer2Width128);
+        let b = HintKey::new(0x1234, &dead_ep, InferenceExit::Layer2Width128);
+        let c = HintKey::new(0x1234, &later, InferenceExit::Layer2Width128);
+
+        assert_ne!(a, b, "en-passant state must not reuse a stale hint");
+        assert_ne!(a, c, "halfmove bucket must not reuse a stale hint");
     }
 
     fn load_reference_weights() -> ChessformerWeights {

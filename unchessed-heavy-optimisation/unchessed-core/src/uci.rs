@@ -1439,7 +1439,10 @@ fn run_go(
             .budget(pos.side)
             .1
             .map(|hard_ms| hard_ms < 1_000)
-            .unwrap_or(false);
+            .unwrap_or(false)
+        || job.limits.nodes.is_some()
+        || job.limits.depth.map(|depth| depth <= 2).unwrap_or(false)
+        || job.limits.movetime.map(|ms| ms < 1_000).unwrap_or(false);
 
     // ------------------------------------------------------------------
     // 1. Feed pending opponent moves to the live model
@@ -1453,7 +1456,7 @@ fn run_go(
                 b.probe(&obs.pre).iter().any(|e| e.mv == obs.mv)
             };
             if was_book {
-                m.observe_book_move(job.game_plies);
+                m.observe_book_move(obs.ply);
                 if telemetry_enabled(&job) {
                     emit_observation_telemetry(
                         &job,
@@ -1562,8 +1565,10 @@ fn run_go(
             // clock signal: instant strong replies in positions with real
             // choice are the classic engine tell
             let had_choice = lc > 8 && w >= 0.8;
-            if let Some(used) = job.opp_time_used {
+            if ordinal + 1 == job.pending.len() {
+                if let Some(used) = job.opp_time_used {
                 m.observe_time(used, had_choice);
+                }
             }
             if telemetry_enabled(&job) {
                 emit_observation_telemetry(
@@ -1621,7 +1626,15 @@ fn run_go(
     if adaptive_now && job.opt.own_book && job.game_plies < job.opt.book_depth {
         let entries = {
             let b = book.lock().unwrap();
-            b.probe(&pos)
+            let probed = b.probe(&pos);
+            if job.limits.searchmoves.is_empty() {
+                probed
+            } else {
+                probed
+                    .into_iter()
+                    .filter(|entry| job.limits.searchmoves.iter().any(|s| s == &entry.mv.uci()))
+                    .collect()
+            }
         };
         if !entries.is_empty() {
             let chosen = {
@@ -1693,7 +1706,10 @@ fn run_go(
     // 3. Main search
     // ------------------------------------------------------------------
     let multipv_shown = job.opt.multipv;
-    let multipv_search = if adaptive_now {
+    let known_full = adaptive_now
+        && !job.opt.limit_strength
+        && model.lock().unwrap().engine_suspect();
+    let multipv_search = if adaptive_now && !known_full {
         multipv_shown.max(5)
     } else {
         multipv_shown
