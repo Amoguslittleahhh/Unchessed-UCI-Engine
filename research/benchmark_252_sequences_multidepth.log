@@ -1,0 +1,37 @@
+{
+  "cases": 252,
+  "depths": [
+    1,
+    2,
+    3
+  ],
+  "searches": 756,
+  "protocol_uciok": true,
+  "legal_or_terminal_pass": 756,
+  "fail": 0,
+  "total_wall_ms": 3660.36,
+  "depth_1": {
+    "count": 252,
+    "pass": 252,
+    "mean_wall_ms": 2.889,
+    "p95_wall_ms": 8.61,
+    "mean_nodes": 272.74,
+    "max_nodes": 2615
+  },
+  "depth_2": {
+    "count": 252,
+    "pass": 252,
+    "mean_wall_ms": 3.665,
+    "p95_wall_ms": 11.775,
+    "mean_nodes": 456.82,
+    "max_nodes": 3055
+  },
+  "depth_3": {
+    "count": 252,
+    "pass": 252,
+    "mean_wall_ms": 6.682,
+    "p95_wall_ms": 16.73,
+    "mean_nodes": 985.82,
+    "max_nodes": 6358
+  }
+}

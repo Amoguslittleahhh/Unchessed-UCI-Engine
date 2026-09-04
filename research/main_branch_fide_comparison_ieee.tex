@@ -11,7 +11,7 @@
 \begin{document}
 \maketitle
 \begin{abstract}
-This paper independently reevaluates an updated main-branch snapshot of \textit{Unchessed-UCI-Engine} without using the previous research branch, its PDF, or its added commits as engine inputs. The evaluation reviews the newly added FIDE scenarios, reruns the complete existing test surfaces, and compares results with a prior audit only after producing fresh evidence. The method combines FIDE Laws analysis, source inspection, canonical perft counts, an independently maintained \texttt{python-chess} oracle, a 1,000-position reachable-state sample, explicit move-list sequences, malformed-FEN probes, and a seven-position verified mate corpus. Current main passes 123 default Rust tests, six ignored Rust tests, 385 Python tests, optimized Rust tests, all 28 recorded canonical perft checks, 7/7 synchronized mate cases, 1,004/1,004 non-terminal oracle-legal UCI moves, and 252/252 state-sequence cases. The prior dead-position failure is no longer reproduced: three tested dead-material classes now return \texttt{bestmove 0000}. However, the committed build script fails its own mate smoke gate because it sends \texttt{quit} after a fixed two-second sleep; a synchronized depth-six run returns the expected mate. Malformed FEN still produces an error message followed by a bestmove, so fail-closed protocol behavior is not established. The evidence supports improved, but bounded, FIDE-relevant conformance rather than complete compliance with all over-the-board Laws.
+This paper independently reevaluates an updated main-branch snapshot of \textit{Unchessed-UCI-Engine} without using the previous research branch, its PDF, or its added commits as engine inputs. The evaluation reviews the newly added FIDE scenarios, reruns the complete existing test surfaces, and compares results with a prior audit only after producing fresh evidence. The method combines FIDE Laws analysis, source inspection, canonical perft counts, an independently maintained \texttt{python-chess} oracle, a 1,000-position reachable-state sample, explicit move-list sequences, malformed-FEN probes, exact replay transcripts, and a seven-position verified mate corpus. Current main passes 123 default Rust tests, six ignored Rust tests, 385 Python tests, optimized Rust tests, all 28 recorded canonical perft checks, 7/7 synchronized mate cases, 1,004/1,004 non-terminal oracle-legal UCI moves, and 252/252 state-sequence cases. The prior dead-position failure is no longer reproduced: three tested dead-material classes now return \texttt{bestmove 0000}. However, the committed build script fails its own mate smoke gate because it sends \texttt{quit} after a fixed two-second sleep; a synchronized depth-six run returns the expected mate. Malformed FEN still produces an error message followed by a bestmove, so fail-closed protocol behavior is not established. The evidence supports improved, but bounded, FIDE-relevant conformance rather than complete compliance with all over-the-board Laws.
 \end{abstract}
 \begin{IEEEkeywords}
 FIDE Laws of Chess, chess engine testing, adversarial verification, perft, differential testing, UCI, regression analysis.
@@ -40,7 +40,7 @@ The FIDE 2023 Laws state that an immediately impossible-to-mate position is draw
 \subsection{Independent Differential Testing}
 The fresh UCI harness configured the updated binary with opening book and adaptive behavior disabled. It checked \texttt{uciok}, repeated \texttt{readyok}, 14 fixed FIDE-relevant positions, and 1,000 deterministic reachable positions generated from the initial position using seed 20260904 and up to 60 legal plies. Each non-terminal result was parsed as UCI and checked against \texttt{python-chess} 1.11.2 legal moves. The terminal oracle included checkmate, stalemate, insufficient material, and automatic 75-move status.
 
-A separate state-sequence harness generated 250 legal \texttt{position startpos moves ...} sequences and added explicit en-passant and castling sequences. The seven-position repository mate corpus was executed one isolated process at a time, waiting for \texttt{bestmove} before sending \texttt{quit}. A standalone Rust checker linked against the fresh main build evaluated all canonical perft positions and depths.
+A separate state-sequence harness generated 250 legal \texttt{position startpos moves ...} sequences and added explicit en-passant and castling sequences. Exact command streams and raw outputs for the explicit replay cases and every malformed-FEN probe were saved for inspection. The seven-position repository mate corpus was executed one isolated process at a time, waiting for \texttt{bestmove} before sending \texttt{quit}. A standalone Rust checker linked against the fresh main build evaluated all canonical perft positions and depths. All 252 sequences were then rerun at depths 1, 2, and 3 with one persistent UCI process, one thread, book disabled, synchronized result collection, and per-search wall-time/node capture.
 
 \section{Existing Test Results}
 The exact committed build script was rerun. Its build and Rust test portions completed, but it exited at the forced-mate smoke assertion. The script sleeps for two seconds after \texttt{go depth 6} and then sends \texttt{quit}; the observed output was \texttt{bestmove a1b1}, not the expected \texttt{a1a8}. A corrected synchronized probe waited for completion and produced depth-one through depth-six mate information followed by \texttt{bestmove a1a8}.
@@ -68,7 +68,7 @@ The current Python suite completed in 21.54 seconds versus 22.33 seconds in the 
 \section{FIDE-Relevant Results}
 All 28 canonical perft checks passed: start position at depths 1--6, Kiwipete at depths 1--5, position 3 at depths 1--5, and positions 4--6 at depths 1--4. The most demanding counts matched exactly, including 119,060,324 start-position nodes at depth six and 193,690,690 Kiwipete nodes at depth five. These values originate from the established perft reference \cite{perft}.
 
-The fresh UCI differential test contained 1,014 valid positions. Of these, 1,004 were non-terminal and all 1,004 returned moves legal under the independent oracle. Ten positions were terminal under the expanded oracle, and all ten returned \texttt{bestmove 0000}. The seven-position verified mate corpus passed 7/7 when synchronized. The move-list/state suite passed 252/252.
+The fresh UCI differential test contained 1,014 valid positions. Of these, 1,004 were non-terminal and all 1,004 returned moves legal under the independent oracle. Ten positions were terminal under the expanded oracle, and all ten returned \texttt{bestmove 0000}. The seven-position verified mate corpus passed 7/7 when synchronized. The move-list/state suite passed 252/252. The multi-depth benchmark completed 756 synchronized searches, with 252 cases at each of depths 1--3 and 756/756 legal-or-terminal outputs. Mean wall time was 2.889, 3.665, and 6.682 ms, respectively; the corresponding 95th percentiles were 8.610, 11.775, and 16.730 ms. Mean node counts were 272.74, 456.82, and 985.82.
 
 \begin{table}[t]
 \caption{Fresh runtime conformance results}
@@ -84,6 +84,21 @@ Terminal responses & 10/10 & Mate, stalemate, insufficient material, 75-move ora
 Verified mate corpus & 7/7 & Both colors and multiple mate patterns \\
 Move-list sequences & 252/252 & 250 random plus EP/castling \\
 Malformed FEN & 5/5 errors & Each also emitted a bestmove \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[t]
+\caption{252-sequence multi-depth benchmark}
+\label{tab:benchmark}
+\centering
+\begin{tabularx}{\columnwidth}{@{}l r r r r@{}}
+\toprule
+Depth & Cases & Pass & Mean ms & P95 ms \\
+\midrule
+1 & 252 & 252 & 2.889 & 8.610 \\
+2 & 252 & 252 & 3.665 & 11.775 \\
+3 & 252 & 252 & 6.682 & 16.730 \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -127,12 +142,12 @@ The five malformed cases all produce parser-error text and all also emit a bestm
 The search source preserves checkmate precedence before its halfmove draw guard, and the forced-mate test passes when synchronized. However, the UCI path does not expose a structured 50-move claim or 75-move result status to the client. FIDE Articles 9.3 and 9.6 distinguish those outcomes \cite{fide}. Move legality at high halfmove clocks was tested; complete result/API compliance remains unverified.
 
 \section{Not Verified and Threats to Validity}
-The reachable set is a deterministic finite sample, not the complete game graph. The perft corpus is selected, not exhaustive. The UCI tests use shallow searches for throughput and legality; they do not establish all options, time controls, threads, neural-network configurations, memory sizes, or long-running stability. The reported timing differences are not controlled performance benchmarks.
+The reachable set is a deterministic finite sample, not the complete game graph. The perft corpus is selected, not exhaustive. The multi-depth benchmark uses depths 1--3 for protocol and regression measurement, not playing-strength evaluation. It does not establish all options, time controls, threads, neural-network configurations, memory sizes, or long-running stability. Old-versus-new wall-time differences are not controlled performance benchmarks; within-run depth timings are directly measured under a fixed one-thread configuration.
 
 The audit cannot establish one-hand movement, touch-move, physical board restoration, clock pressing, flag fall, scoresheet rules, draw offers, arbiter intervention, penalties, appeals, venue/device conduct, rapid/blitz administration, or tournament scoring through a normal UCI interface. Current 2026 FIDE general regulations are relevant administrative context, but they do not make these physical procedures engine-testable \cite{general}.
 
 \section{Conclusion}
-The updated main snapshot shows meaningful evidence of improved FIDE-relevant behavior. Canonical perft, optimized tests, the seven-position mate corpus, the 1,000-position reachable differential run, and 252 state-sequence tests all pass within their declared scopes. The three prior dead-position failures are no longer reproduced. The principal current defects are the build script's premature quit race and the parser's post-rejection bestmove behavior. The strongest defensible conclusion is therefore \textbf{partial confirmation of tested move/state behavior, not complete FIDE compliance}. The exact source, raw outputs, comparison metrics, and this paper are committed on \texttt{manus/research-facilities}.
+The updated main snapshot shows meaningful evidence of improved FIDE-relevant behavior. Canonical perft, optimized tests, the seven-position mate corpus, the 1,000-position reachable differential run, 252 state-sequence tests, and the 756-search multi-depth benchmark all pass within their declared scopes. The three prior dead-position failures are no longer reproduced. The principal current defects are the build script's premature quit race and the parser's post-rejection bestmove behavior. The strongest defensible conclusion is therefore \textbf{partial confirmation of tested move/state behavior, not complete FIDE compliance}. The exact source, raw outputs, comparison metrics, and this paper are committed on \texttt{manus/research-facilities}.
 
 \begin{thebibliography}{5}
 \bibitem{fide} FIDE, ``FIDE Laws of Chess taking effect from 1 January 2023,'' FIDE Handbook. [Online]. Available: \url{https://handbook.fide.com/chapter/e012023}
