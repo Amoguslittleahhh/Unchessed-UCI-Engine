@@ -95,10 +95,34 @@ fn default_threads() -> usize {
         .unwrap_or(1)
 }
 
+/// Choose a conservative TT footprint from the host's shared L3 cache.
+///
+/// Random TT probes compete with NNUE/evaluator working data. Keeping the
+/// default near half of L3 leaves room for code, stacks, and the evaluator on
+/// small-cache laptops while still giving larger servers a useful table. An
+/// explicit UCI `Hash` setting always overrides this automatic default.
+fn default_hash_mb() -> usize {
+    let l3_mb = std::fs::read_to_string("/sys/devices/system/cpu/cpu0/cache/index3/size")
+        .ok()
+        .and_then(|raw| {
+            let value = raw.trim().strip_suffix(['K', 'M', 'G'])?;
+            let unit = raw.trim().as_bytes().last().copied()? as char;
+            let parsed = value.parse::<usize>().ok()?;
+            Some(match unit {
+                'K' => parsed / 1024,
+                'M' => parsed,
+                'G' => parsed * 1024,
+                _ => return None,
+            })
+        })
+        .unwrap_or(32);
+    (l3_mb / 2).clamp(4, 128)
+}
+
 impl Default for Options {
     fn default() -> Self {
         Options {
-            hash_mb: 128,
+            hash_mb: default_hash_mb(),
             multipv: 1,
             adaptive: true,
             limit_strength: false,
@@ -269,7 +293,10 @@ pub fn run(ident: EngineIdent) {
             "uci" => {
                 println!("id name {} {}", ident.name, ident.version);
                 println!("id author {}", ident.author);
-                println!("option name Hash type spin default 128 min 1 max 2048");
+                println!(
+                    "option name Hash type spin default {} min 1 max 2048",
+                    default_hash_mb()
+                );
                 println!(
                     "option name Threads type spin default {} min 1 max 64",
                     default_threads()

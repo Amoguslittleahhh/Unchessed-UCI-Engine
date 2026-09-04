@@ -1,4 +1,0 @@
-[build]
-# The optimised copy is intended for the host it is benchmarked on. This
-# enables BMI2/POPCNT and the host's vector ISA when supported by rustc.
-rustflags = ["-C", "target-cpu=native"]
