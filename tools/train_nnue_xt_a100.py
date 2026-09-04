@@ -399,7 +399,7 @@ def train(args):
     start_epoch = 0
     best_loss = float("inf")
     if args.resume:
-        checkpoint = torch.load(args.resume, map_location=device, weights_only=False)
+        checkpoint = torch.load(args.resume, map_location=device, weights_only=True)
         raw_model.load_state_dict(checkpoint["model"])
         optimizer.load_state_dict(checkpoint["optimizer"])
         global_step = int(checkpoint.get("global_step", 0))

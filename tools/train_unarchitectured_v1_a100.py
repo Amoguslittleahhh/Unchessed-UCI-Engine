@@ -1012,7 +1012,7 @@ def train_oracle(args):
     global_step = start_epoch = 0
     best_nll = float("inf")
     if args.resume:
-        checkpoint_data = torch.load(args.resume, map_location=device, weights_only=False)
+        checkpoint_data = torch.load(args.resume, map_location=device, weights_only=True)
         raw_model.load_state_dict(checkpoint_data["model"])
         optimizer.load_state_dict(checkpoint_data["optimizer"])
         global_step = int(checkpoint_data.get("global_step", 0))
@@ -1369,7 +1369,7 @@ def distill_student(args):
             f"distillation validation set has {validation_data.total:,} records; at least "
             f"{distill_config['minimum_validation_records']:,} are required"
         )
-    oracle_checkpoint = torch.load(args.oracle, map_location=device, weights_only=False)
+    oracle_checkpoint = torch.load(args.oracle, map_location=device, weights_only=True)
     oracle = UnarchitecturedV1Oracle(oracle_checkpoint["config"]).to(device)
     oracle.load_state_dict(oracle_checkpoint["model"])
     oracle.eval()
@@ -1658,7 +1658,7 @@ def calibrate_student_checkpoint(args):
     oracle_config = root["oracle"]
     device = configure_torch(oracle_config["seed"], args.deterministic)
     data = UnarchitecturedV1RecordShards(args.validation)
-    checkpoint_data = torch.load(args.student, map_location=device, weights_only=False)
+    checkpoint_data = torch.load(args.student, map_location=device, weights_only=True)
     config = checkpoint_data["student_config"]
     model = UnarchitecturedV1Student(config).to(device)
     model.load_state_dict(checkpoint_data["model"])
@@ -1704,7 +1704,7 @@ def evaluate_checkpoint(args, student=False):
     checkpoint_data = torch.load(
         args.student if student else args.oracle,
         map_location=device,
-        weights_only=False,
+        weights_only=True,
     )
     if student:
         config = checkpoint_data["student_config"]

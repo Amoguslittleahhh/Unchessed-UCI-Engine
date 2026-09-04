@@ -19,13 +19,21 @@ pub fn parse(fen: &str) -> Result<Position, String> {
     for ch in placement.chars() {
         match ch {
             '/' => {
+                if file != 8 {
+                    return Err(format!("rank {} has {} files, not 8", rank, file));
+                }
                 rank -= 1;
                 file = 0;
                 if rank < 0 {
                     return Err("too many ranks".into());
                 }
             }
-            '1'..='8' => file += ch as i32 - '0' as i32,
+            '1'..='8' => {
+                file += ch as i32 - '0' as i32;
+                if file > 8 {
+                    return Err(format!("rank overflow at '{}'", ch));
+                }
+            }
             _ => {
                 if file > 7 {
                     return Err(format!("rank overflow at '{}'", ch));
@@ -54,6 +62,12 @@ pub fn parse(fen: &str) -> Result<Position, String> {
             }
         }
     }
+    if file != 8 {
+        return Err(format!("rank {} has {} files, not 8", rank, file));
+    }
+    if rank != 0 {
+        return Err(format!("{} ranks given, not 8", 8 - rank));
+    }
 
     pos.side = match parts.next().unwrap_or("w") {
         "w" => Color::White,
@@ -75,11 +89,55 @@ pub fn parse(fen: &str) -> Result<Position, String> {
             }
         }
     }
+    // A castling right is meaningless (and downstream code assumes it's
+    // backed by a real king+rook pair on their home squares -- movegen
+    // builds the castling move purely from the rights bit plus path/attack
+    // checks, and make_move() unconditionally relocates "the" king and rook
+    // there) unless that king and rook actually exist. Reject up front
+    // rather than letting a later synthetic castling move panic trying to
+    // pick up a piece that was never placed.
+    let king_rook_ok = |king_sq: u8, rook_sq: u8, color: Color| {
+        pos.piece_on(king_sq) == Some((color, KING)) && pos.piece_on(rook_sq) == Some((color, ROOK))
+    };
+    if pos.castling & WK != 0 && !king_rook_ok(sq(4, 0), sq(7, 0), Color::White) {
+        return Err("castling right K without king/rook on e1/h1".into());
+    }
+    if pos.castling & WQ != 0 && !king_rook_ok(sq(4, 0), sq(0, 0), Color::White) {
+        return Err("castling right Q without king/rook on e1/a1".into());
+    }
+    if pos.castling & BK != 0 && !king_rook_ok(sq(4, 7), sq(7, 7), Color::Black) {
+        return Err("castling right k without king/rook on e8/h8".into());
+    }
+    if pos.castling & BQ != 0 && !king_rook_ok(sq(4, 7), sq(0, 7), Color::Black) {
+        return Err("castling right q without king/rook on e8/a8".into());
+    }
 
     pos.ep = NO_EP;
     if let Some(e) = parts.next() {
         if e != "-" {
-            pos.ep = parse_sq(e).ok_or_else(|| format!("bad ep '{}'", e))?;
+            let ep_sq = parse_sq(e).ok_or_else(|| format!("bad ep '{}'", e))?;
+            // The ep target is the square a double-moving pawn passed over,
+            // so it must sit on rank 3 (mover was Black) or rank 6 (mover
+            // was White), and that mover's pawn must actually be standing
+            // one rank behind the target -- otherwise movegen can emit an
+            // "en passant" capture with no real pawn behind it, which
+            // board.rs's make_move() removes unconditionally, corrupting
+            // occupancy/hash instead of erroring.
+            let (expected_rank, pawn_rank, mover) = match pos.side {
+                Color::White => (5u8, 4u8, Color::Black),
+                Color::Black => (2u8, 3u8, Color::White),
+            };
+            if rank_of(ep_sq) != expected_rank {
+                return Err(format!("ep square '{}' not on the rank a double move passes over", e));
+            }
+            let pawn_sq = sq(file_of(ep_sq), pawn_rank);
+            if pos.piece_on(pawn_sq) != Some((mover, PAWN)) {
+                return Err(format!("ep square '{}' has no pawn to capture", e));
+            }
+            if pos.piece_on(ep_sq).is_some() {
+                return Err(format!("ep square '{}' is occupied", e));
+            }
+            pos.ep = ep_sq;
         }
     }
 

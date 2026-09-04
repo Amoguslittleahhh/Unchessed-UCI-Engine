@@ -34,7 +34,7 @@ def export_checkpoint(checkpoint_path, architecture_path, allow_legacy=False):
         raise RuntimeError("export requires PyTorch and NumPy on the training host") from error
     checkpoint_path = Path(checkpoint_path)
     architecture_path = Path(architecture_path)
-    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
     checkpoint_format = str(checkpoint.get("format", ""))
     if not checkpoint_format.startswith("UNARCHV1_") and not allow_legacy:
         raise ValueError(

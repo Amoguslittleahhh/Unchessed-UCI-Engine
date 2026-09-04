@@ -144,6 +144,13 @@ pub fn see_with_pins(pos: &Position, m: Move, pins: &Pins) -> i32 {
     } else {
         pos.piece_on(to).map(|(_, p)| MG_VALUE[p]).unwrap_or(0)
     };
+    // A promotion nets the promoted piece's value minus the pawn it replaces,
+    // on top of whatever was captured (or nothing, for a quiet promotion).
+    // Without this a quiet queening move scored SEE == 0 -- indistinguishable
+    // from a pass -- instead of the real ~800cp material swing.
+    if m.is_promo() {
+        gain[0] += MG_VALUE[m.promo_piece()] - MG_VALUE[PAWN];
+    }
 
     // value of the piece that ends up sitting on `to` after this move —
     // the promoted piece for a promotion, otherwise the moving piece itself.

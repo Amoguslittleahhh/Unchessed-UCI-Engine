@@ -83,6 +83,7 @@ import json
 import os
 import queue
 import random
+import shlex
 import subprocess
 import sys
 import threading
@@ -1249,9 +1250,15 @@ def _fetch_one(pid: str, base: Path, jobs: int, log: Path) -> None:
               "--depth", "1"], log=log)
 
     print(f"[{pid}] building (this is the slow part)...", flush=True)
+    # build_cmd is run through a shell (some templates rely on shell syntax
+    # like "PATH=... :$PATH"), so every value interpolated into it MUST be
+    # shell-quoted -- arch and venv_bin both come from environment variables
+    # (SF_ARCH, VENV_BIN) that an attacker controlling the build environment
+    # could otherwise use to inject arbitrary shell commands.
     build = pinned["build_cmd"].format(
-        jobs=jobs, arch=os.environ.get("SF_ARCH", "x86-64-ssse3"),
-        venv_bin=_venv_hint())
+        jobs=shlex.quote(str(jobs)),
+        arch=shlex.quote(os.environ.get("SF_ARCH", "x86-64-ssse3")),
+        venv_bin=shlex.quote(_venv_hint()))
     _run(build, cwd=str(src / pinned["build_rel"]), log=log)
 
     binary = src / pinned["binary_rel"]

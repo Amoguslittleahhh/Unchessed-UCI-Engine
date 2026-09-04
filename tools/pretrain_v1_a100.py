@@ -480,7 +480,7 @@ def train(args) -> int:
     best_nll = float("inf")
     if args.resume:
         checkpoint_data = torch.load(args.resume, map_location=device,
-                                     weights_only=False)
+                                     weights_only=True)
         if not checkpoint_data.get("config", {}).get("dual_elo"):
             raise RuntimeError(
                 "--resume checkpoint is not a dual-elo pretrain "
