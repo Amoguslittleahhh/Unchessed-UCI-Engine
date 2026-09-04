@@ -514,15 +514,25 @@ impl<'a> Searcher<'a> {
             return self.eval.eval_with_state(pos, &self.eval_states[ply]);
         }
 
+        let in_chk = in_check(pos);
+
         // draws
-        if pos.halfmove >= 100 {
+        //
+        // Checkmate takes precedence over the 50-move rule: a position
+        // reached at halfmove 100 with the side to move in check and no
+        // legal reply is a completed game (checkmate), not a draw --
+        // mirrors Stockfish's own is_draw() guard for this exact edge
+        // case. Generating the legal move list here is only paid in that
+        // rare in-check-at-halfmove-100 case, not on the hot path; the
+        // ordinary (not-in-check, or in-check-with-a-reply) cases below
+        // still return immediately without it.
+        if pos.halfmove >= 100 && (!in_chk || legal(pos).len != 0) {
             return self.draw(ply);
         }
         if self.is_repetition(pos.hash, pos.halfmove) {
             return self.draw(ply);
         }
 
-        let in_chk = in_check(pos);
         let depth = if in_chk { depth.max(1) } else { depth };
         if depth <= 0 {
             self.nodes -= 1; // qsearch counts it
