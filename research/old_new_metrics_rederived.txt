@@ -1,0 +1,118 @@
+== OLD DIFFERENTIAL SUMMARY ==
+null
+== NEW CONFORMANCE SUMMARY ==
+{
+  "engine": "/home/ubuntu/unchessed_audit/main_repo/target/debug/unchessed-adapter",
+  "fixed_cases": 14,
+  "reachable_cases": 1000,
+  "protocol": {
+    "uciok": true,
+    "readyok": true,
+    "returncode": 0
+  },
+  "valid_cases": 1014,
+  "nonterminal_cases": 1004,
+  "nonterminal_legal_pass": 1004,
+  "nonterminal_legal_fail": 0,
+  "terminal_cases": 10,
+  "terminal_0000": 9,
+  "invalid_cases": 5,
+  "invalid_parser_error": 5,
+  "invalid_bestmove_emitted": 5,
+  "engine_returncode_invalid_run": 0
+}
+== NEW MATETRACK ==
+null
+== NEW SEQUENCE ==
+{
+  "sequence_cases": 252,
+  "legal_or_terminal_pass": 252,
+  "fail": 0,
+  "uciok": true,
+  "readyok": true,
+  "invalid_parser_error": true,
+  "invalid_bestmoves": 2,
+  "engine_returncode": 0,
+  "invalid_returncode": 0
+}
+== OLD RUST/PYTHON LOG TOTALS ==
+research/build_test_smoke_v2.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/build_test_smoke_v2.log:test eval::tests::blockaded_passed_pawn_scores_less_than_a_free_runner ... ok
+research/build_test_smoke_v2.log:test eval::tests::passed_pawn_scale_zero_matches_pre_feature_baseline ... ok
+research/build_test_smoke_v2.log:test result: ok. 123 passed; 0 failed; 6 ignored; 0 measured; 0 filtered out; finished in 1.25s
+research/build_test_smoke_v2.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/build_test_smoke_v2.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/build_test_smoke_v2.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/build_test_smoke_v2.log:bestmove d2d4
+research/build_test_smoke_v2.log:bestmove a1a8
+research/build_test_smoke_v2.log:OK: build + tests + smoke passed
+research/ignored_tests_v2.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/ignored_tests_v2.log:test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 123 filtered out; finished in 54.39s
+research/ignored_tests_v2.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/ignored_tests_v2.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/ignored_tests_v2.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/python_pytest_v2.log:385 passed, 22 skipped, 347 subtests passed in 22.33s
+== NEW RUST/PYTHON LOG TOTALS ==
+research/main_build_test.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_build_test.log:test eval::tests::blockaded_passed_pawn_scores_less_than_a_free_runner ... ok
+research/main_build_test.log:test eval::tests::passed_pawn_scale_zero_matches_pre_feature_baseline ... ok
+research/main_build_test.log:test movegen::tests::magic_table_sizes_match_expected_ballpark ... ok
+research/main_build_test.log:test result: ok. 123 passed; 0 failed; 6 ignored; 0 measured; 0 filtered out; finished in 1.06s
+research/main_build_test.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_build_test.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_build_test.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_build_test.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_build_test.log:test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 128 filtered out; finished in 13.90s
+research/main_build_test.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_build_test.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_build_test.log:bestmove c2c4
+research/main_build_test.log:bestmove a1b1
+research/main_build_test.log:expected bestmove a1a8 (Ra8#)
+research/main_ignored_tests.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_ignored_tests.log:test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 123 filtered out; finished in 52.76s
+research/main_ignored_tests.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_ignored_tests.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_ignored_tests.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_python_tests.log:385 passed, 22 skipped, 347 subtests passed in 21.54s
+research/main_release_tests.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_release_tests.log:test eval::tests::blockaded_passed_pawn_scores_less_than_a_free_runner ... ok
+research/main_release_tests.log:test eval::tests::passed_pawn_scale_zero_matches_pre_feature_baseline ... ok
+research/main_release_tests.log:test movegen::tests::magic_table_sizes_match_expected_ballpark ... ok
+research/main_release_tests.log:test result: ok. 123 passed; 0 failed; 6 ignored; 0 measured; 0 filtered out; finished in 1.00s
+research/main_release_tests.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_release_tests.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_release_tests.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_release_ignored_tests.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_release_ignored_tests.log:test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 123 filtered out; finished in 21.70s
+research/main_release_ignored_tests.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_release_ignored_tests.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_release_ignored_tests.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+== NEW PERFT ==
+startpos	depth=1	expected=20	observed=20	pass=true
+startpos	depth=2	expected=400	observed=400	pass=true
+startpos	depth=3	expected=8902	observed=8902	pass=true
+startpos	depth=4	expected=197281	observed=197281	pass=true
+startpos	depth=5	expected=4865609	observed=4865609	pass=true
+startpos	depth=6	expected=119060324	observed=119060324	pass=true
+kiwipete	depth=1	expected=48	observed=48	pass=true
+kiwipete	depth=2	expected=2039	observed=2039	pass=true
+kiwipete	depth=3	expected=97862	observed=97862	pass=true
+kiwipete	depth=4	expected=4085603	observed=4085603	pass=true
+kiwipete	depth=5	expected=193690690	observed=193690690	pass=true
+position3	depth=1	expected=14	observed=14	pass=true
+position3	depth=2	expected=191	observed=191	pass=true
+position3	depth=3	expected=2812	observed=2812	pass=true
+position3	depth=4	expected=43238	observed=43238	pass=true
+position3	depth=5	expected=674624	observed=674624	pass=true
+position4	depth=1	expected=6	observed=6	pass=true
+position4	depth=2	expected=264	observed=264	pass=true
+position4	depth=3	expected=9467	observed=9467	pass=true
+position4	depth=4	expected=422333	observed=422333	pass=true
+position5	depth=1	expected=44	observed=44	pass=true
+position5	depth=2	expected=1486	observed=1486	pass=true
+position5	depth=3	expected=62379	observed=62379	pass=true
+position5	depth=4	expected=2103487	observed=2103487	pass=true
+position6	depth=1	expected=46	observed=46	pass=true
+position6	depth=2	expected=2079	observed=2079	pass=true
+position6	depth=3	expected=89890	observed=89890	pass=true
+position6	depth=4	expected=3894594	observed=3894594	pass=true

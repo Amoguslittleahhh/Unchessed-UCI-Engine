@@ -1,0 +1,75 @@
+OLD
+research/build_test_smoke_v2.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/build_test_smoke_v2.log:test result: ok. 123 passed; 0 failed; 6 ignored; 0 measured; 0 filtered out; finished in 1.25s
+research/build_test_smoke_v2.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/build_test_smoke_v2.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/build_test_smoke_v2.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/build_test_smoke_v2.log:bestmove d2d4
+research/build_test_smoke_v2.log:bestmove a1a8
+research/build_test_smoke_v2.log:OK: build + tests + smoke passed
+research/ignored_tests_v2.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/ignored_tests_v2.log:test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 123 filtered out; finished in 54.39s
+research/ignored_tests_v2.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/ignored_tests_v2.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/ignored_tests_v2.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/python_pytest_v2.log:385 passed, 22 skipped, 347 subtests passed in 22.33s
+NEW
+research/main_build_test.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_build_test.log:test movegen::tests::magic_table_sizes_match_expected_ballpark ... ok
+research/main_build_test.log:test result: ok. 123 passed; 0 failed; 6 ignored; 0 measured; 0 filtered out; finished in 1.06s
+research/main_build_test.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_build_test.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_build_test.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_build_test.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_build_test.log:test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 128 filtered out; finished in 13.90s
+research/main_build_test.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_build_test.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_build_test.log:bestmove c2c4
+research/main_build_test.log:bestmove a1b1
+research/main_build_test.log:expected bestmove a1a8 (Ra8#)
+research/main_ignored_tests.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_ignored_tests.log:test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 123 filtered out; finished in 52.76s
+research/main_ignored_tests.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_ignored_tests.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_ignored_tests.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_python_tests.log:385 passed, 22 skipped, 347 subtests passed in 21.54s
+research/main_release_tests.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_release_tests.log:test movegen::tests::magic_table_sizes_match_expected_ballpark ... ok
+research/main_release_tests.log:test result: ok. 123 passed; 0 failed; 6 ignored; 0 measured; 0 filtered out; finished in 1.00s
+research/main_release_tests.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_release_tests.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_release_tests.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_release_ignored_tests.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_release_ignored_tests.log:test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 123 filtered out; finished in 21.70s
+research/main_release_ignored_tests.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_release_ignored_tests.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+research/main_release_ignored_tests.log:test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+DIFFERENTIAL
+{
+  "cases": 1022,
+  "valid_position_cases": 1016,
+  "legal_bestmove_pass": 1011,
+  "legal_bestmove_fail": 0,
+  "invalid_fen_cases": 6,
+  "invalid_fen_nonzero_exit": 0
+}
+{
+  "engine": "/home/ubuntu/unchessed_audit/main_repo/target/debug/unchessed-adapter",
+  "fixed_cases": 14,
+  "reachable_cases": 1000,
+  "protocol": {
+    "uciok": true,
+    "readyok": true,
+    "returncode": 0
+  },
+  "valid_cases": 1014,
+  "nonterminal_cases": 1004,
+  "nonterminal_legal_pass": 1004,
+  "nonterminal_legal_fail": 0,
+  "terminal_cases": 10,
+  "terminal_0000": 9,
+  "invalid_cases": 5,
+  "invalid_parser_error": 5,
+  "invalid_bestmove_emitted": 5,
+  "engine_returncode_invalid_run": 0
+}
