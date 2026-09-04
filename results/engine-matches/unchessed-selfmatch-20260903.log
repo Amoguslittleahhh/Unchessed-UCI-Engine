@@ -1,0 +1,29 @@
+Started game 1 of 4 (UnchessedA vs UnchessedB)
+Finished game 1 (UnchessedA vs UnchessedB): 1-0 {White mates}
+Score of UnchessedA vs UnchessedB: 1 - 0 - 0  [1.000] 1
+Started game 2 of 4 (UnchessedB vs UnchessedA)
+Finished game 2 (UnchessedB vs UnchessedA): 1-0 {White mates}
+Score of UnchessedA vs UnchessedB: 1 - 1 - 0  [0.500] 2
+Started game 3 of 4 (UnchessedA vs UnchessedB)
+Finished game 3 (UnchessedA vs UnchessedB): 1/2-1/2 {Draw by insufficient mating material}
+Score of UnchessedA vs UnchessedB: 1 - 1 - 1  [0.500] 3
+Started game 4 of 4 (UnchessedB vs UnchessedA)
+Finished game 4 (UnchessedB vs UnchessedA): 1-0 {White mates}
+Score of UnchessedA vs UnchessedB: 1 - 2 - 1  [0.375] 4
+...      UnchessedA playing White: 1 - 0 - 1  [0.750] 2
+...      UnchessedA playing Black: 0 - 2 - 0  [0.000] 2
+...      White vs Black: 3 - 0 - 1  [0.875] 4
+Elo difference: -88.7 +/- nan, LOS: 28.2 %, DrawRatio: 25.0 %
+SPRT: llr 0 (0.0%), lbound -inf, ubound inf
+
+Player: UnchessedA
+   "Draw by insufficient mating material": 1
+   "Loss: White mates": 2
+   "Win: White mates": 1
+Player: UnchessedB
+   "Draw by insufficient mating material": 1
+   "Loss: White mates": 1
+   "Win: White mates": 2
+Finished match
+
+[exit=0]
