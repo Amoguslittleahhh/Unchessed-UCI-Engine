@@ -286,11 +286,17 @@ def test_ddp_gloo_two_rank_smoke(tmp_path):
     for i in range(144):
         w_elo = 600 + (i * 19) % 2600
         b_elo = 600 + (i * 37) % 2600
+        # A PGN comment (ignored by python-chess's move parsing, so the
+        # actual position sequence every game reaches is unaffected) keeps
+        # each game's raw movetext distinct -- otherwise all 144 games share
+        # byte-identical movetext and pretrain_v5_data.py's content-based
+        # duplicate-game detection (correctly) collapses them into one kept
+        # game, which starves this sharding test of the row count it needs.
         games.append(
             '[Event "ddp"]\n[Site "-"]\n[Date "2026.08.28"]\n'
             f'[White "A"]\n[Black "B"]\n[Result "1/2-1/2"]\n'
             f'[WhiteElo "{w_elo}"]\n[BlackElo "{b_elo}"]\n\n'
-            f"{DDP_GAME_MOVES} 1/2-1/2")
+            f"{DDP_GAME_MOVES} {{game {i}}} 1/2-1/2")
     out = _build(tmp_path, games, extra=("--val-games", "20"))
     train_shards = sorted((out / "train").glob("*.v5"))
     val_shards = sorted((out / "val").glob("*.v5"))

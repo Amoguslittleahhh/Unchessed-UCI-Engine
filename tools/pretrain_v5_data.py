@@ -339,8 +339,16 @@ def game_rows(source_name: str, game_ordinal: int,
     wq = side_quality_from_tags(tags, True, default_engine)
     bq = side_quality_from_tags(tags, False, default_engine)
     result = tags.get("Result", "*")
-    game_key = f"{source_name}:{int(g.headers.get('Round', 0)) if str(g.headers.get('Round', '')).isdigit() else game_ordinal}"
-    game_hash = int.from_bytes(hashlib.sha256(game_key.encode()).digest()[:8], "little")
+    # Content-based, not filename-based: source_name/Round/ordinal meant two
+    # copies of the identical game under different filenames (or a
+    # different Round tag) got different identities, which is exactly what
+    # let a duplicate game cross the train/validation split undetected --
+    # actual cross-split leakage prevention now happens earlier via
+    # scan_file's dedup pass, but this per-row field should still describe
+    # the game's real content for anyone using it downstream, not an
+    # artifact of which file it happened to be read from.
+    move_seq = " ".join(m.uci() for m in g.mainline_moves())
+    game_hash = int.from_bytes(hashlib.sha256(move_seq.encode()).digest()[:8], "little")
 
     board = chess.Board()
     moves = []
@@ -420,35 +428,64 @@ def _tag_re():
     return _TAG_RE
 
 
-def scan_file(path: Path, keep, default_engine: str) -> int:
+def scan_file(path: Path, keep, default_engine: str, seen_hashes: set) -> tuple:
     """Text-only pass-1 scan: count games with a valid dual-elo header
     pair (and passing the quality filter when active). No chess
     parsing — fast enough to run over tens of GB, and uses the exact
     same header logic (game_kept) as the pass-2 replay so the two
-    passes always agree."""
+    passes always agree.
+
+    Also flags duplicate games by content: a game whose raw movetext
+    (not the source filename/Round tag, which was the actual bug --
+    identical games copied into differently-named PGNs used to get
+    different identities and could land on opposite sides of the
+    train/validation split) was already seen -- in this file or an
+    earlier one -- is excluded from the returned count and its
+    raw-kept-ordinal (0-indexed among every game_kept-passing game in
+    THIS file, duplicates included) is returned so pass 2 can skip the
+    exact same occurrence. `seen_hashes` is shared and mutated across
+    the whole corpus; callers must scan files in a fixed order (first
+    occurrence wins) for this to be deterministic.
+    """
     n_kept = 0
+    raw_kept_idx = 0
+    dup_ordinals = set()
     tags: dict = {}
+    movetext_lines: list = []
     in_game = False
     in_movetext = False
     tag_re = _tag_re()
+
+    def finalize():
+        nonlocal n_kept, raw_kept_idx
+        if in_game and game_kept(tags, keep, default_engine):
+            content_hash = hashlib.sha256(
+                "".join(movetext_lines).strip().encode()
+            ).digest()
+            if content_hash in seen_hashes:
+                dup_ordinals.add(raw_kept_idx)
+            else:
+                seen_hashes.add(content_hash)
+                n_kept += 1
+            raw_kept_idx += 1
+
     with path.open("r", encoding="utf-8", errors="replace") as f:
         for line in f:
             m = tag_re.match(line)
             if m:
                 if in_movetext:
-                    # a new tag block finalizes the previous game
-                    if in_game and game_kept(tags, keep, default_engine):
-                        n_kept += 1
+                    finalize()  # a new tag block finalizes the previous game
                     in_game = True
                     in_movetext = False
                     tags = {}
+                    movetext_lines = []
                 tags[m.group(1)] = m.group(2)
                 in_game = True
             elif line.strip():
                 in_movetext = True
-    if in_game and game_kept(tags, keep, default_engine):
-        n_kept += 1
-    return n_kept
+                movetext_lines.append(line)
+    finalize()
+    return n_kept, frozenset(dup_ordinals)
 
 
 def _iter_pgn_games(path: Path):
@@ -521,18 +558,27 @@ class _SideWriter:
 
 def _build_file(job: tuple) -> dict:
     (file_idx, path, global_start, cutoff, keep, out_dir,
-     default_engine, shard_records, expected_kept) = job
+     default_engine, shard_records, expected_kept, dup_ordinals) = job
     import time
 
     t0 = time.monotonic()
     train = _SideWriter(Path(out_dir) / "train", file_idx, shard_records)
     val = _SideWriter(Path(out_dir) / "val", file_idx, shard_records)
-    kept_idx = 0
+    kept_idx = 0  # unique games only -- matches pass 1's now-deduplicated count
+    raw_kept_idx = 0  # every game_kept-passing game, duplicates included --
+    # this is the indexing space scan_file's dup_ordinals was computed in
     rows = 0
     dist = defaultdict(lambda: defaultdict(int))
     for _ordinal, g in _iter_pgn_games(Path(path)):
         if not game_kept(g.headers, keep, default_engine):
             continue
+        if raw_kept_idx in dup_ordinals:
+            # same content already written once (this file or an earlier
+            # one): drop the repeat rather than let it inflate one split or
+            # cross into the other.
+            raw_kept_idx += 1
+            continue
+        raw_kept_idx += 1
         writer = val if (global_start + kept_idx) >= cutoff else train
         recs = game_rows(Path(path).name, kept_idx, g, default_engine)
         if recs:
@@ -583,14 +629,25 @@ def cmd_build(args: argparse.Namespace) -> int:
     workers = args.workers or max(1, min((os.cpu_count() or 4) - 2, 128))
 
     print(f"pass 1: text scan of {len(files)} file(s) for the "
-          f"game-disjoint split...", flush=True)
+          f"game-disjoint split (also flagging duplicate games by "
+          f"content, not filename)...", flush=True)
     t0 = time.monotonic()
-    per_file_kept = [
-        scan_file(p, keep, args.default_engine) for p in files
+    seen_hashes: set = set()
+    # Sequential and in a fixed (input) order is load-bearing here: dedup is
+    # first-occurrence-wins, so scanning file i must see everything file
+    # i-1 already claimed before deciding what's new in file i.
+    scan_results = [
+        scan_file(p, keep, args.default_engine, seen_hashes) for p in files
     ]
+    per_file_kept = [n for n, _dups in scan_results]
+    per_file_dups = [dups for _n, dups in scan_results]
+    n_dropped_dups = sum(len(d) for d in per_file_dups)
     n_kept_total = sum(per_file_kept)
     print(f"pass 1 done in {time.monotonic() - t0:.1f}s: "
-          f"{n_kept_total:,} kept games", flush=True)
+          f"{n_kept_total:,} kept games"
+          + (f" ({n_dropped_dups:,} duplicate games dropped)"
+             if n_dropped_dups else ""),
+          flush=True)
     if n_kept_total == 0:
         raise SystemExit("no usable games (valid dual-elo headers"
                          + (" + quality filter" if keep else "") + ")")
@@ -607,7 +664,7 @@ def cmd_build(args: argparse.Namespace) -> int:
     for i, p in enumerate(files):
         jobs.append((i, str(p), start, cutoff, keep, str(out),
                      args.default_engine, args.shard_records,
-                     per_file_kept[i]))
+                     per_file_kept[i], per_file_dups[i]))
         start += per_file_kept[i]
     # skip files with nothing to do
     jobs = [j for j in jobs if j[8] > 0]

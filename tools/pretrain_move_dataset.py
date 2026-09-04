@@ -57,6 +57,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -196,6 +197,7 @@ def build(rows: list[dict]) -> dict:
     qualities = np.empty(n, dtype=np.uint8)
     game_ids = np.empty(n, dtype=np.int32)
     plies = np.empty(n, dtype=np.uint16)
+    valid = np.zeros(n, dtype=bool)
     bad = 0
     for i, r in enumerate(rows):
         try:
@@ -223,6 +225,7 @@ def build(rows: list[dict]) -> dict:
             qualities[i] = QUALITY_IDS[r["quality"]]
             game_ids[i] = r["game_id"]
             plies[i] = r["ply"]
+            valid[i] = True
         except (ValueError, KeyError) as exc:
             bad += 1
             if bad <= 3:
@@ -232,7 +235,7 @@ def build(rows: list[dict]) -> dict:
         "legal": legal, "legal_count": legal_count,
         "elo_self": elo_self, "elo_oppo": elo_oppo, "engine": engines,
         "quality": qualities, "game_id": game_ids, "ply": plies,
-        "rows": n, "bad": bad,
+        "rows": n, "bad": bad, "valid": valid,
     }
 
 
@@ -257,7 +260,19 @@ def split_games(arrays: dict, val_games: int, games_desc: list[int]):
 def save_shard(path: Path, arrays: dict, mask: np.ndarray) -> None:
     sel = {k: v[mask] for k, v in arrays.items() if k not in
            ("rows", "bad")}
-    np.savez_compressed(str(path), **sel)
+    # Write under a temp name and rename into place only once the file is
+    # complete -- np.savez_compressed writes the real path directly
+    # otherwise, so a crash or kill partway through (or, previously, the
+    # histogram KeyError below) left a truncated .npz sitting at the real
+    # filename, indistinguishable from a genuinely finished shard. Passing
+    # an open file object (rather than a path string) keeps the exact name
+    # we choose -- savez_compressed auto-appends ".npz" to a bare string
+    # path that doesn't already end that way, which a ".npz.tmp" name
+    # would trip over.
+    tmp = path.with_name(path.name + ".tmp")
+    with tmp.open("wb") as f:
+        np.savez_compressed(f, **sel)
+    os.replace(tmp, path)
 
 
 def main() -> int:
@@ -300,9 +315,18 @@ def main() -> int:
     arrays = build(rows)
     if arrays["bad"]:
         n_bad = arrays["bad"]
-        keep = arrays["rows"] - n_bad
-        arrays = {k: (v[:keep] if isinstance(v, np.ndarray) else v)
-                  for k, v in arrays.items() if k not in ("rows", "bad")}
+        valid = arrays["valid"]
+        keep = int(valid.sum())
+        # Compact by the actual valid-row mask, not a "trim the tail"
+        # truncation -- a bad row anywhere but the very end otherwise left
+        # its uninitialized np.empty garbage inside the retained slice
+        # while discarding a genuinely good row from the tail instead. That
+        # garbage (an engine/quality id with no real meaning) doesn't fail
+        # loudly here -- it silently survives into the saved shards and
+        # only surfaces later as a KeyError in the histogram step below,
+        # by which point the corrupt shards are already on disk.
+        arrays = {k: (v[valid] if isinstance(v, np.ndarray) else v)
+                  for k, v in arrays.items() if k not in ("rows", "bad", "valid")}
         arrays["rows"] = keep
         print(f"dropped {n_bad} bad rows (kept {keep})")
 
@@ -336,7 +360,10 @@ def main() -> int:
                         "(move*5+promo; legal-only softmax at train time)",
         "histograms": hist,
     }
-    (out / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    manifest_path = out / "manifest.json"
+    manifest_tmp = out / "manifest.json.tmp"
+    manifest_tmp.write_text(json.dumps(manifest, indent=2) + "\n")
+    os.replace(manifest_tmp, manifest_path)
     print(json.dumps(manifest, indent=2))
     return 0
 
