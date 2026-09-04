@@ -1,0 +1,115 @@
+[Event "?"]
+[Site "?"]
+[Date "2026.07.31"]
+[Round "1"]
+[White "Adapter500"]
+[Black "Stockfish"]
+[Result "1-0"]
+[ECO "B00"]
+[GameDuration "00:00:04"]
+[GameEndTime "2026-07-31T21:54:34.213 +08"]
+[GameStartTime "2026-07-31T21:54:29.894 +08"]
+[Opening "Owen defense"]
+[PlyCount "33"]
+[Termination "abandoned"]
+[TimeControl "5+0.05"]
+
+1. e4 {book} b6 {book} 2. Nf3 {book} Bb7 {book} 3. Bd3 {book} g6 {book}
+4. Qe2 {book} e6 {book} 5. Bc4 {book} Bg7 {book} 6. Bb3 {-0.14/11 0.21s}
+Ne7 {+0.28/17 0.33s} 7. d4 {-0.23/11 0.17s} Ba6 {+0.28/19 0.30s}
+8. c4 {-0.07/11 0.061s} Nbc6 {+0.22/19 0.25s} 9. d5 {-0.04/12 0.18s}
+Na5 {+0.30/16 0.077s} 10. dxe6 {-0.02/12 0.23s} dxe6 {+0.38/15 0.070s}
+11. Nc3 {-0.01/12 0.22s} O-O {+0.38/15 0.27s} 12. Bf4 {-0.05/12 0.21s}
+Nec6 {+0.50/15 0.061s} 13. O-O {-0.04/12 0.25s} Nd4 {+0.41/16 0.11s}
+14. Nxd4 {+0.09/12 0.087s} Qxd4 {+0.40/15 0.070s} 15. Rad1 {-0.09/11 0.13s}
+Bxc4 {+0.28/20 0.70s} 16. Rxd4 {-0.09/12 0.045s} Bxe2 {+0.31/15 0.060s}
+17. Nxe2 {-0.19/13 0.046s, Black disconnects} 1-0
+
+[Event "?"]
+[Site "?"]
+[Date "2026.07.31"]
+[Round "1"]
+[White "Stockfish"]
+[Black "Adapter500"]
+[Result "*"]
+[ECO "D02"]
+[GameDuration "00:00:04"]
+[GameEndTime "2026-07-31T21:54:34.214 +08"]
+[GameStartTime "2026-07-31T21:54:29.891 +08"]
+[Opening "Queen's pawn game"]
+[PlyCount "37"]
+[Termination "unterminated"]
+[TimeControl "5+0.05"]
+
+1. d4 {book} d5 {book} 2. Nf3 {book} Bg4 {book} 3. c3 {book} e6 {book}
+4. Bf4 {book} Bd6 {book} 5. Bxd6 {book} Qxd6 {book} 6. Ne5 {+0.06/17 0.29s}
+Nf6 {-0.06/11 0.071s} 7. Nxg4 {+0.16/21 0.51s} Nxg4 {-0.12/12 0.066s}
+8. g3 {+0.16/14 0.045s} Nf6 {-0.09/11 0.15s} 9. Bg2 {+0.17/17 0.14s}
+O-O {-0.03/12 0.20s} 10. Nd2 {+0.17/17 0.12s} c5 {-0.03/12 0.13s}
+11. dxc5 {+0.25/13 0.051s} Qxc5 {-0.02/12 0.071s} 12. e4 {+0.14/15 0.13s}
+Nc6 {-0.07/11 0.12s} 13. O-O {+0.19/16 0.096s} Rad8 {-0.03/11 0.15s}
+14. exd5 {+0.16/16 0.083s} exd5 {+0.04/11 0.13s} 15. Re1 {+0.22/17 0.22s}
+Rfe8 {+0.05/10 0.30s} 16. Rxe8+ {+0.26/13 0.059s} Rxe8 {+0.09/10 0.092s}
+17. Nf1 {+0.29/12 0.070s} Ne4 {+0.15/10 0.14s} 18. Qc2 {+0.33/15 0.47s}
+Nd4 {+0.14/10 0.13s} 19. Qd3 {+0.19/18 0.20s, No result} *
+
+[Event "?"]
+[Site "?"]
+[Date "2026.07.31"]
+[Round "2"]
+[White "Adapter500"]
+[Black "Stockfish"]
+[Result "*"]
+[ECO "C24"]
+[GameDuration "00:00:04"]
+[GameEndTime "2026-07-31T21:54:34.214 +08"]
+[GameStartTime "2026-07-31T21:54:29.891 +08"]
+[Opening "Bishop's Opening"]
+[PlyCount "37"]
+[Termination "unterminated"]
+[TimeControl "5+0.05"]
+[Variation "Berlin defense"]
+
+1. e4 {book} e5 {book} 2. Bc4 {book} Nf6 {book} 3. d3 {book} a6 {book}
+4. a3 {book} b5 {book} 5. Ba2 {book} Nc6 {book} 6. Nc3 {-0.03/11 0.11s}
+Bc5 {-0.55/18 0.19s} 7. Nf3 {+0.12/11 0.057s} d6 {-0.32/14 0.10s}
+8. Nd5 {+0.24/12 0.28s} h6 {-0.37/13 0.082s} 9. c3 {+0.29/11 0.20s}
+Ba7 {-0.37/14 0.13s} 10. O-O {+0.28/11 0.16s} O-O {-0.25/15 0.16s}
+11. Re1 {+0.36/11 0.14s} Be6 {-0.13/14 0.068s} 12. b4 {+0.34/11 0.19s}
+Bxd5 {+0.29/14 0.10s} 13. exd5 {+0.34/13 0.071s} Ne7 {+0.29/15 0.061s}
+14. c4 {+0.37/12 0.058s} a5 {+0.26/16 0.31s} 15. Bb2 {+0.68/11 0.14s}
+Re8 {+0.42/15 0.047s} 16. bxa5 {+0.75/11 0.13s} bxc4 {+1.00/14 0.086s}
+17. dxc4 {+0.63/11 0.095s} Ng4 {+1.02/16 0.095s} 18. Re2 {+0.95/11 0.21s}
+Nf5 {+1.02/19 0.60s} 19. h3 {+0.87/10 0.17s, No result} *
+
+[Event "?"]
+[Site "?"]
+[Date "2026.07.31"]
+[Round "2"]
+[White "Stockfish"]
+[Black "Adapter500"]
+[Result "*"]
+[ECO "A40"]
+[GameDuration "00:00:04"]
+[GameEndTime "2026-07-31T21:54:34.214 +08"]
+[GameStartTime "2026-07-31T21:54:29.913 +08"]
+[Opening "Queen's pawn"]
+[PlyCount "46"]
+[Termination "unterminated"]
+[TimeControl "5+0.05"]
+
+1. d4 {book} h6 {book} 2. c4 {book} Nc6 {book} 3. e3 {book} Nf6 {book}
+4. Nf3 {book} e6 {book} 5. Bd2 {book} b6 {book} 6. Nc3 {+0.86/15 0.25s}
+Bb7 {-0.24/12 0.19s} 7. e4 {+0.94/13 0.099s} d5 {-0.30/11 0.066s}
+8. cxd5 {+1.02/14 0.096s} exd5 {-0.20/12 0.14s} 9. Bb5 {+1.03/15 0.058s}
+a6 {-0.25/12 0.14s} 10. Bxc6+ {+1.00/16 0.28s} Bxc6 {-0.28/13 0.074s}
+11. Ne5 {+0.96/13 0.059s} Bb7 {-0.23/13 0.24s} 12. Qa4+ {+1.03/15 0.054s}
+c6 {-0.35/14 0.17s} 13. Nxc6 {+0.98/16 0.057s} Qd7 {-0.29/13 0.044s}
+14. Ne5 {+0.98/16 0.24s} Qxa4 {-0.45/13 0.051s} 15. Nxa4 {+0.93/14 0.11s}
+dxe4 {-0.32/12 0.043s} 16. Nxb6 {+1.36/15 0.061s} Rd8 {-0.47/12 0.096s}
+17. Rc1 {+1.50/16 0.075s} Nd5 {-0.53/12 0.14s} 18. Nc6 {+1.56/15 0.089s}
+Rd6 {-0.56/13 0.29s} 19. Nxd5 {+1.23/17 0.19s} Rxd5 {-0.54/13 0.12s}
+20. Ke2 {+1.50/14 0.075s} Rb5 {-0.55/11 0.14s} 21. b4 {+2.09/16 0.075s}
+Kd7 {-0.55/11 0.15s} 22. Ne5+ {+2.34/15 0.081s} Ke8 {-0.71/11 0.034s}
+23. a4 {+2.73/16 0.071s} Rb6 {-0.68/12 0.050s, No result} *
+

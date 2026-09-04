@@ -1,0 +1,158 @@
+{
+  "teacher": "cached",
+  "teacher_nodes_per_position": 400000,
+  "package": "artifacts/unarchitectured-v1-final.unarchv1",
+  "corpus": "/tmp/corpus/calibration.jsonl",
+  "corpus_manifest": {
+    "source_kind": "over-the-board tournament PGN",
+    "source_files": [
+      "twic900.pgn"
+    ],
+    "provenance_claim": "Source-disjoint from the Lichess online corpus used for training. No training-membership manifest exists in this repository, so record-level disjointness is asserted at the source-population level, not proven per position.",
+    "games_read": 2703,
+    "games_used": 301,
+    "distinct_games": 301,
+    "min_elo": 2300,
+    "seed": 20260823,
+    "phase_counts": {
+      "opening": 200,
+      "middlegame": 200,
+      "endgame": 200
+    },
+    "excluded_fixture_fens": 9,
+    "positions": 600
+  },
+  "positions_labelled": 600,
+  "positions_skipped": 0,
+  "positions_with_mate_scores": 57,
+  "mean_legal_moves": 29.996666666666666,
+  "median_legal_moves": 32.0,
+  "random_baseline": {
+    "top1": 0.049662457128125795,
+    "top3": 0.14565403805104365,
+    "centipawn_loss_mean": 256.70686637205154
+  },
+  "heuristic_baseline": {
+    "description": "MVV-LVA + promotion + check static ordering",
+    "top1": 0.15666666666666668,
+    "top3": 0.27,
+    "mean_teacher_best_rank": 13.883333333333333,
+    "centipawn_loss_mean": 260.18232044198896
+  },
+  "full_exit_vs_heuristic_mcnemar": {
+    "full_exit_only_correct": 79,
+    "heuristic_only_correct": 20,
+    "p_value": 1.7924150285414482e-09
+  },
+  "rating": 2700,
+  "time_class": 2,
+  "policy_kind": 1,
+  "elapsed_seconds": 13.44238543510437,
+  "exits": {
+    "2/128": {
+      "top1_centipawn_loss_mean": 156.61510128913443,
+      "top1_centipawn_loss_median": 53,
+      "top1_centipawn_loss_p90": 490,
+      "top1_centipawn_loss_samples": 543,
+      "positions": 600,
+      "top1": 0.185,
+      "top1_ci95": [
+        0.15596795658145413,
+        0.21804006141531856
+      ],
+      "top3": 0.3566666666666667,
+      "mean_teacher_best_rank": 10.443333333333333,
+      "mean_reciprocal_rank": 0.32253695820137257,
+      "regret_mae": 0.5208128042634651,
+      "regret_samples": 16367,
+      "wdl_brier": 0.8773742773560601,
+      "by_phase": {
+        "endgame": {
+          "positions": 200,
+          "top1": 0.19,
+          "top3": 0.355
+        },
+        "middlegame": {
+          "positions": 200,
+          "top1": 0.205,
+          "top3": 0.345
+        },
+        "opening": {
+          "positions": 200,
+          "top1": 0.16,
+          "top3": 0.37
+        }
+      }
+    },
+    "4/192": {
+      "top1_centipawn_loss_mean": 144.73112338858195,
+      "top1_centipawn_loss_median": 50,
+      "top1_centipawn_loss_p90": 459,
+      "top1_centipawn_loss_samples": 543,
+      "positions": 600,
+      "top1": 0.195,
+      "top1_ci95": [
+        0.16527922107883283,
+        0.22860155825137565
+      ],
+      "top3": 0.37666666666666665,
+      "mean_teacher_best_rank": 10.006666666666666,
+      "mean_reciprocal_rank": 0.33535275919380503,
+      "regret_mae": 0.5312123201111487,
+      "regret_samples": 16367,
+      "wdl_brier": 0.8991403981204459,
+      "by_phase": {
+        "endgame": {
+          "positions": 200,
+          "top1": 0.205,
+          "top3": 0.375
+        },
+        "middlegame": {
+          "positions": 200,
+          "top1": 0.205,
+          "top3": 0.36
+        },
+        "opening": {
+          "positions": 200,
+          "top1": 0.175,
+          "top3": 0.395
+        }
+      }
+    },
+    "8/256": {
+      "top1_centipawn_loss_mean": 118.74033149171271,
+      "top1_centipawn_loss_median": 29,
+      "top1_centipawn_loss_p90": 422,
+      "top1_centipawn_loss_samples": 543,
+      "positions": 600,
+      "top1": 0.255,
+      "top1_ci95": [
+        0.2217587060271788,
+        0.29135864130364447
+      ],
+      "top3": 0.45666666666666667,
+      "mean_teacher_best_rank": 6.933333333333334,
+      "mean_reciprocal_rank": 0.40718928632870616,
+      "regret_mae": 0.7259733619080033,
+      "regret_samples": 16367,
+      "wdl_brier": 0.9018465429867395,
+      "by_phase": {
+        "endgame": {
+          "positions": 200,
+          "top1": 0.225,
+          "top3": 0.42
+        },
+        "middlegame": {
+          "positions": 200,
+          "top1": 0.275,
+          "top3": 0.47
+        },
+        "opening": {
+          "positions": 200,
+          "top1": 0.265,
+          "top3": 0.48
+        }
+      }
+    }
+  }
+}

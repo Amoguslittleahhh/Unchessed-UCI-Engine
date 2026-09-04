@@ -1,0 +1,10 @@
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "RubiChessFull"]
+[Black "UnchessedAdapter"]
+[Result "1-0"]
+[TimeControl "600"]
+
+1. e4 c6 2. d4 d5 3. e5 Bf5 4. h4 e6 5. g4 Be4 6. f3 Bg6 7. h5 Be7 8. hxg6 Bh4+ 9. Ke2 hxg6 10. f4 Rh6 11. Bh3 Be7 12. c3 c5 13. Nf3 Nc6 14. Be3 Qb6 15. Qb3 Qa6+ 16. Kf2 Na5 17. Qc2 Nc4 18. Nbd2 Nxe3 19. Kxe3 O-O-O 20. g5 Rh5 21. Nf1 Kb8 22. Ng3 Rh8 23. Bf1 Rxh1 24. Bxa6 Rxa1 25. Qb3 Rd7 26. Qa4 Rc7 27. Qe8+ Rc8 28. Qb5 Rc7 29. Bxb7 Rxb7 30. Qe8+ Kc7 31. Qxg8 Rb6 32. Qxf7 Kd8 33. Qxg6 Rc1 34. Ne2 Ra1 35. Qxg7 Rxb2 36. Qg8+ Kd7 37. f5 exf5 38. Qxd5+ Ke8 39. g6 Raxa2 40. Nf4 Bg5 41. Nxg5 cxd4+ 42. cxd4 Ra3+ 43. Nd3 Rc3 44. g7 f4+ 45. Kxf4 Rf2+ 46. Nxf2 Rf3+ 47. Kxf3 Ke7 48. g8=Q a6 49. Qdf7# 1-0

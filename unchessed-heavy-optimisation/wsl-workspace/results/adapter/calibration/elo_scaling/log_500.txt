@@ -1,0 +1,32 @@
+Indexing opening suite...
+Started game 3 of 30 (Adapter500 vs SF1800)
+Started game 2 of 30 (SF1800 vs Adapter500)
+Started game 1 of 30 (Adapter500 vs SF1800)
+Started game 4 of 30 (SF1800 vs Adapter500)
+Terminating process of engine SF1800(2)
+Terminating process of engine SF1800(6)
+Terminating process of engine SF1800(5)
+Finished game 2 (SF1800 vs Adapter500): 0-1 {White disconnects}
+Score of Adapter500 vs SF1800: 1 - 0 - 0  [1.000] 1
+Finished game 4 (SF1800 vs Adapter500): 0-1 {White disconnects}
+Score of Adapter500 vs SF1800: 2 - 0 - 0  [1.000] 2
+Terminating process of engine SF1800(1)
+Finished game 1 (Adapter500 vs SF1800): * {No result}
+Score of Adapter500 vs SF1800: 2 - 0 - 0  [1.000] 2
+Finished game 3 (Adapter500 vs SF1800): 1-0 {Black disconnects}
+Score of Adapter500 vs SF1800: 3 - 0 - 0  [1.000] 3
+...      Adapter500 playing White: 1 - 0 - 0  [1.000] 1
+...      Adapter500 playing Black: 2 - 0 - 0  [1.000] 2
+...      White vs Black: 1 - 2 - 0  [0.333] 3
+Elo difference: inf +/- nan, LOS: 95.8 %, DrawRatio: 0.0 %
+SPRT: llr 0 (0.0%), lbound -inf, ubound inf
+
+Player: Adapter500
+   "No result": 1
+   "Win: Black disconnects": 1
+   "Win: White disconnects": 2
+Player: SF1800
+   "Loss: Black disconnects": 1
+   "Loss: White disconnects": 2
+   "No result": 1
+Finished match

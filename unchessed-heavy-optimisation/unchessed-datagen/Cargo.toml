@@ -1,0 +1,11 @@
+[package]
+name = "unchessed-datagen"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+unchessed-core = { path = "../unchessed-core" }
+
+[[bin]]
+name = "unchessed-datagen"
+path = "src/main.rs"

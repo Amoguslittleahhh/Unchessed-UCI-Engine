@@ -1,0 +1,66 @@
+Indexing opening suite...
+Started game 1 of 16 (TrollOn vs SF1400b)
+Started game 5 of 16 (TrollOn vs SF1400b)
+Started game 6 of 16 (SF1400b vs TrollOn)
+Started game 7 of 16 (TrollOn vs SF1400b)
+Started game 4 of 16 (SF1400b vs TrollOn)
+Started game 3 of 16 (TrollOn vs SF1400b)
+Started game 8 of 16 (SF1400b vs TrollOn)
+Started game 2 of 16 (SF1400b vs TrollOn)
+Finished game 5 (TrollOn vs SF1400b): 1-0 {White wins by adjudication}
+Score of TrollOn vs SF1400b: 1 - 0 - 0  [1.000] 1
+Started game 9 of 16 (TrollOn vs SF1400b)
+Finished game 7 (TrollOn vs SF1400b): 1-0 {White wins by adjudication}
+Score of TrollOn vs SF1400b: 2 - 0 - 0  [1.000] 2
+Started game 10 of 16 (SF1400b vs TrollOn)
+Finished game 8 (SF1400b vs TrollOn): 0-1 {Black wins by adjudication}
+Score of TrollOn vs SF1400b: 3 - 0 - 0  [1.000] 3
+Started game 11 of 16 (TrollOn vs SF1400b)
+Finished game 1 (TrollOn vs SF1400b): 1-0 {White wins by adjudication}
+Score of TrollOn vs SF1400b: 4 - 0 - 0  [1.000] 4
+Started game 12 of 16 (SF1400b vs TrollOn)
+Finished game 2 (SF1400b vs TrollOn): 0-1 {Black mates}
+Score of TrollOn vs SF1400b: 5 - 0 - 0  [1.000] 5
+Started game 13 of 16 (TrollOn vs SF1400b)
+Finished game 3 (TrollOn vs SF1400b): 1-0 {White mates}
+Score of TrollOn vs SF1400b: 6 - 0 - 0  [1.000] 6
+Started game 14 of 16 (SF1400b vs TrollOn)
+Finished game 4 (SF1400b vs TrollOn): 0-1 {Black wins by adjudication}
+Score of TrollOn vs SF1400b: 7 - 0 - 0  [1.000] 7
+Started game 15 of 16 (TrollOn vs SF1400b)
+Finished game 6 (SF1400b vs TrollOn): 0-1 {Black mates}
+Score of TrollOn vs SF1400b: 8 - 0 - 0  [1.000] 8
+Started game 16 of 16 (SF1400b vs TrollOn)
+Finished game 9 (TrollOn vs SF1400b): 1-0 {White mates}
+Score of TrollOn vs SF1400b: 9 - 0 - 0  [1.000] 9
+Finished game 15 (TrollOn vs SF1400b): 1-0 {White mates}
+Score of TrollOn vs SF1400b: 10 - 0 - 0  [1.000] 10
+Finished game 14 (SF1400b vs TrollOn): 0-1 {Black wins by adjudication}
+Score of TrollOn vs SF1400b: 11 - 0 - 0  [1.000] 11
+Finished game 10 (SF1400b vs TrollOn): 0-1 {Black mates}
+Score of TrollOn vs SF1400b: 12 - 0 - 0  [1.000] 12
+Finished game 11 (TrollOn vs SF1400b): 1-0 {White wins by adjudication}
+Score of TrollOn vs SF1400b: 13 - 0 - 0  [1.000] 13
+Finished game 13 (TrollOn vs SF1400b): 1-0 {White wins by adjudication}
+Score of TrollOn vs SF1400b: 14 - 0 - 0  [1.000] 14
+Finished game 12 (SF1400b vs TrollOn): 0-1 {Black mates}
+Score of TrollOn vs SF1400b: 15 - 0 - 0  [1.000] 15
+Finished game 16 (SF1400b vs TrollOn): 0-1 {Black mates}
+Score of TrollOn vs SF1400b: 16 - 0 - 0  [1.000] 16
+...      TrollOn playing White: 8 - 0 - 0  [1.000] 8
+...      TrollOn playing Black: 8 - 0 - 0  [1.000] 8
+...      White vs Black: 8 - 8 - 0  [0.500] 16
+Elo difference: inf +/- nan, LOS: 100.0 %, DrawRatio: 0.0 %
+SPRT: llr 0 (0.0%), lbound -inf, ubound inf
+
+Player: TrollOn
+   "Win: Black mates": 5
+   "Win: Black wins by adjudication": 3
+   "Win: White mates": 3
+   "Win: White wins by adjudication": 5
+Player: SF1400b
+   "Loss: Black mates": 5
+   "Loss: Black wins by adjudication": 3
+   "Loss: White mates": 3
+   "Loss: White wins by adjudication": 5
+Finished match

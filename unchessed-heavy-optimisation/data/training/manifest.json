@@ -1,0 +1,268 @@
+{
+  "generated": "2026-08-26",
+  "purpose": "Game-data blocks spanning all player levels for the engine's training pipelines (NNUE, Unarchitectured v1). Every block is hash-pinned, rating-banded where rated, and fully move-legality-validated.",
+  "source": {
+    "repo": "https://github.com/rozim/ChessData.git",
+    "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+    "fetched": "2026-08-26",
+    "upstream_caveat": "PGN mirror; upstream README warns: 'There will be dups, dirty data, errors, GM draws etc -- the data will probably need to be post-processed, filtered, deduped'. This directory is the result of that first filter pass (banding + full move-legality clean).",
+    "fetch": "python3 tools/training_blocks.py fetch --out <dir> (partial clone; needs GitHub egress)"
+  },
+  "method": {
+    "banding": "platform blocks: mean of WhiteElo and BlackElo, both required, both within [100, 3500], standard results only, games copied verbatim. Games with unknown ratings (tag value 0 or missing) are quarantined, never banded.",
+    "validation": "Every game in every block was fully parsed and its mainline replayed with python-chess 1.11.2 (tools/training_blocks.py clean); illegal games were dropped (counts per block). Committed blocks are 100% move-legal.",
+    "rating_provenance": "Ratings are as tagged by the source. TWIC/Bundesliga/British Championship tags are FIDE-based where available; platform (lichess) ratings are platform-calibrated (self-registered accounts)."
+  },
+  "reliability_tiers": {
+    "curated (publisher/league/player archives; strongest provenance)": [
+      "twic/*",
+      "world-championships/*",
+      "leagues/*",
+      "players/*"
+    ],
+    "platform (lichess; calibrated but self-registered)": [
+      "lichess-2022-10-05/*"
+    ]
+  },
+  "source_chunk_stats": {
+    "Release/2022-10-05/mega-clean.pgn-chunk-00": {
+      "games": 69631,
+      "quarantined": 26928,
+      "quarantine_breakdown": {
+        "rating_zero": 26897,
+        "rating_out_of_range": 30,
+        "missing_rating_tags": 1,
+        "bad_result": 1
+      }
+    },
+    "Release/2022-10-05/mega-clean.pgn-chunk-40": {
+      "games": 67012,
+      "quarantined": 14996,
+      "quarantine_breakdown": {
+        "rating_zero": 8572,
+        "rating_out_of_range": 1,
+        "missing_rating_tags": 6423,
+        "bad_result": 10
+      }
+    },
+    "Release/2022-10-05/mega-clean.pgn-chunk-62": {
+      "games": 59243,
+      "quarantined": 8462,
+      "quarantine_breakdown": {
+        "rating_zero": 0,
+        "rating_out_of_range": 0,
+        "missing_rating_tags": 8462,
+        "bad_result": 3
+      }
+    }
+  },
+  "blocks": [
+    {
+      "path": "data/training/lichess-2022-10-05/elo-0000-1400.pgn",
+      "tier": "platform",
+      "band_or_note": "elo-0000-1400",
+      "games": 695,
+      "bytes": 582973,
+      "sha256": "e798e06ad63c46650884f3b9981a6739e185ce90ddb514f9db714a6cd77f0d42",
+      "source_path_in_repo": "Release/2022-10-05/mega-clean.pgn-chunk-00 + -40 + -62 (merged)",
+      "full_move_validated": true,
+      "illegal_games_dropped": 0
+    },
+    {
+      "path": "data/training/lichess-2022-10-05/elo-1400-1700.pgn",
+      "tier": "platform",
+      "band_or_note": "elo-1400-1700",
+      "games": 4887,
+      "bytes": 3916968,
+      "sha256": "523bd13094f4666449c1b50a404ab23f20ec21dc2e8f98587dcc1ecfd845cc56",
+      "source_path_in_repo": "Release/2022-10-05/mega-clean.pgn-chunk-40",
+      "full_move_validated": true,
+      "illegal_games_dropped": 0
+    },
+    {
+      "path": "data/training/lichess-2022-10-05/elo-1700-2000.pgn",
+      "tier": "platform",
+      "band_or_note": "elo-1700-2000",
+      "games": 4465,
+      "bytes": 4047760,
+      "sha256": "fd4f13c9b0ab5d51fd213bcf2baefb7287ebab3e2d54ded7e24137c64fcb470e",
+      "source_path_in_repo": "Release/2022-10-05/mega-clean.pgn-chunk-62",
+      "full_move_validated": true,
+      "illegal_games_dropped": 0
+    },
+    {
+      "path": "data/training/lichess-2022-10-05/elo-2000-2300.pgn",
+      "tier": "platform",
+      "band_or_note": "elo-2000-2300",
+      "games": 16313,
+      "bytes": 12674193,
+      "sha256": "a928f9e52312700a817e5da9058bad69eebba636e19ec1f03a3d8dc4e9f50df7",
+      "source_path_in_repo": "Release/2022-10-05/mega-clean.pgn-chunk-00",
+      "full_move_validated": true,
+      "illegal_games_dropped": 157
+    },
+    {
+      "path": "data/training/lichess-2022-10-05/elo-2300-2600.pgn",
+      "tier": "platform",
+      "band_or_note": "elo-2300-2600",
+      "games": 22099,
+      "bytes": 17050175,
+      "sha256": "9fd465a8c1f363cfeaf8bc834d193bd629fa0a170bc12cdb0fb72b19b57a0c15",
+      "source_path_in_repo": "Release/2022-10-05/mega-clean.pgn-chunk-00",
+      "full_move_validated": true,
+      "illegal_games_dropped": 3
+    },
+    {
+      "path": "data/training/lichess-2022-10-05/elo-2600-3500.pgn",
+      "tier": "platform",
+      "band_or_note": "elo-2600-3500",
+      "games": 1926,
+      "bytes": 1533256,
+      "sha256": "e4e37dc9d23c347f9f8eb8440c9e8c04ea5a2a870585ede08f62f6144afaa578",
+      "source_path_in_repo": "Release/2022-10-05/mega-clean.pgn-chunk-00",
+      "full_move_validated": true,
+      "illegal_games_dropped": 0
+    },
+    {
+      "path": "data/training/twic/twic400.pgn",
+      "tier": "curated",
+      "band_or_note": "issue 400 (2002); rated games mean 2423, range 2066-2739",
+      "games": 984,
+      "bytes": 641718,
+      "sha256": "fb551064bd7252bd5b56d0168643851edce0a72ace8edcd16e41aae30f6eece5",
+      "source_path_in_repo": "Twic/twic400.pgn",
+      "full_move_validated": true,
+      "illegal_games_dropped": 0
+    },
+    {
+      "path": "data/training/twic/twic1000.pgn",
+      "tier": "curated",
+      "band_or_note": "issue 1000 (2013-14); rated games mean 2270, range 1601-2696",
+      "games": 1706,
+      "bytes": 1425503,
+      "sha256": "ddb63c03e560e1725c96c5bece48ff21dc309746530c7ffe7079e86fa0021dad",
+      "source_path_in_repo": "Twic/twic1000.pgn",
+      "full_move_validated": true,
+      "illegal_games_dropped": 0
+    },
+    {
+      "path": "data/training/twic/twic1649.pgn",
+      "tier": "curated",
+      "band_or_note": "issue 1649 (2026); rated games mean 2264, range 1528-2786",
+      "games": 6976,
+      "bytes": 6395740,
+      "sha256": "fd891a729dfb5650dd4b9516b399be921c09fb1a1f313891279d90855b90c682",
+      "source_path_in_repo": "Twic/twic1649.pgn",
+      "full_move_validated": true,
+      "illegal_games_dropped": 0
+    },
+    {
+      "path": "data/training/world-championships/90GEN.pgn",
+      "tier": "curated",
+      "band_or_note": "1990 World Championship; no rating tags; top-tier by definition",
+      "games": 153,
+      "bytes": 106530,
+      "sha256": "aa6c1cdd78728db9e8b8fafc4b5c1b92b485f5bb63889f5e0d5965d3a296054a",
+      "source_path_in_repo": "WorldChampionships/90GEN.pgn",
+      "full_move_validated": true,
+      "illegal_games_dropped": 0
+    },
+    {
+      "path": "data/training/world-championships/93BIEL.pgn",
+      "tier": "curated",
+      "band_or_note": "1993 World Championship; no rating tags; top-tier by definition",
+      "games": 469,
+      "bytes": 294642,
+      "sha256": "ae2ea4b76d60bab572d5b3774b9681f64b324725bac11869bb5a28a8cc1c75da",
+      "source_path_in_repo": "WorldChampionships/93BIEL.pgn",
+      "full_move_validated": true,
+      "illegal_games_dropped": 0
+    },
+    {
+      "path": "data/training/players/Carlsen.pgn",
+      "tier": "curated",
+      "band_or_note": "player archive 2001-2022; rated games mean 2735, range 2050-2850",
+      "games": 4288,
+      "bytes": 3348306,
+      "sha256": "3354ee18b4058f7f81d409af1bd251debb746e711e889d88bae50dfabcaed544",
+      "source_path_in_repo": "PgnMentor/Carlsen.pgn",
+      "full_move_validated": true,
+      "illegal_games_dropped": 26
+    },
+    {
+      "path": "data/training/players/Nakamura.pgn",
+      "tier": "curated",
+      "band_or_note": "player archive 1997-2022; rated games mean 2687, range 2138-2839",
+      "games": 5579,
+      "bytes": 4338291,
+      "sha256": "23dbde364ae9c1d928d216be844e787b1a4e08d50a70119746bf50164251423e",
+      "source_path_in_repo": "PgnMentor/Nakamura.pgn",
+      "full_move_validated": true,
+      "illegal_games_dropped": 0
+    },
+    {
+      "path": "data/training/leagues/bl0607.pgn",
+      "tier": "curated",
+      "band_or_note": "German Bundesliga 2006-07; rated games mean 2647",
+      "games": 960,
+      "bytes": 720164,
+      "sha256": "b5c72681d68a70197072b97bed879602d6a6000dbcedc0ad39c4ba30bd245944",
+      "source_path_in_repo": "Bundesliga/bl0607.pgn",
+      "full_move_validated": true,
+      "illegal_games_dropped": 0
+    },
+    {
+      "path": "data/training/leagues/201707britchamp.pgn",
+      "tier": "curated",
+      "band_or_note": "British Championship 2017; rated games mean 2209, range 1804-2681",
+      "games": 461,
+      "bytes": 400796,
+      "sha256": "2bf71f12d5f39a916b5af641bc49d919d355ccc2a0b60c38331c2c2d0d38c695",
+      "source_path_in_repo": "Britbase/201707britchamp.pgn",
+      "full_move_validated": true,
+      "illegal_games_dropped": 0
+    }
+  ],
+  "band_coverage_games": {
+    "elo-0000-1400": 695,
+    "elo-1400-1700": 4887,
+    "elo-1700-2000": 4465,
+    "elo-2000-2300": 16313,
+    "elo-2300-2600": 22099,
+    "elo-2600-3500": 1926
+  },
+  "cross_block_duplicates": "219 games (0.30% of 71,961) appear in two blocks: Carlsen-Nakamura head-to-heads present in both player archives with identical headers. No dedupe was applied; pipelines should dedupe by a position+move key if needed.",
+  "known_caveats": [
+    "world-championships files carry no WhiteElo/BlackElo tags; they are top-tier by definition and are kept as a separate (unbanded) block.",
+    "platform blocks are slices of one release (2022-10-05) of the mirror's mega-clean set; deduped within the file (pgn-extract -C) but not against other blocks or releases.",
+    "the mirror's extreme rating values (e.g. 21244; ~30 games across the three chunks) were quarantined, not committed.",
+    "block-level statistics (band counts, ratings) are header-level; no annotation/evaluation ground truth is asserted."
+  ],
+  "available_extensions_not_committed": [
+    {
+      "path": "Kingbase/KingBase2017-*.pgn",
+      "note": "56 files, 26-44 MB each; Kingbase 2017, 2200+ master games (the dataset family behind arXiv:2401.16852)"
+    },
+    {
+      "path": "Twic/twic210.pgn ... twic1649.pgn",
+      "note": "the full TWIC series, ~1440 weekly issues 2005-2026"
+    },
+    {
+      "path": "Release/2022-10-05/mega-clean.pgn-chunk-01..62",
+      "note": "the rest of the ~10M-game mega set (~3.9 GB)"
+    },
+    {
+      "path": "PgnMentor/*.pgn",
+      "note": "1000 per-player GM archives"
+    },
+    {
+      "path": "WorldChampionships/*",
+      "note": "92 files, full WCH archive"
+    },
+    {
+      "path": "Bundesliga/*, Britbase/*, Convekta/*, ...",
+      "note": "league and club archives"
+    }
+  ],
+  "total_games": 71961
+}

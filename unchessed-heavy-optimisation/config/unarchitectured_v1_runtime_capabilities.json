@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "architecture": "Unarchitectured v1",
+  "container_format": true,
+  "checkpoint_exporter": true,
+  "package_inspector": true,
+  "rust_package_loader": true,
+  "tensor_quantization_drift": true,
+  "scalar_neural_forward": true,
+  "quantized_neural_forward": true,
+  "exported_reference_vectors": true,
+  "simd_neural_forward": true,
+  "runtime_safety_suite": false,
+  "npu_dispatch": false,
+  "npu_dispatch_status": "experimental-unimplemented",
+  "npu_dispatch_notes": "EXPERIMENTAL, NOT IMPLEMENTED. No NPU code path exists in this repository; inference is CPU-only. Assessed in docs/npu-viability-285h.md: NPU dispatch is unusable for per-node NNUE evaluation (an optimistic ~1ms invocation against a ~20ns CPU eval is ~50,000x, and alpha-beta cannot batch because the next node depends on the previous node's score). It is technically a good fit only for the once-per-move Unarchitectured v1 transformer, which is already int8 with static shapes -- but that feature is blocked on value, not cost (round 6 measured full-exit top-1 0.255 vs a 0.157 free MVV-LVA heuristic, p90 centipawn loss 422), so cheaper inference does not unblock it. Any future work here requires a vendor runtime (OpenVINO/DirectML), an ONNX/IR export path, and must stay default-off behind a paired-game SPRT. Silent CPU fallback must be treated as a failure, not a graceful degradation.",
+  "notes": "Real checkpoint and all three exits are Python-parity validated. Dominant matrices retain int8 package weights and use dynamic int16 activations with i32 accumulation; complete-output drift is gated against the dequantized backend. A default-off UCI root-hint candidate exists, but deployment calibration, broad integrated measurements, tactical runtime safety, and paired-game gates remain blocked. NPU dispatch is flagged experimental and unimplemented; see npu_dispatch_notes.",
+  "runtime_package_tests": true
+}

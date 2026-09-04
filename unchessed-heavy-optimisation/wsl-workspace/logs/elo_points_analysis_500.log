@@ -1,0 +1,15 @@
+ELO 500 game 1: avg_cp_loss=199 blunders=1/51 result=0-1
+ELO 500 game 2: avg_cp_loss=37 blunders=0/35 result=1-0
+ELO 500 game 3: avg_cp_loss=25 blunders=0/47 result=0-1
+ELO 500 game 4: avg_cp_loss=188 blunders=1/52 result=1-0
+ELO 500 game 5: avg_cp_loss=179 blunders=1/56 result=0-1
+ELO 500 game 6: avg_cp_loss=34 blunders=1/33 result=1-0
+ELO 500 game 7: avg_cp_loss=10 blunders=0/72 result=0-1
+ELO 500 game 8: avg_cp_loss=47 blunders=0/31 result=1-0
+Traceback (most recent call last):
+  File "/home/amogusontheterminal/analyze_elo_points.py", line 72, in <module>
+    board.push(move)
+  File "/home/amogusontheterminal/pgnvenv/lib/python3.12/site-packages/chess/__init__.py", line 2369, in push
+    assert piece_type is not None, f"push() expects move to be pseudo-legal, but got {move} in {self.board_fen()}"
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: push() expects move to be pseudo-legal, but got e2e3 in r5k1/3q2pp/4p3/p2b1p2/1b1PnP2/4Q3/1PB3PP/2RR2K1

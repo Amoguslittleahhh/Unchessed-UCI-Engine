@@ -1,0 +1,39 @@
+{
+  "capacity": {
+    "ours": {
+      "d1": 8,
+      "d2": 32,
+      "d3": 32
+    },
+    "paper_5m": {
+      "d1": 32,
+      "d2": 64,
+      "d3": 64
+    },
+    "paper_23m_79m": {
+      "d1": 32,
+      "d2": 128,
+      "d3": 128
+    }
+  },
+  "ablations": [
+    {
+      "variant": "baseline",
+      "positions": 600,
+      "top1_accuracy": 0.2683333333333333,
+      "mean_regret_cp": 146.28833333333333
+    },
+    {
+      "variant": "gab_zeroed",
+      "positions": 600,
+      "top1_accuracy": 0.21,
+      "mean_regret_cp": 178.52666666666667
+    },
+    {
+      "variant": "gab_shuffled",
+      "positions": 600,
+      "top1_accuracy": 0.21,
+      "mean_regret_cp": 182.96
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+[Event "?"]
+[Site "?"]
+[Date "2026.07.31"]
+[Round "1"]
+[White "Adapter500"]
+[Black "Stockfish"]
+[Result "1-0"]
+[ECO "E61"]
+[GameDuration "00:00:02"]
+[GameEndTime "2026-07-31T19:33:50.547 +08"]
+[GameStartTime "2026-07-31T19:33:48.543 +08"]
+[Opening "King's Indian defense, 3.Nc3"]
+[PlyCount "23"]
+[Termination "abandoned"]
+[TimeControl "5+0.05"]
+
+1. d4 {book} Nf6 {book} 2. c4 {book} g6 {book} 3. Nc3 {book} Bg7 {book}
+4. g3 {book} d5 {book} 5. Bg2 {book} dxc4 {book} 6. Qa4+ {-0.18/11 0.13s}
+Nfd7 {+0.28/15 0.28s} 7. e3 {-0.01/11 0.15s} O-O {+0.51/15 0.15s}
+8. Qxc4 {0.00/11 0.077s} e5 {+0.55/13 0.084s} 9. Nge2 {-0.02/11 0.091s}
+Nb6 {+0.55/17 0.19s} 10. Qb3 {-0.02/11 0.058s} exd4 {+0.47/14 0.17s}
+11. exd4 {+0.03/12 0.087s} a5 {+0.50/14 0.18s}
+12. h4 {+0.20/10 0.15s, Black disconnects} 1-0
+

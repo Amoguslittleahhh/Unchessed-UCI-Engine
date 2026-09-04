@@ -1,0 +1,146 @@
+Indexing opening suite...
+Started game 4 of 40 (Rubi16000 vs Adapter2400)
+Started game 7 of 40 (Adapter2400 vs Rubi16000)
+Started game 3 of 40 (Adapter2400 vs Rubi16000)
+Started game 6 of 40 (Rubi16000 vs Adapter2400)
+Started game 8 of 40 (Rubi16000 vs Adapter2400)
+Started game 1 of 40 (Adapter2400 vs Rubi16000)
+Started game 5 of 40 (Adapter2400 vs Rubi16000)
+Started game 2 of 40 (Rubi16000 vs Adapter2400)
+Finished game 5 (Adapter2400 vs Rubi16000): 1-0 {White mates}
+Score of Adapter2400 vs Rubi16000: 1 - 0 - 0  [1.000] 1
+Started game 9 of 40 (Adapter2400 vs Rubi16000)
+Finished game 6 (Rubi16000 vs Adapter2400): 0-1 {Black mates}
+Score of Adapter2400 vs Rubi16000: 2 - 0 - 0  [1.000] 2
+Started game 10 of 40 (Rubi16000 vs Adapter2400)
+Finished game 1 (Adapter2400 vs Rubi16000): 0-1 {Black wins by adjudication}
+Score of Adapter2400 vs Rubi16000: 2 - 1 - 0  [0.667] 3
+Started game 11 of 40 (Adapter2400 vs Rubi16000)
+Finished game 2 (Rubi16000 vs Adapter2400): 1-0 {White wins by adjudication}
+Score of Adapter2400 vs Rubi16000: 2 - 2 - 0  [0.500] 4
+Started game 12 of 40 (Rubi16000 vs Adapter2400)
+Finished game 7 (Adapter2400 vs Rubi16000): 0-1 {Black wins by adjudication}
+Score of Adapter2400 vs Rubi16000: 2 - 3 - 0  [0.400] 5
+Started game 13 of 40 (Adapter2400 vs Rubi16000)
+Finished game 3 (Adapter2400 vs Rubi16000): 0-1 {Black wins by adjudication}
+Score of Adapter2400 vs Rubi16000: 2 - 4 - 0  [0.333] 6
+Started game 14 of 40 (Rubi16000 vs Adapter2400)
+Finished game 8 (Rubi16000 vs Adapter2400): 1-0 {White wins by adjudication}
+Score of Adapter2400 vs Rubi16000: 2 - 5 - 0  [0.286] 7
+Started game 15 of 40 (Adapter2400 vs Rubi16000)
+Finished game 4 (Rubi16000 vs Adapter2400): 0-1 {Black mates}
+Score of Adapter2400 vs Rubi16000: 3 - 5 - 0  [0.375] 8
+Started game 16 of 40 (Rubi16000 vs Adapter2400)
+Finished game 10 (Rubi16000 vs Adapter2400): 1-0 {White mates}
+Score of Adapter2400 vs Rubi16000: 3 - 6 - 0  [0.333] 9
+Started game 17 of 40 (Adapter2400 vs Rubi16000)
+Finished game 14 (Rubi16000 vs Adapter2400): 1-0 {White wins by adjudication}
+Score of Adapter2400 vs Rubi16000: 3 - 7 - 0  [0.300] 10
+Started game 18 of 40 (Rubi16000 vs Adapter2400)
+Finished game 9 (Adapter2400 vs Rubi16000): 0-1 {Black wins by adjudication}
+Score of Adapter2400 vs Rubi16000: 3 - 8 - 0  [0.273] 11
+Started game 19 of 40 (Adapter2400 vs Rubi16000)
+Finished game 15 (Adapter2400 vs Rubi16000): 0-1 {Black wins by adjudication}
+Score of Adapter2400 vs Rubi16000: 3 - 9 - 0  [0.250] 12
+Started game 20 of 40 (Rubi16000 vs Adapter2400)
+Finished game 12 (Rubi16000 vs Adapter2400): 1-0 {White wins by adjudication}
+Score of Adapter2400 vs Rubi16000: 3 - 10 - 0  [0.231] 13
+Started game 21 of 40 (Adapter2400 vs Rubi16000)
+Finished game 16 (Rubi16000 vs Adapter2400): 1/2-1/2 {Draw by 3-fold repetition}
+Score of Adapter2400 vs Rubi16000: 3 - 10 - 1  [0.250] 14
+Started game 22 of 40 (Rubi16000 vs Adapter2400)
+Finished game 13 (Adapter2400 vs Rubi16000): 1-0 {White mates}
+Score of Adapter2400 vs Rubi16000: 4 - 10 - 1  [0.300] 15
+Started game 23 of 40 (Adapter2400 vs Rubi16000)
+Finished game 11 (Adapter2400 vs Rubi16000): 0-1 {Black wins by adjudication}
+Score of Adapter2400 vs Rubi16000: 4 - 11 - 1  [0.281] 16
+Started game 24 of 40 (Rubi16000 vs Adapter2400)
+Finished game 17 (Adapter2400 vs Rubi16000): 1-0 {White mates}
+Score of Adapter2400 vs Rubi16000: 5 - 11 - 1  [0.324] 17
+Started game 25 of 40 (Adapter2400 vs Rubi16000)
+Finished game 18 (Rubi16000 vs Adapter2400): 0-1 {Black mates}
+Score of Adapter2400 vs Rubi16000: 6 - 11 - 1  [0.361] 18
+Started game 26 of 40 (Rubi16000 vs Adapter2400)
+Finished game 20 (Rubi16000 vs Adapter2400): 0-1 {Black mates}
+Score of Adapter2400 vs Rubi16000: 7 - 11 - 1  [0.395] 19
+Started game 27 of 40 (Adapter2400 vs Rubi16000)
+Finished game 21 (Adapter2400 vs Rubi16000): 0-1 {Black wins by adjudication}
+Score of Adapter2400 vs Rubi16000: 7 - 12 - 1  [0.375] 20
+Started game 28 of 40 (Rubi16000 vs Adapter2400)
+Finished game 19 (Adapter2400 vs Rubi16000): 0-1 {Black wins by adjudication}
+Score of Adapter2400 vs Rubi16000: 7 - 13 - 1  [0.357] 21
+Started game 29 of 40 (Adapter2400 vs Rubi16000)
+Finished game 23 (Adapter2400 vs Rubi16000): 1-0 {White mates}
+Score of Adapter2400 vs Rubi16000: 8 - 13 - 1  [0.386] 22
+Started game 30 of 40 (Rubi16000 vs Adapter2400)
+Finished game 22 (Rubi16000 vs Adapter2400): 1/2-1/2 {Draw by 3-fold repetition}
+Score of Adapter2400 vs Rubi16000: 8 - 13 - 2  [0.391] 23
+Started game 31 of 40 (Adapter2400 vs Rubi16000)
+Finished game 24 (Rubi16000 vs Adapter2400): 1-0 {White wins by adjudication}
+Score of Adapter2400 vs Rubi16000: 8 - 14 - 2  [0.375] 24
+Started game 32 of 40 (Rubi16000 vs Adapter2400)
+Finished game 25 (Adapter2400 vs Rubi16000): 0-1 {Black wins by adjudication}
+Score of Adapter2400 vs Rubi16000: 8 - 15 - 2  [0.360] 25
+Started game 33 of 40 (Adapter2400 vs Rubi16000)
+Finished game 26 (Rubi16000 vs Adapter2400): 0-1 {Black wins by adjudication}
+Score of Adapter2400 vs Rubi16000: 9 - 15 - 2  [0.385] 26
+Started game 34 of 40 (Rubi16000 vs Adapter2400)
+Finished game 28 (Rubi16000 vs Adapter2400): 0-1 {Black mates}
+Score of Adapter2400 vs Rubi16000: 10 - 15 - 2  [0.407] 27
+Started game 35 of 40 (Adapter2400 vs Rubi16000)
+Finished game 27 (Adapter2400 vs Rubi16000): 1-0 {White mates}
+Score of Adapter2400 vs Rubi16000: 11 - 15 - 2  [0.429] 28
+Started game 36 of 40 (Rubi16000 vs Adapter2400)
+Finished game 31 (Adapter2400 vs Rubi16000): 1-0 {White mates}
+Score of Adapter2400 vs Rubi16000: 12 - 15 - 2  [0.448] 29
+Started game 37 of 40 (Adapter2400 vs Rubi16000)
+Finished game 30 (Rubi16000 vs Adapter2400): 0-1 {Black mates}
+Score of Adapter2400 vs Rubi16000: 13 - 15 - 2  [0.467] 30
+Started game 38 of 40 (Rubi16000 vs Adapter2400)
+Finished game 29 (Adapter2400 vs Rubi16000): 0-1 {Black wins by adjudication}
+Score of Adapter2400 vs Rubi16000: 13 - 16 - 2  [0.452] 31
+Started game 39 of 40 (Adapter2400 vs Rubi16000)
+Finished game 32 (Rubi16000 vs Adapter2400): 1-0 {White wins by adjudication}
+Score of Adapter2400 vs Rubi16000: 13 - 17 - 2  [0.438] 32
+Started game 40 of 40 (Rubi16000 vs Adapter2400)
+Finished game 33 (Adapter2400 vs Rubi16000): 0-1 {Black wins by adjudication}
+Score of Adapter2400 vs Rubi16000: 13 - 18 - 2  [0.424] 33
+Finished game 34 (Rubi16000 vs Adapter2400): 1-0 {White wins by adjudication}
+Score of Adapter2400 vs Rubi16000: 13 - 19 - 2  [0.412] 34
+Finished game 35 (Adapter2400 vs Rubi16000): 1-0 {White wins by adjudication}
+Score of Adapter2400 vs Rubi16000: 14 - 19 - 2  [0.429] 35
+Finished game 36 (Rubi16000 vs Adapter2400): 1/2-1/2 {Draw by 3-fold repetition}
+Score of Adapter2400 vs Rubi16000: 14 - 19 - 3  [0.431] 36
+Finished game 39 (Adapter2400 vs Rubi16000): 1/2-1/2 {Draw by 3-fold repetition}
+Score of Adapter2400 vs Rubi16000: 14 - 19 - 4  [0.432] 37
+Finished game 37 (Adapter2400 vs Rubi16000): 0-1 {Black wins by adjudication}
+Score of Adapter2400 vs Rubi16000: 14 - 20 - 4  [0.421] 38
+Finished game 38 (Rubi16000 vs Adapter2400): 1-0 {White wins by adjudication}
+Score of Adapter2400 vs Rubi16000: 14 - 21 - 4  [0.410] 39
+Finished game 40 (Rubi16000 vs Adapter2400): 1-0 {White wins by adjudication}
+Score of Adapter2400 vs Rubi16000: 14 - 22 - 4  [0.400] 40
+...      Adapter2400 playing White: 7 - 12 - 1  [0.375] 20
+...      Adapter2400 playing Black: 7 - 10 - 3  [0.425] 20
+...      White vs Black: 17 - 19 - 4  [0.475] 40
+Elo difference: -70.4 +/- 107.6, LOS: 9.1 %, DrawRatio: 10.0 %
+SPRT: llr 0 (0.0%), lbound -inf, ubound inf
+
+Player: Adapter2400
+   "Draw by 3-fold repetition": 4
+   "Loss: Black wins by adjudication": 12
+   "Loss: White mates": 1
+   "Loss: White wins by adjudication": 9
+   "Win: Black mates": 6
+   "Win: Black wins by adjudication": 1
+   "Win: White mates": 6
+   "Win: White wins by adjudication": 1
+Player: Rubi16000
+   "Draw by 3-fold repetition": 4
+   "Loss: Black mates": 6
+   "Loss: Black wins by adjudication": 1
+   "Loss: White mates": 6
+   "Loss: White wins by adjudication": 1
+   "Win: Black wins by adjudication": 12
+   "Win: White mates": 1
+   "Win: White wins by adjudication": 9
+Finished match

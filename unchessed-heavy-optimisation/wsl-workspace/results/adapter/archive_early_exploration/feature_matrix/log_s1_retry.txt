@@ -1,0 +1,66 @@
+Indexing opening suite...
+Started game 1 of 16 (AdaptVsWeak vs SF1400)
+Started game 2 of 16 (SF1400 vs AdaptVsWeak)
+Finished game 1 (AdaptVsWeak vs SF1400): 1-0 {White mates}
+Score of AdaptVsWeak vs SF1400: 1 - 0 - 0  [1.000] 1
+Started game 3 of 16 (AdaptVsWeak vs SF1400)
+Finished game 2 (SF1400 vs AdaptVsWeak): 0-1 {Black wins by adjudication}
+Score of AdaptVsWeak vs SF1400: 2 - 0 - 0  [1.000] 2
+Started game 4 of 16 (SF1400 vs AdaptVsWeak)
+Finished game 3 (AdaptVsWeak vs SF1400): 1-0 {White mates}
+Score of AdaptVsWeak vs SF1400: 3 - 0 - 0  [1.000] 3
+Started game 5 of 16 (AdaptVsWeak vs SF1400)
+Finished game 4 (SF1400 vs AdaptVsWeak): 0-1 {Black wins by adjudication}
+Score of AdaptVsWeak vs SF1400: 4 - 0 - 0  [1.000] 4
+Started game 6 of 16 (SF1400 vs AdaptVsWeak)
+Finished game 6 (SF1400 vs AdaptVsWeak): 0-1 {Black wins by adjudication}
+Score of AdaptVsWeak vs SF1400: 5 - 0 - 0  [1.000] 5
+Started game 7 of 16 (AdaptVsWeak vs SF1400)
+Finished game 5 (AdaptVsWeak vs SF1400): 1-0 {White wins by adjudication}
+Score of AdaptVsWeak vs SF1400: 6 - 0 - 0  [1.000] 6
+Started game 8 of 16 (SF1400 vs AdaptVsWeak)
+Finished game 8 (SF1400 vs AdaptVsWeak): 0-1 {Black wins by adjudication}
+Score of AdaptVsWeak vs SF1400: 7 - 0 - 0  [1.000] 7
+Started game 9 of 16 (AdaptVsWeak vs SF1400)
+Finished game 7 (AdaptVsWeak vs SF1400): 1-0 {White wins by adjudication}
+Score of AdaptVsWeak vs SF1400: 8 - 0 - 0  [1.000] 8
+Started game 10 of 16 (SF1400 vs AdaptVsWeak)
+Finished game 9 (AdaptVsWeak vs SF1400): 1-0 {White wins by adjudication}
+Score of AdaptVsWeak vs SF1400: 9 - 0 - 0  [1.000] 9
+Started game 11 of 16 (AdaptVsWeak vs SF1400)
+Finished game 10 (SF1400 vs AdaptVsWeak): 0-1 {Black mates}
+Score of AdaptVsWeak vs SF1400: 10 - 0 - 0  [1.000] 10
+Started game 12 of 16 (SF1400 vs AdaptVsWeak)
+Finished game 11 (AdaptVsWeak vs SF1400): 1-0 {White wins by adjudication}
+Score of AdaptVsWeak vs SF1400: 11 - 0 - 0  [1.000] 11
+Started game 13 of 16 (AdaptVsWeak vs SF1400)
+Finished game 12 (SF1400 vs AdaptVsWeak): 0-1 {Black wins by adjudication}
+Score of AdaptVsWeak vs SF1400: 12 - 0 - 0  [1.000] 12
+Started game 14 of 16 (SF1400 vs AdaptVsWeak)
+Finished game 13 (AdaptVsWeak vs SF1400): 1-0 {White mates}
+Score of AdaptVsWeak vs SF1400: 13 - 0 - 0  [1.000] 13
+Started game 15 of 16 (AdaptVsWeak vs SF1400)
+Finished game 14 (SF1400 vs AdaptVsWeak): 0-1 {Black mates}
+Score of AdaptVsWeak vs SF1400: 14 - 0 - 0  [1.000] 14
+Started game 16 of 16 (SF1400 vs AdaptVsWeak)
+Finished game 15 (AdaptVsWeak vs SF1400): 1-0 {White wins by adjudication}
+Score of AdaptVsWeak vs SF1400: 15 - 0 - 0  [1.000] 15
+Finished game 16 (SF1400 vs AdaptVsWeak): 0-1 {Black mates}
+Score of AdaptVsWeak vs SF1400: 16 - 0 - 0  [1.000] 16
+...      AdaptVsWeak playing White: 8 - 0 - 0  [1.000] 8
+...      AdaptVsWeak playing Black: 8 - 0 - 0  [1.000] 8
+...      White vs Black: 8 - 8 - 0  [0.500] 16
+Elo difference: inf +/- nan, LOS: 100.0 %, DrawRatio: 0.0 %
+SPRT: llr 0 (0.0%), lbound -inf, ubound inf
+
+Player: AdaptVsWeak
+   "Win: Black mates": 3
+   "Win: Black wins by adjudication": 5
+   "Win: White mates": 3
+   "Win: White wins by adjudication": 5
+Player: SF1400
+   "Loss: Black mates": 3
+   "Loss: Black wins by adjudication": 5
+   "Loss: White mates": 3
+   "Loss: White wins by adjudication": 5
+Finished match

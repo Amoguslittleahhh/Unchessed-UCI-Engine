@@ -1,0 +1,11 @@
+# Matetrack-style mate-finding suite for Unchessed.
+# Generated and verified by tools/build_matetrack_suite.py.
+# Every bm is checked to be legal, mating, and the UNIQUE mate.
+# Format: EPD with bm (best move, SAN), dm (mate in N moves), id, c0.
+6k1/5ppp/8/8/8/8/8/R5K1 w - - bm Ra8#; dm 1; id "backrank-rook"; c0 "Rook to the eighth; king sealed by its own pawns.";
+r5k1/8/8/8/8/8/5PPP/6K1 b - - bm Ra1#; dm 1; id "backrank-rook-black"; c0 "Mirror of the above, Black to move.";
+6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - bm Ra8#; dm 1; id "backrank-full-shield"; c0 "Back rank with both pawn shields intact; 20 legal moves to sift.";
+6rk/6pp/8/6N1/8/8/8/6K1 w - - bm Nf7#; dm 1; id "smothered-knight"; c0 "Smothered mate: knight to f7, king boxed by its own rook and pawns.";
+7k/5K2/Q7/8/8/8/8/8 w - - bm Qh6#; dm 1; id "queen-support-king"; c0 "Queen mate supported by the king on the seventh.";
+k7/8/2K5/8/8/8/8/1Q6 w - - bm Qb7#; dm 1; id "corner-queen"; c0 "Queen delivers mate against the cornered king.";
+7k/R7/1R6/8/8/8/8/6K1 w - - bm Rb8#; dm 1; id "ladder-two-rooks"; c0 "Ladder mate: one rook cuts the seventh, the other delivers on the eighth.";

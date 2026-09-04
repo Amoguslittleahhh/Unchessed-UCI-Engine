@@ -1,0 +1,394 @@
+Indexing opening suite...
+Started game 1 of 120 (A500 vs A3000)
+Started game 9 of 120 (A500 vs A3000)
+Started game 6 of 120 (A3000 vs A500)
+Started game 12 of 120 (A3000 vs A500)
+Started game 2 of 120 (A3000 vs A500)
+Started game 7 of 120 (A500 vs A3000)
+Started game 8 of 120 (A3000 vs A500)
+Started game 13 of 120 (A500 vs A3000)
+Started game 11 of 120 (A500 vs A3000)
+Started game 3 of 120 (A500 vs A3000)
+Started game 5 of 120 (A500 vs A3000)
+Started game 4 of 120 (A3000 vs A500)
+Started game 10 of 120 (A3000 vs A500)
+Finished game 8 (A3000 vs A500): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A3000: 0 - 0 - 1  [0.500] 1
+Started game 14 of 120 (A3000 vs A500)
+Finished game 10 (A3000 vs A500): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A3000: 0 - 0 - 2  [0.500] 2
+Started game 15 of 120 (A500 vs A3000)
+Finished game 6 (A3000 vs A500): 0-1 {Black wins by adjudication}
+Score of A500 vs A3000: 1 - 0 - 2  [0.667] 3
+Started game 16 of 120 (A3000 vs A500)
+Finished game 1 (A500 vs A3000): 1/2-1/2 {Draw by insufficient mating material}
+Score of A500 vs A3000: 1 - 0 - 3  [0.625] 4
+Started game 17 of 120 (A500 vs A3000)
+Finished game 13 (A500 vs A3000): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A3000: 1 - 0 - 4  [0.600] 5
+Started game 18 of 120 (A3000 vs A500)
+Finished game 5 (A500 vs A3000): 1-0 {White wins by adjudication}
+Score of A500 vs A3000: 2 - 0 - 4  [0.667] 6
+Started game 19 of 120 (A500 vs A3000)
+Finished game 9 (A500 vs A3000): 1-0 {White wins by adjudication}
+Score of A500 vs A3000: 3 - 0 - 4  [0.714] 7
+Started game 20 of 120 (A3000 vs A500)
+Finished game 12 (A3000 vs A500): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A3000: 3 - 0 - 5  [0.688] 8
+Started game 21 of 120 (A500 vs A3000)
+Finished game 2 (A3000 vs A500): 1-0 {White wins by adjudication}
+Score of A500 vs A3000: 3 - 1 - 5  [0.611] 9
+Started game 22 of 120 (A3000 vs A500)
+Finished game 7 (A500 vs A3000): 1/2-1/2 {Draw by insufficient mating material}
+Score of A500 vs A3000: 3 - 1 - 6  [0.600] 10
+Started game 23 of 120 (A500 vs A3000)
+Finished game 4 (A3000 vs A500): 0-1 {Black wins by adjudication}
+Score of A500 vs A3000: 4 - 1 - 6  [0.636] 11
+Started game 24 of 120 (A3000 vs A500)
+Finished game 11 (A500 vs A3000): 1/2-1/2 {Draw by fifty moves rule}
+Score of A500 vs A3000: 4 - 1 - 7  [0.625] 12
+Started game 25 of 120 (A500 vs A3000)
+Finished game 25 (A500 vs A3000): 1-0 {White mates}
+Score of A500 vs A3000: 5 - 1 - 7  [0.654] 13
+Started game 26 of 120 (A3000 vs A500)
+Finished game 26 (A3000 vs A500): 1-0 {White mates}
+Score of A500 vs A3000: 5 - 2 - 7  [0.607] 14
+Started game 27 of 120 (A500 vs A3000)
+Finished game 3 (A500 vs A3000): 1/2-1/2 {Draw by stalemate}
+Score of A500 vs A3000: 5 - 2 - 8  [0.600] 15
+Started game 28 of 120 (A3000 vs A500)
+Finished game 15 (A500 vs A3000): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A3000: 5 - 2 - 9  [0.594] 16
+Started game 29 of 120 (A500 vs A3000)
+Finished game 20 (A3000 vs A500): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A3000: 5 - 2 - 10  [0.588] 17
+Started game 30 of 120 (A3000 vs A500)
+Finished game 16 (A3000 vs A500): 1-0 {White wins by adjudication}
+Score of A500 vs A3000: 5 - 3 - 10  [0.556] 18
+Started game 31 of 120 (A500 vs A3000)
+Finished game 22 (A3000 vs A500): 0-1 {Black wins by adjudication}
+Score of A500 vs A3000: 6 - 3 - 10  [0.579] 19
+Started game 32 of 120 (A3000 vs A500)
+Finished game 14 (A3000 vs A500): 1-0 {White wins by adjudication}
+Score of A500 vs A3000: 6 - 4 - 10  [0.550] 20
+Started game 33 of 120 (A500 vs A3000)
+Finished game 17 (A500 vs A3000): 1-0 {White wins by adjudication}
+Score of A500 vs A3000: 7 - 4 - 10  [0.571] 21
+Started game 34 of 120 (A3000 vs A500)
+Finished game 18 (A3000 vs A500): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A3000: 7 - 4 - 11  [0.568] 22
+Started game 35 of 120 (A500 vs A3000)
+Finished game 27 (A500 vs A3000): 1/2-1/2 {Draw by stalemate}
+Score of A500 vs A3000: 7 - 4 - 12  [0.565] 23
+Started game 36 of 120 (A3000 vs A500)
+Finished game 21 (A500 vs A3000): 0-1 {Black wins by adjudication}
+Score of A500 vs A3000: 7 - 5 - 12  [0.542] 24
+Started game 37 of 120 (A500 vs A3000)
+Finished game 28 (A3000 vs A500): 0-1 {Black mates}
+Score of A500 vs A3000: 8 - 5 - 12  [0.560] 25
+Started game 38 of 120 (A3000 vs A500)
+Finished game 19 (A500 vs A3000): 1-0 {White wins by adjudication}
+Score of A500 vs A3000: 9 - 5 - 12  [0.577] 26
+Started game 39 of 120 (A500 vs A3000)
+Finished game 29 (A500 vs A3000): 1-0 {White wins by adjudication}
+Score of A500 vs A3000: 10 - 5 - 12  [0.593] 27
+Started game 40 of 120 (A3000 vs A500)
+Finished game 30 (A3000 vs A500): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A3000: 10 - 5 - 13  [0.589] 28
+Started game 41 of 120 (A500 vs A3000)
+Finished game 24 (A3000 vs A500): 1/2-1/2 {Draw by adjudication}
+Score of A500 vs A3000: 10 - 5 - 14  [0.586] 29
+Started game 42 of 120 (A3000 vs A500)
+Finished game 35 (A500 vs A3000): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A3000: 10 - 5 - 15  [0.583] 30
+Started game 43 of 120 (A500 vs A3000)
+Finished game 37 (A500 vs A3000): 1-0 {White wins by adjudication}
+Score of A500 vs A3000: 11 - 5 - 15  [0.597] 31
+Started game 44 of 120 (A3000 vs A500)
+Finished game 34 (A3000 vs A500): 0-1 {Black mates}
+Score of A500 vs A3000: 12 - 5 - 15  [0.609] 32
+Started game 45 of 120 (A500 vs A3000)
+Finished game 32 (A3000 vs A500): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A3000: 12 - 5 - 16  [0.606] 33
+Started game 46 of 120 (A3000 vs A500)
+Finished game 33 (A500 vs A3000): 0-1 {Black wins by adjudication}
+Score of A500 vs A3000: 12 - 6 - 16  [0.588] 34
+Started game 47 of 120 (A500 vs A3000)
+Finished game 23 (A500 vs A3000): 1/2-1/2 {Draw by fifty moves rule}
+Score of A500 vs A3000: 12 - 6 - 17  [0.586] 35
+Started game 48 of 120 (A3000 vs A500)
+Finished game 39 (A500 vs A3000): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A3000: 12 - 6 - 18  [0.583] 36
+Started game 49 of 120 (A500 vs A3000)
+Finished game 36 (A3000 vs A500): 1-0 {White wins by adjudication}
+Score of A500 vs A3000: 12 - 7 - 18  [0.568] 37
+Started game 50 of 120 (A3000 vs A500)
+Finished game 31 (A500 vs A3000): 0-1 {Black wins by adjudication}
+Score of A500 vs A3000: 12 - 8 - 18  [0.553] 38
+Started game 51 of 120 (A500 vs A3000)
+Finished game 38 (A3000 vs A500): 1-0 {White wins by adjudication}
+Score of A500 vs A3000: 12 - 9 - 18  [0.538] 39
+Started game 52 of 120 (A3000 vs A500)
+Finished game 40 (A3000 vs A500): 0-1 {Black wins by adjudication}
+Score of A500 vs A3000: 13 - 9 - 18  [0.550] 40
+Started game 53 of 120 (A500 vs A3000)
+Finished game 46 (A3000 vs A500): 1-0 {White wins by adjudication}
+Score of A500 vs A3000: 13 - 10 - 18  [0.537] 41
+Started game 54 of 120 (A3000 vs A500)
+Finished game 48 (A3000 vs A500): 1-0 {White mates}
+Score of A500 vs A3000: 13 - 11 - 18  [0.524] 42
+Started game 55 of 120 (A500 vs A3000)
+Finished game 43 (A500 vs A3000): 1/2-1/2 {Draw by insufficient mating material}
+Score of A500 vs A3000: 13 - 11 - 19  [0.523] 43
+Started game 56 of 120 (A3000 vs A500)
+Finished game 41 (A500 vs A3000): 0-1 {Black wins by adjudication}
+Score of A500 vs A3000: 13 - 12 - 19  [0.511] 44
+Started game 57 of 120 (A500 vs A3000)
+Finished game 50 (A3000 vs A500): 1-0 {White wins by adjudication}
+Score of A500 vs A3000: 13 - 13 - 19  [0.500] 45
+Started game 58 of 120 (A3000 vs A500)
+Finished game 45 (A500 vs A3000): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A3000: 13 - 13 - 20  [0.500] 46
+Started game 59 of 120 (A500 vs A3000)
+Finished game 44 (A3000 vs A500): 0-1 {Black wins by adjudication}
+Score of A500 vs A3000: 14 - 13 - 20  [0.511] 47
+Started game 60 of 120 (A3000 vs A500)
+Finished game 42 (A3000 vs A500): 1-0 {White wins by adjudication}
+Score of A500 vs A3000: 14 - 14 - 20  [0.500] 48
+Started game 61 of 120 (A500 vs A3000)
+Finished game 47 (A500 vs A3000): 0-1 {Black wins by adjudication}
+Score of A500 vs A3000: 14 - 15 - 20  [0.490] 49
+Started game 62 of 120 (A3000 vs A500)
+Finished game 51 (A500 vs A3000): 1-0 {White wins by adjudication}
+Score of A500 vs A3000: 15 - 15 - 20  [0.500] 50
+Started game 63 of 120 (A500 vs A3000)
+Finished game 52 (A3000 vs A500): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A3000: 15 - 15 - 21  [0.500] 51
+Started game 64 of 120 (A3000 vs A500)
+Finished game 49 (A500 vs A3000): 1/2-1/2 {Draw by adjudication}
+Score of A500 vs A3000: 15 - 15 - 22  [0.500] 52
+Started game 65 of 120 (A500 vs A3000)
+Finished game 57 (A500 vs A3000): 0-1 {Black wins by adjudication}
+Score of A500 vs A3000: 15 - 16 - 22  [0.491] 53
+Started game 66 of 120 (A3000 vs A500)
+Finished game 54 (A3000 vs A500): 1/2-1/2 {Draw by insufficient mating material}
+Score of A500 vs A3000: 15 - 16 - 23  [0.491] 54
+Started game 67 of 120 (A500 vs A3000)
+Finished game 58 (A3000 vs A500): 0-1 {Black wins by adjudication}
+Score of A500 vs A3000: 16 - 16 - 23  [0.500] 55
+Started game 68 of 120 (A3000 vs A500)
+Finished game 53 (A500 vs A3000): 1/2-1/2 {Draw by adjudication}
+Score of A500 vs A3000: 16 - 16 - 24  [0.500] 56
+Started game 69 of 120 (A500 vs A3000)
+Finished game 59 (A500 vs A3000): 1-0 {White wins by adjudication}
+Score of A500 vs A3000: 17 - 16 - 24  [0.509] 57
+Started game 70 of 120 (A3000 vs A500)
+Finished game 60 (A3000 vs A500): 1-0 {White wins by adjudication}
+Score of A500 vs A3000: 17 - 17 - 24  [0.500] 58
+Started game 71 of 120 (A500 vs A3000)
+Finished game 56 (A3000 vs A500): 1-0 {White wins by adjudication}
+Score of A500 vs A3000: 17 - 18 - 24  [0.492] 59
+Started game 72 of 120 (A3000 vs A500)
+Finished game 55 (A500 vs A3000): 1-0 {White wins by adjudication}
+Score of A500 vs A3000: 18 - 18 - 24  [0.500] 60
+Started game 73 of 120 (A500 vs A3000)
+Finished game 61 (A500 vs A3000): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A3000: 18 - 18 - 25  [0.500] 61
+Started game 74 of 120 (A3000 vs A500)
+Finished game 65 (A500 vs A3000): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A3000: 18 - 18 - 26  [0.500] 62
+Started game 75 of 120 (A500 vs A3000)
+Finished game 63 (A500 vs A3000): 1-0 {White wins by adjudication}
+Score of A500 vs A3000: 19 - 18 - 26  [0.508] 63
+Started game 76 of 120 (A3000 vs A500)
+Finished game 64 (A3000 vs A500): 1-0 {White wins by adjudication}
+Score of A500 vs A3000: 19 - 19 - 26  [0.500] 64
+Started game 77 of 120 (A500 vs A3000)
+Finished game 69 (A500 vs A3000): 1-0 {White mates}
+Score of A500 vs A3000: 20 - 19 - 26  [0.508] 65
+Started game 78 of 120 (A3000 vs A500)
+Finished game 70 (A3000 vs A500): 1-0 {White mates}
+Score of A500 vs A3000: 20 - 20 - 26  [0.500] 66
+Started game 79 of 120 (A500 vs A3000)
+Finished game 71 (A500 vs A3000): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A3000: 20 - 20 - 27  [0.500] 67
+Started game 80 of 120 (A3000 vs A500)
+Finished game 62 (A3000 vs A500): 0-1 {Black mates}
+Score of A500 vs A3000: 21 - 20 - 27  [0.507] 68
+Started game 81 of 120 (A500 vs A3000)
+Finished game 77 (A500 vs A3000): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A3000: 21 - 20 - 28  [0.507] 69
+Started game 82 of 120 (A3000 vs A500)
+Finished game 66 (A3000 vs A500): 1/2-1/2 {Draw by adjudication}
+Score of A500 vs A3000: 21 - 20 - 29  [0.507] 70
+Started game 83 of 120 (A500 vs A3000)
+Finished game 67 (A500 vs A3000): 1-0 {White wins by adjudication}
+Score of A500 vs A3000: 22 - 20 - 29  [0.514] 71
+Started game 84 of 120 (A3000 vs A500)
+Finished game 72 (A3000 vs A500): 0-1 {Black wins by adjudication}
+Score of A500 vs A3000: 23 - 20 - 29  [0.521] 72
+Started game 85 of 120 (A500 vs A3000)
+Finished game 76 (A3000 vs A500): 0-1 {Black mates}
+Score of A500 vs A3000: 24 - 20 - 29  [0.527] 73
+Started game 86 of 120 (A3000 vs A500)
+Finished game 73 (A500 vs A3000): 1-0 {White mates}
+Score of A500 vs A3000: 25 - 20 - 29  [0.534] 74
+Started game 87 of 120 (A500 vs A3000)
+Finished game 68 (A3000 vs A500): 0-1 {Black mates}
+Score of A500 vs A3000: 26 - 20 - 29  [0.540] 75
+Started game 88 of 120 (A3000 vs A500)
+Finished game 78 (A3000 vs A500): 1-0 {White wins by adjudication}
+Score of A500 vs A3000: 26 - 21 - 29  [0.533] 76
+Started game 89 of 120 (A500 vs A3000)
+Finished game 75 (A500 vs A3000): 1-0 {White wins by adjudication}
+Score of A500 vs A3000: 27 - 21 - 29  [0.539] 77
+Started game 90 of 120 (A3000 vs A500)
+Finished game 74 (A3000 vs A500): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A3000: 27 - 21 - 30  [0.538] 78
+Started game 91 of 120 (A500 vs A3000)
+Finished game 80 (A3000 vs A500): 0-1 {Black wins by adjudication}
+Score of A500 vs A3000: 28 - 21 - 30  [0.544] 79
+Started game 92 of 120 (A3000 vs A500)
+Finished game 81 (A500 vs A3000): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A3000: 28 - 21 - 31  [0.544] 80
+Started game 93 of 120 (A500 vs A3000)
+Finished game 82 (A3000 vs A500): 1-0 {White wins by adjudication}
+Score of A500 vs A3000: 28 - 22 - 31  [0.537] 81
+Started game 94 of 120 (A3000 vs A500)
+Finished game 79 (A500 vs A3000): 0-1 {Black wins by adjudication}
+Score of A500 vs A3000: 28 - 23 - 31  [0.530] 82
+Started game 95 of 120 (A500 vs A3000)
+Finished game 86 (A3000 vs A500): 1-0 {White wins by adjudication}
+Score of A500 vs A3000: 28 - 24 - 31  [0.524] 83
+Started game 96 of 120 (A3000 vs A500)
+Finished game 84 (A3000 vs A500): 1-0 {White wins by adjudication}
+Score of A500 vs A3000: 28 - 25 - 31  [0.518] 84
+Started game 97 of 120 (A500 vs A3000)
+Finished game 89 (A500 vs A3000): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A3000: 28 - 25 - 32  [0.518] 85
+Started game 98 of 120 (A3000 vs A500)
+Finished game 90 (A3000 vs A500): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A3000: 28 - 25 - 33  [0.517] 86
+Started game 99 of 120 (A500 vs A3000)
+Finished game 88 (A3000 vs A500): 1/2-1/2 {Draw by insufficient mating material}
+Score of A500 vs A3000: 28 - 25 - 34  [0.517] 87
+Started game 100 of 120 (A3000 vs A500)
+Finished game 83 (A500 vs A3000): 1-0 {White wins by adjudication}
+Score of A500 vs A3000: 29 - 25 - 34  [0.523] 88
+Started game 101 of 120 (A500 vs A3000)
+Finished game 91 (A500 vs A3000): 1-0 {White wins by adjudication}
+Score of A500 vs A3000: 30 - 25 - 34  [0.528] 89
+Started game 102 of 120 (A3000 vs A500)
+Finished game 85 (A500 vs A3000): 1/2-1/2 {Draw by fifty moves rule}
+Score of A500 vs A3000: 30 - 25 - 35  [0.528] 90
+Started game 103 of 120 (A500 vs A3000)
+Finished game 87 (A500 vs A3000): 1/2-1/2 {Draw by fifty moves rule}
+Score of A500 vs A3000: 30 - 25 - 36  [0.527] 91
+Started game 104 of 120 (A3000 vs A500)
+Finished game 96 (A3000 vs A500): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A3000: 30 - 25 - 37  [0.527] 92
+Started game 105 of 120 (A500 vs A3000)
+Finished game 95 (A500 vs A3000): 1-0 {White mates}
+Score of A500 vs A3000: 31 - 25 - 37  [0.532] 93
+Started game 106 of 120 (A3000 vs A500)
+Finished game 97 (A500 vs A3000): 0-1 {Black wins by adjudication}
+Score of A500 vs A3000: 31 - 26 - 37  [0.527] 94
+Started game 107 of 120 (A500 vs A3000)
+Finished game 93 (A500 vs A3000): 1/2-1/2 {Draw by adjudication}
+Score of A500 vs A3000: 31 - 26 - 38  [0.526] 95
+Started game 108 of 120 (A3000 vs A500)
+Finished game 98 (A3000 vs A500): 1/2-1/2 {Draw by adjudication}
+Score of A500 vs A3000: 31 - 26 - 39  [0.526] 96
+Started game 109 of 120 (A500 vs A3000)
+Finished game 92 (A3000 vs A500): 0-1 {Black wins by adjudication}
+Score of A500 vs A3000: 32 - 26 - 39  [0.531] 97
+Started game 110 of 120 (A3000 vs A500)
+Finished game 99 (A500 vs A3000): 0-1 {Black wins by adjudication}
+Score of A500 vs A3000: 32 - 27 - 39  [0.526] 98
+Started game 111 of 120 (A500 vs A3000)
+Finished game 94 (A3000 vs A500): 1/2-1/2 {Draw by insufficient mating material}
+Score of A500 vs A3000: 32 - 27 - 40  [0.525] 99
+Started game 112 of 120 (A3000 vs A500)
+Finished game 101 (A500 vs A3000): 0-1 {Black wins by adjudication}
+Score of A500 vs A3000: 32 - 28 - 40  [0.520] 100
+Started game 113 of 120 (A500 vs A3000)
+Finished game 100 (A3000 vs A500): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A3000: 32 - 28 - 41  [0.520] 101
+Started game 114 of 120 (A3000 vs A500)
+Finished game 104 (A3000 vs A500): 1-0 {White wins by adjudication}
+Score of A500 vs A3000: 32 - 29 - 41  [0.515] 102
+Started game 115 of 120 (A500 vs A3000)
+Finished game 103 (A500 vs A3000): 1-0 {White wins by adjudication}
+Score of A500 vs A3000: 33 - 29 - 41  [0.519] 103
+Started game 116 of 120 (A3000 vs A500)
+Finished game 105 (A500 vs A3000): 0-1 {Black wins by adjudication}
+Score of A500 vs A3000: 33 - 30 - 41  [0.514] 104
+Started game 117 of 120 (A500 vs A3000)
+Finished game 102 (A3000 vs A500): 1-0 {White mates}
+Score of A500 vs A3000: 33 - 31 - 41  [0.510] 105
+Started game 118 of 120 (A3000 vs A500)
+Finished game 109 (A500 vs A3000): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A3000: 33 - 31 - 42  [0.509] 106
+Started game 119 of 120 (A500 vs A3000)
+Finished game 107 (A500 vs A3000): 0-1 {Black wins by adjudication}
+Score of A500 vs A3000: 33 - 32 - 42  [0.505] 107
+Started game 120 of 120 (A3000 vs A500)
+Finished game 106 (A3000 vs A500): 1/2-1/2 {Draw by adjudication}
+Score of A500 vs A3000: 33 - 32 - 43  [0.505] 108
+Finished game 110 (A3000 vs A500): 1-0 {White wins by adjudication}
+Score of A500 vs A3000: 33 - 33 - 43  [0.500] 109
+Finished game 108 (A3000 vs A500): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A3000: 33 - 33 - 44  [0.500] 110
+Finished game 113 (A500 vs A3000): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A3000: 33 - 33 - 45  [0.500] 111
+Finished game 114 (A3000 vs A500): 1/2-1/2 {Draw by insufficient mating material}
+Score of A500 vs A3000: 33 - 33 - 46  [0.500] 112
+Finished game 111 (A500 vs A3000): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A3000: 33 - 33 - 47  [0.500] 113
+Finished game 112 (A3000 vs A500): 1-0 {White wins by adjudication}
+Score of A500 vs A3000: 33 - 34 - 47  [0.496] 114
+Finished game 116 (A3000 vs A500): 0-1 {Black wins by adjudication}
+Score of A500 vs A3000: 34 - 34 - 47  [0.500] 115
+Finished game 117 (A500 vs A3000): 0-1 {Black wins by adjudication}
+Score of A500 vs A3000: 34 - 35 - 47  [0.496] 116
+Finished game 115 (A500 vs A3000): 0-1 {Black wins by adjudication}
+Score of A500 vs A3000: 34 - 36 - 47  [0.491] 117
+Finished game 119 (A500 vs A3000): 1/2-1/2 {Draw by adjudication}
+Score of A500 vs A3000: 34 - 36 - 48  [0.492] 118
+Finished game 118 (A3000 vs A500): 1/2-1/2 {Draw by 3-fold repetition}
+Score of A500 vs A3000: 34 - 36 - 49  [0.492] 119
+Finished game 120 (A3000 vs A500): 1-0 {White wins by adjudication}
+Score of A500 vs A3000: 34 - 37 - 49  [0.487] 120
+...      A500 playing White: 19 - 14 - 27  [0.542] 60
+...      A500 playing Black: 15 - 23 - 22  [0.433] 60
+...      White vs Black: 42 - 29 - 49  [0.554] 120
+Elo difference: -8.7 +/- 48.1, LOS: 36.1 %, DrawRatio: 40.8 %
+SPRT: llr 0 (0.0%), lbound -inf, ubound inf
+
+Player: A500
+   "Draw by 3-fold repetition": 28
+   "Draw by adjudication": 8
+   "Draw by fifty moves rule": 4
+   "Draw by insufficient mating material": 7
+   "Draw by stalemate": 2
+   "Loss: Black wins by adjudication": 14
+   "Loss: White mates": 4
+   "Loss: White wins by adjudication": 19
+   "Win: Black mates": 5
+   "Win: Black wins by adjudication": 10
+   "Win: White mates": 4
+   "Win: White wins by adjudication": 15
+Player: A3000
+   "Draw by 3-fold repetition": 28
+   "Draw by adjudication": 8
+   "Draw by fifty moves rule": 4
+   "Draw by insufficient mating material": 7
+   "Draw by stalemate": 2
+   "Loss: Black mates": 5
+   "Loss: Black wins by adjudication": 10
+   "Loss: White mates": 4
+   "Loss: White wins by adjudication": 15
+   "Win: Black wins by adjudication": 14
+   "Win: White mates": 4
+   "Win: White wins by adjudication": 19
+Finished match

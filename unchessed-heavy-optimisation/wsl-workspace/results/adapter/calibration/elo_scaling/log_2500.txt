@@ -1,0 +1,112 @@
+Indexing opening suite...
+Started game 2 of 30 (SF1800 vs Adapter2500)
+Started game 1 of 30 (Adapter2500 vs SF1800)
+Started game 3 of 30 (Adapter2500 vs SF1800)
+Started game 4 of 30 (SF1800 vs Adapter2500)
+Finished game 3 (Adapter2500 vs SF1800): 1-0 {White wins by adjudication}
+Score of Adapter2500 vs SF1800: 1 - 0 - 0  [1.000] 1
+Started game 5 of 30 (Adapter2500 vs SF1800)
+Finished game 1 (Adapter2500 vs SF1800): 1-0 {White mates}
+Score of Adapter2500 vs SF1800: 2 - 0 - 0  [1.000] 2
+Started game 6 of 30 (SF1800 vs Adapter2500)
+Finished game 4 (SF1800 vs Adapter2500): 0-1 {Black mates}
+Score of Adapter2500 vs SF1800: 3 - 0 - 0  [1.000] 3
+Started game 7 of 30 (Adapter2500 vs SF1800)
+Finished game 2 (SF1800 vs Adapter2500): 0-1 {Black wins by adjudication}
+Score of Adapter2500 vs SF1800: 4 - 0 - 0  [1.000] 4
+Started game 8 of 30 (SF1800 vs Adapter2500)
+Finished game 6 (SF1800 vs Adapter2500): 0-1 {Black wins by adjudication}
+Score of Adapter2500 vs SF1800: 5 - 0 - 0  [1.000] 5
+Started game 9 of 30 (Adapter2500 vs SF1800)
+Finished game 5 (Adapter2500 vs SF1800): 0-1 {Black wins by adjudication}
+Score of Adapter2500 vs SF1800: 5 - 1 - 0  [0.833] 6
+Started game 10 of 30 (SF1800 vs Adapter2500)
+Finished game 7 (Adapter2500 vs SF1800): 1-0 {White mates}
+Score of Adapter2500 vs SF1800: 6 - 1 - 0  [0.857] 7
+Started game 11 of 30 (Adapter2500 vs SF1800)
+Finished game 8 (SF1800 vs Adapter2500): 0-1 {Black mates}
+Score of Adapter2500 vs SF1800: 7 - 1 - 0  [0.875] 8
+Started game 12 of 30 (SF1800 vs Adapter2500)
+Finished game 10 (SF1800 vs Adapter2500): 0-1 {Black mates}
+Score of Adapter2500 vs SF1800: 8 - 1 - 0  [0.889] 9
+Started game 13 of 30 (Adapter2500 vs SF1800)
+Finished game 9 (Adapter2500 vs SF1800): 1-0 {White mates}
+Score of Adapter2500 vs SF1800: 9 - 1 - 0  [0.900] 10
+Started game 14 of 30 (SF1800 vs Adapter2500)
+Finished game 12 (SF1800 vs Adapter2500): 0-1 {Black mates}
+Score of Adapter2500 vs SF1800: 10 - 1 - 0  [0.909] 11
+Started game 15 of 30 (Adapter2500 vs SF1800)
+Finished game 11 (Adapter2500 vs SF1800): 1-0 {White wins by adjudication}
+Score of Adapter2500 vs SF1800: 11 - 1 - 0  [0.917] 12
+Started game 16 of 30 (SF1800 vs Adapter2500)
+Finished game 13 (Adapter2500 vs SF1800): 1-0 {White mates}
+Score of Adapter2500 vs SF1800: 12 - 1 - 0  [0.923] 13
+Started game 17 of 30 (Adapter2500 vs SF1800)
+Finished game 14 (SF1800 vs Adapter2500): 0-1 {Black wins by adjudication}
+Score of Adapter2500 vs SF1800: 13 - 1 - 0  [0.929] 14
+Started game 18 of 30 (SF1800 vs Adapter2500)
+Finished game 15 (Adapter2500 vs SF1800): 1-0 {White wins by adjudication}
+Score of Adapter2500 vs SF1800: 14 - 1 - 0  [0.933] 15
+Started game 19 of 30 (Adapter2500 vs SF1800)
+Finished game 17 (Adapter2500 vs SF1800): 1-0 {White mates}
+Score of Adapter2500 vs SF1800: 15 - 1 - 0  [0.938] 16
+Started game 20 of 30 (SF1800 vs Adapter2500)
+Finished game 16 (SF1800 vs Adapter2500): 1-0 {White wins by adjudication}
+Score of Adapter2500 vs SF1800: 15 - 2 - 0  [0.882] 17
+Started game 21 of 30 (Adapter2500 vs SF1800)
+Finished game 20 (SF1800 vs Adapter2500): 0-1 {Black mates}
+Score of Adapter2500 vs SF1800: 16 - 2 - 0  [0.889] 18
+Started game 22 of 30 (SF1800 vs Adapter2500)
+Finished game 18 (SF1800 vs Adapter2500): 1-0 {White wins by adjudication}
+Score of Adapter2500 vs SF1800: 16 - 3 - 0  [0.842] 19
+Started game 23 of 30 (Adapter2500 vs SF1800)
+Finished game 19 (Adapter2500 vs SF1800): 0-1 {Black wins by adjudication}
+Score of Adapter2500 vs SF1800: 16 - 4 - 0  [0.800] 20
+Started game 24 of 30 (SF1800 vs Adapter2500)
+Finished game 21 (Adapter2500 vs SF1800): 1-0 {White wins by adjudication}
+Score of Adapter2500 vs SF1800: 17 - 4 - 0  [0.810] 21
+Started game 25 of 30 (Adapter2500 vs SF1800)
+Finished game 22 (SF1800 vs Adapter2500): 0-1 {Black mates}
+Score of Adapter2500 vs SF1800: 18 - 4 - 0  [0.818] 22
+Started game 26 of 30 (SF1800 vs Adapter2500)
+Finished game 23 (Adapter2500 vs SF1800): 1-0 {White wins by adjudication}
+Score of Adapter2500 vs SF1800: 19 - 4 - 0  [0.826] 23
+Started game 27 of 30 (Adapter2500 vs SF1800)
+Finished game 25 (Adapter2500 vs SF1800): 1-0 {White mates}
+Score of Adapter2500 vs SF1800: 20 - 4 - 0  [0.833] 24
+Started game 28 of 30 (SF1800 vs Adapter2500)
+Finished game 24 (SF1800 vs Adapter2500): 1-0 {White wins by adjudication}
+Score of Adapter2500 vs SF1800: 20 - 5 - 0  [0.800] 25
+Started game 29 of 30 (Adapter2500 vs SF1800)
+Finished game 26 (SF1800 vs Adapter2500): 0-1 {Black wins by adjudication}
+Score of Adapter2500 vs SF1800: 21 - 5 - 0  [0.808] 26
+Started game 30 of 30 (SF1800 vs Adapter2500)
+Finished game 27 (Adapter2500 vs SF1800): 1-0 {White wins by adjudication}
+Score of Adapter2500 vs SF1800: 22 - 5 - 0  [0.815] 27
+Finished game 28 (SF1800 vs Adapter2500): 0-1 {Black mates}
+Score of Adapter2500 vs SF1800: 23 - 5 - 0  [0.821] 28
+Finished game 29 (Adapter2500 vs SF1800): 1-0 {White wins by adjudication}
+Score of Adapter2500 vs SF1800: 24 - 5 - 0  [0.828] 29
+Finished game 30 (SF1800 vs Adapter2500): 0-1 {Black wins by adjudication}
+Score of Adapter2500 vs SF1800: 25 - 5 - 0  [0.833] 30
+...      Adapter2500 playing White: 13 - 2 - 0  [0.867] 15
+...      Adapter2500 playing Black: 12 - 3 - 0  [0.800] 15
+...      White vs Black: 16 - 14 - 0  [0.533] 30
+Elo difference: 279.6 +/- 218.4, LOS: 100.0 %, DrawRatio: 0.0 %
+SPRT: llr 0 (0.0%), lbound -inf, ubound inf
+
+Player: Adapter2500
+   "Loss: Black wins by adjudication": 2
+   "Loss: White wins by adjudication": 3
+   "Win: Black mates": 7
+   "Win: Black wins by adjudication": 5
+   "Win: White mates": 6
+   "Win: White wins by adjudication": 7
+Player: SF1800
+   "Loss: Black mates": 7
+   "Loss: Black wins by adjudication": 5
+   "Loss: White mates": 6
+   "Loss: White wins by adjudication": 7
+   "Win: Black wins by adjudication": 2
+   "Win: White wins by adjudication": 3
+Finished match

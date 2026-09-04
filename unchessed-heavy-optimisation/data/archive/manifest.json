@@ -1,0 +1,6204 @@
+{
+  "generated": "2026-08-26",
+  "purpose": "Finest breadth of human chess from 1834 to 2022 across world championships, candidates, national events, women's chess, correspondence and annotated classics. Complements the rating-banded data/training/ set.",
+  "source_repos": {
+    "chessdata": {
+      "repo": "rozim/ChessData",
+      "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776"
+    },
+    "scoutfish": {
+      "repo": "mcostalba/scoutfish",
+      "commit": "00cec1339f97114a32c30080dbad5e3a500634f2"
+    },
+    "annotated": {
+      "repo": "hegde10122/CHESS_ANNOTATED_GAMES",
+      "commit": "550bdd161514b48abd5008ee4a7daa0db7718f66"
+    },
+    "pepper": {
+      "repo": "saikrishna-1996/deep_pepper_chess",
+      "commit": "b05bfe2e6defad7a85d6099ad5d69e1b46888eb5"
+    }
+  },
+  "method": "Games copied verbatim from the pinned sources; split_by_era files partitioned by per-game Date year; every file then move-legality-cleaned (per-game parse, games with dropped SAN tokens dropped and counted). No dedup \u2014 cross-file duplicates are counted and documented.",
+  "blocks": [
+    {
+      "path": "data/archive/1900-1945/world-championship-matches-1900-1945.pgn",
+      "theme": "1900-1945",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Chessopolis.com/WCHAMP.pgn"
+      },
+      "bytes": 151137,
+      "sha256": "9064718e67c2c9e0ebba09f07a3bc345f54698e29585e5d9481bad927b051345",
+      "games": 216,
+      "games_total_before_clean": 216,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1907,
+        1937
+      ],
+      "note": "split_by_era: World Championship matches 1886-1927"
+    },
+    {
+      "path": "data/archive/1946-1970/world-championship-matches-1946-1970.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Chessopolis.com/WCHAMP.pgn"
+      },
+      "bytes": 790088,
+      "sha256": "f90b55ef09cdc559d287f40ab58337ae68f25cec58165c1e153331dd4edfa324",
+      "games": 1206,
+      "games_total_before_clean": 1206,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1948,
+        1969
+      ],
+      "note": "split_by_era: World Championship matches 1886-1927"
+    },
+    {
+      "path": "data/archive/1971-1999/world-championship-matches-1971-1999.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Chessopolis.com/WCHAMP.pgn"
+      },
+      "bytes": 1325312,
+      "sha256": "ae64a6c99c71d406c7105acb95878200e271295566e0a66088bfc95dd60ddaad",
+      "games": 1993,
+      "games_total_before_clean": 1993,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1971,
+        1998
+      ],
+      "note": "split_by_era: World Championship matches 1886-1927"
+    },
+    {
+      "path": "data/archive/classics-1834-1899/world-championship-matches-classics-1834-1899.pgn",
+      "theme": "classics-1834-1899",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Chessopolis.com/WCHAMP.pgn"
+      },
+      "bytes": 75441,
+      "sha256": "83ee23b08349e0371bed4097f3f7b1be3f0d3733136473770d002ad66078ecfe",
+      "games": 113,
+      "games_total_before_clean": 113,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1886,
+        1896
+      ],
+      "note": "split_by_era: World Championship matches 1886-1927"
+    },
+    {
+      "path": "data/archive/world-championships/london-1851-first-world-championship.pgn",
+      "theme": "world-championships",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/V1LONDON.pgn"
+      },
+      "bytes": 54954,
+      "sha256": "ecee37a47d051d9a152acef27adf8b86d75d25a47759502ab567cc040d9d1ead",
+      "games": 85,
+      "games_total_before_clean": 85,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1851,
+        1851
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/world-championships/london-1851-tournament-full.pgn",
+      "theme": "world-championships",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnMentor/London1851.pgn"
+      },
+      "bytes": 165555,
+      "sha256": "8f2bd4568a879ed57cbbc75e79cca0c9b86a2f75de5dcefb8fa6632286a8f6ed",
+      "games": 250,
+      "games_total_before_clean": 250,
+      "illegal_games_dropped": 0,
+      "rated_games": 250,
+      "years": [
+        1851,
+        1851
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/classics-1834-1899/de-la-bourdonnais-mcdonnell-paris-1834.pgn",
+      "theme": "classics-1834-1899",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Old/bourdonnais-mcdonnell.pgn"
+      },
+      "bytes": 51744,
+      "sha256": "4ac17a7927333d68254c226c06e013e50eea4eb3dd03d4ece699f60749157460",
+      "games": 85,
+      "games_total_before_clean": 85,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1834,
+        1834
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/classics-1834-1899/saint-amant-staunton-1843.pgn",
+      "theme": "classics-1834-1899",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Old/saint_amant_staunton_1843.pgn"
+      },
+      "bytes": 881,
+      "sha256": "73de20b473b12fce81034b9b4dfda955ba6418fb8c1bedccbc2b366501e71fdf",
+      "games": 1,
+      "games_total_before_clean": 1,
+      "illegal_games_dropped": 0,
+      "rated_games": 1,
+      "years": [
+        1843,
+        1843
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/classics-1834-1899/misc-19th-century.pgn",
+      "theme": "classics-1834-1899",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Old/old.pgn"
+      },
+      "bytes": 9953,
+      "sha256": "da15a76764950c33d0df16eaa6b7b75e38ff43184cc924c716148673735b2da8",
+      "games": 10,
+      "games_total_before_clean": 14,
+      "illegal_games_dropped": 4,
+      "rated_games": 2,
+      "years": [
+        1475,
+        1956
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/classics-1834-1899/nostalgia-1800-1900.pgn",
+      "theme": "classics-1834-1899",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "ChessNostalgia.com/1800-1900.pgn"
+      },
+      "bytes": 214025,
+      "sha256": "518df26272283b193a3b23ff53f0a73e16e95768b47af1482b71b088ec75eba6",
+      "games": 319,
+      "games_total_before_clean": 319,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1834,
+        1900
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/classics-1834-1899/anderssen.pgn",
+      "theme": "classics-1834-1899",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnMentor/Anderssen.pgn"
+      },
+      "bytes": 423664,
+      "sha256": "ab396436e715633c4a67d9be226a1dc0846e7cbf98100111d4f8618a38302c5b",
+      "games": 681,
+      "games_total_before_clean": 681,
+      "illegal_games_dropped": 0,
+      "rated_games": 681,
+      "years": [
+        1844,
+        1878
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/classics-1834-1899/bird-classics-1834-1899.pgn",
+      "theme": "classics-1834-1899",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnMentor/Bird.pgn"
+      },
+      "bytes": 251955,
+      "sha256": "bcec03ea82584e222f0dc2159dfc3aa7218c8841b2b63976bd41fe46fb0713f6",
+      "games": 353,
+      "games_total_before_clean": 353,
+      "illegal_games_dropped": 0,
+      "rated_games": 353,
+      "years": [
+        1849,
+        1899
+      ],
+      "note": "split_by_era"
+    },
+    {
+      "path": "data/archive/1900-1945/blackburne-1900-1945.pgn",
+      "theme": "1900-1945",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnMentor/Blackburne.pgn"
+      },
+      "bytes": 78974,
+      "sha256": "0598a596b027a200f919427162e767837662527651f17f28d1245a3c595dd800",
+      "games": 111,
+      "games_total_before_clean": 111,
+      "illegal_games_dropped": 0,
+      "rated_games": 111,
+      "years": [
+        1900,
+        1914
+      ],
+      "note": "split_by_era"
+    },
+    {
+      "path": "data/archive/classics-1834-1899/blackburne-classics-1834-1899.pgn",
+      "theme": "classics-1834-1899",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnMentor/Blackburne.pgn"
+      },
+      "bytes": 438265,
+      "sha256": "143af63ce3fffb165b64a488ae803a8c2790093696f99dc794e49682942b0c8f",
+      "games": 627,
+      "games_total_before_clean": 627,
+      "illegal_games_dropped": 0,
+      "rated_games": 627,
+      "years": [
+        1850,
+        1899
+      ],
+      "note": "split_by_era"
+    },
+    {
+      "path": "data/archive/classics-1834-1899/horwitz.pgn",
+      "theme": "classics-1834-1899",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnMentor/Horwitz.pgn"
+      },
+      "bytes": 77151,
+      "sha256": "baf67af7f29a1e5cf2ab9fdc0907a0ecafa25c5bfec4ef051e2e5130db29919b",
+      "games": 113,
+      "games_total_before_clean": 113,
+      "illegal_games_dropped": 0,
+      "rated_games": 113,
+      "years": [
+        1846,
+        1861
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/classics-1834-1899/staunton.pgn",
+      "theme": "classics-1834-1899",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnMentor/Staunton.pgn"
+      },
+      "bytes": 185520,
+      "sha256": "a26420ea5003227bcbbbc5210d30f32d49a50b37c0f2735b21e376878fafc2da",
+      "games": 284,
+      "games_total_before_clean": 284,
+      "illegal_games_dropped": 0,
+      "rated_games": 284,
+      "years": [
+        1840,
+        1858
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/classics-1834-1899/morphy.pgn",
+      "theme": "classics-1834-1899",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnMentor/Morphy.pgn"
+      },
+      "bytes": 122052,
+      "sha256": "78509cff0dc745c2144c8c631e956112722a4d0527a2b0dee149b8bfc5654ab8",
+      "games": 211,
+      "games_total_before_clean": 211,
+      "illegal_games_dropped": 0,
+      "rated_games": 211,
+      "years": [
+        1848,
+        1866
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/classics-1834-1899/zukertort.pgn",
+      "theme": "classics-1834-1899",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnMentor/Zukertort.pgn"
+      },
+      "bytes": 181008,
+      "sha256": "6796f0e31a682a04c7b7bada3a972f0e00db330e2f20f57b3ac43e0128d3459d",
+      "games": 265,
+      "games_total_before_clean": 265,
+      "illegal_games_dropped": 0,
+      "rated_games": 265,
+      "years": [
+        1851,
+        1887
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/classics-1834-1899/immortal-games.pgn",
+      "theme": "classics-1834-1899",
+      "source": {
+        "key": "scoutfish",
+        "repo": "mcostalba/scoutfish",
+        "commit": "00cec1339f97114a32c30080dbad5e3a500634f2",
+        "path": "pgn/immortal_games.pgn"
+      },
+      "bytes": 104458,
+      "sha256": "aa2c7686544fcc434fee0df0ccd02851db42963e8711be2eb62e35bf270edbbb",
+      "games": 32,
+      "games_total_before_clean": 36,
+      "illegal_games_dropped": 4,
+      "rated_games": 0,
+      "years": [
+        1820,
+        1993
+      ],
+      "note": "annotated classics 1820-1993"
+    },
+    {
+      "path": "data/archive/classics-1834-1899/great-masters.pgn",
+      "theme": "classics-1834-1899",
+      "source": {
+        "key": "scoutfish",
+        "repo": "mcostalba/scoutfish",
+        "commit": "00cec1339f97114a32c30080dbad5e3a500634f2",
+        "path": "pgn/great_masters.pgn"
+      },
+      "bytes": 36056,
+      "sha256": "e86fbd8bb40d31be0ff0852ffba36aff82959598673b2e9d4493af9a030b30bb",
+      "games": 13,
+      "games_total_before_clean": 13,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1885,
+        1958
+      ],
+      "note": "annotated"
+    },
+    {
+      "path": "data/archive/classics-1834-1899/hayes-annotated-classics.pgn",
+      "theme": "classics-1834-1899",
+      "source": {
+        "key": "scoutfish",
+        "repo": "mcostalba/scoutfish",
+        "commit": "00cec1339f97114a32c30080dbad5e3a500634f2",
+        "path": "pgn/hayes.pgn"
+      },
+      "bytes": 18536,
+      "sha256": "67bdba35703938130d23b5363cc51fd2a0b8aa9dc42296978e6dcdc5047b361c",
+      "games": 8,
+      "games_total_before_clean": 9,
+      "illegal_games_dropped": 1,
+      "rated_games": 8,
+      "years": [
+        1912,
+        1998
+      ],
+      "note": "Paul Hayes annotations"
+    },
+    {
+      "path": "data/archive/classics-1834-1899/schiller-annotated-classics.pgn",
+      "theme": "classics-1834-1899",
+      "source": {
+        "key": "scoutfish",
+        "repo": "mcostalba/scoutfish",
+        "commit": "00cec1339f97114a32c30080dbad5e3a500634f2",
+        "path": "pgn/schiller.pgn"
+      },
+      "bytes": 33525,
+      "sha256": "96a82c722cae3347e63544df0d836ef2e608a8b84552d6b5268b08a6da8911d3",
+      "games": 8,
+      "games_total_before_clean": 8,
+      "illegal_games_dropped": 0,
+      "rated_games": 8,
+      "years": [
+        1972,
+        1998
+      ],
+      "note": "Schiller annotations"
+    },
+    {
+      "path": "data/archive/1900-1945/nostalgia-1901-1920.pgn",
+      "theme": "1900-1945",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "ChessNostalgia.com/1901-1920.pgn"
+      },
+      "bytes": 3077102,
+      "sha256": "26e1c89c6935668d89f2f9fc9dd4d6ca59daba31a3ee32c43b55a542f377dfa7",
+      "games": 4606,
+      "games_total_before_clean": 4606,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1901,
+        1920
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1900-1945/nostalgia-1921-1940.pgn",
+      "theme": "1900-1945",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "ChessNostalgia.com/1921-1940.pgn"
+      },
+      "bytes": 6275526,
+      "sha256": "3fa2024efd5fe6a63606f47f97c166a879e2bf16cc85fcabb1fb95556ce67454",
+      "games": 9541,
+      "games_total_before_clean": 9541,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1921,
+        1940
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1900-1945/lasker-1900-1945.pgn",
+      "theme": "1900-1945",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnMentor/Lasker.pgn"
+      },
+      "bytes": 367947,
+      "sha256": "6800cd162ccc7cb5458864959ec02a552cf1732d5ee7915b5ccb63f070391aa1",
+      "games": 564,
+      "games_total_before_clean": 564,
+      "illegal_games_dropped": 0,
+      "rated_games": 564,
+      "years": [
+        1900,
+        1936
+      ],
+      "note": "split_by_era"
+    },
+    {
+      "path": "data/archive/classics-1834-1899/lasker-classics-1834-1899.pgn",
+      "theme": "classics-1834-1899",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnMentor/Lasker.pgn"
+      },
+      "bytes": 227937,
+      "sha256": "26bb85afe9eb7890d24f3f801ba52bfca594a0ecf28a280c167c675b3aa4ea77",
+      "games": 328,
+      "games_total_before_clean": 336,
+      "illegal_games_dropped": 8,
+      "rated_games": 328,
+      "years": [
+        1889,
+        1899
+      ],
+      "note": "split_by_era"
+    },
+    {
+      "path": "data/archive/1900-1945/capablanca.pgn",
+      "theme": "1900-1945",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnMentor/Capablanca.pgn"
+      },
+      "bytes": 397480,
+      "sha256": "a7c987df80d2ce6aa9cfc70c3bd47e8cf1b21bf5fe07de6d87fe7179600a609d",
+      "games": 597,
+      "games_total_before_clean": 597,
+      "illegal_games_dropped": 0,
+      "rated_games": 597,
+      "years": [
+        1901,
+        1941
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1900-1945/alekhine.pgn",
+      "theme": "1900-1945",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnMentor/Alekhine.pgn"
+      },
+      "bytes": 1115573,
+      "sha256": "8d16884ca266f467146327131e59c35ac2847eb1be7086c12d39955073492b93",
+      "games": 1661,
+      "games_total_before_clean": 1661,
+      "illegal_games_dropped": 0,
+      "rated_games": 1661,
+      "years": [
+        1906,
+        1946
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1900-1945/reti.pgn",
+      "theme": "1900-1945",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnMentor/Reti.pgn"
+      },
+      "bytes": 418806,
+      "sha256": "51c21c282c80fa91600e8c465eae82fee601a6fccae7b0a5073acd81d9597d47",
+      "games": 646,
+      "games_total_before_clean": 646,
+      "illegal_games_dropped": 0,
+      "rated_games": 646,
+      "years": [
+        1908,
+        1928
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1900-1945/nimzowitsch.pgn",
+      "theme": "1900-1945",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnMentor/Nimzowitsch.pgn"
+      },
+      "bytes": 357310,
+      "sha256": "c892c9199d378d083ce4264ff1ec6233451d721479bc3418a9a539e8e103f3fa",
+      "games": 512,
+      "games_total_before_clean": 512,
+      "illegal_games_dropped": 0,
+      "rated_games": 512,
+      "years": [
+        1905,
+        1934
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1900-1945/tartakower-1900-1945.pgn",
+      "theme": "1900-1945",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnMentor/Tartakower.pgn"
+      },
+      "bytes": 731265,
+      "sha256": "05d1685461a1b4e8baf1a24bedb96e35d0fbcce9562a9f75cc1949d71f98ca30",
+      "games": 1073,
+      "games_total_before_clean": 1073,
+      "illegal_games_dropped": 0,
+      "rated_games": 1073,
+      "years": [
+        1906,
+        1945
+      ],
+      "note": "split_by_era"
+    },
+    {
+      "path": "data/archive/1946-1970/tartakower-1946-1970.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnMentor/Tartakower.pgn"
+      },
+      "bytes": 154353,
+      "sha256": "f841cfacae963555fc9bcadaf195e1bb57d22a6e4c505552bdccbc99a9a8ba2b",
+      "games": 217,
+      "games_total_before_clean": 217,
+      "illegal_games_dropped": 0,
+      "rated_games": 217,
+      "years": [
+        1946,
+        1954
+      ],
+      "note": "split_by_era"
+    },
+    {
+      "path": "data/archive/1900-1945/new-york-1924.pgn",
+      "theme": "1900-1945",
+      "source": {
+        "key": "scoutfish",
+        "repo": "mcostalba/scoutfish",
+        "commit": "00cec1339f97114a32c30080dbad5e3a500634f2",
+        "path": "pgn/newyork1924.pgn"
+      },
+      "bytes": 856168,
+      "sha256": "6068249123a120051b6e224a2442d13d015f96b6d5c676ca655bfbc87441f0f0",
+      "games": 106,
+      "games_total_before_clean": 110,
+      "illegal_games_dropped": 4,
+      "rated_games": 0,
+      "years": [
+        1924,
+        1924
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1946-1970/british-championship-1946.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/194608bcf.pgn"
+      },
+      "bytes": 124522,
+      "sha256": "da4adbea9b673695021c0af61371a122cad6527a563848b5f7ae16e210881cf8",
+      "games": 158,
+      "games_total_before_clean": 158,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1936,
+        1946
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1946-1970/british-championship-1947.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/194708bcf.pgn"
+      },
+      "bytes": 40615,
+      "sha256": "3461e9ff072480a7de496c8dab17895a6841a9061ccde9da792296e238a226e3",
+      "games": 54,
+      "games_total_before_clean": 54,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1947,
+        1947
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1946-1970/british-championship-1948.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/194808bcf.pgn"
+      },
+      "bytes": 29519,
+      "sha256": "06f89518d56e71466c48ea6396f4a433a451679dd72a754b66a68c91e059df15",
+      "games": 58,
+      "games_total_before_clean": 58,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1948,
+        1948
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1946-1970/british-championship-1949.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/194908bcf.pgn"
+      },
+      "bytes": 54359,
+      "sha256": "f125337e15afcb6e0e593c2fca8c28e855eb28f5206080fafd6ff75976be7a34",
+      "games": 92,
+      "games_total_before_clean": 92,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1949,
+        1949
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1946-1970/british-championship-1950.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/195008bcf.pgn"
+      },
+      "bytes": 51051,
+      "sha256": "a73a68b0164aec478cb219106403a7bbf3479035e286bd9551386562d11d74fb",
+      "games": 71,
+      "games_total_before_clean": 71,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1950,
+        1950
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1946-1970/british-championship-1951.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/195108bcf.pgn"
+      },
+      "bytes": 32796,
+      "sha256": "710c86437e0469aa061a96f46375cedd22203382c887a48e4a394aca0dfa6907",
+      "games": 45,
+      "games_total_before_clean": 45,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1951,
+        1951
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1946-1970/british-championship-1952.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/195208bcf.pgn"
+      },
+      "bytes": 37911,
+      "sha256": "ec5587ebfb8a55729012df8e24154566de1e58a8b7a4c68fb8f7007e3dcd2d02",
+      "games": 54,
+      "games_total_before_clean": 54,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1952,
+        1952
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1946-1970/british-championship-1953.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/195308bcf.pgn"
+      },
+      "bytes": 134234,
+      "sha256": "6f623f6ed3c52db71e926a1aeac24cf62d57786366f6642e581eb3211aa92a9c",
+      "games": 182,
+      "games_total_before_clean": 182,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1953,
+        1953
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1946-1970/british-championship-1954.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/195408bcf.pgn"
+      },
+      "bytes": 69299,
+      "sha256": "06919559924f112a841214f9a28f0b764e55e8220089c6c8818a8312028f5b3e",
+      "games": 97,
+      "games_total_before_clean": 97,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1954,
+        1954
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1946-1970/british-championship-1955.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/195508bcf.pgn"
+      },
+      "bytes": 58785,
+      "sha256": "44e525ca84027d386effd3859bf14ce2b3af410179b4e9592d1c626fb952440b",
+      "games": 80,
+      "games_total_before_clean": 80,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1954,
+        1955
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1900-1945/hastings-1920s.pgn",
+      "theme": "1900-1945",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/pghast20.pgn"
+      },
+      "bytes": 233264,
+      "sha256": "57c1eb2c34b7e11dd37fcd3d8d0376808f3996a53f207bbdb2fa7a8c6d7020ee",
+      "games": 360,
+      "games_total_before_clean": 360,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1920,
+        1929
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1900-1945/hastings-1930s.pgn",
+      "theme": "1900-1945",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/pghast30.pgn"
+      },
+      "bytes": 294906,
+      "sha256": "9191a077a61a0083a77d335a8f29a6305470489dc59e2d1a2f58cbfcbb5a31f0",
+      "games": 397,
+      "games_total_before_clean": 397,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1930,
+        1940
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1900-1945/hastings-1945-1949.pgn",
+      "theme": "1900-1945",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/pghast40.pgn"
+      },
+      "bytes": 143842,
+      "sha256": "ad3255f13d173ddb6dd69db49740fe61ca9d1d3e1ef2f8fff169ac2b689dec80",
+      "games": 213,
+      "games_total_before_clean": 213,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1945,
+        1949
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1946-1970/wcc-1957.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/57$WC.pgn"
+      },
+      "bytes": 13259,
+      "sha256": "ec15dae75aaddecb809d3a38e8b03a26a5f494c3c7590030c0660fb9f0c01e37",
+      "games": 22,
+      "games_total_before_clean": 22,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1957,
+        1957
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1946-1970/wcc-1958.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/58$WC.pgn"
+      },
+      "bytes": 15527,
+      "sha256": "412df88c5d4492e2402f1a07adfd30b841f3ea8403c533d88c6b6caa4d71f331",
+      "games": 23,
+      "games_total_before_clean": 23,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1958,
+        1958
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1946-1970/wcc-1960.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/60$WC.pgn"
+      },
+      "bytes": 13741,
+      "sha256": "aefadd9d841ebedda51acab3519788c863b3bf60e9f9c7511b7742bfd54ce858",
+      "games": 21,
+      "games_total_before_clean": 21,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1960,
+        1960
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1946-1970/wcc-1961.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/61$WC.pgn"
+      },
+      "bytes": 15978,
+      "sha256": "dcebdce34dca78ca5873bd6b5e8bf87a5254d611da0002abd84371f5ff2c13f3",
+      "games": 21,
+      "games_total_before_clean": 21,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1961,
+        1961
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1946-1970/candidates-leningrad-1973.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/73LENING.pgn"
+      },
+      "bytes": 96424,
+      "sha256": "b44df7acf1a728d48853e3dae5f83fac91cd8ccb046d2cef23dc9fa74790cf56",
+      "games": 153,
+      "games_total_before_clean": 153,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1973,
+        1973
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1946-1970/zones-petrograd-1973.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/73PETROP.pgn"
+      },
+      "bytes": 90438,
+      "sha256": "ccaeb734f860d96554b5b2ac229a87c0581a54cc37ce0c3154a9a949301dd630",
+      "games": 153,
+      "games_total_before_clean": 153,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1973,
+        1973
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1946-1970/interzonal-playoff-1973.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/73POR-PO.pgn"
+      },
+      "bytes": 7263,
+      "sha256": "f1577820c4929115db805ff78ab24e0737e274e19953a28950a10efd6df5b30c",
+      "games": 12,
+      "games_total_before_clean": 12,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1973,
+        1973
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1946-1970/interzonal-biel-1976.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/76BIEL.pgn"
+      },
+      "bytes": 110183,
+      "sha256": "5d5b3b9572d5eb61b59e22083f0d4f18cc1b48d625a0f334dbc4cdf27e6f4e09",
+      "games": 190,
+      "games_total_before_clean": 190,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1976,
+        1976
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1946-1970/interzonal-manila-1976.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/76MANILA.pgn"
+      },
+      "bytes": 113207,
+      "sha256": "8e4bb8a30eeec71c97730fe260cc900e73f9e39659cae0e371b3af9b06dea3b4",
+      "games": 190,
+      "games_total_before_clean": 190,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1976,
+        1976
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1946-1970/interzonal-roosendaal-1976.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/76ROOSEN.pgn"
+      },
+      "bytes": 56550,
+      "sha256": "7e6eb8a1980904ce87d9243fdfb5b30a104efebc6b66920aad715e5b4909d807",
+      "games": 91,
+      "games_total_before_clean": 91,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1976,
+        1976
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1946-1970/interzonal-playoff-1976.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/76VAR-PO.pgn"
+      },
+      "bytes": 5567,
+      "sha256": "c5ff69c36056f0563e076229281d19e341220f3872be52fad1715d661ee50827",
+      "games": 12,
+      "games_total_before_clean": 12,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1976,
+        1976
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1946-1970/moscow-candidates-1964.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "scoutfish",
+        "repo": "mcostalba/scoutfish",
+        "commit": "00cec1339f97114a32c30080dbad5e3a500634f2",
+        "path": "pgn/moscow64.pgn"
+      },
+      "bytes": 51415,
+      "sha256": "e4518dad5fe8982183fecb109a0cfd97ddc630ace65a54f5ea2abdb3054a4f54",
+      "games": 42,
+      "games_total_before_clean": 42,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1964,
+        1964
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1946-1970/british-championship-1965.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/196508bcf.pgn"
+      },
+      "bytes": 160435,
+      "sha256": "69bb3235cba556f4be765b4b190d4507a5ec34fa4a1555a30c9f17b7b246e3dd",
+      "games": 185,
+      "games_total_before_clean": 185,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1965,
+        1965
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1946-1970/british-championship-1966.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/196608bcf.pgn"
+      },
+      "bytes": 273314,
+      "sha256": "e88dbf65facd1550a619131ac994a31a823631611567b7404ffaec4464065899",
+      "games": 331,
+      "games_total_before_clean": 331,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1966,
+        1966
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1946-1970/british-championship-1967.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/196708bcf.pgn"
+      },
+      "bytes": 236411,
+      "sha256": "0347694431eb74111037541ce3cd59935374ab54229ad88cf8c3f729295034eb",
+      "games": 348,
+      "games_total_before_clean": 348,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1967,
+        1967
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1946-1970/british-championship-1968.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/196808bcf.pgn"
+      },
+      "bytes": 219858,
+      "sha256": "e0f0a0b858c44b19bb1dc92cc8b0a4fbd92c79e3b38abdc125b3f219a5766cec",
+      "games": 299,
+      "games_total_before_clean": 299,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1968,
+        1968
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1946-1970/british-championship-1969.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/196908bcf.pgn"
+      },
+      "bytes": 207400,
+      "sha256": "0e273cd8a81777ecf46be3f2b03a59952c98174f54b30f31afce35ca7172a914",
+      "games": 290,
+      "games_total_before_clean": 290,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1969,
+        1969
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1946-1970/british-championship-1970.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/197008bcf.pgn"
+      },
+      "bytes": 138905,
+      "sha256": "8e66e048888e84060434277ab80a1a28574d70adf27995e67879043e311b40d7",
+      "games": 198,
+      "games_total_before_clean": 198,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1970,
+        1970
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/british-championship-1971.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/197108bcf.pgn"
+      },
+      "bytes": 154678,
+      "sha256": "dcab900b241ed7eec2c33daf9f8ffcd8df628ba8cfa19d5bd094c7de742b928c",
+      "games": 219,
+      "games_total_before_clean": 219,
+      "illegal_games_dropped": 0,
+      "rated_games": 78,
+      "years": [
+        1971,
+        1971
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/british-championship-1972.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/197208bcf.pgn"
+      },
+      "bytes": 137167,
+      "sha256": "900ce2011d913aae92b280bacb86a9f12b063d7297237a844be04c05accea784",
+      "games": 190,
+      "games_total_before_clean": 190,
+      "illegal_games_dropped": 0,
+      "rated_games": 68,
+      "years": [
+        1972,
+        1972
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/british-championship-1973.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/197308bcf.pgn"
+      },
+      "bytes": 157217,
+      "sha256": "8dbd34ad4d510f1d897895fb9d66f7e93e61a925a6a3d8685a871ef771967c46",
+      "games": 211,
+      "games_total_before_clean": 211,
+      "illegal_games_dropped": 0,
+      "rated_games": 91,
+      "years": [
+        1973,
+        1974
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/british-championship-1974.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/197408bcf.pgn"
+      },
+      "bytes": 147527,
+      "sha256": "710d4c12343f8e55be3bf4a8b1f08e4ba6f634884483a5d877a86d2517c30b9c",
+      "games": 193,
+      "games_total_before_clean": 193,
+      "illegal_games_dropped": 0,
+      "rated_games": 185,
+      "years": [
+        1974,
+        1974
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/british-championship-1975.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/197508bcf.pgn"
+      },
+      "bytes": 137816,
+      "sha256": "45caf3d6261e2450e3f98a40b7afb0d2201668e739008d8c61d3b447200c54ef",
+      "games": 189,
+      "games_total_before_clean": 189,
+      "illegal_games_dropped": 0,
+      "rated_games": 103,
+      "years": [
+        1975,
+        1975
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/british-championship-1976.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/197608bcf.pgn"
+      },
+      "bytes": 150708,
+      "sha256": "d746f7475209d2325192f6b2202194480ae983050214ab1dded45128b98bab8b",
+      "games": 205,
+      "games_total_before_clean": 205,
+      "illegal_games_dropped": 0,
+      "rated_games": 108,
+      "years": [
+        1976,
+        1976
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/british-championship-1977.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/197708bcf.pgn"
+      },
+      "bytes": 173708,
+      "sha256": "64ff5024ac6824da5cb3d73ff223946b52c4551e862af1d27e28e2919f39b73b",
+      "games": 238,
+      "games_total_before_clean": 238,
+      "illegal_games_dropped": 0,
+      "rated_games": 94,
+      "years": [
+        1977,
+        1977
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/british-championship-1978.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/197808bcf.pgn"
+      },
+      "bytes": 174863,
+      "sha256": "a028aeba5664d3b20b0be848ece6b91eddc153c7f32ac89061dfb890025e26d3",
+      "games": 237,
+      "games_total_before_clean": 237,
+      "illegal_games_dropped": 0,
+      "rated_games": 148,
+      "years": [
+        1978,
+        1978
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/british-championship-1979.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/197908bcf.pgn"
+      },
+      "bytes": 196493,
+      "sha256": "32a6fde5ab896151a004f930aab7cdd7897c69f668bbae04ecd1cc1c968d4fb3",
+      "games": 260,
+      "games_total_before_clean": 260,
+      "illegal_games_dropped": 0,
+      "rated_games": 171,
+      "years": [
+        1979,
+        1979
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1946-1970/hastings-1950s.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/pghast50.pgn"
+      },
+      "bytes": 280673,
+      "sha256": "073b9b297339aead0d3d640f6631227e2e0c4c7f8149a45427f07f5430d386c0",
+      "games": 419,
+      "games_total_before_clean": 419,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1950,
+        1959
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1946-1970/hastings-1960s.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/pghast60.pgn"
+      },
+      "bytes": 313438,
+      "sha256": "bdbb51b2b9b1e1344e29dab48fd536369f92b7fe3af515c67599ef704dc8d9bb",
+      "games": 471,
+      "games_total_before_clean": 471,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1960,
+        1969
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1946-1970/hastings-1970s.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/pghast70.pgn"
+      },
+      "bytes": 722268,
+      "sha256": "e4ced7e8efe62c04f19b5084d7482dc2ff434ecb517d212fc3b262b6076e0f54",
+      "games": 1080,
+      "games_total_before_clean": 1080,
+      "illegal_games_dropped": 0,
+      "rated_games": 760,
+      "years": [
+        1970,
+        1979
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/interzonal-riga-1979.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/79RIGA.pgn"
+      },
+      "bytes": 96832,
+      "sha256": "6764a36e7aa79281fb0121ee273b0c8d1b4a1de2135afb07499d543459721e46",
+      "games": 152,
+      "games_total_before_clean": 152,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1979,
+        1979
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/interzonal-rio-de-janeiro-1979.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/79RIODEJ.pgn"
+      },
+      "bytes": 85446,
+      "sha256": "5c090c79c63a254246b8f5975bb790acf06a7f061790c6534e1c02691766b20c",
+      "games": 136,
+      "games_total_before_clean": 136,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1979,
+        1979
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/interzonal-playoff-budapest-1979.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/79BUD-PO.pgn"
+      },
+      "bytes": 3245,
+      "sha256": "8ae41de2954e2428f219a6a653854bd717fd899ebb441b2f334fa4da9b1e1119",
+      "games": 6,
+      "games_total_before_clean": 6,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1979,
+        1979
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/candidates-las-palmas-1982.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/82LASPAL.pgn"
+      },
+      "bytes": 59052,
+      "sha256": "55f9978959563604bd7f5c6620d128b99c71d7b39c7ae20fc74430df9b9b31f2",
+      "games": 91,
+      "games_total_before_clean": 91,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1982,
+        1982
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/candidates-moscow-1982.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/82MOSCOW.pgn"
+      },
+      "bytes": 55880,
+      "sha256": "f9dad08db3efcecfffb42c795c5764930745b35b996712f4d2b7d868cc831744",
+      "games": 91,
+      "games_total_before_clean": 91,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1982,
+        1982
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/candidates-toluca-1982.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/82TOLUCA.pgn"
+      },
+      "bytes": 56252,
+      "sha256": "b150dce8a5e9bf087e600f747760a6fe9777174859831de7b19890c7881dbeae",
+      "games": 91,
+      "games_total_before_clean": 91,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1982,
+        1982
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/wcc-1984.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/84$WC.pgn"
+      },
+      "bytes": 25866,
+      "sha256": "24761e083c03f1d767e4d7e308724dd49d2962893b69f6bee85eca325cc1a9df",
+      "games": 48,
+      "games_total_before_clean": 48,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1984,
+        1985
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/wcc-1985.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/85$WC.pgn"
+      },
+      "bytes": 14247,
+      "sha256": "02d0ec5c127e6a4ac976df121f2b2dbdd031d5c686ab4bc1f93d06a698c3c90c",
+      "games": 24,
+      "games_total_before_clean": 24,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1985,
+        1985
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/interzonal-biel-1985.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/85BIEL.pgn"
+      },
+      "bytes": 96233,
+      "sha256": "81da0ecc0d5297f9140814412ed7b8dd6ea26eb76054d6c275245e226648aafc",
+      "games": 153,
+      "games_total_before_clean": 153,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1985,
+        1985
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/interzonal-playoff-biel-1985.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/85BIELPO.pgn"
+      },
+      "bytes": 7027,
+      "sha256": "1253fc0e360b5dcd1dfe299ecaffd158627d202918a5f9badc970fb706a983a0",
+      "games": 9,
+      "games_total_before_clean": 9,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1985,
+        1985
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/candidates-monaco-1985-1.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/85MON$CP.pgn"
+      },
+      "bytes": 3194,
+      "sha256": "0a3237a3038d98c7458f1876a906a31cf7bb367d6cf69682b454cd3a53b219cb",
+      "games": 6,
+      "games_total_before_clean": 6,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1985,
+        1985
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/candidates-monaco-1985-2.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/85MON$CT.pgn"
+      },
+      "bytes": 74846,
+      "sha256": "ee6cfc71f839b40a2f37e80992769d12575eef66ba08ceb34f0feed2dd839fa4",
+      "games": 120,
+      "games_total_before_clean": 120,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1985,
+        1985
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/interzonal-taxco-1985.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/85TAXCO.pgn"
+      },
+      "bytes": 71725,
+      "sha256": "8960789e7943eea9e57cf4c59854bdf08e2e31f60131b35329c4d2f6574fe921",
+      "games": 116,
+      "games_total_before_clean": 116,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1985,
+        1985
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/interzonal-tunis-1985.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/85TUNIS.pgn"
+      },
+      "bytes": 76075,
+      "sha256": "e0acad3c132f5a12819e745a08707def5021d022edeea27685d98c05537f7f2b",
+      "games": 136,
+      "games_total_before_clean": 136,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1985,
+        1985
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/interzonal-playoff-tunis-1985.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/85TUNIPO.pgn"
+      },
+      "bytes": 3435,
+      "sha256": "53d31f899862c2e5cc1424ef5308d085e62c4c00ac5ffda587be1289bc5016b4",
+      "games": 6,
+      "games_total_before_clean": 6,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1985,
+        1985
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/wcc-1986.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/86$WC.pgn"
+      },
+      "bytes": 13803,
+      "sha256": "b37b529d02c8dc6e518adf131a787f0c0fdda6316276c30740451c7c7a60452f",
+      "games": 24,
+      "games_total_before_clean": 24,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1986,
+        1986
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/candidates-1986-pairing-1.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/86C1KS.pgn"
+      },
+      "bytes": 7971,
+      "sha256": "a740dba927f559f0be553be887c0b1e514addaa72b23f41810be4c012e954948",
+      "games": 11,
+      "games_total_before_clean": 11,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1987,
+        1987
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/candidates-1986-pairing-2.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/86C2SY.pgn"
+      },
+      "bytes": 10147,
+      "sha256": "c4c4073b42b1bb8200fb3aa78fe6b93e6e5e744c04ce323e4baaefa7852edc13",
+      "games": 15,
+      "games_total_before_clean": 15,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1986,
+        1986
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/candidates-1986-pairing-3.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/86C4SV.pgn"
+      },
+      "bytes": 5557,
+      "sha256": "b513d41b53389554c3c888d6099c66bf0c355d305d4b36ee2c7e24ff11815aad",
+      "games": 8,
+      "games_total_before_clean": 8,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1986,
+        1986
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/candidates-1986-pairing-4.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/86C4YT.pgn"
+      },
+      "bytes": 5536,
+      "sha256": "7554991b0aa53b057edb0eed15029238d2f4c1874ca9beca8fb22b17328e9f74",
+      "games": 9,
+      "games_total_before_clean": 9,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1986,
+        1986
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/interzonal-budapest-1987.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/87BUDAPE.pgn"
+      },
+      "bytes": 3645,
+      "sha256": "a0ae29f123fc12f279c8908d8a4b4509bf70d4536595ef77536a0ed805ed6eab",
+      "games": 6,
+      "games_total_before_clean": 6,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1987,
+        1987
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/interzonal-havana-1987.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/87HAVANA.pgn"
+      },
+      "bytes": 6758,
+      "sha256": "e81d66ca5d7db86663b07cdfffbb65eedbf0a3e5704d09c40d7825307d8789a1",
+      "games": 12,
+      "games_total_before_clean": 12,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1987,
+        1987
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/interzonal-subotica-1987.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/87SUBOTI.pgn"
+      },
+      "bytes": 77429,
+      "sha256": "e5dcee68a7e48cc87510dabe9da4e871708aeea6346daec9e163ad01db71e8fd",
+      "games": 120,
+      "games_total_before_clean": 120,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1987,
+        1987
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/interzonal-szirak-1987.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/87SZIRAK.pgn"
+      },
+      "bytes": 93495,
+      "sha256": "8aa4465b6dba31b50de8dd642681e3d0bd4fbba5f7ce80a37a458f7d294e0b6c",
+      "games": 153,
+      "games_total_before_clean": 153,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1987,
+        1987
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/interzonal-tuzla-1987.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/87TUZLA.pgn"
+      },
+      "bytes": 95901,
+      "sha256": "8491385b1903f7d53d2281eddfd7f627ab6868824efd1c91cc81fa9ff7225da0",
+      "games": 153,
+      "games_total_before_clean": 153,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1987,
+        1987
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/interzonal-zagreb-1987.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/87ZAGREB.pgn"
+      },
+      "bytes": 89402,
+      "sha256": "2399fb446ea10e1cf6a5126e44843bc9d00bd7d58818ba782cf1689dea39276f",
+      "games": 136,
+      "games_total_before_clean": 136,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1987,
+        1987
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/candidates-azov-1990.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/90AZOV.pgn"
+      },
+      "bytes": 99261,
+      "sha256": "3b2c44bc21c0e82dbe4715bcf21b72370105953042c285f32015d76415f42831",
+      "games": 153,
+      "games_total_before_clean": 153,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1990,
+        1990
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/interzonal-biel-1993.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/93BIEL.pgn"
+      },
+      "bytes": 295580,
+      "sha256": "21d30654df01ba93a859ce97e2be97070139d094f5495fd2015dec34e6630cb2",
+      "games": 469,
+      "games_total_before_clean": 469,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1993,
+        1993
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/candidates-group-1993.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/93GROPCQ.pgn"
+      },
+      "bytes": 192626,
+      "sha256": "382ac848ba4bcfc767a9fa7478ecad35efa0c3de2ec454ca9484883611709ceb",
+      "games": 297,
+      "games_total_before_clean": 297,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1992,
+        1993
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/wcc-playoff-1993.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/93PWKS.pgn"
+      },
+      "bytes": 12038,
+      "sha256": "0670ec13b7c253dacbaaf3f7e45fca3bedbea353a757c843416ba7034dbf6e64",
+      "games": 20,
+      "games_total_before_clean": 20,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1993,
+        1993
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/wcc-playoff-1993-tiebreak.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/93PWKS-X.pgn"
+      },
+      "bytes": 4453,
+      "sha256": "3e6b396157e292aea44c91aff7fdd0dafad6df949b1342137a36d183fbeea4ee",
+      "games": 7,
+      "games_total_before_clean": 7,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1993,
+        1993
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/candidates-1994-95-1.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/94P1AK.pgn"
+      },
+      "bytes": 7429,
+      "sha256": "a39b5dbb5284ce89a270e33826ef36ae80bdc8b6c244660808e722651c59971c",
+      "games": 11,
+      "games_total_before_clean": 11,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1995,
+        1995
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/candidates-1994-95-2.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/94P2AA.pgn"
+      },
+      "bytes": 3869,
+      "sha256": "d67f9faac00d8f3ab6ddce216378b93b9096b876d3920ac87f74a647bf598b7b",
+      "games": 7,
+      "games_total_before_clean": 7,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1994,
+        1994
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/candidates-1994-95-3.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/94P2KS.pgn"
+      },
+      "bytes": 5194,
+      "sha256": "e6ef253d639e6d52ae59c0b45c7c98dd2cef6fdd9b8cc53d39ed4ab37c2f1091",
+      "games": 7,
+      "games_total_before_clean": 7,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1994,
+        1994
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/candidates-1994-95-4.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/94P4AR.pgn"
+      },
+      "bytes": 4593,
+      "sha256": "f0d781ed510ec3eb2650e9fe854b8e85a9a7dc14f761f43e5d6255168eed9b09",
+      "games": 7,
+      "games_total_before_clean": 7,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1994,
+        1994
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/candidates-1994-95-5.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/94P4AT.pgn"
+      },
+      "bytes": 9364,
+      "sha256": "0aadb7209ea5c11aff5d7de3373308027c04062dbae211249ed229161988bc3a",
+      "games": 14,
+      "games_total_before_clean": 14,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1994,
+        1994
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/candidates-1994-95-6.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/94P4KK.pgn"
+      },
+      "bytes": 3948,
+      "sha256": "07b280ebf7fc6e117d3d661c6f000a7f72d011f68046216f8661d908b6b3c09f",
+      "games": 6,
+      "games_total_before_clean": 6,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1994,
+        1994
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/candidates-1994-95-7.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/94P4SG.pgn"
+      },
+      "bytes": 7199,
+      "sha256": "7d3d4edd4e585736de04c4b49646ac107da1ce26a9e77528276cb8b34ac89958",
+      "games": 12,
+      "games_total_before_clean": 12,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1994,
+        1994
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/wcc-playoff-1998-1.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/9805ASVK.pgn"
+      },
+      "bytes": 5310,
+      "sha256": "ab625bdc8a1946f43227dace81b9882b7a1fd13dcb0e56f05a5bae81066c610c",
+      "games": 9,
+      "games_total_before_clean": 9,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1998,
+        1998
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/wcc-playoff-1998-2.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/9806GKVT.pgn"
+      },
+      "bytes": 6811,
+      "sha256": "08ffa64643253f56035202cb3f7fd64e1a8ea994982320e0bd79cfb7f859b1a3",
+      "games": 10,
+      "games_total_before_clean": 10,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1998,
+        1998
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/wcc-playoff-1998-3.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/9809GKJT.pgn"
+      },
+      "bytes": 3402,
+      "sha256": "aa9ff457306cdad698a958d64b006d5a3c9a2bd64a79bf28065d12669bd1d9e2",
+      "games": 6,
+      "games_total_before_clean": 6,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1998,
+        1998
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/wcc-playoff-1998-4.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/9811GKVK.pgn"
+      },
+      "bytes": 15315,
+      "sha256": "bdbd633c6cda7680d0579ffc9c5e28f52d0125db06272a7bcfab3757b5435d74",
+      "games": 24,
+      "games_total_before_clean": 24,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1998,
+        1998
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/kasparov-vs-the-world-1999.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/9906GKTW.pgn"
+      },
+      "bytes": 915,
+      "sha256": "f84aa5d5d7bf0b662ae05c0378e18acb4f5dbf3f7f0e22f885b79c9a9b2823ac",
+      "games": 1,
+      "games_total_before_clean": 1,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1999,
+        1999
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/interzonal-playoff-1985-solo.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/BOUAZIZ.pgn"
+      },
+      "bytes": 2957,
+      "sha256": "89a1538f7122443acef04cf14cc21b00d65bfe36fc2bf94f2f954a0c49b89f0d",
+      "games": 6,
+      "games_total_before_clean": 6,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1985,
+        1985
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/interzonal-playoff-1987-solo.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/KAVALEK.pgn"
+      },
+      "bytes": 3201,
+      "sha256": "890895210f58a851bc1ced9710b0e77d2451376405ec196f8b9c6056313aa949",
+      "games": 6,
+      "games_total_before_clean": 6,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1987,
+        1987
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/interzonal-playoff-1979-solo.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/MECKING.pgn"
+      },
+      "bytes": 950,
+      "sha256": "d2f3a219e90de809d823e7500864ae0b53cda4b5e9199d650e9afff6e832db28",
+      "games": 2,
+      "games_total_before_clean": 2,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1979,
+        1979
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/misc-candidates-1953-1994.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/SOLTBEST.pgn"
+      },
+      "bytes": 11388,
+      "sha256": "616f42d2683aa691f26a5dae508cda47828eb86bb108ab082287d5cf99179774",
+      "games": 20,
+      "games_total_before_clean": 20,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1953,
+        1994
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/british-championship-1990.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/199007bcf.pgn"
+      },
+      "bytes": 241817,
+      "sha256": "3981269dda339c82074796ad72534fabda11bfccf267d3000316546acb10e2e0",
+      "games": 294,
+      "games_total_before_clean": 294,
+      "illegal_games_dropped": 0,
+      "rated_games": 282,
+      "years": [
+        1990,
+        1990
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/hastings-1980s.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/pghast80.pgn"
+      },
+      "bytes": 572680,
+      "sha256": "2a6cc17f161c157967504b78e6abc22f3862c76a45dd697a33125ea823d86721",
+      "games": 829,
+      "games_total_before_clean": 829,
+      "illegal_games_dropped": 0,
+      "rated_games": 745,
+      "years": [
+        1980,
+        1989
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/hastings-1990s.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/pghast90.pgn"
+      },
+      "bytes": 337996,
+      "sha256": "eb78202d86933458badc0904730fc03e986923b4b28dbd45db7a7cca1681cb8f",
+      "games": 483,
+      "games_total_before_clean": 483,
+      "illegal_games_dropped": 0,
+      "rated_games": 483,
+      "years": [
+        1990,
+        2000
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/denmark-championship-1980.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Chessopolis.com/DEN80-CH.pgn"
+      },
+      "bytes": 37212,
+      "sha256": "82ecd49cbe576d94b59b1ef622d2e15889efb75a22ca6270ab9ed367d485a2a2",
+      "games": 66,
+      "games_total_before_clean": 66,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1980,
+        1980
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/denmark-championship-1984.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Chessopolis.com/DEN84-CH.pgn"
+      },
+      "bytes": 44529,
+      "sha256": "02df1913089af72aa9daa29b15fdf35bcd833121efcd1fb1ba2fdaebc16989fc",
+      "games": 69,
+      "games_total_before_clean": 69,
+      "illegal_games_dropped": 0,
+      "rated_games": 67,
+      "years": [
+        1984,
+        1984
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/pca-candidates-1993-1.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Chessopolis.com/PCA-CT1.pgn"
+      },
+      "bytes": 26624,
+      "sha256": "5562ef21e48200cbdb75883c10a7e5e14d1b7c2857f4cb6bb75de58a85733ecd",
+      "games": 38,
+      "games_total_before_clean": 38,
+      "illegal_games_dropped": 0,
+      "rated_games": 38,
+      "years": [
+        1994,
+        1994
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/pca-candidates-1993-2.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Chessopolis.com/PCA-CT2.pgn"
+      },
+      "bytes": 9889,
+      "sha256": "e155dfc26e092189a9243b45c0f5c854e08a0baf7a3e0357664c4d9b02498bdc",
+      "games": 14,
+      "games_total_before_clean": 14,
+      "illegal_games_dropped": 0,
+      "rated_games": 14,
+      "years": [
+        1994,
+        1994
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/pca-candidates-1993-3.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Chessopolis.com/PCA-CT3.pgn"
+      },
+      "bytes": 8028,
+      "sha256": "e236dda70475b8928232cc4c1b1ca082988249a9fe36469ac1bf946605de1237",
+      "games": 11,
+      "games_total_before_clean": 11,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1995,
+        1995
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/pca-interzonals-1993.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Chessopolis.com/PCA-IZT.pgn"
+      },
+      "bytes": 191568,
+      "sha256": "78839d80c49683fa02765d25506a7d2e480d1f93ecff4d7dffbb33538733b13c",
+      "games": 297,
+      "games_total_before_clean": 297,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1993,
+        1993
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/pca-world-championship-1993.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Chessopolis.com/PCA-WCH.pgn"
+      },
+      "bytes": 9336,
+      "sha256": "735385ab11032a708a8cba9804e37a5bbef8bafa547aae351228b78ed6c0da80",
+      "games": 18,
+      "games_total_before_clean": 18,
+      "illegal_games_dropped": 0,
+      "rated_games": 13,
+      "years": [
+        1995,
+        1995
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/ireland-championships-1964-1991.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Chessopolis.com/IRISH.pgn"
+      },
+      "bytes": 1384877,
+      "sha256": "333d9675a0d2f92e07dc182e6b16e0e66d769b6ce669b8432cb60f53a52c2213",
+      "games": 2287,
+      "games_total_before_clean": 2287,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1964,
+        1996
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1900-1945/italy-championships-1900-1945.pgn",
+      "theme": "1900-1945",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Chessopolis.com/ITALY.pgn"
+      },
+      "bytes": 68842,
+      "sha256": "10fec2b05ff035f7160dae560d327d62581a4ff2da5b5ee29bcd841e2edd93df",
+      "games": 112,
+      "games_total_before_clean": 112,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1905,
+        1944
+      ],
+      "note": "split_by_era"
+    },
+    {
+      "path": "data/archive/1946-1970/italy-championships-1946-1970.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Chessopolis.com/ITALY.pgn"
+      },
+      "bytes": 202139,
+      "sha256": "cef1db3138d3bd52b8a0df5a56f48c805c71e77df0bdaf4ced8f4a9c0eb3f0dc",
+      "games": 355,
+      "games_total_before_clean": 355,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1947,
+        1970
+      ],
+      "note": "split_by_era"
+    },
+    {
+      "path": "data/archive/1971-1999/italy-championships-1971-1999.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Chessopolis.com/ITALY.pgn"
+      },
+      "bytes": 3273554,
+      "sha256": "29cb60c343911b818b92c44a7d275d56c1414f08234d4f95ba82553819ab13b9",
+      "games": 5701,
+      "games_total_before_clean": 5701,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1971,
+        1994
+      ],
+      "note": "split_by_era"
+    },
+    {
+      "path": "data/archive/classics-1834-1899/italy-championships-classics-1834-1899.pgn",
+      "theme": "classics-1834-1899",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Chessopolis.com/ITALY.pgn"
+      },
+      "bytes": 21187,
+      "sha256": "d8db31749f709b681f1a430d1276ff8615d439c5518b0e3c38223d989bbc01ef",
+      "games": 34,
+      "games_total_before_clean": 34,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1855,
+        1895
+      ],
+      "note": "split_by_era"
+    },
+    {
+      "path": "data/archive/1971-1999/canada-day-open-1992.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Chessopolis.com/CANADA.pgn"
+      },
+      "bytes": 425052,
+      "sha256": "a2bf370fe11cd789639bac7638fd078b8cc99851f3ff07bb55bd2d8c686019d5",
+      "games": 603,
+      "games_total_before_clean": 603,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1992,
+        1992
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1971-1999/croatia-championships-1992-1995.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Chessopolis.com/CROATIA.pgn"
+      },
+      "bytes": 453479,
+      "sha256": "dfa43bdbb0d15153007667cbe10dfb7d9a141b5c5861fd43e1ac8d96ecef1a6e",
+      "games": 754,
+      "games_total_before_clean": 754,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1992,
+        1995
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1946-1970/sweden-championships-1946-1970.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Chessopolis.com/SWEDEN-A.pgn"
+      },
+      "bytes": 994,
+      "sha256": "2469fe8e2f0396d614e8eddb604bbf3b3e086d4cb732d8b01c47f43130b7ca00",
+      "games": 2,
+      "games_total_before_clean": 2,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1959,
+        1966
+      ],
+      "note": "split_by_era"
+    },
+    {
+      "path": "data/archive/1971-1999/sweden-championships-1971-1999.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Chessopolis.com/SWEDEN-A.pgn"
+      },
+      "bytes": 688634,
+      "sha256": "06abbbcdfbf8d6a9c7560c7a605d67ae83f26fb82fbbca78e05cc805c54f38ba",
+      "games": 1147,
+      "games_total_before_clean": 1147,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1979,
+        1992
+      ],
+      "note": "split_by_era"
+    },
+    {
+      "path": "data/archive/1971-1999/megadatabase-2600-1970-1998.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "RebelSite/mega2600.pgn"
+      },
+      "bytes": 5931900,
+      "sha256": "f9f4192641145f50fff8c9bc258163afeedd73d8e178f1656dd9242486a435b7",
+      "games": 9078,
+      "games_total_before_clean": 9078,
+      "illegal_games_dropped": 0,
+      "rated_games": 9078,
+      "years": [
+        1970,
+        1998
+      ],
+      "note": "9,078 games, all rated 2600+, 1970-1998"
+    },
+    {
+      "path": "data/archive/1971-1999/kramnik-selected-games.pgn",
+      "theme": "1971-1999",
+      "source": {
+        "key": "scoutfish",
+        "repo": "mcostalba/scoutfish",
+        "commit": "00cec1339f97114a32c30080dbad5e3a500634f2",
+        "path": "pgn/kramnik.pgn"
+      },
+      "bytes": 66031,
+      "sha256": "ec98ccc395e1769ddb38716159835e7dc887e2ec99f89594cf591e533fda3294",
+      "games": 40,
+      "games_total_before_clean": 40,
+      "illegal_games_dropped": 0,
+      "rated_games": 34,
+      "years": [
+        1990,
+        2001
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2007_dortmund.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2007_Dortmund.pgn"
+      },
+      "bytes": 22387,
+      "sha256": "58ee45601b1a4ab7c9afe55fba32a2b62f3c013a8899572f86e7c2c043f7d1dc",
+      "games": 28,
+      "games_total_before_clean": 28,
+      "illegal_games_dropped": 0,
+      "rated_games": 28,
+      "years": [
+        2007,
+        2007
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2007_elista.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2007_Elista.pgn"
+      },
+      "bytes": 48169,
+      "sha256": "d51465b9ea37c0fa7961399b8b54c8b1a4f3f29121fd469c008ceebff0cc13f4",
+      "games": 55,
+      "games_total_before_clean": 55,
+      "illegal_games_dropped": 0,
+      "rated_games": 55,
+      "years": [
+        2007,
+        2007
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2007_world_championship.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2007_World_Championship.pgn"
+      },
+      "bytes": 54101,
+      "sha256": "6c21a9c7b185620d0a962ca023454d41ab653a94af041359fe1141b13532dad9",
+      "games": 56,
+      "games_total_before_clean": 56,
+      "illegal_games_dropped": 0,
+      "rated_games": 56,
+      "years": [
+        2007,
+        2007
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2008_amberblind.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2008_AmberBlind.pgn"
+      },
+      "bytes": 56045,
+      "sha256": "1e527381eab64c18c7f2adfe1b2fd6746dd0306fc5ea6310386f358ed7ae334a",
+      "games": 66,
+      "games_total_before_clean": 66,
+      "illegal_games_dropped": 0,
+      "rated_games": 66,
+      "years": [
+        2008,
+        2008
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2008_amberrapid.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2008_AmberRapid.pgn"
+      },
+      "bytes": 58451,
+      "sha256": "e499f923245e5a07585c99156f11ec8ec505d0f65011bfb10398cb42ef920cad",
+      "games": 66,
+      "games_total_before_clean": 66,
+      "illegal_games_dropped": 0,
+      "rated_games": 66,
+      "years": [
+        2008,
+        2008
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/2008_ataturkwomen.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2008_AtaturkWomen.pgn"
+      },
+      "bytes": 37008,
+      "sha256": "1094dda641c56e4c8cbb2941a5de9540a9f45a250dab9301f33b8f5180f906e6",
+      "games": 45,
+      "games_total_before_clean": 45,
+      "illegal_games_dropped": 0,
+      "rated_games": 45,
+      "years": [
+        2008,
+        2008
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2008_baku___fide_grand_prix_2008_10.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2008_Baku_-_FIDE_Grand_Prix_2008-10.pgn"
+      },
+      "bytes": 96459,
+      "sha256": "057cbc37a3e2fef3b775164e0d63510f093626c4b320a149f29d4048a548d041",
+      "games": 91,
+      "games_total_before_clean": 91,
+      "illegal_games_dropped": 0,
+      "rated_games": 91,
+      "years": [
+        2008,
+        2008
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2008_biel.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2008_Biel.pgn"
+      },
+      "bytes": 31067,
+      "sha256": "94f8ee8b3bbc1efbb8fedcd546a0fc44aed7846c18b32c0ea5c537b58aaa4f67",
+      "games": 34,
+      "games_total_before_clean": 34,
+      "illegal_games_dropped": 0,
+      "rated_games": 34,
+      "years": [
+        2008,
+        2008
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2008_bilbaomasters.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2008_BilbaoMasters.pgn"
+      },
+      "bytes": 27028,
+      "sha256": "6efaf1b2639f3149432771bb4457df6d0c1458c3b6db7f263a23fade1ec29e71",
+      "games": 30,
+      "games_total_before_clean": 30,
+      "illegal_games_dropped": 0,
+      "rated_games": 30,
+      "years": [
+        2008,
+        2008
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2008_dortmund.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2008_Dortmund.pgn"
+      },
+      "bytes": 20887,
+      "sha256": "7b754935f12d3706e7ecee9cec0109a391b13455473a63f49d0db009b4354146",
+      "games": 28,
+      "games_total_before_clean": 28,
+      "illegal_games_dropped": 0,
+      "rated_games": 28,
+      "years": [
+        2008,
+        2008
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2008_elista___fide_grand_prix_2008_10.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2008_Elista_-_FIDE_Grand_Prix_2008-10.pgn"
+      },
+      "bytes": 96605,
+      "sha256": "0b9f757e1b00e738baccd82ea24dec7a987bfd0058c924128711460a85a67e10",
+      "games": 91,
+      "games_total_before_clean": 91,
+      "illegal_games_dropped": 0,
+      "rated_games": 91,
+      "years": [
+        2008,
+        2008
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2008_morelialinares.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2008_MoreliaLinares.pgn"
+      },
+      "bytes": 46119,
+      "sha256": "223a2e59c883847bd84f760539be5cff87030a3347a3c1177cc3ef94a979976f",
+      "games": 56,
+      "games_total_before_clean": 56,
+      "illegal_games_dropped": 0,
+      "rated_games": 56,
+      "years": [
+        2008,
+        2008
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2008_north_urals_cup.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2008_North_Urals_Cup.pgn"
+      },
+      "bytes": 24866,
+      "sha256": "25b60b78beebf9219c2c0b255448bbb74f6d6e2f1d4f42247dbb342add9d8550",
+      "games": 28,
+      "games_total_before_clean": 28,
+      "illegal_games_dropped": 0,
+      "rated_games": 28,
+      "years": [
+        2008,
+        2008
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2008_poikovsky.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2008_Poikovsky.pgn"
+      },
+      "bytes": 36090,
+      "sha256": "8f25140fa48a84f1ab49c4739bafba90973c5c1e25ac26a92a1c285892698d18",
+      "games": 45,
+      "games_total_before_clean": 45,
+      "illegal_games_dropped": 0,
+      "rated_games": 45,
+      "years": [
+        2008,
+        2008
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/2008_sct_ladiesopen.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2008_SCT_LadiesOpen.pgn"
+      },
+      "bytes": 190963,
+      "sha256": "d4db10bd36785d63e2c7e5b31c8702ee3a3d2eb2bb13a1bcfba05bf83af82724",
+      "games": 224,
+      "games_total_before_clean": 224,
+      "illegal_games_dropped": 0,
+      "rated_games": 224,
+      "years": [
+        2008,
+        2008
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2008_spice_cup.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2008_SPICE_Cup.pgn"
+      },
+      "bytes": 30305,
+      "sha256": "d889b149d858a506ddff50b9f5a17253e54819c011869705dee1070ab8c91a4d",
+      "games": 40,
+      "games_total_before_clean": 40,
+      "illegal_games_dropped": 0,
+      "rated_games": 40,
+      "years": [
+        2008,
+        2008
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2008_sochi___fide_grand_prix_2008_10.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2008_Sochi_-_FIDE_Grand_Prix_2008-10.pgn"
+      },
+      "bytes": 93668,
+      "sha256": "a43d8789999389fea68c9e74a34ae796c286adb72e0f70ccbd00290350caccfa",
+      "games": 91,
+      "games_total_before_clean": 91,
+      "illegal_games_dropped": 0,
+      "rated_games": 91,
+      "years": [
+        2008,
+        2008
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2008_tal_memorial.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2008_Tal_Memorial.pgn"
+      },
+      "bytes": 38415,
+      "sha256": "d05acab861f593de1305d36580c965d792ade9879412ccdc53dd1a2d859100e0",
+      "games": 45,
+      "games_total_before_clean": 45,
+      "illegal_games_dropped": 0,
+      "rated_games": 45,
+      "years": [
+        2008,
+        2008
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/2008_womenwcc.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2008_WomenWCC.pgn"
+      },
+      "bytes": 130928,
+      "sha256": "f727ff6de511fac73b072cd4dd325239c610ba0b26e5ece5b486121b8ea696a7",
+      "games": 144,
+      "games_total_before_clean": 144,
+      "illegal_games_dropped": 0,
+      "rated_games": 144,
+      "years": [
+        2008,
+        2008
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2008_world_championship___quasi_rematch.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2008_World_Championship_-_quasi_rematch.pgn"
+      },
+      "bytes": 9839,
+      "sha256": "7fdfb935bab59f5ed72179e4de274d484ca42d352abf11f4c05126f325ceecae",
+      "games": 11,
+      "games_total_before_clean": 11,
+      "illegal_games_dropped": 0,
+      "rated_games": 11,
+      "years": [
+        2008,
+        2008
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2009_acp_world_rapid.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2009_ACP_World_Rapid.pgn"
+      },
+      "bytes": 42015,
+      "sha256": "0815ca60783677023703eff4cd434c906170acd728f37be5b2a0a4e4ac3114ed",
+      "games": 44,
+      "games_total_before_clean": 44,
+      "illegal_games_dropped": 0,
+      "rated_games": 44,
+      "years": [
+        2009,
+        2009
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2009_amberblind.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2009_AmberBlind.pgn"
+      },
+      "bytes": 60068,
+      "sha256": "820252071004d22f08b9f6906f39edd32fb74061f2d96bbe6cc76c8403db7a52",
+      "games": 66,
+      "games_total_before_clean": 66,
+      "illegal_games_dropped": 0,
+      "rated_games": 66,
+      "years": [
+        2009,
+        2009
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2009_amberrapid.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2009_AmberRapid.pgn"
+      },
+      "bytes": 61241,
+      "sha256": "24b92c23d1e2a43a8e30fa6f80604b401a000fad63ada001c790ad2c63773851",
+      "games": 66,
+      "games_total_before_clean": 66,
+      "illegal_games_dropped": 0,
+      "rated_games": 66,
+      "years": [
+        2009,
+        2009
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2009_anand_karpov.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2009_Anand_Karpov.pgn"
+      },
+      "bytes": 3412,
+      "sha256": "a3cb7b7dbd739f11388791419acbf7e585a09c29976d6f25814f8c15fe21310e",
+      "games": 4,
+      "games_total_before_clean": 4,
+      "illegal_games_dropped": 0,
+      "rated_games": 4,
+      "years": [
+        2009,
+        2009
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2009_bazna.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2009_Bazna.pgn"
+      },
+      "bytes": 26660,
+      "sha256": "e36623858f5b8c1207af04b144b27144f1c3ec393e93ea428433f154c92a9eaa",
+      "games": 30,
+      "games_total_before_clean": 30,
+      "illegal_games_dropped": 0,
+      "rated_games": 30,
+      "years": [
+        2009,
+        2009
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2009_biel.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2009_Biel.pgn"
+      },
+      "bytes": 25809,
+      "sha256": "f30b9dacc7815d7aefa1d64eed3f7f8493e9d2a8d3eb9db173c0f14eea2425b4",
+      "games": 30,
+      "games_total_before_clean": 30,
+      "illegal_games_dropped": 0,
+      "rated_games": 30,
+      "years": [
+        2009,
+        2009
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2009_bilbao.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2009_Bilbao.pgn"
+      },
+      "bytes": 11331,
+      "sha256": "8d11c59ae1f1c25c5bad9e55903d545899af3abca356e9de43872a971549a31a",
+      "games": 12,
+      "games_total_before_clean": 12,
+      "illegal_games_dropped": 0,
+      "rated_games": 12,
+      "years": [
+        2009,
+        2009
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2009_corus.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2009_Corus.pgn"
+      },
+      "bytes": 76707,
+      "sha256": "5ae37864a47119fbcd7a4ca93ac1cf32650c3dec97637ac1b2e3579f1e6ed445",
+      "games": 91,
+      "games_total_before_clean": 91,
+      "illegal_games_dropped": 0,
+      "rated_games": 91,
+      "years": [
+        2009,
+        2009
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2009_dortmund.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2009_Dortmund.pgn"
+      },
+      "bytes": 25728,
+      "sha256": "f2738cd9cb58660b6b9065d1967c768e1c011e7e87ac5a622092113c17d983dd",
+      "games": 30,
+      "games_total_before_clean": 30,
+      "illegal_games_dropped": 0,
+      "rated_games": 30,
+      "years": [
+        2009,
+        2009
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2009_fide_gp_jermuk.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2009_FIDE_GP_Jermuk.pgn"
+      },
+      "bytes": 100053,
+      "sha256": "2cbb2a283df69aff6bc9c90025f5271145af7f8a32c04042d9ff99c9856805dc",
+      "games": 91,
+      "games_total_before_clean": 91,
+      "illegal_games_dropped": 0,
+      "rated_games": 91,
+      "years": [
+        2009,
+        2009
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2009_fide_gp_nalchik.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2009_FIDE_GP_Nalchik.pgn"
+      },
+      "bytes": 95530,
+      "sha256": "9c38adc43e3b16589432bd8ec6263dfcf0a998afd81688ec496015ecd86d8f30",
+      "games": 91,
+      "games_total_before_clean": 91,
+      "illegal_games_dropped": 0,
+      "rated_games": 91,
+      "years": [
+        2009,
+        2009
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/2009_fide_women_gp_istanbul.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2009_FIDE_Women_GP_Istanbul.pgn"
+      },
+      "bytes": 63302,
+      "sha256": "b2facadda4f12692a9b8be25b86738832605a5b0af0aa1be5d155ff49bd5f6fc",
+      "games": 66,
+      "games_total_before_clean": 66,
+      "illegal_games_dropped": 0,
+      "rated_games": 66,
+      "years": [
+        2009,
+        2009
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/2009_fide_women_gp_nanjing.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2009_FIDE_Women_GP_Nanjing.pgn"
+      },
+      "bytes": 67510,
+      "sha256": "17989c9e4921a8fc18539839d8c563d859b9fa3858104e38b753667287249038",
+      "games": 66,
+      "games_total_before_clean": 66,
+      "illegal_games_dropped": 0,
+      "rated_games": 66,
+      "years": [
+        2009,
+        2009
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2009_karpov_kasparov.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2009_Karpov_Kasparov.pgn"
+      },
+      "bytes": 10642,
+      "sha256": "3f1d37a23c32086515ac6b2c4398f48508642e0ac2aff0683015ee93cc815729",
+      "games": 12,
+      "games_total_before_clean": 12,
+      "illegal_games_dropped": 0,
+      "rated_games": 12,
+      "years": [
+        2009,
+        2009
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2009_korchnoi_spassky.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2009_Korchnoi_Spassky.pgn"
+      },
+      "bytes": 6519,
+      "sha256": "cf6c7ebe28929b0cd48d707dfc5edc39d9cd8c2ebf1c13609ecb320530260722",
+      "games": 8,
+      "games_total_before_clean": 8,
+      "illegal_games_dropped": 0,
+      "rated_games": 8,
+      "years": [
+        2009,
+        2009
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2009_leko_anand.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2009_Leko_Anand.pgn"
+      },
+      "bytes": 6909,
+      "sha256": "e52c50a1254d87f6f2b6761f5f5053350afc84589ed106d2d92603d23ea52f6b",
+      "games": 8,
+      "games_total_before_clean": 8,
+      "illegal_games_dropped": 0,
+      "rated_games": 8,
+      "years": [
+        2009,
+        2009
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2009_linares.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2009_Linares.pgn"
+      },
+      "bytes": 50973,
+      "sha256": "5121105fed5bed6152e70ce83952244187bf72273725abc50ed589e340ca56fd",
+      "games": 56,
+      "games_total_before_clean": 56,
+      "illegal_games_dropped": 0,
+      "rated_games": 56,
+      "years": [
+        2009,
+        2009
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2009_london.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2009_London.pgn"
+      },
+      "bytes": 30055,
+      "sha256": "077c5f6c68783f95d5056ed77a578ce5081a9b10aba3d57d4d157f3c1a5167e4",
+      "games": 28,
+      "games_total_before_clean": 28,
+      "illegal_games_dropped": 0,
+      "rated_games": 28,
+      "years": [
+        2009,
+        2009
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2009_m_tel_masters.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2009_M-Tel_Masters.pgn"
+      },
+      "bytes": 27152,
+      "sha256": "aba78d0d0b9e90d926a45cc46d14b6d71b608a9756db0d3f5b6cfebf54149dda",
+      "games": 30,
+      "games_total_before_clean": 30,
+      "illegal_games_dropped": 0,
+      "rated_games": 30,
+      "years": [
+        2009,
+        2009
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2009_mainz_rapid.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2009_Mainz_rapid.pgn"
+      },
+      "bytes": 18780,
+      "sha256": "36bca815e210861eba3cc5318a1deb6dd400f34dc35bb6ac525e034ee075f625",
+      "games": 20,
+      "games_total_before_clean": 20,
+      "illegal_games_dropped": 0,
+      "rated_games": 20,
+      "years": [
+        2009,
+        2009
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2009_nanjing.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2009_Nanjing.pgn"
+      },
+      "bytes": 29350,
+      "sha256": "a116e36266c760d85f5ee9bd78d403caddc3c549195a98f5a2933c223c22162a",
+      "games": 30,
+      "games_total_before_clean": 30,
+      "illegal_games_dropped": 0,
+      "rated_games": 30,
+      "years": [
+        2009,
+        2009
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2009_poikovsky.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2009_Poikovsky.pgn"
+      },
+      "bytes": 40039,
+      "sha256": "08258b808c8044ef34de00b11fedd23cfb2d9f9bf3447160d5375b0a459819d9",
+      "games": 45,
+      "games_total_before_clean": 45,
+      "illegal_games_dropped": 0,
+      "rated_games": 45,
+      "years": [
+        2009,
+        2009
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2009_presidents_cup.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2009_Presidents_Cup.pgn"
+      },
+      "bytes": 30174,
+      "sha256": "8c36f141680482e325c40365fa03d04fe01525ce6d9df2a59719b7ef3bf3f394",
+      "games": 32,
+      "games_total_before_clean": 32,
+      "illegal_games_dropped": 0,
+      "rated_games": 32,
+      "years": [
+        2009,
+        2009
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2009_russian_championship.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2009_Russian_Championship.pgn"
+      },
+      "bytes": 44157,
+      "sha256": "f13576df38ed7c41b1e97c3e2f090783263741b00567321b37ed5a62fccf9404",
+      "games": 45,
+      "games_total_before_clean": 45,
+      "illegal_games_dropped": 0,
+      "rated_games": 45,
+      "years": [
+        2009,
+        2009
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2009_tal_memorial.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2009_Tal_Memorial.pgn"
+      },
+      "bytes": 40425,
+      "sha256": "22ceb39a74a73ff7fcea8470c712c20ef1f758b62df9c1e21d5297bf302fada2",
+      "games": 45,
+      "games_total_before_clean": 45,
+      "illegal_games_dropped": 0,
+      "rated_games": 45,
+      "years": [
+        2009,
+        2009
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2009_us_championship.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2009_US_Championship.pgn"
+      },
+      "bytes": 92785,
+      "sha256": "e9b739e349aa0bd1f320d76ac388ed6bbeb26b97af279df82b3bf6de89736d89",
+      "games": 108,
+      "games_total_before_clean": 108,
+      "illegal_games_dropped": 0,
+      "rated_games": 104,
+      "years": [
+        2009,
+        2009
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/2009_us_womens_championship.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2009_US_Womens_Championship.pgn"
+      },
+      "bytes": 39078,
+      "sha256": "8cd687b301c0dcd3e0a2326e1deda872050d1acee6e39221834ace65a320df05",
+      "games": 45,
+      "games_total_before_clean": 45,
+      "illegal_games_dropped": 0,
+      "rated_games": 25,
+      "years": [
+        2009,
+        2009
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2009_wtcc.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2009_WTCC.pgn"
+      },
+      "bytes": 187193,
+      "sha256": "f6c100d11839831fd1cb9f305f1653fe666c9320e1da81fcc7c747b2ec2f3d66",
+      "games": 180,
+      "games_total_before_clean": 180,
+      "illegal_games_dropped": 0,
+      "rated_games": 180,
+      "years": [
+        2010,
+        2010
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2009_world_cup.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2009_World_Cup.pgn"
+      },
+      "bytes": 452263,
+      "sha256": "693c62bc186a22814b4c03ad54621d008c1f7ac1a1a6ec989dc111b774d9f5e0",
+      "games": 490,
+      "games_total_before_clean": 490,
+      "illegal_games_dropped": 0,
+      "rated_games": 489,
+      "years": [
+        2009,
+        2009
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2010_amsterdam.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2010_Amsterdam.pgn"
+      },
+      "bytes": 54066,
+      "sha256": "b44ac09706ddcd8e8a2d47fd21759371258e95e02e58f60c76bc2814cb743f5f",
+      "games": 52,
+      "games_total_before_clean": 52,
+      "illegal_games_dropped": 0,
+      "rated_games": 52,
+      "years": [
+        2010,
+        2010
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2010_astrakhan___fide_grand_prix_2008_10.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2010_Astrakhan_-_FIDE_Grand_Prix_2008-10.pgn"
+      },
+      "bytes": 93781,
+      "sha256": "f26e6dbd8511b06c7311b0395085bf15877a93ea6537ec96b8e4780ee75439f1",
+      "games": 91,
+      "games_total_before_clean": 91,
+      "illegal_games_dropped": 0,
+      "rated_games": 91,
+      "years": [
+        2010,
+        2010
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2010_bazna.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2010_Bazna.pgn"
+      },
+      "bytes": 30651,
+      "sha256": "4392a9e4021e61a4dbaf972cb4035a0e6e6cd1c78122921da585f1b7d99f4058",
+      "games": 30,
+      "games_total_before_clean": 30,
+      "illegal_games_dropped": 0,
+      "rated_games": 30,
+      "years": [
+        2010,
+        2010
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2010_biel.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2010_Biel.pgn"
+      },
+      "bytes": 48746,
+      "sha256": "ef253555a160c45ae09ca32c17109b8eced1bc60be6ae4e156c2e76e4d7e2986",
+      "games": 50,
+      "games_total_before_clean": 50,
+      "illegal_games_dropped": 0,
+      "rated_games": 50,
+      "years": [
+        2010,
+        2010
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2010_bilbao.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2010_Bilbao.pgn"
+      },
+      "bytes": 14333,
+      "sha256": "c17ec0017664bf2255b05daf59ca546c3e3bb90d01cd43ef7a017af3e28a6566",
+      "games": 12,
+      "games_total_before_clean": 12,
+      "illegal_games_dropped": 0,
+      "rated_games": 12,
+      "years": [
+        2010,
+        2010
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2010_cap_dagde.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2010_Cap_dAgde.pgn"
+      },
+      "bytes": 88355,
+      "sha256": "8e46091765e498993181bfa2e913a50e54eaa5ba1f5f3ed57fce65b43dbe9eb3",
+      "games": 76,
+      "games_total_before_clean": 76,
+      "illegal_games_dropped": 0,
+      "rated_games": 76,
+      "years": [
+        2010,
+        2010
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2010_dortmund.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2010_Dortmund.pgn"
+      },
+      "bytes": 33608,
+      "sha256": "029b7fe7ee4a0752fcb585efd8f837cff5254f6ec232ece9e52d101031ea5c45",
+      "games": 30,
+      "games_total_before_clean": 30,
+      "illegal_games_dropped": 0,
+      "rated_games": 30,
+      "years": [
+        2010,
+        2010
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/2010_fide_women_gp_jermuk.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2010_FIDE_Women_GP_Jermuk.pgn"
+      },
+      "bytes": 70186,
+      "sha256": "6f36e15eee08d70396d2a3f7b55adff1e1c1a30108ba4898da10b55e41dbee8d",
+      "games": 66,
+      "games_total_before_clean": 66,
+      "illegal_games_dropped": 0,
+      "rated_games": 66,
+      "years": [
+        2010,
+        2010
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/2010_fide_women_gp_nalchik.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2010_FIDE_Women_GP_Nalchik.pgn"
+      },
+      "bytes": 68381,
+      "sha256": "fb192da94a68cb341abbfc8ce68b0d21eca562e5260573b466b84fbf7037777c",
+      "games": 66,
+      "games_total_before_clean": 66,
+      "illegal_games_dropped": 0,
+      "rated_games": 66,
+      "years": [
+        2010,
+        2010
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/2010_fide_women_gp_ulan_bator.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2010_FIDE_Women_GP_Ulan_Bator.pgn"
+      },
+      "bytes": 75209,
+      "sha256": "fe37cdac03a3338c3a4c1474a95ca560c49e4cb2c609887dcba19a3521413206",
+      "games": 66,
+      "games_total_before_clean": 66,
+      "illegal_games_dropped": 0,
+      "rated_games": 66,
+      "years": [
+        2010,
+        2010
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2010_havana.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2010_Havana.pgn"
+      },
+      "bytes": 26773,
+      "sha256": "d849d3c8744ddf460c664fe8b8dc2c3f5936250953bf9a7f899a467e9e4c6b32",
+      "games": 30,
+      "games_total_before_clean": 30,
+      "illegal_games_dropped": 0,
+      "rated_games": 30,
+      "years": [
+        2010,
+        2010
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2010_kristiansund.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2010_Kristiansund.pgn"
+      },
+      "bytes": 17712,
+      "sha256": "5e0ee1811ac114f752b5b3701ebb11f7c842b87cbd4ca32f0b819bc888900d70",
+      "games": 16,
+      "games_total_before_clean": 16,
+      "illegal_games_dropped": 0,
+      "rated_games": 16,
+      "years": [
+        2010,
+        2010
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2010_linares.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2010_Linares.pgn"
+      },
+      "bytes": 29926,
+      "sha256": "ba8fbc3bc9c08238e2e7299977fab8a2e7a8b0ac0a29e3198242ba0d18c7280d",
+      "games": 30,
+      "games_total_before_clean": 30,
+      "illegal_games_dropped": 0,
+      "rated_games": 30,
+      "years": [
+        2010,
+        2010
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2010_london.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2010_London.pgn"
+      },
+      "bytes": 32080,
+      "sha256": "dd6c97f2694d611c6dd06a37fcbdbaf6b4a8ca736d9ad5b01206826ca0079b7c",
+      "games": 28,
+      "games_total_before_clean": 28,
+      "illegal_games_dropped": 0,
+      "rated_games": 28,
+      "years": [
+        2010,
+        2010
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2010_nanjing.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2010_Nanjing.pgn"
+      },
+      "bytes": 30602,
+      "sha256": "1361eae8303c6f0ecf231426196139ac2a938d78297ee33b017a0c8df824c456",
+      "games": 30,
+      "games_total_before_clean": 30,
+      "illegal_games_dropped": 0,
+      "rated_games": 30,
+      "years": [
+        2010,
+        2010
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2010_poikovsky.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2010_Poikovsky.pgn"
+      },
+      "bytes": 60436,
+      "sha256": "8be860152ab3389e969e61f80ce98fd8478208d2fa96a959a0e04b739f79fe88",
+      "games": 66,
+      "games_total_before_clean": 66,
+      "illegal_games_dropped": 0,
+      "rated_games": 66,
+      "years": [
+        2010,
+        2010
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2010_presidents_cup.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2010_Presidents_Cup.pgn"
+      },
+      "bytes": 27195,
+      "sha256": "375c0eede6a61072234424c2a4efe22a884f5271d0566a8a59d27eecf105c25c",
+      "games": 28,
+      "games_total_before_clean": 28,
+      "illegal_games_dropped": 0,
+      "rated_games": 28,
+      "years": [
+        2010,
+        2010
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2010_reggio_emilia.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2010_Reggio_Emilia.pgn"
+      },
+      "bytes": 44900,
+      "sha256": "8c116e7934528f27b6a06fc68ad1ac7e58b5d7769e63f5bd15ba670c0e2d9574",
+      "games": 45,
+      "games_total_before_clean": 45,
+      "illegal_games_dropped": 0,
+      "rated_games": 45,
+      "years": [
+        2010,
+        2011
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2010_russian_championship.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2010_Russian_Championship.pgn"
+      },
+      "bytes": 69802,
+      "sha256": "efc3368cdd3fd8b3dd05c2ba9628ff8603f2bc31e41ebd44de4a39c181f6de5e",
+      "games": 69,
+      "games_total_before_clean": 69,
+      "illegal_games_dropped": 0,
+      "rated_games": 69,
+      "years": [
+        2010,
+        2010
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2010_shanghai.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2010_Shanghai.pgn"
+      },
+      "bytes": 16773,
+      "sha256": "79737afd741c1ce66eda7a98f7a7b9019d2b10503757673d275c9c1e4a9cc722",
+      "games": 15,
+      "games_total_before_clean": 15,
+      "illegal_games_dropped": 0,
+      "rated_games": 15,
+      "years": [
+        2010,
+        2010
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2010_tal_memorial.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2010_Tal_Memorial.pgn"
+      },
+      "bytes": 49853,
+      "sha256": "f11311a1b24648b9f9422955cd92d7681f511d8911efcc7eacc0a8ef7c90f245",
+      "games": 45,
+      "games_total_before_clean": 45,
+      "illegal_games_dropped": 0,
+      "rated_games": 45,
+      "years": [
+        2010,
+        2010
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2010_us_championship.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2010_US_Championship.pgn"
+      },
+      "bytes": 105344,
+      "sha256": "490aacb5742b73022ed5802ab2e7c28d38c33b771371841f8c30cab2ff92ef8a",
+      "games": 111,
+      "games_total_before_clean": 111,
+      "illegal_games_dropped": 0,
+      "rated_games": 111,
+      "years": [
+        2010,
+        2010
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/2010_us_womens_championship.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2010_US_Womens_Championship.pgn"
+      },
+      "bytes": 49193,
+      "sha256": "7b373e49703ed3cbe66793c42b2c300845f3c90fadd06e3aa7ea8d88b0b50116",
+      "games": 45,
+      "games_total_before_clean": 45,
+      "illegal_games_dropped": 0,
+      "rated_games": 45,
+      "years": [
+        2010,
+        2010
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2010_wijk_aan_zee.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2010_Wijk_aan_Zee.pgn"
+      },
+      "bytes": 85911,
+      "sha256": "dbd0eae2eb02c24218bc15cc52ef22aef8280d740b02f0fa246bc3923e22d17a",
+      "games": 91,
+      "games_total_before_clean": 91,
+      "illegal_games_dropped": 0,
+      "rated_games": 91,
+      "years": [
+        2010,
+        2010
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/2010_women_world.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2010_Women_World.pgn"
+      },
+      "bytes": 191189,
+      "sha256": "90ca3ed5e9f91bb1eb44ccc43da3ac4d3a460591b2b0dfe1e0f1dccccaeb9872",
+      "games": 176,
+      "games_total_before_clean": 176,
+      "illegal_games_dropped": 0,
+      "rated_games": 176,
+      "years": [
+        2010,
+        2010
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2010_world_blitz.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2010_World_Blitz.pgn"
+      },
+      "bytes": 395429,
+      "sha256": "ef4e6340ccc1034f269c841a6e68b099f5ee8f0f1948c55f6e3d16cbcad515d9",
+      "games": 380,
+      "games_total_before_clean": 380,
+      "illegal_games_dropped": 0,
+      "rated_games": 380,
+      "years": [
+        2010,
+        2010
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2010_world_championship.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2010_World_Championship.pgn"
+      },
+      "bytes": 12989,
+      "sha256": "f774dec8f6911b7d14a83f8440c7b1cbeb69bc885f9d42460235dcca1fb9504b",
+      "games": 12,
+      "games_total_before_clean": 12,
+      "illegal_games_dropped": 0,
+      "rated_games": 12,
+      "years": [
+        2010,
+        2010
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2011_amber_rapid.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2011_Amber_rapid.pgn"
+      },
+      "bytes": 72075,
+      "sha256": "d8dc29400d244886be237a089d521ae265742313b3c74bbc4ab47fa12c20bd4a",
+      "games": 66,
+      "games_total_before_clean": 66,
+      "illegal_games_dropped": 0,
+      "rated_games": 66,
+      "years": [
+        2011,
+        2011
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/2011_fide_women_gp_doha.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2011_FIDE_Women_GP_Doha.pgn"
+      },
+      "bytes": 73324,
+      "sha256": "c28941763aa40ddf280a51b6574db27af70a381197c378c9663ed281446fa89a",
+      "games": 66,
+      "games_total_before_clean": 66,
+      "illegal_games_dropped": 0,
+      "rated_games": 66,
+      "years": [
+        2011,
+        2011
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2011_us_championship.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2011_US_Championship.pgn"
+      },
+      "bytes": 57188,
+      "sha256": "c789ec4014a87ec6326a69acdf6eb05bd63d12e9dbbddf3f6859b16193a4ef00",
+      "games": 68,
+      "games_total_before_clean": 68,
+      "illegal_games_dropped": 0,
+      "rated_games": 68,
+      "years": [
+        2011,
+        2011
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/2011_us_womens_championship.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2011_US_Womens_Championship.pgn"
+      },
+      "bytes": 40948,
+      "sha256": "705869b0f2cd51e956b36ae505c0df4a43ad3100e11ed532dab078d05d5a61e3",
+      "games": 46,
+      "games_total_before_clean": 46,
+      "illegal_games_dropped": 0,
+      "rated_games": 46,
+      "years": [
+        2011,
+        2011
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/2011_wijk_aan_zee.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnDownloads/2011_Wijk_aan_Zee.pgn"
+      },
+      "bytes": 95018,
+      "sha256": "fcd2e47778210525917eacfef18e91d9712ba7c586cbcf40782790e1e5a97d3c",
+      "games": 91,
+      "games_total_before_clean": 91,
+      "illegal_games_dropped": 0,
+      "rated_games": 91,
+      "years": [
+        2011,
+        2011
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/tata-steel-wijk-aan-zee-2003.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Corus/2003.pgn"
+      },
+      "bytes": 159772,
+      "sha256": "a4331bb7e463df7c5a474fb77a1ca87d577d93979a1bfcad737e6773687e4bf5",
+      "games": 227,
+      "games_total_before_clean": 227,
+      "illegal_games_dropped": 0,
+      "rated_games": 10,
+      "years": [
+        2003,
+        2003
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/tata-steel-wijk-aan-zee-2004.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Corus/2004.pgn"
+      },
+      "bytes": 192519,
+      "sha256": "e62e963cd264e4663dd106effeae65673e28816bfa491160651a048c87fa3b70",
+      "games": 273,
+      "games_total_before_clean": 273,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        2004,
+        2004
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/tata-steel-wijk-aan-zee-2005.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Corus/2005.pgn"
+      },
+      "bytes": 192236,
+      "sha256": "aa13e196b5626b84418d72a149360a4c26a7524a7434460dca2f1bfe939b2026",
+      "games": 271,
+      "games_total_before_clean": 271,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        2005,
+        2005
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/tata-steel-wijk-aan-zee-2006.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Corus/2006.pgn"
+      },
+      "bytes": 190050,
+      "sha256": "3cb245af1db8075551f0150140347a6e534b0e9d9d8cfb553dafcbeb998b0eaa",
+      "games": 273,
+      "games_total_before_clean": 273,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        2006,
+        2006
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/tata-steel-wijk-aan-zee-2007.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Corus/2007.pgn"
+      },
+      "bytes": 191897,
+      "sha256": "2b824a7d7f6bed81fd277adcc380e73b708a5423d195e1d8045dc50522b4abc8",
+      "games": 272,
+      "games_total_before_clean": 272,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        2007,
+        2007
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/tata-steel-wijk-aan-zee-2008.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Corus/2008.pgn"
+      },
+      "bytes": 199881,
+      "sha256": "0069733711d9d5aa1944863f22bcf0910470b8937ba91b365e01a802381ff4e3",
+      "games": 285,
+      "games_total_before_clean": 285,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        2008,
+        2008
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/tata-steel-wijk-aan-zee-2009.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Corus/2009.pgn"
+      },
+      "bytes": 188502,
+      "sha256": "a56c3d866a0e2b53b4d3474700752629670a1adb0d71e8ebe8d5e1958ee95b9e",
+      "games": 273,
+      "games_total_before_clean": 273,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        2009,
+        2009
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/tata-steel-wijk-aan-zee-2010.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Corus/2010.pgn"
+      },
+      "bytes": 197481,
+      "sha256": "5ef3d422a5373f376a658d8c04cfa1cf8d13d0c2a46c749f5374b2c2b6a851f6",
+      "games": 273,
+      "games_total_before_clean": 273,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        2010,
+        2010
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/british-championship-2004.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/200408britchamp.pgn"
+      },
+      "bytes": 272115,
+      "sha256": "d789fcae2f89ab8a4bdff3d3311de6fbd6763c570aa719180c53761f57287ed9",
+      "games": 341,
+      "games_total_before_clean": 341,
+      "illegal_games_dropped": 0,
+      "rated_games": 341,
+      "years": [
+        2004,
+        2004
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/british-championship-2005.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/200508britchamp.pgn"
+      },
+      "bytes": 214541,
+      "sha256": "5ba1b3b2fd7cc1f4bd69509898eb1837584cdc9b7105ff0ec607a710a7082bfd",
+      "games": 253,
+      "games_total_before_clean": 253,
+      "illegal_games_dropped": 0,
+      "rated_games": 253,
+      "years": [
+        2005,
+        2005
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/british-championship-2006.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/200608britchamp.pgn"
+      },
+      "bytes": 262663,
+      "sha256": "bfadb13ea2ed0bb396fa1ae0e7426fdac0f01b17ff3826015e74906251540a85",
+      "games": 341,
+      "games_total_before_clean": 341,
+      "illegal_games_dropped": 0,
+      "rated_games": 330,
+      "years": [
+        2006,
+        2006
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/british-championship-2007.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/200707britchamp.pgn"
+      },
+      "bytes": 296244,
+      "sha256": "000f7ffc2437392aec4ec2fed590772018fc1bd1cc1f9830c8698157d9cfb5e0",
+      "games": 374,
+      "games_total_before_clean": 374,
+      "illegal_games_dropped": 0,
+      "rated_games": 368,
+      "years": [
+        2007,
+        2007
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/british-championship-2008.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/200807britchamp.pgn"
+      },
+      "bytes": 296057,
+      "sha256": "f72a9bad7f78f23e4a7af72dd64535c13fdb8f581456ce27cc4737c8f5476301",
+      "games": 376,
+      "games_total_before_clean": 376,
+      "illegal_games_dropped": 0,
+      "rated_games": 376,
+      "years": [
+        2008,
+        2008
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/british-championship-2009.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/200907britchamp.pgn"
+      },
+      "bytes": 335874,
+      "sha256": "9dd001b9ef4cacabd5790b2565f5c221b07c160b1f743ff24d4ef2f01f8fdd31",
+      "games": 418,
+      "games_total_before_clean": 418,
+      "illegal_games_dropped": 0,
+      "rated_games": 413,
+      "years": [
+        2009,
+        2009
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/british-championship-2010.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/201007britchamp.pgn"
+      },
+      "bytes": 362664,
+      "sha256": "30662ae752f3a31a41b4b5b3de122c215b68264f9a46182ff0098a371dcd1e8b",
+      "games": 428,
+      "games_total_before_clean": 428,
+      "illegal_games_dropped": 0,
+      "rated_games": 422,
+      "years": [
+        2010,
+        2010
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/british-championship-2011.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/201107britchamp.pgn"
+      },
+      "bytes": 409074,
+      "sha256": "210e45ec7e2463d525314bb6fde7f7872a6c36b0563f147c3130606d0c90e452",
+      "games": 471,
+      "games_total_before_clean": 471,
+      "illegal_games_dropped": 0,
+      "rated_games": 466,
+      "years": [
+        2011,
+        2011
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/british-championship-2012.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/201207britchamp.pgn"
+      },
+      "bytes": 310139,
+      "sha256": "ef018559e7a3657e0e133f52bde7db57b31d5c7fabd3cf504f12fba87c56a8eb",
+      "games": 354,
+      "games_total_before_clean": 354,
+      "illegal_games_dropped": 0,
+      "rated_games": 344,
+      "years": [
+        2012,
+        2012
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/british-championship-2013.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/201307britchamp.pgn"
+      },
+      "bytes": 489191,
+      "sha256": "7a5961b85c39eb8306153b72af2e2287b6e61fdad1f6664982c5d389f923b9df",
+      "games": 579,
+      "games_total_before_clean": 579,
+      "illegal_games_dropped": 0,
+      "rated_games": 564,
+      "years": [
+        2013,
+        2013
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/british-championship-2014.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/201407britchamp.pgn"
+      },
+      "bytes": 267170,
+      "sha256": "0668162bd7a9a2724fb6a89e6b816f81e7d0cd2900210084542c181988589508",
+      "games": 309,
+      "games_total_before_clean": 309,
+      "illegal_games_dropped": 0,
+      "rated_games": 309,
+      "years": [
+        2014,
+        2014
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/british-championship-2015.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/201507britchamp.pgn"
+      },
+      "bytes": 354223,
+      "sha256": "d0c3ca1ab6fd9fa33652534aa343650576244e6101501a74c2ae33658d169863",
+      "games": 404,
+      "games_total_before_clean": 404,
+      "illegal_games_dropped": 0,
+      "rated_games": 402,
+      "years": [
+        2015,
+        2015
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/british-championship-2016.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/201607britchamp.pgn"
+      },
+      "bytes": 378093,
+      "sha256": "9385d598d7d420edaf4df9f59d8c406d00b9eaee46e60cee8d87141dcb0cb5bf",
+      "games": 470,
+      "games_total_before_clean": 470,
+      "illegal_games_dropped": 0,
+      "rated_games": 470,
+      "years": [
+        2016,
+        2016
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/british-championship-2017.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/201707britchamp.pgn"
+      },
+      "bytes": 401718,
+      "sha256": "f60008286efa0ecb6e135c1079d957e8c97d78031b7bfdd05aecc07c3899a37f",
+      "games": 461,
+      "games_total_before_clean": 461,
+      "illegal_games_dropped": 0,
+      "rated_games": 456,
+      "years": [
+        2017,
+        2017
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/hastings-2015.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/201512hast.pgn"
+      },
+      "bytes": 308180,
+      "sha256": "ebe23a6e91499ee28c9721d68ca7eb69a05a96c884472850775eab012d76fad5",
+      "games": 357,
+      "games_total_before_clean": 357,
+      "illegal_games_dropped": 0,
+      "rated_games": 357,
+      "years": [
+        2015,
+        2016
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/hastings-2000s.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Britbase/pghast00.pgn"
+      },
+      "bytes": 130593,
+      "sha256": "37cd6a777339e58c7762c978abeecc7a8ed2f00dd2fb6a87c20c8d5eba705009",
+      "games": 180,
+      "games_total_before_clean": 180,
+      "illegal_games_dropped": 0,
+      "rated_games": 180,
+      "years": [
+        2000,
+        2004
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/candidates-sparkassen-2002-final.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/02C1LT.pgn"
+      },
+      "bytes": 3882,
+      "sha256": "027743a6308d3aa7bf36e82d2bfe7769fbde6d8840ef17867e82a1a202866f17",
+      "games": 4,
+      "games_total_before_clean": 4,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        2002,
+        2002
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/candidates-sparkassen-2002-sf1.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/02C2LS.pgn"
+      },
+      "bytes": 1751,
+      "sha256": "cbeb0f772e601fc3f335609e68138eee5a723e3ddf002acebe73e121e3fd8162",
+      "games": 3,
+      "games_total_before_clean": 3,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        2002,
+        2002
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/candidates-sparkassen-2002-tiebreak.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/02C2TB.pgn"
+      },
+      "bytes": 4444,
+      "sha256": "d8bc234d3fe245cf7c025612999b2bb60870bf7c267ad2adc497ced24342f3b9",
+      "games": 6,
+      "games_total_before_clean": 6,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        2002,
+        2002
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/candidates-sparkassen-2002-g1.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/02G1.pgn"
+      },
+      "bytes": 7861,
+      "sha256": "40a19cb0ddec91627673d933e15e03bd7c4c80b5ea9f7bf0c8b6c9589a80b5bd",
+      "games": 12,
+      "games_total_before_clean": 12,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        2002,
+        2002
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/candidates-sparkassen-2002-g1-tiebreak.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/02G1PO.pgn"
+      },
+      "bytes": 1216,
+      "sha256": "3123bc47f522c342cf4063696e47464bac8fa8e501c6715eeadf9ba3504fdbfd",
+      "games": 2,
+      "games_total_before_clean": 2,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        2002,
+        2002
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/candidates-sparkassen-2002-g2.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/02G2.pgn"
+      },
+      "bytes": 8050,
+      "sha256": "fe715776197566e93059a4ed587dadc3a072194cb716a692325a66dde6de9ba0",
+      "games": 12,
+      "games_total_before_clean": 12,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        2002,
+        2002
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/wcc-2000.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/A0WCKK.pgn"
+      },
+      "bytes": 8930,
+      "sha256": "2d636dccd2e184482b39077c68e0758a465f71d8d5d47d6bd136b5f4c5ad9546",
+      "games": 15,
+      "games_total_before_clean": 15,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        2000,
+        2000
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/wcc-2004.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/A4WCKL.pgn"
+      },
+      "bytes": 8077,
+      "sha256": "b479bd2cada8237a4ee7c3166f8c683d594cc235c639ec309b4c8a32b8394604",
+      "games": 14,
+      "games_total_before_clean": 14,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        2004,
+        2004
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/wcc-2006.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/A6WCKT.pgn"
+      },
+      "bytes": 11333,
+      "sha256": "b32d4ee7437950cc42c9525bb84bd782d259a910f4d347bc56e654a016f87f2f",
+      "games": 16,
+      "games_total_before_clean": 16,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        2006,
+        2006
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/kvika-reykjavik-open-2022.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Tournament/kvika-open-clean.pgn"
+      },
+      "bytes": 857226,
+      "sha256": "8213aa9cf645f166a2e32cd04fec3454d984746373e1faa5d18d3cc5430865ff",
+      "games": 997,
+      "games_total_before_clean": 997,
+      "illegal_games_dropped": 0,
+      "rated_games": 937,
+      "years": [
+        2022,
+        2022
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/2000-plus/sinqcup-2022.pgn",
+      "theme": "2000-plus",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "Tournament/sinqcup22.pgn"
+      },
+      "bytes": 37976,
+      "sha256": "f4adde7479b342343bdef270a846cc8cac73c4c84028a268f32b80919b2a991d",
+      "games": 40,
+      "games_total_before_clean": 40,
+      "illegal_games_dropped": 0,
+      "rated_games": 40,
+      "years": [
+        2022,
+        2022
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/polgar-judith.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnMentor/PolgarJ.pgn"
+      },
+      "bytes": 1322540,
+      "sha256": "a03d6fa53899716f5836d100201d368c63a4cd78d7ad81c82efe8a8ec2c5a821",
+      "games": 1825,
+      "games_total_before_clean": 1825,
+      "illegal_games_dropped": 0,
+      "rated_games": 1825,
+      "years": [
+        1987,
+        2014
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/polgar-suzanne.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnMentor/PolgarS.pgn"
+      },
+      "bytes": 588753,
+      "sha256": "f460e35f698ca9edf24697e4f8e6bc5603aa3a06228bb4cf327ed7782247e7e1",
+      "games": 856,
+      "games_total_before_clean": 856,
+      "illegal_games_dropped": 0,
+      "rated_games": 856,
+      "years": [
+        1987,
+        2021
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/polgar-zsofia.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnMentor/PolgarZ.pgn"
+      },
+      "bytes": 600214,
+      "sha256": "684c8fd437a7f7bfa3552e48325e10cde0e123f9cba6d70fea9d2f5b7ce9e707",
+      "games": 909,
+      "games_total_before_clean": 909,
+      "illegal_games_dropped": 0,
+      "rated_games": 909,
+      "years": [
+        1982,
+        2006
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/kosteniuk.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "PgnMentor/Kosteniuk.pgn"
+      },
+      "bytes": 3040736,
+      "sha256": "bbac8dc393c6270ce7e5b0d7edd6688db2c752ebecc969c3fd124de773961b2d",
+      "games": 3919,
+      "games_total_before_clean": 3919,
+      "illegal_games_dropped": 0,
+      "rated_games": 3919,
+      "years": [
+        1994,
+        2022
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/women-interzonal-geneva-1990.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/90GEN.pgn"
+      },
+      "bytes": 106836,
+      "sha256": "cd23970839d0d27dc1693f43fcda65156499226f87ea073d63c98305054ad5bc",
+      "games": 153,
+      "games_total_before_clean": 153,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1990,
+        1990
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/women-interzonal-playoff-1990.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/90GEN-PO.pgn"
+      },
+      "bytes": 3670,
+      "sha256": "57ee365978cbdc6c19f0160cba7bf8002488c6fead2fb448711494a6ba07847c",
+      "games": 5,
+      "games_total_before_clean": 5,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1990,
+        1990
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/women-wcc-1993.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/93FWCKT.pgn"
+      },
+      "bytes": 12539,
+      "sha256": "0c4fbb44586f8e366b702ef11a00920da3512981cbc84f91baa9269d81373c18",
+      "games": 21,
+      "games_total_before_clean": 21,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1993,
+        1993
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/women-wcc-1994-95-match-1.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/94F1KG.pgn"
+      },
+      "bytes": 5918,
+      "sha256": "6bd5b5e9900000457ec6f514857b1b5f6a70704ccc7e3511ae03178faa26ba81",
+      "games": 9,
+      "games_total_before_clean": 9,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1995,
+        1995
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/women-wcc-1994-95-match-2.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/94F1KS.pgn"
+      },
+      "bytes": 5732,
+      "sha256": "b8d441248613be166e9a6562e66b6f5392b95053786edca3800ac94e2fac94be",
+      "games": 7,
+      "games_total_before_clean": 7,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1995,
+        1995
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/women-wcc-1994-95-match-3.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/94F2GK.pgn"
+      },
+      "bytes": 5161,
+      "sha256": "a7bba37e93dadc919769457d03700d57b1f73a112a1199de0f56bfe70293d736",
+      "games": 8,
+      "games_total_before_clean": 8,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1994,
+        1994
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/women-wcc-1994-95-match-4.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/94F2KA.pgn"
+      },
+      "bytes": 7481,
+      "sha256": "2113b5bd2982ede15acecb9b027f0cee928d22395b5f97254fb188af7184f177",
+      "games": 10,
+      "games_total_before_clean": 10,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1994,
+        1994
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/women-wcc-1994-95-match-5.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/94F2ST.pgn"
+      },
+      "bytes": 6198,
+      "sha256": "b3a3fc75741d9bac3bbfd8bb53bfa643d7a28131d81c183fd3496b96106afcac",
+      "games": 8,
+      "games_total_before_clean": 8,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1994,
+        1994
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/women-wcc-1994-match-1.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/94F4AY.pgn"
+      },
+      "bytes": 4559,
+      "sha256": "9917233670b6e15fbb846288c65d98d8d396219c96fcb2f80013bfcf601354f3",
+      "games": 7,
+      "games_total_before_clean": 7,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1994,
+        1994
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/women-wcc-1994-match-2.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/94F4GA.pgn"
+      },
+      "bytes": 6010,
+      "sha256": "ad092f371938d7dc76fb1a692dad3cf1158f87d61d72242e336d74b9197b7f37",
+      "games": 8,
+      "games_total_before_clean": 8,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1994,
+        1994
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/women-wcc-1994-match-3.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/94F4KV.pgn"
+      },
+      "bytes": 4379,
+      "sha256": "dfdb0620defc88da29bba9c71528024dd8c09d36a9ac56ebae3b5b39f8398569",
+      "games": 7,
+      "games_total_before_clean": 7,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1994,
+        1994
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/women-wcc-1994-match-4.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/94F4KY.pgn"
+      },
+      "bytes": 3558,
+      "sha256": "aded1cccf1fbd4c6fc67791ed3c2827fa9f7ac8707350d7c2ed18a6d09876151",
+      "games": 7,
+      "games_total_before_clean": 7,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1994,
+        1994
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/women-wcc-1994-match-5.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/94F4SK.pgn"
+      },
+      "bytes": 4458,
+      "sha256": "5029d8b50fca6338a319c6a2ed0b873c0af02c0517396563dac0871c97dbdc23",
+      "games": 6,
+      "games_total_before_clean": 6,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1994,
+        1994
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/women-wcc-pca-1995.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/95PWC.pgn"
+      },
+      "bytes": 8787,
+      "sha256": "45fd2eb814f27e3c9edbde4fe1829d50b8fe9196e6c1607b6dddac5802bc5f43",
+      "games": 18,
+      "games_total_before_clean": 18,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1995,
+        1995
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/women-wcc-fide-1996.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/96FWC.pgn"
+      },
+      "bytes": 14267,
+      "sha256": "e60e5715a7a9fd8b78dfe1157373d45cf028374cc2361276e7198ef51116d12e",
+      "games": 18,
+      "games_total_before_clean": 18,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1996,
+        1996
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/women-interzonal-playoff-1987.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "WorldChampionships/87TUZ-PO.pgn"
+      },
+      "bytes": 3663,
+      "sha256": "d9a2069da1c72d100350aa62b79710e9519d7baed1700899ec6f136938e95b92",
+      "games": 5,
+      "games_total_before_clean": 5,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1987,
+        1987
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/polgar-annotated.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "scoutfish",
+        "repo": "mcostalba/scoutfish",
+        "commit": "00cec1339f97114a32c30080dbad5e3a500634f2",
+        "path": "pgn/polgar.pgn"
+      },
+      "bytes": 73912,
+      "sha256": "705555e5972a106f1d1fb9e821ff9e96a830f9fe409890146990269456cc4c8f",
+      "games": 40,
+      "games_total_before_clean": 40,
+      "illegal_games_dropped": 0,
+      "rated_games": 33,
+      "years": [
+        1988,
+        2002
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/womens/womens-invitational-2009-2017.pgn",
+      "theme": "womens",
+      "source": {
+        "key": "pepper",
+        "repo": "saikrishna-1996/deep_pepper_chess",
+        "commit": "b05bfe2e6defad7a85d6099ad5d69e1b46888eb5",
+        "path": "womens_all.pgn"
+      },
+      "bytes": 6344,
+      "sha256": "793c0c6eb2a6611cf6f04a0d84980d851e5ed4b167d5b1cbd31c2552e73c96b4",
+      "games": 9,
+      "games_total_before_clean": 9,
+      "illegal_games_dropped": 0,
+      "rated_games": 9,
+      "years": [
+        2009,
+        2017
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/correspondence/aiccf-2017.pgn",
+      "theme": "correspondence",
+      "source": {
+        "key": "annotated",
+        "repo": "hegde10122/CHESS_ANNOTATED_GAMES",
+        "commit": "550bdd161514b48abd5008ee4a7daa0db7718f66",
+        "path": "1517_aiccf.pgn"
+      },
+      "bytes": 303,
+      "sha256": "2aba128f9a6ea6520794a8ebaa219415ecd0f5807e58d973ad2821c2c733b82c",
+      "games": 1,
+      "games_total_before_clean": 15,
+      "illegal_games_dropped": 14,
+      "rated_games": 0,
+      "years": null,
+      "note": "ICCF correspondence chess"
+    },
+    {
+      "path": "data/archive/correspondence/aa-semifinal-2018.pgn",
+      "theme": "correspondence",
+      "source": {
+        "key": "annotated",
+        "repo": "hegde10122/CHESS_ANNOTATED_GAMES",
+        "commit": "550bdd161514b48abd5008ee4a7daa0db7718f66",
+        "path": "iccf/2018/aa_sf_2018.pgn"
+      },
+      "bytes": 444,
+      "sha256": "47f956063a1b9e621da3651f5f5b957787baeab88ad7b34d234348ce8d416e47",
+      "games": 1,
+      "games_total_before_clean": 13,
+      "illegal_games_dropped": 12,
+      "rated_games": 1,
+      "years": [
+        2018,
+        2018
+      ],
+      "note": "ICCF correspondence chess"
+    },
+    {
+      "path": "data/archive/correspondence/russia-25-2018.pgn",
+      "theme": "correspondence",
+      "source": {
+        "key": "annotated",
+        "repo": "hegde10122/CHESS_ANNOTATED_GAMES",
+        "commit": "550bdd161514b48abd5008ee4a7daa0db7718f66",
+        "path": "iccf/2018/russia25.pgn"
+      },
+      "bytes": 81879,
+      "sha256": "f14cd645a959453111dd7e83b1958043d4053107086da4e91d2363333ca07c60",
+      "games": 10,
+      "games_total_before_clean": 10,
+      "illegal_games_dropped": 0,
+      "rated_games": 9,
+      "years": [
+        2018,
+        2018
+      ],
+      "note": "ICCF correspondence chess"
+    },
+    {
+      "path": "data/archive/correspondence/interzonal-3-group-k-2018.pgn",
+      "theme": "correspondence",
+      "source": {
+        "key": "annotated",
+        "repo": "hegde10122/CHESS_ANNOTATED_GAMES",
+        "commit": "550bdd161514b48abd5008ee4a7daa0db7718f66",
+        "path": "iccf/2018/interzonal3_groupK.pgn"
+      },
+      "bytes": 32853,
+      "sha256": "c1d2bce58c908789024fc84d30ad30fc5c3c9c4df569afc364c3875a4deaee36",
+      "games": 6,
+      "games_total_before_clean": 8,
+      "illegal_games_dropped": 2,
+      "rated_games": 6,
+      "years": [
+        2018,
+        2018
+      ],
+      "note": "ICCF correspondence chess"
+    },
+    {
+      "path": "data/archive/correspondence/copa-peru-2018.pgn",
+      "theme": "correspondence",
+      "source": {
+        "key": "annotated",
+        "repo": "hegde10122/CHESS_ANNOTATED_GAMES",
+        "commit": "550bdd161514b48abd5008ee4a7daa0db7718f66",
+        "path": "iccf/2018/copa peru.pgn"
+      },
+      "bytes": 29941,
+      "sha256": "8b32fdec07e7c9b8e4f735136d28e8cf58fbc941ac33d9d4168ca100ba78ae9b",
+      "games": 5,
+      "games_total_before_clean": 6,
+      "illegal_games_dropped": 1,
+      "rated_games": 5,
+      "years": [
+        2018,
+        2018
+      ],
+      "note": "ICCF correspondence chess"
+    },
+    {
+      "path": "data/archive/correspondence/finjub-55-2017.pgn",
+      "theme": "correspondence",
+      "source": {
+        "key": "annotated",
+        "repo": "hegde10122/CHESS_ANNOTATED_GAMES",
+        "commit": "550bdd161514b48abd5008ee4a7daa0db7718f66",
+        "path": "iccf/finjub55_2017/hrzina.pgn"
+      },
+      "bytes": 11303,
+      "sha256": "ea588ee7ffd0546cb03f69fa6a832b910a13b0c2815e3085118c4b411c565d9f",
+      "games": 1,
+      "games_total_before_clean": 2,
+      "illegal_games_dropped": 1,
+      "rated_games": 1,
+      "years": [
+        2018,
+        2018
+      ],
+      "note": "ICCF correspondence chess"
+    },
+    {
+      "path": "data/archive/correspondence/world-seniors-2017.pgn",
+      "theme": "correspondence",
+      "source": {
+        "key": "annotated",
+        "repo": "hegde10122/CHESS_ANNOTATED_GAMES",
+        "commit": "550bdd161514b48abd5008ee4a7daa0db7718f66",
+        "path": "iccf/ws_o_1007_2017/all_games.pgn"
+      },
+      "bytes": 304,
+      "sha256": "8dbee108175566d4310eda312a68159cefcc681ab009a7b7dd7ac2ba2beb355f",
+      "games": 1,
+      "games_total_before_clean": 2,
+      "illegal_games_dropped": 1,
+      "rated_games": 0,
+      "years": [
+        2017,
+        2017
+      ],
+      "note": "ICCF correspondence chess"
+    },
+    {
+      "path": "data/archive/correspondence/ind-aus-2017.pgn",
+      "theme": "correspondence",
+      "source": {
+        "key": "annotated",
+        "repo": "hegde10122/CHESS_ANNOTATED_GAMES",
+        "commit": "550bdd161514b48abd5008ee4a7daa0db7718f66",
+        "path": "iccf/IND_AUS 2017/games.pgn"
+      },
+      "bytes": 17484,
+      "sha256": "3c72bcc77e9368ceac40a755e029899a393ed4081481bd478efdcb788af0ae6a",
+      "games": 4,
+      "games_total_before_clean": 4,
+      "illegal_games_dropped": 0,
+      "rated_games": 1,
+      "years": [
+        2017,
+        2017
+      ],
+      "note": "ICCF correspondence chess"
+    },
+    {
+      "path": "data/archive/correspondence/izit-2021.pgn",
+      "theme": "correspondence",
+      "source": {
+        "key": "annotated",
+        "repo": "hegde10122/CHESS_ANNOTATED_GAMES",
+        "commit": "550bdd161514b48abd5008ee4a7daa0db7718f66",
+        "path": "iccf/2021/2021_izit.pgn"
+      },
+      "bytes": 28557,
+      "sha256": "04fa141ab16226e5ac82fccd09c3c0111f01d85656af500210c4a3c3d3fd34bb",
+      "games": 12,
+      "games_total_before_clean": 12,
+      "illegal_games_dropped": 0,
+      "rated_games": 12,
+      "years": [
+        2021,
+        2021
+      ],
+      "note": "ICCF correspondence chess"
+    },
+    {
+      "path": "data/archive/correspondence/aa-semifinal-2021.pgn",
+      "theme": "correspondence",
+      "source": {
+        "key": "annotated",
+        "repo": "hegde10122/CHESS_ANNOTATED_GAMES",
+        "commit": "550bdd161514b48abd5008ee4a7daa0db7718f66",
+        "path": "iccf/2021/AA_SF_2021.pgn"
+      },
+      "bytes": 7570,
+      "sha256": "7984d9365d779711927f9e4c113457f95647589e2ae3c2377d15231e26789e55",
+      "games": 10,
+      "games_total_before_clean": 10,
+      "illegal_games_dropped": 0,
+      "rated_games": 10,
+      "years": [
+        2021,
+        2021
+      ],
+      "note": "ICCF correspondence chess"
+    },
+    {
+      "path": "data/archive/1946-1970/nostalgia-1941-1960.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "ChessNostalgia.com/1941-1960.pgn"
+      },
+      "bytes": 11469229,
+      "sha256": "c6be63ca76ecec7fa2e7c6f8e39ccd3fc24655391d44aef01d83da64a9b71748",
+      "games": 17667,
+      "games_total_before_clean": 17667,
+      "illegal_games_dropped": 0,
+      "rated_games": 0,
+      "years": [
+        1941,
+        1960
+      ],
+      "note": ""
+    },
+    {
+      "path": "data/archive/1946-1970/nostalgia-1961-1970.pgn",
+      "theme": "1946-1970",
+      "source": {
+        "key": "chessdata",
+        "repo": "rozim/ChessData",
+        "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+        "path": "ChessNostalgia.com/1961-1970.pgn"
+      },
+      "bytes": 14166430,
+      "sha256": "6126daedf61c0fb3455b904e6fc1e3620cb5a12caae1cecc64272c01384fdcb5",
+      "games": 22845,
+      "games_total_before_clean": 22845,
+      "illegal_games_dropped": 0,
+      "rated_games": 33,
+      "years": [
+        1961,
+        1970
+      ],
+      "note": ""
+    }
+  ],
+  "totals": {
+    "files": 294,
+    "bytes": 84789296,
+    "games": 123385,
+    "illegal_games_dropped": 52,
+    "cross_file_duplicate_games": 681
+  },
+  "layout_table": "tools/archive_layout.json"
+}

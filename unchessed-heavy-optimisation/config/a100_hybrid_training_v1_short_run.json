@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "hardware": {
+    "target": "NVIDIA A100 80GB",
+    "precision": "bfloat16",
+    "allow_tf32": true,
+    "compile": true,
+    "fused_adamw": true,
+    "pin_memory": true,
+    "num_workers": 8
+  },
+  "xt_nnue": {
+    "position_width": 256,
+    "threat_width": 32,
+    "threat_dimensions": 32400,
+    "quantization_scale": 255,
+    "phase_stacks": 8,
+    "head_hidden": 32,
+    "batch_size": 16384,
+    "steps_per_epoch": 20000,
+    "epochs": 6,
+    "learning_rate": 0.001,
+    "weight_decay": 0.000001,
+    "warmup_steps": 2000,
+    "gradient_clip": 4.0,
+    "seed": 20260819
+  },
+  "promotion_gates": {
+    "future_holdout_required": true,
+    "player_disjoint_policy_holdout_required": true,
+    "quantized_validation_required": true,
+    "paired_sprt_required": true
+  }
+}

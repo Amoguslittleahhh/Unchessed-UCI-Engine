@@ -1,0 +1,77 @@
+[Event "?"]
+[Site "?"]
+[Date "2026.08.02"]
+[Round "1"]
+[White "Adapter500"]
+[Black "SF1800"]
+[Result "1-0"]
+[ECO "B20"]
+[GameDuration "00:00:04"]
+[GameEndTime "2026-08-02T11:57:55.519 +08"]
+[GameStartTime "2026-08-02T11:57:51.038 +08"]
+[Opening "Sicilian defense"]
+[PlyCount "26"]
+[Termination "abandoned"]
+[TimeControl "5+0.05"]
+
+1. e4 {book} c5 {book} 2. e5 {book} Nc6 {book} 3. Nf3 {book} d6 {book}
+4. Nc3 {book} Bg4 {book} 5. h3 {book} Bxf3 {book} 6. Qxf3 {-0.31/11 0.12s}
+Rc8 {+0.67/13 0.21s} 7. e6 {+0.35/10 0.25s} fxe6 {+0.70/14 0.21s}
+8. g3 {-0.34/10 0.28s} d5 {+0.84/13 0.21s} 9. Bg2 {-0.37/10 0.17s}
+g6 {+0.84/15 0.52s} 10. O-O {-0.45/10 0.19s} Nh6 {+0.83/15 0.41s}
+11. Ne2 {-0.34/10 0.16s} Qd6 {+0.61/14 0.34s} 12. Qc3 {-0.11/9 0.14s}
+Nf7 {+0.48/14 0.58s} 13. d3 {-0.18/10 0.18s}
+Rc7 {+0.36/13 0.38s, Black disconnects} 1-0
+
+[Event "?"]
+[Site "?"]
+[Date "2026.08.02"]
+[Round "1"]
+[White "SF1800"]
+[Black "Adapter500"]
+[Result "0-1"]
+[ECO "B01"]
+[GameDuration "00:00:04"]
+[GameEndTime "2026-08-02T11:57:55.519 +08"]
+[GameStartTime "2026-08-02T11:57:51.044 +08"]
+[Opening "Scandinavian defense"]
+[PlyCount "29"]
+[Termination "abandoned"]
+[TimeControl "5+0.05"]
+
+1. e4 {book} d5 {book} 2. exd5 {book} Nf6 {book} 3. Nc3 {book} Nxd5 {book}
+4. Ne4 {book} Bf5 {book} 5. Ng3 {book} Be6 {book} 6. Nf3 {+0.78/13 0.30s}
+Nf6 {-0.30/9 0.17s} 7. Be2 {+0.78/12 0.24s} h5 {-0.31/10 0.18s}
+8. h4 {+0.63/13 0.29s} c6 {-0.34/10 0.17s} 9. O-O {+0.89/15 0.52s}
+Nbd7 {-0.30/10 0.16s} 10. Ng5 {+1.37/15 0.36s} Ne5 {-0.74/10 0.14s}
+11. Re1 {+3.00/17 0.23s} Qd4 {-0.49/9 0.18s} 12. c3 {+2.41/15 0.42s}
+Qd7 {-1.10/11 0.13s} 13. d4 {+3.21/13 0.062s} Nc4 {-1.29/10 0.13s}
+14. Bd3 {+4.11/16 0.20s} Nxb2 {-1.74/11 0.19s}
+15. Bxb2 {+5.51/15 0.19s, White disconnects} 0-1
+
+[Event "?"]
+[Site "?"]
+[Date "2026.08.02"]
+[Round "1"]
+[White "Adapter500"]
+[Black "SF1800"]
+[Result "1-0"]
+[ECO "B01"]
+[GameDuration "00:00:04"]
+[GameEndTime "2026-08-02T12:02:30.847 +08"]
+[GameStartTime "2026-08-02T12:02:26.391 +08"]
+[Opening "Scandinavian (centre counter) defense"]
+[PlyCount "29"]
+[Termination "abandoned"]
+[TimeControl "5+0.05"]
+
+1. e4 {book} d5 {book} 2. exd5 {book} Qxd5 {book} 3. Nc3 {book} Qe6+ {book}
+4. Qe2 {book} Qxe2+ {book} 5. Bxe2 {book} e6 {book} 6. d4 {+0.48/10 0.19s}
+Kd8 {-0.39/17 0.81s} 7. Bf4 {+0.78/9 0.17s} Bd6 {-0.81/13 0.18s}
+8. Be3 {+0.77/10 0.15s} Nf6 {-0.60/15 0.27s} 9. Nf3 {+0.63/10 0.32s}
+Nbd7 {-0.53/14 0.25s} 10. O-O {+0.69/9 0.23s} Ke7 {-0.45/13 0.24s}
+11. Bd3 {+1.09/9 0.19s} a6 {-0.18/12 0.14s} 12. Bg5 {+0.52/9 0.16s}
+Rd8 {-0.01/12 0.11s} 13. Rad1 {+1.04/9 0.16s} Kf8 {+0.20/12 0.080s}
+14. Ne4 {+0.54/10 0.27s} b5 {+0.05/14 0.31s}
+15. Nxd6 {+1.28/9 0.13s, Black disconnects} 1-0
+

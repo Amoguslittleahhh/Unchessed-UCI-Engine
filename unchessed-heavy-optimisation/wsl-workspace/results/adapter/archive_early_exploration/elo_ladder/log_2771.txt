@@ -1,0 +1,14 @@
+Indexing opening suite...
+Started game 1 of 1 (Adapter2771 vs Stockfish)
+Finished game 1 (Adapter2771 vs Stockfish): 1-0 {White wins by adjudication}
+Score of Adapter2771 vs Stockfish: 1 - 0 - 0  [1.000] 1
+...      Adapter2771 playing White: 1 - 0 - 0  [1.000] 1
+...      White vs Black: 1 - 0 - 0  [1.000] 1
+Elo difference: inf +/- nan, LOS: 84.1 %, DrawRatio: 0.0 %
+SPRT: llr 0 (0.0%), lbound -inf, ubound inf
+
+Player: Adapter2771
+   "Win: White wins by adjudication": 1
+Player: Stockfish
+   "Loss: White wins by adjudication": 1
+Finished match

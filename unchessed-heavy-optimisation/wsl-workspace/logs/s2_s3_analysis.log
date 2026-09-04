@@ -1,0 +1,35 @@
+=== S2: Adaptive vs SF@2800 ===
+S2 game 1: avg_cp_loss=213 blunders=2/46 result=1-0
+S2 game 2: avg_cp_loss=44 blunders=1/45 result=1-0
+S2 game 3: avg_cp_loss=15 blunders=0/97 result=1-0
+S2 game 4: avg_cp_loss=167 blunders=5/98 result=1-0
+S2 game 5: avg_cp_loss=32 blunders=1/34 result=0-1
+S2 game 6: avg_cp_loss=11 blunders=0/38 result=0-1
+S2 game 7: avg_cp_loss=223 blunders=9/65 result=0-1
+S2 game 8: avg_cp_loss=42 blunders=1/25 result=1-0
+S2 game 9: avg_cp_loss=22 blunders=0/92 result=1/2-1/2
+S2 game 10: avg_cp_loss=255 blunders=2/42 result=1-0
+S2 game 11: avg_cp_loss=28 blunders=0/52 result=0-1
+S2 game 12: avg_cp_loss=464 blunders=2/41 result=1-0
+S2 game 13: avg_cp_loss=8 blunders=0/177 result=1/2-1/2
+S2 game 14: avg_cp_loss=31 blunders=0/77 result=1-0
+S2 game 15: avg_cp_loss=183 blunders=1/56 result=0-1
+S2 game 16: avg_cp_loss=126 blunders=2/91 result=1-0
+
+S2 AGGREGATE: n_games=16 mean_cp_loss=97.9 median=6.0 blunder_rate=2.4% (26/1076 moves)
+
+=== S3: Adaptive vs full-strength SF ===
+S3 game 1: avg_cp_loss=24 blunders=0/54 result=0-1
+S3 game 2: avg_cp_loss=147 blunders=1/69 result=1-0
+S3 game 3: avg_cp_loss=174 blunders=1/59 result=0-1
+S3 game 4: avg_cp_loss=34 blunders=0/28 result=1-0
+S3 game 5: avg_cp_loss=318 blunders=1/32 result=0-1
+S3 game 6: avg_cp_loss=26 blunders=0/51 result=1-0
+S3 game 7: avg_cp_loss=202 blunders=1/49 result=0-1
+S3 game 8: avg_cp_loss=24 blunders=0/39 result=1-0
+S3 game 9: avg_cp_loss=31 blunders=0/52 result=0-1
+S3 game 10: avg_cp_loss=186 blunders=1/54 result=1-0
+S3 game 11: avg_cp_loss=148 blunders=1/67 result=0-1
+S3 game 12: avg_cp_loss=351 blunders=1/29 result=1-0
+
+S3 AGGREGATE: n_games=12 mean_cp_loss=131.6 median=10.0 blunder_rate=1.2% (7/583 moves)

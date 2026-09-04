@@ -1,0 +1,56 @@
+Indexing opening suite...
+Started game 9 of 12 (Plus vs Minus)
+Started game 8 of 12 (Minus vs Plus)
+Started game 4 of 12 (Minus vs Plus)
+Started game 1 of 12 (Plus vs Minus)
+Started game 12 of 12 (Minus vs Plus)
+Started game 7 of 12 (Plus vs Minus)
+Started game 3 of 12 (Plus vs Minus)
+Started game 6 of 12 (Minus vs Plus)
+Started game 11 of 12 (Plus vs Minus)
+Started game 5 of 12 (Plus vs Minus)
+Started game 2 of 12 (Minus vs Plus)
+Started game 10 of 12 (Minus vs Plus)
+Finished game 6 (Minus vs Plus): 1/2-1/2 {Draw by 3-fold repetition}
+Score of Plus vs Minus: 0 - 0 - 1  [0.500] 1
+Finished game 9 (Plus vs Minus): 0-1 {Black wins by adjudication}
+Score of Plus vs Minus: 0 - 1 - 1  [0.250] 2
+Finished game 8 (Minus vs Plus): 1-0 {White wins by adjudication}
+Score of Plus vs Minus: 0 - 2 - 1  [0.167] 3
+Finished game 12 (Minus vs Plus): 1/2-1/2 {Draw by insufficient mating material}
+Score of Plus vs Minus: 0 - 2 - 2  [0.250] 4
+Finished game 11 (Plus vs Minus): 1/2-1/2 {Draw by insufficient mating material}
+Score of Plus vs Minus: 0 - 2 - 3  [0.300] 5
+Finished game 2 (Minus vs Plus): 1/2-1/2 {Draw by 3-fold repetition}
+Score of Plus vs Minus: 0 - 2 - 4  [0.333] 6
+Finished game 4 (Minus vs Plus): 1/2-1/2 {Draw by 3-fold repetition}
+Score of Plus vs Minus: 0 - 2 - 5  [0.357] 7
+Finished game 10 (Minus vs Plus): 1-0 {White wins by adjudication}
+Score of Plus vs Minus: 0 - 3 - 5  [0.313] 8
+Finished game 7 (Plus vs Minus): 0-1 {Black wins by adjudication}
+Score of Plus vs Minus: 0 - 4 - 5  [0.278] 9
+Finished game 3 (Plus vs Minus): 0-1 {Black wins by adjudication}
+Score of Plus vs Minus: 0 - 5 - 5  [0.250] 10
+Finished game 1 (Plus vs Minus): 0-1 {Black wins by adjudication}
+Score of Plus vs Minus: 0 - 6 - 5  [0.227] 11
+Finished game 5 (Plus vs Minus): 1-0 {White wins by adjudication}
+Score of Plus vs Minus: 1 - 6 - 5  [0.292] 12
+...      Plus playing White: 1 - 4 - 1  [0.250] 6
+...      Plus playing Black: 0 - 2 - 4  [0.333] 6
+...      White vs Black: 3 - 4 - 5  [0.458] 12
+Elo difference: -154.1 +/- 171.3, LOS: 2.9 %, DrawRatio: 41.7 %
+SPRT: llr 0 (0.0%), lbound -inf, ubound inf
+
+Player: Plus
+   "Draw by 3-fold repetition": 3
+   "Draw by insufficient mating material": 2
+   "Loss: Black wins by adjudication": 4
+   "Loss: White wins by adjudication": 2
+   "Win: White wins by adjudication": 1
+Player: Minus
+   "Draw by 3-fold repetition": 3
+   "Draw by insufficient mating material": 2
+   "Loss: White wins by adjudication": 1
+   "Win: Black wins by adjudication": 4
+   "Win: White wins by adjudication": 2
+Finished match

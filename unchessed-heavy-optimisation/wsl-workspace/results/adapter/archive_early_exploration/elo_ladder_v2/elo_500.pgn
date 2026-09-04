@@ -1,0 +1,23 @@
+[Event "?"]
+[Site "?"]
+[Date "2026.07.31"]
+[Round "1"]
+[White "Adapter500"]
+[Black "Stockfish"]
+[Result "1-0"]
+[ECO "B21"]
+[GameDuration "00:00:01"]
+[GameEndTime "2026-07-31T21:07:48.246 +08"]
+[GameStartTime "2026-07-31T21:07:46.881 +08"]
+[Opening "Sicilian"]
+[PlyCount "18"]
+[Termination "abandoned"]
+[TimeControl "5+0.05"]
+[Variation "Grand Prix attack"]
+
+1. e4 {book} c5 {book} 2. f4 {book} Nc6 {book} 3. Nf3 {book} g6 {book}
+4. c3 {book} Bg7 {book} 5. Be2 {book} e6 {book} 6. O-O {-0.17/11 0.14s}
+Nf6 {-0.29/18 0.37s} 7. e5 {0.00/11 0.065s} Nd5 {-0.27/13 0.058s}
+8. d4 {+0.05/11 0.061s} cxd4 {-0.32/14 0.076s} 9. cxd4 {+0.07/11 0.083s}
+Nce7 {-0.42/16 0.43s, Black disconnects} 1-0
+

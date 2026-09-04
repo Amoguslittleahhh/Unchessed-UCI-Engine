@@ -1,0 +1,528 @@
+{
+  "source": {
+    "repo": "rozim/ChessData",
+    "commit": "ed88abd2716da58ee55d42b662455c1c8ebe0776",
+    "path": "Release/2022-10-05/mega-clean.pgn-chunk-* (63 files, 3.9 GB, all rated lichess games, snapshot 2022-10-05)"
+  },
+  "method": "text-level banding by mean(WhiteElo, BlackElo) into 100-wide bands; games copied verbatim; both ratings required in [100, 3500)",
+  "cap": 2000,
+  "per_band_available": {
+    "100": 0,
+    "200": 7,
+    "300": 0,
+    "400": 0,
+    "500": 0,
+    "600": 0,
+    "700": 1,
+    "800": 7,
+    "900": 13,
+    "1000": 273,
+    "1100": 1430,
+    "1200": 3755,
+    "1300": 6915,
+    "1400": 12104,
+    "1500": 21250,
+    "1600": 35949,
+    "1700": 58167,
+    "1800": 92466,
+    "1900": 146377,
+    "2000": 249859,
+    "2100": 401512,
+    "2200": 539330,
+    "2300": 616909,
+    "2400": 577053,
+    "2500": 337211,
+    "2600": 127442,
+    "2700": 37400,
+    "2800": 2130,
+    "2900": 0,
+    "3000": 1,
+    "3100": 0,
+    "3200": 0,
+    "3300": 80
+  },
+  "per_band_kept": {
+    "100": 0,
+    "200": 7,
+    "300": 0,
+    "400": 0,
+    "500": 0,
+    "600": 0,
+    "700": 1,
+    "800": 7,
+    "900": 13,
+    "1000": 273,
+    "1100": 1430,
+    "1200": 2000,
+    "1300": 2000,
+    "1400": 2000,
+    "1500": 2000,
+    "1600": 2000,
+    "1700": 2000,
+    "1800": 2000,
+    "1900": 2000,
+    "2000": 2000,
+    "2100": 2000,
+    "2200": 2000,
+    "2300": 2000,
+    "2400": 2000,
+    "2500": 2000,
+    "2600": 2000,
+    "2700": 2000,
+    "2800": 2000,
+    "2900": 0,
+    "3000": 1,
+    "3100": 0,
+    "3200": 0,
+    "3300": 80
+  },
+  "kept_total": 35812,
+  "available_total": 3267641,
+  "blocks": [
+    {
+      "path": "data/training-elo/elo-0100.pgn",
+      "band": 100,
+      "games": 0,
+      "games_before_clean": 0,
+      "illegal_games_dropped": 0,
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "years": null,
+      "available_in_source": 0
+    },
+    {
+      "path": "data/training-elo/elo-0200.pgn",
+      "band": 200,
+      "games": 7,
+      "games_before_clean": 7,
+      "illegal_games_dropped": 0,
+      "bytes": 4289,
+      "sha256": "20c1b3ccefbcde389cb3e78a52168127373c03cdec11f2927bcdc1c2e099d519",
+      "years": [
+        2001,
+        2001
+      ],
+      "available_in_source": 7
+    },
+    {
+      "path": "data/training-elo/elo-0300.pgn",
+      "band": 300,
+      "games": 0,
+      "games_before_clean": 0,
+      "illegal_games_dropped": 0,
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "years": null,
+      "available_in_source": 0
+    },
+    {
+      "path": "data/training-elo/elo-0400.pgn",
+      "band": 400,
+      "games": 0,
+      "games_before_clean": 0,
+      "illegal_games_dropped": 0,
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "years": null,
+      "available_in_source": 0
+    },
+    {
+      "path": "data/training-elo/elo-0500.pgn",
+      "band": 500,
+      "games": 0,
+      "games_before_clean": 0,
+      "illegal_games_dropped": 0,
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "years": null,
+      "available_in_source": 0
+    },
+    {
+      "path": "data/training-elo/elo-0600.pgn",
+      "band": 600,
+      "games": 0,
+      "games_before_clean": 0,
+      "illegal_games_dropped": 0,
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "years": null,
+      "available_in_source": 0
+    },
+    {
+      "path": "data/training-elo/elo-0700.pgn",
+      "band": 700,
+      "games": 1,
+      "games_before_clean": 1,
+      "illegal_games_dropped": 0,
+      "bytes": 754,
+      "sha256": "b6e1cfc6bb9a4726d84731bce59e528357a9b8a5ef1f57601a581aa268d11cd1",
+      "years": [
+        2015,
+        2015
+      ],
+      "available_in_source": 1
+    },
+    {
+      "path": "data/training-elo/elo-0800.pgn",
+      "band": 800,
+      "games": 7,
+      "games_before_clean": 7,
+      "illegal_games_dropped": 0,
+      "bytes": 5251,
+      "sha256": "bd3582501729f40a381d29292651fae909e2fd55456232e7abdf244f1d0b1021",
+      "years": [
+        2000,
+        2015
+      ],
+      "available_in_source": 7
+    },
+    {
+      "path": "data/training-elo/elo-0900.pgn",
+      "band": 900,
+      "games": 13,
+      "games_before_clean": 13,
+      "illegal_games_dropped": 0,
+      "bytes": 10351,
+      "sha256": "585e61ea3ba24f888d926e40f5b2067abe7b02e91598e4f1eba522005d0b5273",
+      "years": [
+        2000,
+        2015
+      ],
+      "available_in_source": 13
+    },
+    {
+      "path": "data/training-elo/elo-1000.pgn",
+      "band": 1000,
+      "games": 273,
+      "games_before_clean": 273,
+      "illegal_games_dropped": 0,
+      "bytes": 215395,
+      "sha256": "c46795ef5d1ff34f9314ace4f27fe0e2eb80129b1c1314926f58b2602580a101",
+      "years": [
+        2001,
+        2022
+      ],
+      "available_in_source": 273
+    },
+    {
+      "path": "data/training-elo/elo-1100.pgn",
+      "band": 1100,
+      "games": 1430,
+      "games_before_clean": 1430,
+      "illegal_games_dropped": 0,
+      "bytes": 1206268,
+      "sha256": "843c81bb3e54859e652f000df5a309160d28024869a83e946527334712a0b26e",
+      "years": [
+        2000,
+        2022
+      ],
+      "available_in_source": 1430
+    },
+    {
+      "path": "data/training-elo/elo-1200.pgn",
+      "band": 1200,
+      "games": 2000,
+      "games_before_clean": 2000,
+      "illegal_games_dropped": 0,
+      "bytes": 1677984,
+      "sha256": "b41e147f8428e2c6c42def4d51b722598a2ce54ce3ae30469703c18c18693da5",
+      "years": [
+        2000,
+        2019
+      ],
+      "available_in_source": 3755
+    },
+    {
+      "path": "data/training-elo/elo-1300.pgn",
+      "band": 1300,
+      "games": 2000,
+      "games_before_clean": 2000,
+      "illegal_games_dropped": 0,
+      "bytes": 1578718,
+      "sha256": "b71842699bd5cb1048bbd33230eb3974178a0427b343d3d80e1269a73b8adfdb",
+      "years": [
+        2000,
+        2017
+      ],
+      "available_in_source": 6915
+    },
+    {
+      "path": "data/training-elo/elo-1400.pgn",
+      "band": 1400,
+      "games": 2000,
+      "games_before_clean": 2000,
+      "illegal_games_dropped": 0,
+      "bytes": 1488229,
+      "sha256": "14a00f231e5dc450e3ad1a567785eeae24c3fff8c07996d87108ab0b69cb2c04",
+      "years": [
+        1996,
+        2019
+      ],
+      "available_in_source": 12104
+    },
+    {
+      "path": "data/training-elo/elo-1500.pgn",
+      "band": 1500,
+      "games": 2000,
+      "games_before_clean": 2000,
+      "illegal_games_dropped": 0,
+      "bytes": 1469648,
+      "sha256": "8d6193cef3ccece6b092509c5eb66ed928a3c5a153569f2d947b6bba005e2bc0",
+      "years": [
+        1996,
+        2022
+      ],
+      "available_in_source": 21250
+    },
+    {
+      "path": "data/training-elo/elo-1600.pgn",
+      "band": 1600,
+      "games": 2000,
+      "games_before_clean": 2000,
+      "illegal_games_dropped": 0,
+      "bytes": 1435306,
+      "sha256": "72b33ef882a76b9c5cd9b0c38f1f76bc99ade8bb3f74f6ae3a75e65b4e80c5e4",
+      "years": [
+        1989,
+        2022
+      ],
+      "available_in_source": 35949
+    },
+    {
+      "path": "data/training-elo/elo-1700.pgn",
+      "band": 1700,
+      "games": 2000,
+      "games_before_clean": 2000,
+      "illegal_games_dropped": 0,
+      "bytes": 1424656,
+      "sha256": "503f306dcae4fe6fbf1a63f48ff90c998d59fdc5100d46c8096e30255996c7f9",
+      "years": [
+        1989,
+        2007
+      ],
+      "available_in_source": 58167
+    },
+    {
+      "path": "data/training-elo/elo-1800.pgn",
+      "band": 1800,
+      "games": 2000,
+      "games_before_clean": 2000,
+      "illegal_games_dropped": 0,
+      "bytes": 1427499,
+      "sha256": "cf806e7028806bf4eae77239ce4ca7cbd5da050749ff8192e1f0531c09e75bc0",
+      "years": [
+        2002,
+        2007
+      ],
+      "available_in_source": 92466
+    },
+    {
+      "path": "data/training-elo/elo-1900.pgn",
+      "band": 1900,
+      "games": 2000,
+      "games_before_clean": 2000,
+      "illegal_games_dropped": 0,
+      "bytes": 1447377,
+      "sha256": "a7e96015a6178b3021db40cd5c05fb8b1eeeb0d92bf9ae28514c4df418707097",
+      "years": [
+        2003,
+        2007
+      ],
+      "available_in_source": 146377
+    },
+    {
+      "path": "data/training-elo/elo-2000.pgn",
+      "band": 2000,
+      "games": 2000,
+      "games_before_clean": 2000,
+      "illegal_games_dropped": 0,
+      "bytes": 1476727,
+      "sha256": "e0a4e4cbdad04f4e511e46404e74a7f9f8981a17b45860eaa111a9c692a5c7ab",
+      "years": [
+        2002,
+        2007
+      ],
+      "available_in_source": 249859
+    },
+    {
+      "path": "data/training-elo/elo-2100.pgn",
+      "band": 2100,
+      "games": 2000,
+      "games_before_clean": 2000,
+      "illegal_games_dropped": 0,
+      "bytes": 1485051,
+      "sha256": "790a03d637b6dd4b3d88068e63a10e7a2879966188f582f9c9bab55f3e8d8272",
+      "years": [
+        2002,
+        2007
+      ],
+      "available_in_source": 401512
+    },
+    {
+      "path": "data/training-elo/elo-2200.pgn",
+      "band": 2200,
+      "games": 2000,
+      "games_before_clean": 2000,
+      "illegal_games_dropped": 0,
+      "bytes": 1506330,
+      "sha256": "d3091b776cd8e760126de04f7e0e48bf991349b0fd60ad14408beebe95e61d3b",
+      "years": [
+        2002,
+        2007
+      ],
+      "available_in_source": 539330
+    },
+    {
+      "path": "data/training-elo/elo-2300.pgn",
+      "band": 2300,
+      "games": 2000,
+      "games_before_clean": 2000,
+      "illegal_games_dropped": 0,
+      "bytes": 1522981,
+      "sha256": "e89621f003e4ca56aa450bc7e38a64c6e5d10b51c848b8079668cf3944687f51",
+      "years": [
+        2002,
+        2007
+      ],
+      "available_in_source": 616909
+    },
+    {
+      "path": "data/training-elo/elo-2400.pgn",
+      "band": 2400,
+      "games": 2000,
+      "games_before_clean": 2000,
+      "illegal_games_dropped": 0,
+      "bytes": 1489889,
+      "sha256": "25269a0449dd82886cc53012a7aba89e2e02419967ebe0ca7ca6ed98dcd9fbf6",
+      "years": [
+        2002,
+        2007
+      ],
+      "available_in_source": 577053
+    },
+    {
+      "path": "data/training-elo/elo-2500.pgn",
+      "band": 2500,
+      "games": 2000,
+      "games_before_clean": 2000,
+      "illegal_games_dropped": 0,
+      "bytes": 1466018,
+      "sha256": "8a5f5451c2302f0a410b9f771488352dca69af8c6185dc884460928f3842b154",
+      "years": [
+        2002,
+        2007
+      ],
+      "available_in_source": 337211
+    },
+    {
+      "path": "data/training-elo/elo-2600.pgn",
+      "band": 2600,
+      "games": 2000,
+      "games_before_clean": 2000,
+      "illegal_games_dropped": 0,
+      "bytes": 1521839,
+      "sha256": "4a16b0b9c2fc45964a43e4e7d52c48039f676b2ca71ae5cf6db43b99ea4a0702",
+      "years": [
+        2002,
+        2007
+      ],
+      "available_in_source": 127442
+    },
+    {
+      "path": "data/training-elo/elo-2700.pgn",
+      "band": 2700,
+      "games": 2000,
+      "games_before_clean": 2000,
+      "illegal_games_dropped": 0,
+      "bytes": 1535035,
+      "sha256": "e33dae35f427300896afca38f0d772b7d0000add7ec93519bf215457c0f45d91",
+      "years": [
+        1994,
+        2007
+      ],
+      "available_in_source": 37400
+    },
+    {
+      "path": "data/training-elo/elo-2800.pgn",
+      "band": 2800,
+      "games": 2000,
+      "games_before_clean": 2000,
+      "illegal_games_dropped": 0,
+      "bytes": 1550241,
+      "sha256": "6676d24796c40ec1f96a588bc33008613c9b53126639c9970c5f41c257d21832",
+      "years": [
+        1998,
+        2022
+      ],
+      "available_in_source": 2130
+    },
+    {
+      "path": "data/training-elo/elo-2900.pgn",
+      "band": 2900,
+      "games": 0,
+      "games_before_clean": 0,
+      "illegal_games_dropped": 0,
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "years": null,
+      "available_in_source": 0
+    },
+    {
+      "path": "data/training-elo/elo-3000.pgn",
+      "band": 3000,
+      "games": 1,
+      "games_before_clean": 1,
+      "illegal_games_dropped": 0,
+      "bytes": 975,
+      "sha256": "8fa32b4e6b720abb0c2fa687bf216729b15019de20f187b13cc05b13e96fa0f9",
+      "years": [
+        2002,
+        2002
+      ],
+      "available_in_source": 1
+    },
+    {
+      "path": "data/training-elo/elo-3100.pgn",
+      "band": 3100,
+      "games": 0,
+      "games_before_clean": 0,
+      "illegal_games_dropped": 0,
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "years": null,
+      "available_in_source": 0
+    },
+    {
+      "path": "data/training-elo/elo-3200.pgn",
+      "band": 3200,
+      "games": 0,
+      "games_before_clean": 0,
+      "illegal_games_dropped": 0,
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "years": null,
+      "available_in_source": 0
+    },
+    {
+      "path": "data/training-elo/elo-3300.pgn",
+      "band": 3300,
+      "games": 80,
+      "games_before_clean": 80,
+      "illegal_games_dropped": 0,
+      "bytes": 94490,
+      "sha256": "08458d0897a462c29397b0f0259d78ba7a001417fcc00faae2c8decc8f603423",
+      "years": [
+        2020,
+        2022
+      ],
+      "available_in_source": 80
+    }
+  ],
+  "totals": {
+    "files": 33,
+    "games": 35812,
+    "illegal_games_dropped": 0,
+    "bytes": 27041301,
+    "available_total_in_source": 3267641
+  }
+}

@@ -1,0 +1,33 @@
+[Event "?"]
+[Site "?"]
+[Date "2026.07.31"]
+[Round "1"]
+[White "Adapter714"]
+[Black "Stockfish"]
+[Result "0-1"]
+[ECO "B00"]
+[GameDuration "00:00:04"]
+[GameEndTime "2026-07-31T21:34:05.580 +08"]
+[GameStartTime "2026-07-31T21:34:00.908 +08"]
+[Opening "King's pawn"]
+[PlyCount "47"]
+[Termination "adjudication"]
+[TimeControl "5+0.05"]
+[Variation "Nimzowitsch defense"]
+
+1. e4 {book} Nc6 {book} 2. Bc4 {book} Nf6 {book} 3. Nc3 {book} e5 {book}
+4. d3 {book} Bb4 {book} 5. Bd2 {book} Bxc3 {book} 6. Bxc3 {+0.13/13 0.059s}
+O-O {-0.02/19 0.38s} 7. Nf3 {+0.27/11 0.050s} d5 {+0.08/15 0.059s}
+8. exd5 {+0.03/12 0.11s} Nxd5 {+0.04/14 0.091s} 9. Bd2 {-0.02/12 0.11s}
+Nf4 {+0.52/17 0.21s} 10. O-O {-0.11/11 0.066s} Bg4 {+0.49/15 0.061s}
+11. h3 {-0.28/11 0.17s} Bh5 {+0.55/18 0.24s} 12. Bxf4 {-0.50/11 0.25s}
+exf4 {+0.57/16 0.12s} 13. Rc1 {-0.57/11 0.17s} Nd4 {+2.63/17 0.19s}
+14. c3 {-0.48/12 0.24s} Nxf3+ {+2.59/14 0.055s} 15. gxf3 {-0.55/12 0.042s}
+b5 {+2.77/14 0.12s} 16. Bb3 {-0.61/13 0.074s} a5 {+2.74/17 0.078s}
+17. d4 {-0.59/13 0.19s} Ra6 {+2.83/14 0.067s} 18. Kh2 {-0.55/12 0.13s}
+Rh6 {+2.98/18 0.25s} 19. Qd3 {-1.12/11 0.21s} Bg6 {+5.41/17 0.22s}
+20. Qxb5 {-1.83/11 0.074s} Qc8 {+M11/39 0.046s} 21. Be6 {-13.52/12 0.27s}
+Qxe6 {+M9/57 0.068s} 22. Qd7 {-M8/11 0.064s} Qxd7 {+M7/98 0.069s}
+23. h4 {-M6/12 0.002s} Rxh4+ {+M5/245 0.036s}
+24. Kg1 {-M4/12 0s, Black wins by adjudication} 0-1
+

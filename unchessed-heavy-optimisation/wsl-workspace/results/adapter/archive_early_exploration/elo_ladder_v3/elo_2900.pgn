@@ -1,0 +1,25 @@
+[Event "?"]
+[Site "?"]
+[Date "2026.07.31"]
+[Round "1"]
+[White "Adapter2900"]
+[Black "Stockfish"]
+[Result "1/2-1/2"]
+[ECO "C00"]
+[GameDuration "00:00:01"]
+[GameEndTime "2026-07-31T21:42:56.996 +08"]
+[GameStartTime "2026-07-31T21:42:55.179 +08"]
+[Opening "French defense"]
+[PlyCount "29"]
+[TimeControl "5+0.05"]
+
+1. e4 {book} e6 {book} 2. d4 {book} c5 {book} 3. Nf3 {book} cxd4 {book}
+4. Nxd4 {book} Nf6 {book} 5. Nc3 {book} Bb4 {book} 6. a3 {+0.33/12 0.16s}
+Bxc3+ {0.00/17 0.14s} 7. bxc3 {+0.33/11 0.037s} Qa5 {0.00/17 0.091s}
+8. Nb5 {+0.54/12 0.21s} O-O {0.00/19 0.055s} 9. e5 {+0.39/11 0.061s}
+Ne8 {0.00/17 0.070s} 10. Bd2 {0.00/12 0.050s} a6 {0.00/27 0.12s}
+11. c4 {0.00/15 0.079s} Qb6 {0.00/27 0.19s} 12. Be3 {0.00/14 0.084s}
+Qa5+ {0.00/33 0.10s} 13. Bd2 {0.00/19 0.047s} Qb6 {0.00/30 0.053s}
+14. Be3 {0.00/15 0.094s} Qa5+ {0.00/45 0.11s}
+15. Bd2 {0.00/20 0.057s, Draw by 3-fold repetition} 1/2-1/2
+

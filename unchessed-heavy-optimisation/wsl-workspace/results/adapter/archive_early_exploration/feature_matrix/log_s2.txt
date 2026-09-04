@@ -1,0 +1,72 @@
+Indexing opening suite...
+Started game 1 of 16 (AdaptVsStrong vs SF2800)
+Started game 3 of 16 (AdaptVsStrong vs SF2800)
+Started game 2 of 16 (SF2800 vs AdaptVsStrong)
+Started game 6 of 16 (SF2800 vs AdaptVsStrong)
+Started game 5 of 16 (AdaptVsStrong vs SF2800)
+Started game 8 of 16 (SF2800 vs AdaptVsStrong)
+Started game 4 of 16 (SF2800 vs AdaptVsStrong)
+Started game 7 of 16 (AdaptVsStrong vs SF2800)
+Finished game 8 (SF2800 vs AdaptVsStrong): 1-0 {White mates}
+Score of AdaptVsStrong vs SF2800: 0 - 1 - 0  [0.000] 1
+Started game 9 of 16 (AdaptVsStrong vs SF2800)
+Finished game 5 (AdaptVsStrong vs SF2800): 0-1 {Black wins by adjudication}
+Score of AdaptVsStrong vs SF2800: 0 - 2 - 0  [0.000] 2
+Started game 10 of 16 (SF2800 vs AdaptVsStrong)
+Finished game 6 (SF2800 vs AdaptVsStrong): 0-1 {Black wins by adjudication}
+Score of AdaptVsStrong vs SF2800: 1 - 2 - 0  [0.333] 3
+Started game 11 of 16 (AdaptVsStrong vs SF2800)
+Finished game 1 (AdaptVsStrong vs SF2800): 1-0 {White wins by adjudication}
+Score of AdaptVsStrong vs SF2800: 2 - 2 - 0  [0.500] 4
+Started game 12 of 16 (SF2800 vs AdaptVsStrong)
+Finished game 2 (SF2800 vs AdaptVsStrong): 1-0 {White wins by adjudication}
+Score of AdaptVsStrong vs SF2800: 2 - 3 - 0  [0.400] 5
+Started game 13 of 16 (AdaptVsStrong vs SF2800)
+Finished game 7 (AdaptVsStrong vs SF2800): 0-1 {Black wins by adjudication}
+Score of AdaptVsStrong vs SF2800: 2 - 4 - 0  [0.333] 6
+Started game 14 of 16 (SF2800 vs AdaptVsStrong)
+Finished game 3 (AdaptVsStrong vs SF2800): 1-0 {White wins by adjudication}
+Score of AdaptVsStrong vs SF2800: 3 - 4 - 0  [0.429] 7
+Started game 15 of 16 (AdaptVsStrong vs SF2800)
+Finished game 4 (SF2800 vs AdaptVsStrong): 1-0 {White wins by adjudication}
+Score of AdaptVsStrong vs SF2800: 3 - 5 - 0  [0.375] 8
+Started game 16 of 16 (SF2800 vs AdaptVsStrong)
+Finished game 10 (SF2800 vs AdaptVsStrong): 1-0 {White wins by adjudication}
+Score of AdaptVsStrong vs SF2800: 3 - 6 - 0  [0.333] 9
+Finished game 12 (SF2800 vs AdaptVsStrong): 1-0 {White wins by adjudication}
+Score of AdaptVsStrong vs SF2800: 3 - 7 - 0  [0.300] 10
+Finished game 11 (AdaptVsStrong vs SF2800): 0-1 {Black wins by adjudication}
+Score of AdaptVsStrong vs SF2800: 3 - 8 - 0  [0.273] 11
+Finished game 9 (AdaptVsStrong vs SF2800): 1/2-1/2 {Draw by insufficient mating material}
+Score of AdaptVsStrong vs SF2800: 3 - 8 - 1  [0.292] 12
+Finished game 14 (SF2800 vs AdaptVsStrong): 1-0 {White wins by adjudication}
+Score of AdaptVsStrong vs SF2800: 3 - 9 - 1  [0.269] 13
+Finished game 15 (AdaptVsStrong vs SF2800): 0-1 {Black wins by adjudication}
+Score of AdaptVsStrong vs SF2800: 3 - 10 - 1  [0.250] 14
+Finished game 16 (SF2800 vs AdaptVsStrong): 1-0 {White wins by adjudication}
+Score of AdaptVsStrong vs SF2800: 3 - 11 - 1  [0.233] 15
+Finished game 13 (AdaptVsStrong vs SF2800): 1/2-1/2 {Draw by fifty moves rule}
+Score of AdaptVsStrong vs SF2800: 3 - 11 - 2  [0.250] 16
+...      AdaptVsStrong playing White: 2 - 4 - 2  [0.375] 8
+...      AdaptVsStrong playing Black: 1 - 7 - 0  [0.125] 8
+...      White vs Black: 9 - 5 - 2  [0.625] 16
+Elo difference: -190.8 +/- 224.6, LOS: 1.6 %, DrawRatio: 12.5 %
+SPRT: llr 0 (0.0%), lbound -inf, ubound inf
+
+Player: AdaptVsStrong
+   "Draw by fifty moves rule": 1
+   "Draw by insufficient mating material": 1
+   "Loss: Black wins by adjudication": 4
+   "Loss: White mates": 1
+   "Loss: White wins by adjudication": 6
+   "Win: Black wins by adjudication": 1
+   "Win: White wins by adjudication": 2
+Player: SF2800
+   "Draw by fifty moves rule": 1
+   "Draw by insufficient mating material": 1
+   "Loss: Black wins by adjudication": 1
+   "Loss: White wins by adjudication": 2
+   "Win: Black wins by adjudication": 4
+   "Win: White mates": 1
+   "Win: White wins by adjudication": 6
+Finished match

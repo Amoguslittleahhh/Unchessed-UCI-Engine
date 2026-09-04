@@ -1,0 +1,2400 @@
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "1"]
+[White "Maia3 (elo 2719)"]
+[Black "Maia3 (elo 556)"]
+[WhiteElo "2719"]
+[BlackElo "556"]
+[Result "1-0"]
+
+1. Nf3 a6 2. d4 f6 3. e4 a5 4. Nc3 b5 5. Bc4 d6 6. Bxb5+ Nd7 7. O-O c6 8. Bxc6 Ra6 9. Bb5 Rb6 10. Bd2 Rxb5 11. Nxb5 Qb6 12. a4 d5 13. exd5 Ba6 14. Qe1 Qxb5 15. axb5 Bxb5 16. Qe6 a4 17. d6 g6 18. c4 Bxc4 19. Qxc4 h6 20. Rxa4 exd6 21. Re1+ Kd8 22. Ra8+ Nb8 23. Qc6 Be7 24. Rxb8# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "2"]
+[White "Maia3 (elo 2703)"]
+[Black "Maia3 (elo 1594)"]
+[WhiteElo "2703"]
+[BlackElo "1594"]
+[Result "1-0"]
+
+1. c4 c5 2. b3 d5 3. cxd5 Qxd5 4. Bb2 Nf6 5. Nc3 Qd8 6. Nf3 g6 7. Ne4 Bg7 8. Nxc5 O-O 9. Rc1 b6 10. Na4 Bb7 11. d4 Nd5 12. e3 a6 13. Be2 Nc6 14. a3 e5 15. dxe5 Qe7 16. Qxd5 Nxe5 17. Qxe5 Bxe5 18. Nxe5 Bxg2 19. Nc6 Qc7 20. Be5 Qxc6 21. Rxc6 Bxc6 22. O-O Bxa4 23. bxa4 Rfe8 24. Bd4 Re6 25. Rb1 b5 26. axb5 axb5 27. Rb3 b4 28. axb4 Rea6 29. Bxa6 Rxa6 30. b5 Kf8 31. bxa6 Ke7 32. a7 f5 33. a8=Q Kf7 34. Rb7+ Ke6 35. Qa6+ Kd5 36. Rb5+ Kc4 37. Qc6+ Kd3 38. Qc3+ Ke2 39. Rb1 g5 40. Rb2+ Kd1 41. Qd2# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "3"]
+[White "Maia3 (elo 1080)"]
+[Black "Maia3 (elo 337)"]
+[WhiteElo "1080"]
+[BlackElo "337"]
+[Result "1-0"]
+
+1. e3 e6 2. Qf3 d5 3. c4 d4 4. exd4 Qe7 5. c5 e5 6. Bc4 Qxc5 7. dxc5 e4 8. Qxf7+ Kd8 9. Qxf8+ Kd7 10. Qf7+ Kc6 11. Qd5# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "4"]
+[White "Maia3 (elo 2219)"]
+[Black "Maia3 (elo 1949)"]
+[WhiteElo "2219"]
+[BlackElo "1949"]
+[Result "1/2-1/2"]
+
+1. c4 Nf6 2. Nc3 e5 3. Nf3 Nc6 4. d3 d6 5. e3 g6 6. g3 Bg7 7. Bg2 O-O 8. O-O Be6 9. Ng5 Bd7 10. a3 h6 11. Nge4 Kh7 12. Rb1 Ng8 13. b4 f5 14. Nd2 Be6 15. b5 Nce7 16. Bxb7 Rb8 17. Bg2 Nf6 18. Qc2 d5 19. a4 g5 20. Ba3 f4 21. d4+ e4 22. cxd5 Nexd5 23. gxf4 gxf4 24. Nxd5 Nxd5 25. Bxf8 Qxf8 26. Qxe4+ Qf5 27. Qxf5+ Bxf5 28. Bxd5 fxe3 29. fxe3 Bxb1 30. Rxb1 Re8 31. Be4+ Kh8 32. Kf2 Bf6 33. Rc1 Rxe4 34. Nxe4 Bxd4 35. exd4 c5 36. Rxc5 a5 37. b6 h5 38. Rg5 h4 39. Nd6 Kh7 40. b7 h3 41. Nf7 1/2-1/2
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "5"]
+[White "Maia3 (elo 591)"]
+[Black "Maia3 (elo 2433)"]
+[WhiteElo "591"]
+[BlackElo "2433"]
+[Result "0-1"]
+
+1. d4 d5 2. c4 e6 3. e3 Nf6 4. cxd5 exd5 5. a3 Bd6 6. Bd3 O-O 7. Qh5 Nxh5 8. Bxh7+ Kxh7 9. Nf3 Nf4 10. Ng5+ Qxg5 11. O-O Qxg2# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "6"]
+[White "Maia3 (elo 1529)"]
+[Black "Maia3 (elo 381)"]
+[WhiteElo "1529"]
+[BlackElo "381"]
+[Result "1-0"]
+
+1. e4 d5 2. Nf3 dxe4 3. Ng5 e5 4. Nxf7 Kxf7 5. Nc3 Kf6 6. Nxe4+ Kf5 7. Ng3+ Kf6 8. Qf3+ Ke7 9. d3 Nf6 10. Be2 h6 11. O-O g6 12. Re1 Ke8 13. Ne4 Nxe4 14. dxe4 Bc5 15. Rd1 Nd7 16. Bc4 Nb6 17. Qf7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "7"]
+[White "Maia3 (elo 3136)"]
+[Black "Maia3 (elo 1909)"]
+[WhiteElo "3136"]
+[BlackElo "1909"]
+[Result "1-0"]
+
+1. d4 c5 2. dxc5 Qa5+ 3. Bd2 Qxc5 4. e3 Qc7 5. c4 Nc6 6. Nc3 Nf6 7. e4 e5 8. Nd5 Nxd5 9. cxd5 Nd4 10. Rc1 Qb6 11. Nf3 Qxb2 12. Nxe5 Bb4 13. Nc4 Bxd2+ 14. Nxd2 Qxa2 15. Nc4 O-O 16. Qxd4 b5 17. Qb2 Qxb2 18. Nxb2 a5 19. Bxb5 Ba6 20. Bxa6 Rxa6 21. Na4 Re8 22. f3 f5 23. Rc4 fxe4 24. fxe4 Rb8 25. O-O d6 26. Rc7 Raa8 27. Rff7 Rb1+ 28. Kf2 Ra1 29. Rxg7+ Kh8 30. Nb6 Ra2+ 31. Ke3 Ra3+ 32. Kd4 Rb8 33. Rxh7+ Kg8 34. Rcg7+ Kf8 35. Nd7+ Ke8 36. Rg8# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "8"]
+[White "Maia3 (elo 1143)"]
+[Black "Maia3 (elo 281)"]
+[WhiteElo "1143"]
+[BlackElo "281"]
+[Result "1-0"]
+
+1. e4 Na6 2. d4 Nb8 3. Nf3 e5 4. dxe5 Bc5 5. Nc3 f6 6. exf6 Nxf6 7. e5 Ng4 8. Be3 Bxe3 9. fxe3 Nxe3 10. Qe2 O-O 11. Qxe3 d5 12. Bb5 d4 13. Nxd4 Qxd4 14. Qxd4 Nd7 15. Qd5+ Kh8 16. Bxd7 Rf7 17. Qxf7 Bxd7 18. Rf1 Rg8 19. Qf8 Be8 20. Nd5 Bf7 21. Qxf7 b5 22. Ne7 h6 23. Qxg8# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "9"]
+[White "Maia3 (elo 2855)"]
+[Black "Maia3 (elo 1371)"]
+[WhiteElo "2855"]
+[BlackElo "1371"]
+[Result "1-0"]
+
+1. c4 Nf6 2. Nc3 c5 3. Nf3 e6 4. d4 d5 5. cxd5 exd5 6. e3 Nc6 7. Be2 c4 8. Bd2 Bb4 9. b3 Qa5 10. Qc1 O-O 11. bxc4 Ne4 12. Nxe4 dxe4 13. Bxb4 Qxb4+ 14. Nd2 f5 15. c5 f4 16. a3 Qa5 17. O-O f3 18. gxf3 exf3 19. Bxf3 Qd8 20. Bg2 Qg5 21. Kh1 Bg4 22. f3 Bh5 23. Ne4 Qf5 24. Qc4+ Kh8 25. Ng3 Qg6 26. e4 Rf4 27. Rab1 Raf8 28. Qc3 R4f7 29. Qe3 h6 30. f4 Qg4 31. h3 Qh4 32. f5 Nxd4 33. Nxh5 Qxh5 34. Qxd4 b6 35. Rf4 bxc5 36. Qxc5 Qg5 37. Qf2 g6 38. Rg4 Qf6 39. Qg3 gxf5 40. exf5 Qxf5 41. Rd1 h5 42. Rg5 Qh7 43. Qc3+ Rf6 44. Rf1 Qh6 45. Rxf6 Rxf6 46. Rc5 Kg8 47. Rc8+ Kf7 48. Qe5 Kg7 49. Qe7+ Rf7 50. Qe5+ Qf6 51. Qg3+ Qg6 52. Rg8+ Kxg8 53. Qxg6+ Kf8 54. Bd5 h4 55. Qxf7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "10"]
+[White "Maia3 (elo 2762)"]
+[Black "Maia3 (elo 381)"]
+[WhiteElo "2762"]
+[BlackElo "381"]
+[Result "1-0"]
+
+1. e4 e5 2. Nf3 g5 3. d3 Nc6 4. Bxg5 Qxg5 5. Nxg5 d5 6. Qh5 h6 7. Qxf7+ Kd8 8. Qxf8+ Kd7 9. g3 hxg5 10. Qg7+ Nge7 11. exd5 Rg8 12. dxc6+ Ke6 13. Bh3+ Kd5 14. Nc3+ Kc5 15. Qxe7+ Kb6 16. Qb4+ Kxc6 17. Qb5+ Kd6 18. Qd5+ Ke7 19. Qxe5+ Kd8 20. Bxc8 Kxc8 21. Qe6+ Kd8 22. Qxg8+ Kd7 23. Qxa8 Kd6 24. Qd8+ Kc5 25. Qd5+ Kb4 26. Qb5# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "11"]
+[White "Maia3 (elo 1206)"]
+[Black "Maia3 (elo 2622)"]
+[WhiteElo "1206"]
+[BlackElo "2622"]
+[Result "0-1"]
+
+1. e4 d5 2. exd5 Qxd5 3. b3 Nf6 4. c4 Qh5 5. Qe2 Qh4 6. Nf3 Qh5 7. g3 Nc6 8. Nc3 Bg4 9. Bg2 Nd4 10. Nxd4 Bxe2 11. Ndxe2 c6 12. O-O Rd8 13. b4 e6 14. h4 Bxb4 15. Nf4 Qf5 16. Bh3 Qc5 17. Bg2 O-O 18. Re1 Qxc4 19. Re3 Ng4 20. Rf3 Bc5 21. d3 Qxc3 22. Rb1 Qe1+ 23. Bf1 Bxf2+ 24. Kg2 e5 25. Rxb7 exf4 26. gxf4 Bb6 27. Ba3 Qxh4 28. Rh3 Qf2+ 29. Kh1 Qxf1# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "12"]
+[White "Maia3 (elo 511)"]
+[Black "Maia3 (elo 895)"]
+[WhiteElo "511"]
+[BlackElo "895"]
+[Result "0-1"]
+
+1. d4 d5 2. Qd2 e6 3. Nf3 Nc6 4. Nc3 Bb4 5. Ne5 Nxe5 6. dxe5 Ne7 7. Kd1 a5 8. Qxd5 Nxd5 9. Nxd5 Qxd5+ 10. Bd2 Qxd2# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "13"]
+[White "Maia3 (elo 367)"]
+[Black "Maia3 (elo 1741)"]
+[WhiteElo "367"]
+[BlackElo "1741"]
+[Result "0-1"]
+
+1. e4 e5 2. b3 Nc6 3. g3 d5 4. Bb2 d4 5. Ba3 Bxa3 6. Nxa3 Nf6 7. h4 O-O 8. g4 Bxg4 9. c3 Bxd1 10. Be2 dxc3 11. h5 Qxd2+ 12. Kf1 Bxe2+ 13. Kg2 Nxh5 14. Nxe2 Qxe2 15. Raf1 Nf4+ 16. Kg3 Nd4 17. Rc1 Qf3+ 18. Kh2 Qg2# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "14"]
+[White "Maia3 (elo 391)"]
+[Black "Maia3 (elo 2915)"]
+[WhiteElo "391"]
+[BlackElo "2915"]
+[Result "0-1"]
+
+1. b3 d5 2. f4 e5 3. fxe5 Qh4+ 4. g3 Qe7 5. Bb2 Nc6 6. Bg2 Bg4 7. Bxd5 O-O-O 8. Bxc6 bxc6 9. Ba3 Qxe5 10. Nf3 Bxf3 11. O-O Bxe2 12. Qe1 Nh6 13. Bxf8 Nf5 14. d4 Rxd4 15. Qxe2 Qxe2 16. Bxg7 Ne3 17. Nd2 Qg2# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "15"]
+[White "Maia3 (elo 1203)"]
+[Black "Maia3 (elo 2460)"]
+[WhiteElo "1203"]
+[BlackElo "2460"]
+[Result "0-1"]
+
+1. Nf3 d5 2. d4 Nf6 3. g3 Bf5 4. Bg2 e6 5. O-O Nbd7 6. Bg5 c6 7. e3 h6 8. Bxf6 Nxf6 9. Nbd2 Ne4 10. Nxe4 Bxe4 11. h3 Bd6 12. c3 Bh7 13. Kh2 O-O 14. h4 Be4 15. Nd2 Qxh4+ 16. Bh3 Bf5 17. f4 Qxh3+ 18. Kg1 Qxg3+ 19. Kh1 Qh3+ 20. Kg1 Qxe3+ 21. Rf2 Qg3+ 22. Rg2 Qxf4 23. Qe2 Bg6 24. Rf1 Qh4 25. Rxg6 fxg6 26. Rxf8+ Rxf8 27. Qxe6+ Kh7 28. Qxd6 Qf2+ 29. Kh1 Qe1+ 30. Nf1 Rxf1+ 31. Kh2 Qf2+ 32. Kh3 Rh1+ 33. Kg4 Rg1+ 34. Kh3 Qg2+ 35. Kh4 Rh1+ 36. Qh2 Rxh2# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "16"]
+[White "Maia3 (elo 1258)"]
+[Black "Maia3 (elo 3073)"]
+[WhiteElo "1258"]
+[BlackElo "3073"]
+[Result "0-1"]
+
+1. d4 d6 2. d5 c6 3. Be3 c5 4. Qd2 Nf6 5. b4 cxb4 6. c4 a5 7. f4 g6 8. a3 Bg7 9. Nc3 bxc3 10. Qxc3 Nxd5 11. Qxg7 Nxe3 12. Qxh8+ Kd7 13. Qxh7 Qf8 14. Nh3 Nc2+ 15. Kf2 Nxa1 16. Ng5 f6 17. Ne4 f5 18. Ng3 Qf6 19. e3 Qb2+ 20. Ne2 Qf6 21. h3 Nc2 22. Qh6 Nxa3 23. c5 dxc5 24. Ng3 a4 25. Ne2 Nc2 26. Nc1 Nc6 27. Bb5 a3 28. Qh8 Qxh8 29. Rd1+ Kc7 30. Bd3 N2b4 31. Bb1 Qb2+ 32. Kg3 Na5 33. Re1 Qxb1 34. Rf1 b6 35. e4 a2 36. h4 a1=Q 37. Nb3 Qxf1 38. Nxa5 Qc3+ 39. Kh2 Rxa5 40. exf5 Ra2 41. f6 Qcf3 42. fxe7 Q1xg2# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "17"]
+[White "Maia3 (elo 2875)"]
+[Black "Maia3 (elo 2338)"]
+[WhiteElo "2875"]
+[BlackElo "2338"]
+[Result "*"]
+
+1. c4 c5 2. Nf3 Nf6 3. d4 cxd4 4. Nxd4 e5 5. Nc2 d6 6. Nc3 Nc6 7. g3 Be7 8. e4 Bg4 9. f3 Be6 10. Be3 O-O 11. Be2 h6 12. Qd2 a6 13. O-O Nd7 14. Rfd1 f5 15. exf5 Bxf5 16. Ne4 Bxe4 17. fxe4 Nf6 18. Bf3 b5 19. cxb5 axb5 20. Qd3 Qb8 21. a3 Kh8 22. Nb4 Rc8 23. Nd5 Nxd5 24. Qxd5 Qb7 25. Bg4 Rc7 26. Rf1 b4 27. axb4 Rb8 28. Qd2 Qxb4 29. Bxh6 Qxd2 30. Bxd2 Rxb2 31. Bf5 Rcb7 32. Bg6 Rxd2 33. Rf5 Rc2 34. Rf7 Nd8 35. Rf3 Rc8 36. Raf1 Ne6 37. Rf5 Nf8 38. Bf7 g6 39. R5f3 Bd8 40. Bc4 Rxc4 41. Rxf8+ Kh7 42. Rxd8 Rxe4 43. Rxd6 Rg7 44. Re6 Re2 45. Rf2 Rxf2 46. Kxf2 Kh6 47. Rxe5 Rc7 48. Kg2 Kg7 49. Kh3 Rc2 50. Ra5 Rc4 51. Ra7+ Kh6 52. Re7 Kg5 53. Re5+ Kf6 54. Ra5 Rb4 55. Ra7 Kf5 56. Ra5+ Kf6 57. Ra7 Rb2 58. Kg4 Rxh2 59. Ra6+ Kg7 60. Kg5 Rh5+ 61. Kf4 Kh6 62. Ra7 Rf5+ 63. Kg4 Rg5+ 64. Kf4 Rb5 65. Rc7 Rd5 66. g4 Rd4+ 67. Kf3 Rd3+ 68. Ke4 Ra3 69. Rc5 Ra4+ 70. Kf3 Ra3+ 71. Ke2 Rg3 72. g5+ Kh5 73. Kf2 Rxg5 74. Rc6 Ra5 75. Kf1 Ra2 76. Kg1 g5 77. Rc3 g4 78. Rc7 Kh4 79. Rb7 Kh3 80. Rh7+ Kg3 81. Kf1 Ra1+ 82. Ke2 Kg2 83. Rg7 Ra2+ 84. Ke3 g3 85. Rg8 Ra7 86. Kf4 Ra4+ 87. Ke3 Ra3+ 88. Kf4 Ra4+ 89. Ke3 Ra3+ 90. Ke2 Rb3 91. Rg7 Rb2+ 92. Ke1 Kh2 93. Rh7+ Kg1 94. Rg7 g2 95. Rg8 Rb1+ 96. Ke2 Ra1 97. Rb8 Ra2+ 98. Ke1 Ra5 99. Rb1 Rf5 100. Rb8 Rc5 101. Rb7 Rg5 102. Ra7 Re5+ 103. Kd2 Re6 104. Rh7 Ra6 105. Ke2 Ra4 106. Rg7 Rf4 107. Rg6 Re4+ 108. Kf3 Re7 109. Rxg2+ Kh1 110. Rg6 Kh2 111. Rh6+ Kg1 112. Rf6 Rg7 113. Ra6 Rf7+ 114. Ke4 Re7+ 115. Kf3 Kh2 116. Ra4 Kh3 117. Rf4 Re1 118. Re4 Rg1 119. Re8 Rf1+ 120. Ke2 Rf7 *
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "18"]
+[White "Maia3 (elo 2794)"]
+[Black "Maia3 (elo 2940)"]
+[WhiteElo "2794"]
+[BlackElo "2940"]
+[Result "1-0"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 Be7 4. g3 d5 5. Bg2 O-O 6. O-O Nbd7 7. Qc2 c6 8. Nbd2 b6 9. e4 dxc4 10. Nxc4 Bb7 11. Bf4 h6 12. Rfd1 c5 13. dxc5 Bxe4 14. Qe2 Bxc5 15. Nfe5 Bd5 16. Nxd7 Qxd7 17. Be5 Qb7 18. Bxf6 Bxg2 19. Qg4 g6 20. Ne5 Bd5 21. Rac1 Kh7 22. b4 Be7 23. Qf4 Bxf6 24. Qxf6 a5 25. a3 axb4 26. axb4 Ra4 27. Nxg6 fxg6 28. Qxf8 Ra7 29. Rc3 Ra8 30. Qf6 h5 31. h4 Qd7 32. Qd4 Ra2 33. Rdc1 Qf7 34. Rc7 Rxf2 35. Qxf2 Kh6 36. Rxf7 b5 37. Qf4+ g5 38. Qxg5# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "19"]
+[White "Maia3 (elo 2246)"]
+[Black "Maia3 (elo 422)"]
+[WhiteElo "2246"]
+[BlackElo "422"]
+[Result "1-0"]
+
+1. e3 d6 2. Bc4 Kd7 3. Qg4+ Kc6 4. b4 f5 5. Qxf5 b5 6. Qxb5# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "20"]
+[White "Maia3 (elo 2743)"]
+[Black "Maia3 (elo 704)"]
+[WhiteElo "2743"]
+[BlackElo "704"]
+[Result "1-0"]
+
+1. d4 Nf6 2. Bf4 e6 3. e3 d5 4. Bd3 c5 5. c3 c4 6. Bc2 Be7 7. h3 O-O 8. Nf3 b6 9. Ne5 Bd6 10. Nd2 Nbd7 11. Nxd7 Qxd7 12. Nf3 Bb7 13. Ne5 Qb5 14. O-O Rae8 15. Ba4 Bxe5 16. Bxb5 Bxf4 17. Bxe8 Ne4 18. Ba4 Bd6 19. Bc2 Ng3 20. fxg3 Bxg3 21. Qh5 g6 22. Qg5 Bc6 23. Qxg3 Rd8 24. Qc7 Rf8 25. Qxc6 Re8 26. Qxe8+ Kg7 27. Rxf7+ Kh6 28. Qf8+ Kg5 29. Rf4 h5 30. h4# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "21"]
+[White "Maia3 (elo 1485)"]
+[Black "Maia3 (elo 2880)"]
+[WhiteElo "1485"]
+[BlackElo "2880"]
+[Result "0-1"]
+
+1. e4 e5 2. Nf3 Nc6 3. Nc3 Nf6 4. Bc4 Nxe4 5. Nxe4 d5 6. Bxd5 Qxd5 7. Nc3 Qd8 8. O-O f6 9. d3 Bg4 10. h3 Bh5 11. Qe2 Nd4 12. Qe4 Nxf3+ 13. gxf3 c6 14. f4 Bd6 15. fxe5 fxe5 16. f4 Qh4 17. Qf5 Bc5+ 18. Kh1 Bf3+ 19. Rxf3 Qe1+ 20. Kg2 Qg1# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "22"]
+[White "Maia3 (elo 514)"]
+[Black "Maia3 (elo 2179)"]
+[WhiteElo "514"]
+[BlackElo "2179"]
+[Result "0-1"]
+
+1. e4 e5 2. d4 Nc6 3. Bb5 exd4 4. Qxd4 Nxd4 5. Bg5 Nxb5 6. Bxd8 Kxd8 7. Nc3 Nxc3 8. bxc3 Nf6 9. O-O-O Nxe4 10. Rxd7+ Bxd7 11. Nf3 Nxc3 12. Rd1 Nxd1 13. Ne1 Nxf2 14. Nd3 Nxd3+ 15. cxd3 Ba3+ 16. Kd1 Re8 17. g4 Bb4 18. d4 Bxg4+ 19. Kc1 Re2 20. a4 Rxh2 21. a5 Kd7 22. a6 Ba3+ 23. Kb1 Bf5+ 24. Ka1 Bb2+ 25. Ka2 Be6+ 26. d5 Bxd5+ 27. Kb1 Be4+ 28. Ka2 bxa6 29. Kb3 Rb8+ 30. Kc4 Ba3 31. Kc3 Rc2+ 32. Kd4 Bc6 33. Ke5 Rb5+ 34. Kd4 Bb2+ 35. Ke3 Bh1 36. Kf4 Rc4+ 37. Ke3 Rd5 38. Ke2 Rc2+ 39. Ke3 Rc6 40. Kf4 Re6 41. Kg3 Rg6+ 42. Kf2 Rg2+ 43. Kf3 Rd4 44. Ke3 Rg3+ 45. Kf2 Re4 46. Kxg3 a5 47. Kf2 Rf4+ 48. Ke3 Rd4 49. Ke2 Re4+ 50. Kd1 Bf3+ 51. Kc2 Re2+ 52. Kb3 Rd2 53. Ka4 Bd5 54. Kxa5 Bc3+ 55. Ka6 Bc6 56. Kxa7 Rb2 57. Ka6 Ra2# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "23"]
+[White "Maia3 (elo 2673)"]
+[Black "Maia3 (elo 524)"]
+[WhiteElo "2673"]
+[BlackElo "524"]
+[Result "1-0"]
+
+1. e4 e5 2. Bc4 Nc6 3. Qh5 g6 4. Qf3 Nd4 5. Qxf7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "24"]
+[White "Maia3 (elo 2948)"]
+[Black "Maia3 (elo 2060)"]
+[WhiteElo "2948"]
+[BlackElo "2060"]
+[Result "1-0"]
+
+1. e4 e5 2. Nc3 Nf6 3. Nf3 Nc6 4. Bd3 Bc5 5. O-O h6 6. Bc4 Bb6 7. d3 O-O 8. h3 d6 9. Re1 Na5 10. Bb5 a6 11. Ba4 c6 12. Ne2 c5 13. Ng3 Ba7 14. Nh2 b5 15. Bb3 c4 16. dxc4 bxc4 17. Ba4 Rb8 18. c3 Nb7 19. Nhf1 Nc5 20. Bc2 Re8 21. Ne3 Be6 22. Qf3 Nh7 23. b3 Kh8 24. Nxc4 g6 25. Na5 Qxa5 26. Nf5 Nxb3 27. Bxh6 Nxa1 28. Rxa1 gxf5 29. exf5 Qd5 30. Be4 Qc4 31. fxe6 Re7 32. Qg4 f6 33. Rd1 Ng5 34. Bxg5 fxg5 35. Qh5+ Kg7 36. Qxg5+ Kh8 37. Qh6+ Kg8 38. Qg5+ Rg7 39. Qh4 Bc5 40. Bh7+ Rxh7 41. Qxc4 Rc7 42. g4 Kg7 43. Qe2 Ba3 44. Qe3 a5 45. Qg5+ Kf8 46. Qf6+ Kg8 47. Qg5+ Kh7 48. Rd3 d5 49. Qf5+ Kg8 50. Rxd5 Re8 51. Qxe5 a4 52. Qxc7 Be7 53. Qd7 Kf8 54. Rf5+ Kg7 55. Rf7+ Kg6 56. Qd3+ Kg5 57. Qd2+ Kg6 58. Qd3+ Kg5 59. Qf5+ Kh4 60. Qh5# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "25"]
+[White "Maia3 (elo 1366)"]
+[Black "Maia3 (elo 1730)"]
+[WhiteElo "1366"]
+[BlackElo "1730"]
+[Result "0-1"]
+
+1. h4 e5 2. e4 d6 3. g3 Nc6 4. g4 Nf6 5. f3 h6 6. Rh2 d5 7. exd5 Nxd5 8. Ne2 Nf4 9. Nxf4 exf4 10. Qe2+ Be6 11. Nc3 Qd4 12. d3 Bc5 13. Qe4 Qg1 14. Rg2 Qh1 15. Bxf4 Qxh4+ 16. Bg3 Qe7 17. O-O-O O-O-O 18. Na4 Rd4 19. Qf4 Rxf4 20. Bxf4 Bd6 21. Bxd6 Qxd6 22. Re2 Bxa2 23. Rde1 Rd8 24. Re8 Qf4+ 25. Kd1 Qxf3+ 26. Kd2 Qf4+ 27. Kc3 Qb4# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "26"]
+[White "Maia3 (elo 1286)"]
+[Black "Maia3 (elo 2729)"]
+[WhiteElo "1286"]
+[BlackElo "2729"]
+[Result "0-1"]
+
+1. e4 d5 2. exd5 Nf6 3. Nc3 Nxd5 4. Bc4 Nb6 5. Bb3 Nc6 6. Nf3 Bg4 7. h3 Bh5 8. Bxf7+ Bxf7 9. O-O e6 10. d3 Be7 11. Qe2 O-O 12. Bf4 Kh8 13. a4 Bh5 14. Nd4 Bxe2 15. Nxe6 Qc8 16. Nxe2 Qxe6 17. Nc3 Rxf4 18. g3 Qxh3 19. gxf4 Nd4 20. Rad1 Nf3# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "27"]
+[White "Maia3 (elo 2170)"]
+[Black "Maia3 (elo 1972)"]
+[WhiteElo "2170"]
+[BlackElo "1972"]
+[Result "1-0"]
+
+1. e4 c6 2. d4 Nf6 3. f3 e5 4. dxe5 Qa5+ 5. Nc3 Qxe5 6. Bd3 d5 7. f4 Qd4 8. Nf3 Qb6 9. e5 Ng4 10. Qe2 Be6 11. h3 Nh6 12. g4 d4 13. Ne4 Nd7 14. f5 Bd5 15. Nd6+ Bxd6 16. exd6+ Kf8 17. O-O Re8 18. Qf2 Ne5 19. Nxe5 Rxe5 20. Bxh6 gxh6 21. Qf4 f6 22. Qxh6+ Kf7 23. Rae1 Rxe1 24. Rxe1 Qd8 25. Re7+ Kg8 26. Qg7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "28"]
+[White "Maia3 (elo 3002)"]
+[Black "Maia3 (elo 2405)"]
+[WhiteElo "3002"]
+[BlackElo "2405"]
+[Result "1-0"]
+
+1. d3 e5 2. c4 Nf6 3. g3 d5 4. cxd5 Nxd5 5. Nf3 Nc6 6. Bg2 h6 7. O-O Bc5 8. Bd2 O-O 9. Nc3 Be6 10. Rc1 Bb6 11. Na4 Qe7 12. a3 Rad8 13. Nxb6 axb6 14. Rxc6 bxc6 15. e4 Nf6 16. Nxe5 Bd7 17. Nxd7 Nxd7 18. d4 Rfe8 19. Qc2 Nf6 20. Bb4 Qe6 21. e5 Nd5 22. h4 Nxb4 23. axb4 Rxd4 24. Bxc6 Rc4 25. Qxc4 Qxc4 26. Bxe8 c6 27. Rd1 Qxb4 28. e6 Qe7 29. exf7+ Kf8 30. Rc1 c5 31. Rd1 Qe5 32. b3 Qe4 33. Rd8 g5 34. Bc6+ Kxf7 35. Bxe4 gxh4 36. Rb8 hxg3 37. fxg3 Ke6 38. Rxb6+ Ke5 39. Bf3 c4 40. bxc4 h5 41. c5 h4 42. c6 Kd6 43. Rb7 hxg3 44. c7 Ke7 45. c8=Q+ Kf6 46. Be4 Ke5 47. Qf5+ Kd6 48. Qd5# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "29"]
+[White "Maia3 (elo 121)"]
+[Black "Maia3 (elo 2354)"]
+[WhiteElo "121"]
+[BlackElo "2354"]
+[Result "0-1"]
+
+1. h4 d5 2. e4 dxe4 3. Rh3 Bxh3 4. gxh3 Nf6 5. Bd3 exd3 6. cxd3 Qxd3 7. Qe2 Qxe2+ 8. Nxe2 Na6 9. f4 e6 10. Nd4 Nb4 11. Na3 Nd3+ 12. Ke2 Nxf4+ 13. Kf3 Nxh3 14. Nab5 Rd8 15. Nc2 c6 16. Nc7+ Kd7 17. Kg3 Kxc7 18. Kxh3 Nd5 19. b4 Nxb4 20. Nxb4 Bxb4 21. Bb2 Rxd2 22. Bxg7 Rg8 23. Rb1 Rxg7 24. Rxb4 Rxa2 25. Ra4 Rxa4 26. h5 Rgg4 27. Kh2 Ra3 28. h6 Rg5 29. Kh1 Rh3# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "30"]
+[White "Maia3 (elo 1116)"]
+[Black "Maia3 (elo 127)"]
+[WhiteElo "1116"]
+[BlackElo "127"]
+[Result "1-0"]
+
+1. e4 b6 2. d4 b5 3. Bxb5 c5 4. Nc3 c4 5. Bxc4 Nc6 6. Qf3 a6 7. Qxf7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "31"]
+[White "Maia3 (elo 2158)"]
+[Black "Maia3 (elo 2981)"]
+[WhiteElo "2158"]
+[BlackElo "2981"]
+[Result "0-1"]
+
+1. e4 e5 2. Nf3 d6 3. Bc4 Bg4 4. h3 Bh5 5. c3 d5 6. Bxd5 c6 7. Bc4 Nf6 8. g4 Bg6 9. Nxe5 Bxe4 10. f3 Bd5 11. d4 Bd6 12. O-O Bxc4 13. Nxc4 Bc7 14. Re1+ Kf8 15. Qe2 Nbd7 16. f4 h5 17. g5 Nd5 18. Qe4 g6 19. h4 Kg7 20. Be3 Re8 21. Ne5 Nxe5 22. fxe5 Qd7 23. Nd2 b5 24. Rac1 Re6 25. Rf1 Kg8 26. Bf4 c5 27. Rf2 cxd4 28. Bg3 dxc3 29. bxc3 Rae8 30. Nf3 Rb6 31. c4 Ne7 32. Bf4 bxc4 33. Kh2 c3 34. Rxc3 Bb8 35. Bg3 Nf5 36. Rd2 Nxg3 37. Rxd7 Nxe4 38. Rb3 Ra6 39. Rdb7 Rxa2+ 40. Kh3 Nf2+ 41. Kg3 Ng4 42. Rxb8 Rxb8 43. Rxb8+ Kg7 44. e6 fxe6 45. Ra8 Ra3 46. Kg2 e5 47. Re8 Ra2+ 48. Kg3 Ra5 49. Nd2 Ra3+ 50. Kg2 Ra2 51. Rd8 Kf7 52. Kf1 Ke7 53. Rd3 Ke6 54. Ne4 a5 55. Nf6 Nxf6 56. gxf6 Kxf6 57. Rd5 a4 58. Rd6+ Kf5 59. Rc6 Rh2 60. Rc4 a3 61. Rc1 Rh1+ 62. Kf2 Rxc1 63. Ke2 a2 64. Kd3 Kf4 65. Kd2 a1=Q 66. Ke2 Qb2+ 67. Kd3 Qc2# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "32"]
+[White "Maia3 (elo 1328)"]
+[Black "Maia3 (elo 1641)"]
+[WhiteElo "1328"]
+[BlackElo "1641"]
+[Result "0-1"]
+
+1. d4 d5 2. Bf4 Bf5 3. e3 Nf6 4. Nf3 Nc6 5. Bd3 Bg6 6. c3 e6 7. Qc2 Bd6 8. Nbd2 Bxf4 9. exf4 O-O 10. Ne5 a6 11. f3 Bxd3 12. Qxd3 Qd6 13. g4 Nd7 14. h4 Ndxe5 15. fxe5 Qe7 16. f4 Na7 17. Nf3 c5 18. g5 cxd4 19. Nxd4 f6 20. gxf6 gxf6 21. Rg1+ Kh8 22. O-O-O fxe5 23. fxe5 Nc6 24. Qg3 Rg8 25. Qf4 Rxg1 26. Rxg1 Nxd4 27. Qxd4 Rg8 28. Rg5 Rxg5 29. hxg5 Qxg5+ 30. Kc2 Kg7 31. Qe3 Qxe3 32. Kb3 Qxe5 33. a4 h5 34. c4 dxc4+ 35. Kxc4 h4 36. b4 h3 37. b5 Qe4+ 38. Kc5 axb5 39. Kxb5 h2 40. a5 h1=Q 41. a6 Qhb1+ 42. Kc5 Qc1+ 43. Kb6 Qcc6+ 44. Ka5 Qea4# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "33"]
+[White "Maia3 (elo 298)"]
+[Black "Maia3 (elo 126)"]
+[WhiteElo "298"]
+[BlackElo "126"]
+[Result "1/2-1/2"]
+
+1. d4 f6 2. Qd2 g5 3. Nc3 d6 4. Qd1 e6 5. f4 f5 6. g4 e5 7. Bd2 d5 8. Qb1 h5 9. e3 hxg4 10. Qd1 gxf4 11. exf4 exf4 12. Nxd5 Qxd5 13. Qxg4 c6 14. Bxf4 Qxd4 15. Qxf5 Rxh2 16. Rxh2 Qd6 17. Bxd6 Bxd6 18. Qf8+ Kxf8 19. Rf2+ Nf6 20. Rxf6+ Kg7 21. Rg6+ Kf7 22. Rxd6 Kf8 23. Bg2 Nd7 24. Bxc6 bxc6 25. Rxc6 Nc5 26. Rxc5 Kg7 27. Kf1 Bh3+ 28. Ke1 Re8+ 29. Ne2 Bg4 30. Re5 Re7 31. c4 Bxe2 32. Rxe7+ Kf6 33. Rd1 Bxd1 34. c5 Be2 35. Rxe2 Kf5 36. c6 Kf6 37. Rf2+ Ke7 38. Rg2 Ke6 39. c7 Ke5 40. c8=Q Ke4 41. Rc2 Kf3 42. Qf5+ Ke3 43. Qf6 a5 44. Rc3+ Ke4 45. Rc4+ Ke3 46. Qe6+ Kd3 47. Qd5+ Ke3 48. Rc3+ Kf4 49. Qf3+ Ke5 50. Qf5+ Kxf5 51. Rc4 Ke5 52. b3 Kd5 53. Rh4 Kc5 54. a3 a4 55. Rxa4 Kb5 56. Ra5+ Kxa5 57. Kf1 Ka6 58. Kf2 Ka5 59. Ke3 Ka6 60. b4 Kb6 61. Kd4 Kc6 62. a4 Kb6 63. a5+ Kb5 64. Kd5 Kxb4 65. a6 Kb5 66. Kd4 Kb4 67. a7 Kb3 68. a8=Q Kb4 69. Qa3+ Kxa3 1/2-1/2
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "34"]
+[White "Maia3 (elo 1333)"]
+[Black "Maia3 (elo 1199)"]
+[WhiteElo "1333"]
+[BlackElo "1199"]
+[Result "1-0"]
+
+1. e4 b6 2. Nf3 Bb7 3. Nc3 Nf6 4. Bc4 e6 5. d3 d6 6. Bg5 Nbd7 7. O-O h6 8. Bh4 g5 9. Bg3 Bg7 10. Re1 Nh5 11. e5 Nxg3 12. fxg3 Nxe5 13. Bb3 Qf6 14. Nxe5 dxe5 15. Nb5 O-O-O 16. Nxa7+ Kb8 17. Nb5 Qe7 18. a4 e4 19. Bc4 Qc5+ 20. Kh1 exd3 21. cxd3 Qc6 22. Re2 h5 23. a5 h4 24. a6 Ba8 25. a7+ Kb7 26. gxh4 Rxh4 27. Qa4 Be5 28. Rxe5 Qxg2+ 29. Kxg2 Rf4 30. Kg3 Rh4 31. Bxe6 Rxd3+ 32. Kg2 Rd2+ 33. Kg3 Rd3+ 34. Kg2 Rxa4 35. Bd5+ c6 36. Re7+ Kc8 37. Bxc6 Rxa1 38. Bxa8 Rd2+ 39. Kf3 Rf1+ 40. Kg4 Rg2+ 41. Bxg2 Rg1 42. a8=Q# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "35"]
+[White "Maia3 (elo 143)"]
+[Black "Maia3 (elo 503)"]
+[WhiteElo "143"]
+[BlackElo "503"]
+[Result "0-1"]
+
+1. c4 e5 2. d3 Bb4+ 3. Bd2 Bc5 4. Qa4 b5 5. Qb3 a5 6. Bxa5 Rxa5 7. Nc3 d6 8. cxb5 Bd7 9. d4 c6 10. Qd1 cxb5 11. b3 Bxd4 12. b4 Ra4 13. Nxa4 bxa4 14. Qxa4 Bxa1 15. e4 Bc3+ 16. Ke2 Bxa4 17. a3 Ba1 18. Kd3 Qc8 19. Nf3 h5 20. b5 Qc1 21. Ke2 Bxb5# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "36"]
+[White "Maia3 (elo 2723)"]
+[Black "Maia3 (elo 2792)"]
+[WhiteElo "2723"]
+[BlackElo "2792"]
+[Result "1-0"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 c5 4. d5 d6 5. Nc3 exd5 6. cxd5 b5 7. Nxb5 Qd7 8. e4 a6 9. Nc3 g6 10. h3 Bg7 11. Bd3 O-O 12. O-O Qd8 13. Re1 Re8 14. Bg5 Nbd7 15. Qd2 Qc7 16. Rac1 Rb8 17. b3 Bb7 18. b4 cxb4 19. Nb5 Qb6 20. Nbd4 Nc5 21. Bb1 Nfxe4 22. Qf4 Nxg5 23. Qxg5 a5 24. h4 h6 25. Qg3 Bxd5 26. Bxg6 fxg6 27. Red1 Ne4 28. Qxg6 Nc3 29. Nf5 Qb7 30. Rxd5 Nxd5 31. Nxh6+ Kf8 32. Ng5 Re7 33. Nh7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "37"]
+[White "Maia3 (elo 1296)"]
+[Black "Maia3 (elo 233)"]
+[WhiteElo "1296"]
+[BlackElo "233"]
+[Result "1-0"]
+
+1. e4 d5 2. Bb5+ Qd7 3. Bxd7+ Kd8 4. Bxc8 Nc6 5. Qg4 h5 6. Qd7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "38"]
+[White "Maia3 (elo 1602)"]
+[Black "Maia3 (elo 2320)"]
+[WhiteElo "1602"]
+[BlackElo "2320"]
+[Result "0-1"]
+
+1. e4 Nf6 2. e5 Nd5 3. f4 d6 4. d4 dxe5 5. fxe5 Nb4 6. a3 Qxd4 7. axb4 Qxb4+ 8. c3 Qh4+ 9. Kd2 Qf4+ 10. Kc2 Bf5+ 11. Bd3 Qxe5 12. Nf3 Qf6 13. Bg5 Qg6 14. Nbd2 Bxd3+ 15. Kc1 Nc6 16. Re1 f6 17. Be3 O-O-O 18. Nd4 Nxd4 19. Bxd4 a6 20. h3 e5 21. Ba7 Bf5 22. g4 Be6 23. Nb3 Rxd1+ 24. Rxd1 Bxb3 25. Rd2 f5 26. Ra5 fxg4 27. h4 Bd6 28. Ra3 Bxa3 29. Rd8+ Rxd8 30. h5 Rd1# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "39"]
+[White "Maia3 (elo 1611)"]
+[Black "Maia3 (elo 1962)"]
+[WhiteElo "1611"]
+[BlackElo "1962"]
+[Result "0-1"]
+
+1. e4 c5 2. Nc3 e6 3. d3 d5 4. d4 cxd4 5. Qxd4 Nc6 6. Qd1 d4 7. Nce2 Nf6 8. Nf3 Nxe4 9. Nexd4 Bb4+ 10. c3 Nxc3 11. bxc3 Bxc3+ 12. Bd2 Bxd4 13. Nxd4 Qxd4 14. Be2 O-O 15. O-O Bd7 16. Bf3 Rad8 17. Be3 Qe5 18. Qb3 b6 19. Qb5 Qxb5 20. a4 Qa5 21. Rfc1 Ne5 22. h3 Nxf3+ 23. gxf3 e5 24. Rc4 Bxh3 25. Rh4 Rd6 26. Rxh3 Rfd8 27. Kg2 Rg6+ 28. Kf1 Qd5 29. a5 e4 30. f4 bxa5 31. Rc1 Qd3+ 32. Ke1 Rg1# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "40"]
+[White "Maia3 (elo 1383)"]
+[Black "Maia3 (elo 1605)"]
+[WhiteElo "1383"]
+[BlackElo "1605"]
+[Result "1-0"]
+
+1. e4 c6 2. d4 d5 3. Nc3 dxe4 4. f3 exf3 5. Bf4 fxg2 6. Bxg2 Nf6 7. Nf3 Bf5 8. Qe2 e6 9. Nh4 Be7 10. O-O-O Bg4 11. Bf3 Bxf3 12. Nxf3 Nbd7 13. Rhg1 O-O 14. Qg2 g6 15. Ng5 Nh5 16. Be5 Bxg5+ 17. Qxg5 Qxg5+ 18. Rxg5 Nxe5 19. dxe5 b5 20. Rdg1 Rad8 21. Rxh5 b4 22. Ne4 Rd4 23. Nf6+ Kg7 24. Rxh7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "41"]
+[White "Maia3 (elo 149)"]
+[Black "Maia3 (elo 1579)"]
+[WhiteElo "149"]
+[BlackElo "1579"]
+[Result "0-1"]
+
+1. g3 c5 2. h3 d5 3. a3 e5 4. f3 e4 5. a4 Nc6 6. Ra3 Nf6 7. Nc3 Qd6 8. fxe4 Qxg3# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "42"]
+[White "Maia3 (elo 2674)"]
+[Black "Maia3 (elo 3018)"]
+[WhiteElo "2674"]
+[BlackElo "3018"]
+[Result "0-1"]
+
+1. e4 d5 2. exd5 Qxd5 3. Nf3 Nf6 4. Nc3 Qd6 5. d4 c6 6. Ne5 Nbd7 7. f4 g6 8. g4 Nb6 9. Be3 Nbd5 10. Bd2 Nxc3 11. bxc3 Be6 12. Bg2 h5 13. g5 Bd5 14. Bh3 Bxh1 15. Qe2 Ng4 16. Bxg4 hxg4 17. Nxg4 Rh3 18. Nf6+ Kd8 19. Qf1 Qe6+ 20. Qe2 exf6 21. Qxe6 fxe6 22. Rb1 Rxh2 23. Rxb7 a5 24. gxf6 Bd5 25. a3 Bxa3 26. f5 gxf5 27. c4 Bxc4 28. Bf4 Bb4+ 29. c3 Bxc3+ 30. Kd1 Re2 31. d5 Re4 32. Bd6 Re2 33. Be7+ Kc8 34. Ra7 Bd3 35. Rxa8+ Kc7 36. Bd8+ Kb7 37. dxc6+ Kxa8 38. Bxa5 Re1# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "43"]
+[White "Maia3 (elo 419)"]
+[Black "Maia3 (elo 2441)"]
+[WhiteElo "419"]
+[BlackElo "2441"]
+[Result "0-1"]
+
+1. d4 d6 2. h3 Nf6 3. h4 d5 4. h5 Nc6 5. a4 Qd6 6. a5 e5 7. g4 Bxg4 8. Nf3 e4 9. Rh2 exf3 10. e3 Qxh2 11. Be2 fxe2 12. Bd2 Qh1# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "44"]
+[White "Maia3 (elo 1104)"]
+[Black "Maia3 (elo 716)"]
+[WhiteElo "1104"]
+[BlackElo "716"]
+[Result "1-0"]
+
+1. Nc3 d5 2. a4 Nf6 3. Nxd5 Nxd5 4. a5 Nd7 5. d3 Nb4 6. c3 Ne5 7. cxb4 Qd4 8. Nf3 Ng4 9. b5 Qxf2+ 10. Kd2 Qe3+ 11. Kc3 Qc5+ 12. Kb3 Qxb5+ 13. Kc3 b6 14. Bg5 g6 15. axb6 Bg7+ 16. Kd2 Qxb6 17. Bh4 Qc6 18. Qc1 h6 19. Qxc6+ Kf8 20. Qxa8 f5 21. Qxc8+ Kf7 22. Qxc7 Ne5 23. Qxe7+ Kg8 24. Rxa7 Bf6 25. Ra8# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "45"]
+[White "Maia3 (elo 2295)"]
+[Black "Maia3 (elo 1567)"]
+[WhiteElo "2295"]
+[BlackElo "1567"]
+[Result "1-0"]
+
+1. e4 c5 2. Nf3 Nc6 3. Nc3 d6 4. d4 cxd4 5. Nxd4 Bd7 6. f3 a6 7. Be3 Nf6 8. Qd2 e5 9. Nb3 Be7 10. Nd5 Rc8 11. Bb6 Nxd5 12. Bxd8 Bh3 13. exd5 Nd4 14. Nxd4 Rb8 15. Bxe7 Bxg2 16. Bxg2 exd4 17. Qg5 f6 18. Qxg7 Rf8 19. Bxf6 Rxf6 20. O-O-O Rd8 21. Qxf6 Rd7 22. Rde1+ Re7 23. Qxe7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "46"]
+[White "Maia3 (elo 1458)"]
+[Black "Maia3 (elo 601)"]
+[WhiteElo "1458"]
+[BlackElo "601"]
+[Result "1-0"]
+
+1. b4 e6 2. Bb2 Bxb4 3. Bxg7 Ke7 4. c3 Bc5 5. Bxh8 Nf6 6. d4 Qxh8 7. dxc5 Nc6 8. e3 b6 9. Nf3 bxc5 10. Bb5 Rb8 11. Bxc6 Ba6 12. Ba4 Ne4 13. Qxd7+ Kf6 14. Qxc7 Nd6 15. Qxa7 Be2 16. Kxe2 Rxb1 17. Raxb1 Kf5 18. Qxc5+ Kf6 19. Qe5+ Ke7 20. Qxh8 Ne4 21. Bc2 Kd6 22. Qf8+ Kd5 23. Qxf7 Nxf2 24. Qd7+ Kc5 25. Qd4+ Kc6 26. Ne5+ Kc7 27. Kxf2 h5 28. Qc5+ Kd8 29. Qd6+ Kc8 30. Qd7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "47"]
+[White "Maia3 (elo 811)"]
+[Black "Maia3 (elo 821)"]
+[WhiteElo "811"]
+[BlackElo "821"]
+[Result "1/2-1/2"]
+
+1. d4 d5 2. e3 Bf5 3. Nf3 e6 4. Bd3 Bg6 5. Nc3 f5 6. Ne5 Nf6 7. Nxg6 hxg6 8. Qe2 Nbd7 9. Bd2 c6 10. O-O-O Bd6 11. f3 b5 12. e4 e5 13. b3 fxe4 14. fxe4 Qe7 15. Rhf1 Nxe4 16. Nxe4 c5 17. Nxc5 Nxc5 18. g3 exd4 19. Bxb5+ Kd8 20. Qf2 Rf8 21. h4 Rxf2 22. Rxf2 Bxg3 23. Rg2 Ne4 24. Re2 d3 25. Bxd3 Nxd2 26. Rxe7 Bf4 27. Rxg7 Nxb3+ 28. Kb2 Be5+ 29. Kxb3 Rb8+ 30. Ka4 Bxg7 31. Bxg6 d4 32. h5 Rb6 33. c3 Rd6 34. cxd4 Bxd4 35. Rxd4 Rxd4+ 36. Kb3 Ke7 37. Kc3 Rd6 38. h6 Rxg6 39. h7 Rh6 40. h8=Q Rxh8 41. a3 Rc8+ 42. Kb4 Rb8+ 43. Ka5 Kd7 44. a4 Kc7 45. Ka6 Ra8 46. a5 Kc6 1/2-1/2
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "48"]
+[White "Maia3 (elo 1538)"]
+[Black "Maia3 (elo 2336)"]
+[WhiteElo "1538"]
+[BlackElo "2336"]
+[Result "0-1"]
+
+1. d4 d5 2. e3 Nf6 3. c4 c6 4. Nf3 e6 5. Nbd2 Nbd7 6. Bd3 Be7 7. O-O b6 8. Re1 Bb7 9. cxd5 Nxd5 10. Nf1 Nb4 11. Be2 c5 12. a3 Nd5 13. e4 N5f6 14. Ng3 Nxe4 15. dxc5 Bxc5 16. Nxe4 Bxe4 17. Bb5 Bd5 18. Qxd5 Rc8 19. b4 Be7 20. Qd3 Rc7 21. Bb2 O-O 22. Be5 Nxe5 23. Nxe5 Qc8 24. Re3 Bf6 25. Nd7 Bxa1 26. h3 a6 27. Nxf8 axb5 28. Qxh7+ Kxf8 29. h4 Rc1+ 30. Kh2 Qc7+ 31. g3 Qc6 32. Rd3 Rh1# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "49"]
+[White "Maia3 (elo 2411)"]
+[Black "Maia3 (elo 352)"]
+[WhiteElo "2411"]
+[BlackElo "352"]
+[Result "1-0"]
+
+1. c4 e5 2. Nc3 c5 3. g3 Nf6 4. Bg2 Nc6 5. Nf3 d6 6. O-O e4 7. Ng5 Ng4 8. Ngxe4 Be7 9. d3 Bg5 10. Bxg5 Bf5 11. Bxd8 Nb4 12. Nxd6+ Kd7 13. Nxf5 Nxh2 14. Kxh2 Nc2 15. Qxc2 Rhxd8 16. Qa4+ b5 17. Qxb5+ Ke6 18. Bxa8 Kf6 19. Nd5+ Ke5 20. f4+ Kxf5 21. Ne3+ Ke6 22. Qc6+ Rd6 23. Qe8+ Kf6 24. Qe5+ Kg6 25. Qg5# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "50"]
+[White "Maia3 (elo 2506)"]
+[Black "Maia3 (elo 2240)"]
+[WhiteElo "2506"]
+[BlackElo "2240"]
+[Result "1/2-1/2"]
+
+1. e4 c6 2. Nf3 d5 3. d3 dxe4 4. dxe4 Qxd1+ 5. Kxd1 Nf6 6. Nfd2 h5 7. f3 e5 8. Nc4 Nbd7 9. a4 Bc5 10. Bg5 Nh7 11. Be3 Bxe3 12. Nxe3 Nhf8 13. Nc4 Ke7 14. c3 Ne6 15. Kc2 f6 16. a5 Ndc5 17. b4 Na6 18. h4 Nf4 19. Nbd2 Be6 20. g3 Ng6 21. Nb3 Nc7 22. Nc5 Rab8 23. Rh2 Nf8 24. Rd2 b5 25. axb6 axb6 26. Ra7 bxc5 27. Rxc7+ Ke8 28. Nd6+ Kd8 29. Rxg7 Nd7 30. Bc4 Bxc4 31. Nxc4 Rb7 32. bxc5 Kc8 33. Nd6+ Kb8 34. Nxb7 Kxb7 35. Rdxd7+ Ka6 36. c4 Ra8 37. Rd6 Ka5 38. Rb7 Ka6 39. Rb6+ Ka5 40. Rdxc6 Ra7 41. Rxf6 Ra8 42. Kb3 Rb8 43. Rxb8 1/2-1/2
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "51"]
+[White "Maia3 (elo 977)"]
+[Black "Maia3 (elo 1006)"]
+[WhiteElo "977"]
+[BlackElo "1006"]
+[Result "0-1"]
+
+1. e4 e5 2. Bc4 Nf6 3. Nc3 c6 4. d3 Qa5 5. a3 d5 6. exd5 Bc5 7. Qf3 Ng4 8. b4 Bxf2+ 9. Kd2 Qb6 10. dxc6 f6 11. h3 Be3+ 12. Ke2 Bxg1 13. Qxg4 Bxg4+ 14. Kd2 Qf2+ 15. Ne2 Qxe2+ 16. Kc3 Bd4+ 17. Kb3 Nxc6 18. Rb1 Qxg2 19. Re1 Qxh3 20. Bd2 Be6 21. Bxe6 Qxe6+ 22. c4 b5 23. Ka2 bxc4 24. dxc4 Qxc4+ 25. Rb3 Qc2+ 26. Rb2 Qxb2# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "52"]
+[White "Maia3 (elo 1310)"]
+[Black "Maia3 (elo 1162)"]
+[WhiteElo "1310"]
+[BlackElo "1162"]
+[Result "1-0"]
+
+1. e4 e6 2. d4 d5 3. e5 c5 4. Nf3 b5 5. c3 c4 6. Be2 b4 7. O-O Ne7 8. Bf4 Nf5 9. a3 b3 10. Nbd2 a5 11. a4 Be7 12. Ne1 g5 13. Bg3 h5 14. Bxh5 Ba6 15. Bg4 Nh4 16. Bxh4 Rxh4 17. h3 Kd7 18. Qf3 Nc6 19. Qxf7 Kc7 20. Qxe6 Bc8 21. Qg6 Bxg4 22. hxg4 Qh8 23. f3 Rh1+ 24. Kf2 Rxf1+ 25. Nxf1 Nxe5 26. Qe6 Nd3+ 27. Nxd3 cxd3 28. Qxd5 Rd8 29. Qxa5+ Kd6 30. Qb4+ Kd7 31. Qxb3 Qh4+ 32. g3 Qh3 33. Qb5+ Ke6 34. Qe5+ Kd7 35. a5 Bd6 36. Qf5+ Kc7 37. Rd1 Rf8 38. Qxg5 Qh1 39. Qg7+ Kc6 40. f4 Ra8 41. Ra1 Qd5 42. Ne3 Qb3 43. d5+ Kb5 44. Qb7+ Kc5 45. Qxb3 Rb8 46. Qxb8 Bxb8 47. a6 Ba7 48. Ke1 Kb5 49. Kd2 Kc5 50. Kxd3 Kb5 51. c4+ Kb4 52. d6 Bb6 53. g5 Kb3 54. Nd5 Bd8 55. a7 Bb6 56. a8=Q Kxb2 57. Qa2# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "53"]
+[White "Maia3 (elo 2722)"]
+[Black "Maia3 (elo 1147)"]
+[WhiteElo "2722"]
+[BlackElo "1147"]
+[Result "1-0"]
+
+1. e4 e5 2. Nf3 Nc6 3. Nc3 Nf6 4. Be2 Bd6 5. d3 O-O 6. Bg5 Be7 7. Qd2 h6 8. Rg1 hxg5 9. O-O-O Nh7 10. h4 gxh4 11. Rh1 Nd4 12. g3 Nxf3 13. Bxf3 hxg3 14. Rxh7 Bg5 15. Rdh1 Bxd2+ 16. Kxd2 b6 17. Rh8# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "54"]
+[White "Maia3 (elo 756)"]
+[Black "Maia3 (elo 261)"]
+[WhiteElo "756"]
+[BlackElo "261"]
+[Result "1-0"]
+
+1. e4 f5 2. exf5 d5 3. Qh5+ Kd7 4. Bb5+ c6 5. Ba4 Kc7 6. Qf7 Kd6 7. Ne2 c5 8. Qe6+ Kc7 9. Qxd5 c4 10. Qxc4+ Nc6 11. Qf4+ Ne5 12. Qxe5+ Kb6 13. Qb5+ Kc7 14. d3 Kd6 15. Qb4+ Kc7 16. Bf4+ e5 17. Bxe5+ Bd6 18. Bxd6+ Qxd6 19. Qxd6+ Kxd6 20. O-O Bxf5 21. Ng3 h6 22. Nxf5+ Kd5 23. Bb3+ Ke5 24. Nxg7 Ne7 25. Re1+ Kd4 26. Ne6# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "55"]
+[White "Maia3 (elo 752)"]
+[Black "Maia3 (elo 524)"]
+[WhiteElo "752"]
+[BlackElo "524"]
+[Result "1-0"]
+
+1. e4 e5 2. Nf3 Nf6 3. Nc3 Nc6 4. Bc4 Be7 5. d4 exd4 6. Ng5 O-O 7. Nxf7 Qe8 8. Ne5+ Rf7 9. Bxf7+ Qxf7 10. Nxf7 Bc5 11. Ng5 Ng4 12. f3 Nxh2 13. Nd5 Bd6 14. c3 Ng4 15. Rxh7 d3 16. Qxd3 Nce5 17. Qb5 c5 18. Ne7+ Kf8 19. Rh8+ Kxe7 20. Qb3 Kf6 21. Rf8+ Kg6 22. Rxc8 Rxc8 23. fxg4 a5 24. Nf7 Rf8 25. Nxe5+ Kf6 26. Nxd7+ Ke7 27. Nxf8 Bg3+ 28. Kf1 c4 29. Qxc4 Kxf8 30. Qc5+ Kf7 31. Bg5 Kg6 32. Qf5# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "56"]
+[White "Maia3 (elo 100)"]
+[Black "Maia3 (elo 472)"]
+[WhiteElo "100"]
+[BlackElo "472"]
+[Result "1/2-1/2"]
+
+1. f4 h6 2. g4 h5 3. h4 hxg4 4. Rh3 g3 5. Rxg3 e5 6. fxe5 Bb4 7. Rxg7 Rxh4 8. Rxg8+ Ke7 9. Rxd8 d5 10. Rxc8 Nd7 11. Rxc7 Rh7 12. Rxd7+ Kxd7 13. a4 Rg8 14. e6+ Kxe6 15. a5 Rh2 16. Nf3 Rg1 17. Nxg1 Ke5 18. a6 f5 19. axb7 Ke4 20. Nc3+ Kf4 21. Rxa7 Rh8 22. Ra6 Rd8 23. b8=Q+ Rxb8 24. Ra1 Bxc3 25. e3+ Ke5 26. dxc3 d4 27. cxd4+ Kd5 28. e4+ Kxe4 29. d5 f4 30. Bxf4 Kxf4 31. Ra6 Rxb2 32. d6 Rb8 33. d7 Rb7 34. d8=Q Rb1 35. Qxb1 Kg4 36. c4 Kf4 37. Qdd3 Ke5 38. c5 Kf4 39. Qd5 Kg3 40. c6 Kg4 41. c7 Kh4 42. Qdb3 Kg5 43. c8=Q Kh4 44. Qe8 Kg5 45. Qeb5+ Kh4 46. Bc4 Kg4 47. Be2+ Kh4 48. Qa5 1/2-1/2
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "57"]
+[White "Maia3 (elo 2403)"]
+[Black "Maia3 (elo 2067)"]
+[WhiteElo "2403"]
+[BlackElo "2067"]
+[Result "1-0"]
+
+1. e4 e5 2. Nf3 Nc6 3. d4 exd4 4. Nxd4 Bc5 5. Be3 Qf6 6. c3 Nge7 7. Qd2 O-O 8. Nxc6 Bxe3 9. Nxe7+ Qxe7 10. Qxe3 d5 11. Nd2 dxe4 12. Bc4 Bg4 13. O-O a6 14. Qxe4 Qc5 15. Qxg4 Rad8 16. Nf3 h5 17. Qh4 g6 18. Rad1 Rxd1 19. Rxd1 Qb6 20. Bb3 Qxf2+ 21. Kxf2 b6 22. Rd8 c5 23. Rxf8+ Kg7 24. Rxf7+ Kh6 25. Qg5# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "58"]
+[White "Maia3 (elo 1606)"]
+[Black "Maia3 (elo 3192)"]
+[WhiteElo "1606"]
+[BlackElo "3192"]
+[Result "1-0"]
+
+1. e4 e5 2. Bc4 Nf6 3. Nc3 Bc5 4. h3 O-O 5. d3 c6 6. Bg5 Qb6 7. Nf3 Qxb2 8. Ne2 Bb4+ 9. Kf1 Nd5 10. exd5 b5 11. Bxb5 cxb5 12. c3 Bxc3 13. Nxc3 Qxc3 14. h4 d6 15. Rc1 Qa3 16. h5 Qxa2 17. Be7 Re8 18. Ng5 Rxe7 19. Rxc8+ Re8 20. Rxe8# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "59"]
+[White "Maia3 (elo 2817)"]
+[Black "Maia3 (elo 1459)"]
+[WhiteElo "2817"]
+[BlackElo "1459"]
+[Result "1-0"]
+
+1. d4 b6 2. e4 a5 3. Bc4 c5 4. Bd5 e6 5. Bxa8 Nf6 6. Nf3 Nxe4 7. Bxe4 Qe7 8. Nc3 cxd4 9. Qxd4 f5 10. Bg5 Qf7 11. Qxb6 Na6 12. Qd8# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "60"]
+[White "Maia3 (elo 1635)"]
+[Black "Maia3 (elo 2206)"]
+[WhiteElo "1635"]
+[BlackElo "2206"]
+[Result "0-1"]
+
+1. e4 c5 2. Nc3 g6 3. Bc4 Bg7 4. f4 Nc6 5. d3 e6 6. Bd2 Nge7 7. Nf3 d5 8. exd5 exd5 9. Bb3 O-O 10. O-O Nd4 11. Nxd4 Bxd4+ 12. Kh1 h5 13. Qe1 Bf5 14. Qg3 Rc8 15. Rab1 c4 16. dxc4 dxc4 17. Ba4 a6 18. b3 b5 19. Nxb5 axb5 20. Bxb5 cxb3 21. cxb3 Bxb1 22. Rxb1 Nf5 23. Qf3 Rc2 24. Qd3 Rc7 25. Bc4 Rd7 26. a4 Be3 27. Qxe3 Nxe3 28. Bxe3 Rd1+ 29. Rxd1 Qxd1+ 30. Bg1 Re8 31. h3 Re1 32. Kh2 Rxg1 33. Bxf7+ Kxf7 34. a5 h4 35. a6 Rh1# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "61"]
+[White "Maia3 (elo 2373)"]
+[Black "Maia3 (elo 679)"]
+[WhiteElo "2373"]
+[BlackElo "679"]
+[Result "1-0"]
+
+1. c4 Na6 2. d4 f6 3. g3 c6 4. a3 Nb4 5. axb4 b6 6. Bg2 d6 7. Bxc6+ Bd7 8. Bxa8 Qxa8 9. Nf3 g6 10. d5 h6 11. b5 h5 12. Qa4 a5 13. O-O Qd8 14. Nc3 e5 15. Qc2 Nh6 16. Qxg6+ Ke7 17. Bxh6 Rxh6 18. Qg8 Be8 19. Nh4 Kd7 20. Qxf8 f5 21. Qxh6 Bf7 22. Nxf5 Kc8 23. b4 Qe7 24. Nxe7+ Kd7 25. Qg7 axb4 26. Ra7+ Ke8 27. Qh8+ Bg8 28. Qxg8# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "62"]
+[White "Maia3 (elo 1351)"]
+[Black "Maia3 (elo 2094)"]
+[WhiteElo "1351"]
+[BlackElo "2094"]
+[Result "0-1"]
+
+1. e4 c6 2. d4 d5 3. e5 Bf5 4. Nf3 e6 5. c4 Nd7 6. Nc3 Qb6 7. c5 Qd8 8. Bd3 Bg6 9. b4 Bh5 10. O-O a6 11. Ng5 Bxd1 12. Nxd1 g6 13. Ne3 Bh6 14. Nf3 Ne7 15. Ng4 Bxc1 16. Raxc1 Nf5 17. Bxf5 gxf5 18. Nh6 Nf8 19. a4 Ng6 20. Ng5 Qxg5 21. Nxf7 Kxf7 22. b5 Nf4 23. g3 Ne2+ 24. Kh1 Nxc1 25. Rxc1 Qxc1+ 26. Kg2 axb5 27. axb5 Ra2 28. bxc6 bxc6 29. Kf3 Qh1+ 30. Kf4 Qe4+ 31. Kg5 Qg4+ 32. Kh6 Qg6# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "63"]
+[White "Maia3 (elo 2329)"]
+[Black "Maia3 (elo 2435)"]
+[WhiteElo "2329"]
+[BlackElo "2435"]
+[Result "1-0"]
+
+1. d3 d5 2. Nf3 b6 3. g3 Bb7 4. Bg2 g6 5. O-O Bg7 6. e4 dxe4 7. Ng5 Nf6 8. Nc3 Nc6 9. dxe4 Qxd1 10. Rxd1 a6 11. Bf4 e5 12. Be3 O-O 13. h3 h6 14. Nf3 Rfd8 15. Nd5 Nxd5 16. exd5 Nb4 17. c3 Nxd5 18. Bd2 Rd7 19. c4 Ne7 20. Bc3 Rad8 21. Rxd7 Rxd7 22. Nxe5 Bxe5 23. Bxe5 Bxg2 24. Kxg2 Nc6 25. Bc3 Kf8 26. Re1 h5 27. g4 hxg4 28. hxg4 a5 29. Bf6 Nb4 30. Rh1 Rd6 31. Rh8# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "64"]
+[White "Maia3 (elo 3066)"]
+[Black "Maia3 (elo 2908)"]
+[WhiteElo "3066"]
+[BlackElo "2908"]
+[Result "*"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 b6 4. g3 Ba6 5. Qc2 c5 6. Bg2 Nc6 7. dxc5 Bxc5 8. Nbd2 d5 9. Qa4 Qc8 10. Ne5 Bb7 11. cxd5 Nxd5 12. Nd3 Be7 13. b3 O-O 14. Bb2 Qd7 15. O-O Rfc8 16. b4 Ne5 17. Qxd7 Nxd7 18. Rfd1 Ba6 19. Bxd5 exd5 20. a3 Nf8 21. Bd4 g5 22. Nf1 f6 23. Ne3 Ne6 24. Bb2 d4 25. Nf5 Kf7 26. Rac1 Bf8 27. g4 Rxc1 28. Rxc1 Rd8 29. f3 Bd6 30. Nxd6+ Rxd6 31. Kf2 Kg6 32. a4 Bxd3 33. exd3 Nf4 34. Rd1 h5 35. b5 Rd7 36. Bc1 Ne6 37. h3 Nc5 38. a5 f5 39. axb6 axb6 40. gxf5+ Kxf5 41. Ba3 Re7 42. Bb4 Re5 43. Bxc5 Rxc5 44. Rb1 h4 45. Re1 Rxb5 46. Re4 Rb2+ 47. Kf1 b5 48. Rxd4 b4 49. Ke1 b3 50. Rd5+ Kf4 51. Rb5 Kxf3 52. Rxg5 Rh2 53. Rb5 b2 54. Kd1 Ke3 55. Rb3 Rh1+ 56. Kc2 Kf4 57. Rxb2 Rxh3 58. Rb4+ Kf5 59. Kd2 Kg5 60. Kc1 Rxd3 61. Rb8 Rd7 62. Ra8 Kf4 63. Re8 Kg3 64. Rg8+ Kf4 65. Rg1 Ke3 66. Rg4 h3 67. Rg3+ Kf2 68. Rxh3 Ke2 69. Kc2 Ke1 70. Rd3 Rc7+ 71. Kb3 Ra7 72. Kc2 Rf7 73. Rd6 Ke2 74. Rd8 Kf2 75. Rc8 Ke3 76. Rb8 Kf2 77. Ra8 Ke2 78. Re8+ Kf1 79. Kd3 Rf6 80. Re4 Rf8 81. Kc3 Ra8 82. Rd4 Kg1 83. Rf4 Rd8 84. Rf3 Kh1 85. Re3 Ra8 86. Re5 Rf8 87. Kd2 Kg2 88. Rg5+ Kf3 89. Rg7 Rh8 90. Rg1 Kf2 91. Rc1 Kg3 92. Rc6 Kf2 93. Ra6 Rd8+ 94. Kc3 Kg2 95. Kc4 Rf8 96. Kb5 Kf3 97. Ka5 Rb8 98. Ra7 Kg4 99. Rd7 Kg5 100. Re7 Kf6 101. Re1 Rb3 102. Re4 Ra3+ 103. Kb6 Ra2 104. Kc6 Ra5 105. Kd7 Ra2 106. Rd4 Ke5 107. Rc4 Kd5 108. Rc7 Rd2 109. Rc8 Ra2 110. Rc7 Rg2 111. Rc3 Rg1 112. Kc7 Rg6 113. Kb7 Rg8 114. Rb3 Ke6 115. Re3+ Kd5 116. Rb3 Kd6 117. Rc3 Rg4 118. Rc7 Rb4+ 119. Kc8 Rb5 120. Rd7+ Kc6 *
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "65"]
+[White "Maia3 (elo 1740)"]
+[Black "Maia3 (elo 1245)"]
+[WhiteElo "1740"]
+[BlackElo "1245"]
+[Result "1-0"]
+
+1. e4 e5 2. f4 exf4 3. Nf3 d6 4. d4 Nf6 5. Bd3 Bg4 6. O-O d5 7. e5 Bb4 8. exf6 Qxf6 9. c3 Ba5 10. Qb3 O-O 11. Qxb7 Nd7 12. Qxd5 Rad8 13. Qxa5 Rfe8 14. Nbd2 c5 15. dxc5 Re3 16. Bc4 Ne5 17. Nxe5 Qxe5 18. Qxd8+ Qe8 19. Qxe8+ Rxe8 20. Nf3 Bxf3 21. Rxf3 Re1+ 22. Rf1 Rxf1+ 23. Kxf1 a5 24. Bxf4 a4 25. Re1 Kh8 26. Re8# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "66"]
+[White "Maia3 (elo 1999)"]
+[Black "Maia3 (elo 2687)"]
+[WhiteElo "1999"]
+[BlackElo "2687"]
+[Result "0-1"]
+
+1. e4 e5 2. Nf3 d6 3. c3 Nf6 4. Bc4 Nxe4 5. Qb3 Qe7 6. O-O Nc5 7. Qc2 Bg4 8. d4 Bxf3 9. dxc5 Bh5 10. cxd6 cxd6 11. Re1 Nc6 12. f4 O-O-O 13. b4 Qh4 14. g3 Qg4 15. Qf2 d5 16. Bf1 Qf3 17. Qxf3 Bxf3 18. fxe5 d4 19. e6 fxe6 20. cxd4 Bxb4 21. Rxe6 Nxd4 22. Bh3 Nxe6 23. Bxe6+ Kb8 24. Bf4+ Ka8 25. Nd2 Bxd2 26. Bc7 Be3+ 27. Kf1 Rd2 28. Be5 Rf2+ 29. Ke1 Rxh2 30. Bc4 Bd2+ 31. Kf1 Be3 32. Bxg7 Rh1# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "67"]
+[White "Maia3 (elo 2720)"]
+[Black "Maia3 (elo 2719)"]
+[WhiteElo "2720"]
+[BlackElo "2719"]
+[Result "1-0"]
+
+1. e4 e5 2. Nf3 Nc6 3. Nc3 Nf6 4. Bb5 Bd6 5. O-O O-O 6. d3 Re8 7. Bg5 h6 8. Bh4 g5 9. Bg3 a6 10. Bc4 Bc5 11. Nd5 d6 12. c3 Bg4 13. Ne3 Bh5 14. b4 Ba7 15. Nf5 Kh7 16. Qb3 Qd7 17. Qc2 Bg6 18. Ne3 Nh5 19. a4 Nd8 20. a5 Bxe3 21. fxe3 Rf8 22. Rf2 Ne6 23. Raf1 f6 24. Qb3 Neg7 25. Nd2 c6 26. Rf3 Nxg3 27. hxg3 f5 28. exf5 Rxf5 29. e4 Rff8 30. Rxf8 Re8 31. Bg8+ Kh8 32. Be6+ Rxf8 33. Rxf8+ Kh7 34. Bxd7 Ne6 35. Qxe6 Kg7 36. Qe7+ Bf7 37. Qxf7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "68"]
+[White "Maia3 (elo 843)"]
+[Black "Maia3 (elo 887)"]
+[WhiteElo "843"]
+[BlackElo "887"]
+[Result "0-1"]
+
+1. e4 d5 2. d3 Nc6 3. exd5 Qxd5 4. Nc3 Qd4 5. Be3 Qh4 6. Nf3 Qb4 7. Rb1 e5 8. Be2 Bc5 9. Bxc5 Qxc5 10. O-O f6 11. Ne4 Qa5 12. Re1 f5 13. Nc3 Nf6 14. Qd2 Nb4 15. Nxe5 Qxe5 16. Bf3 O-O 17. Rxe5 Ng4 18. Bxg4 fxg4 19. Rb5 Nc6 20. Nd5 Nd4 21. Rb4 Nf5 22. g3 c6 23. Nc7 Rb8 24. Ne6 Bxe6 25. Re1 Bc8 26. Qe2 g6 27. Qxg4 Nd6 28. Qc4+ Nxc4 29. Rxc4 Bf5 30. Rf4 b5 31. Re3 a5 32. g4 Bd7 33. h4 Rxf4 34. Re7 Bxg4 35. h5 Bxh5 36. Re6 Rbf8 37. Rxc6 Rxf2 38. Ra6 Rf1+ 39. Kg2 a4 40. Rxa4 R1f2+ 41. Kg3 bxa4 42. Kh4 Rxc2 43. Kg5 Rxb2 44. Kh6 Rxa2 45. d4 a3 46. d5 Ra1 47. Kg5 a2 48. Kh6 Rg1 49. d6 Rh1 50. d7 Rd1 51. Kg5 a1=Q 52. Kh6 Rxd7 53. Kg5 Rf5+ 54. Kh4 Rd4+ 55. Kg3 Qa3+ 56. Kg2 Rd2+ 57. Kg1 Qa1# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "69"]
+[White "Maia3 (elo 301)"]
+[Black "Maia3 (elo 1600)"]
+[WhiteElo "301"]
+[BlackElo "1600"]
+[Result "0-1"]
+
+1. d4 d5 2. Na3 e5 3. Nc4 dxc4 4. dxe5 Qxd1+ 5. Kxd1 Nc6 6. e6 fxe6 7. e4 Ne5 8. Bf4 Ng6 9. e5 Nxf4 10. f3 Bd7 11. Be2 Nxe2 12. Ke1 Nd4 13. Ne2 Nxc2+ 14. Kd2 Nxa1 15. g4 Bb4+ 16. Ke3 Nc2+ 17. Kf4 Bb5 18. Nd4 Nxd4 19. b3 O-O-O 20. Kg5 cxb3 21. a4 Be7+ 22. Kh5 Be8# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "70"]
+[White "Maia3 (elo 1543)"]
+[Black "Maia3 (elo 1390)"]
+[WhiteElo "1543"]
+[BlackElo "1390"]
+[Result "1-0"]
+
+1. e4 g5 2. d4 Bh6 3. Nf3 g4 4. Bxh6 Nxh6 5. Ne5 d6 6. Nc4 e5 7. dxe5 b5 8. exd6 Nd7 9. Qd4 Rg8 10. Nca3 Rg6 11. dxc7 Rb8 12. cxd8=B Kxd8 13. Bxb5 Rd6 14. Qh8+ Ke7 15. Qxh7 Nf6 16. Qxh6 Rd5 17. O-O Nxe4 18. Nc3 Bf5 19. Nxd5+ Kd8 20. Qh7 Rxb5 21. Qxf5 Rxb2 22. Qxe4 a5 23. Qe7+ Kc8 24. Qc7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "71"]
+[White "Maia3 (elo 2924)"]
+[Black "Maia3 (elo 2978)"]
+[WhiteElo "2924"]
+[BlackElo "2978"]
+[Result "1-0"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 Nf6 4. O-O Nxe4 5. d4 Nd6 6. Bxc6 dxc6 7. dxe5 Nf5 8. Qxd8+ Kxd8 9. Nc3 Bd7 10. h3 h6 11. b3 Kc8 12. Bb2 a5 13. Rad1 b6 14. Rd3 Ne7 15. Rfd1 Bf5 16. Rd8+ Kb7 17. Rxa8 Kxa8 18. Nd4 Bc8 19. e6 fxe6 20. Re1 Nd5 21. Ne4 Kb7 22. Nd2 Bb4 23. N4f3 Rg8 24. a3 Bd6 25. Nc4 Be7 26. Nce5 Bf6 27. Kf1 c5 28. c4 Nf4 29. Re4 Ng6 30. a4 Ne7 31. Bc3 Nc6 32. Ke1 Kb8 33. Nxc6+ Kb7 34. Nce5 Kb8 35. Ke2 Kb7 36. Re3 Rf8 37. Nd2 Bxe5 38. Rxe5 Bd7 39. f3 g5 40. Re4 h5 41. Re5 Rg8 42. g4 Bc6 43. gxh5 Rf8 44. Rxg5 Rf4 45. Be5 Rh4 46. Kf2 Rxh3 47. Kg2 Rh4 48. Bg3 Rd4 49. Ne4 Rxe4 50. Kf2 Rd4 51. Be5 Rd3 52. Rg7 Bxf3 53. Rg3 Rxb3 54. Rxf3 Rxf3+ 55. Kxf3 b5 56. h6 Ka7 57. h7 b4 58. h8=Q Kb7 59. Qe8 Ka7 60. Bxc7 b3 61. Qb8+ Ka6 62. Qb6# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "72"]
+[White "Maia3 (elo 1975)"]
+[Black "Maia3 (elo 2396)"]
+[WhiteElo "1975"]
+[BlackElo "2396"]
+[Result "1-0"]
+
+1. e4 Nc6 2. Nf3 d5 3. exd5 Qxd5 4. Nc3 Qa5 5. Bc4 Nf6 6. O-O e6 7. d4 a6 8. Re1 Bb4 9. d5 Bxc3 10. bxc3 Ne7 11. dxe6 Bxe6 12. Bxe6 fxe6 13. Rxe6 Kf7 14. Re5 Qxc3 15. Bf4 Rhd8 16. Qe1 Ned5 17. Re7+ Nxe7 18. Qxc3 Ned5 19. Qb3 b5 20. Bg5 Kg8 21. Bxf6 gxf6 22. c4 bxc4 23. Qxc4 a5 24. Nh4 Rab8 25. Nf5 Kf7 26. Rd1 c6 27. Ne3 Rbc8 28. Nxd5 cxd5 29. Qh4 Kg6 30. Qg4+ Kf7 31. Qf5 Kg7 32. h4 d4 33. Qxa5 d3 34. Qa7+ Kg8 35. h5 d2 36. h6 Rc1 37. Qg7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "73"]
+[White "Maia3 (elo 1045)"]
+[Black "Maia3 (elo 2542)"]
+[WhiteElo "1045"]
+[BlackElo "2542"]
+[Result "0-1"]
+
+1. d4 d5 2. Nf3 c6 3. Bg5 Qb6 4. c3 Qxb2 5. Nbd2 Qxc3 6. Rc1 Qa5 7. Rc3 Qxc3 8. Ne5 Nd7 9. e3 Nxe5 10. dxe5 Qxe5 11. Bf4 Qf6 12. Bd6 Qxd6 13. f4 e5 14. g4 exf4 15. Nc4 dxc4 16. Qe2 fxe3 17. Qxe3+ Kd8 18. Qf3 Qe5+ 19. Be2 Nf6 20. g5 Qxg5 21. h4 Qa5+ 22. Kf2 Be6 23. h5 Bc5+ 24. Kg2 Bd5 25. Qxd5+ cxd5 26. Bg4 Nxg4 27. Rh2 Qd2+ 28. Kf3 Qe3+ 29. Kxg4 f5+ 30. Kxf5 Rf8+ 31. Kg4 Rf4+ 32. Kg5 Qe5# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "74"]
+[White "Maia3 (elo 3059)"]
+[Black "Maia3 (elo 2150)"]
+[WhiteElo "3059"]
+[BlackElo "2150"]
+[Result "1-0"]
+
+1. b3 e5 2. e3 d5 3. Bb2 Nc6 4. Bb5 Bd6 5. f4 f6 6. Qh5+ g6 7. Qf3 e4 8. Qg3 a6 9. Bxc6+ bxc6 10. Nc3 Ne7 11. Nge2 Nf5 12. Qf2 h5 13. O-O-O h4 14. d3 exd3 15. cxd3 Nh6 16. e4 Ng4 17. Qf3 h3 18. gxh3 Nh6 19. Rhg1 Kf7 20. e5 Be7 21. Na4 Bf5 22. Ng3 Qd7 23. exf6 Bd6 24. Bd4 Bxh3 25. Qf2 Rab8 26. Bc3 Rhe8 27. Ne4 dxe4 28. dxe4 Rxe4 29. Nc5 Qf5 30. Nxe4 Qxe4 31. Rxd6 Bf5 32. Kb2 Re8 33. Rd4 Ng4 34. Rxe4 Nxf2 35. Rxe8 Kxe8 36. Be5 Kd7 37. Ka3 Ke6 38. Re1 Ng4 39. Bc3+ Kf7 40. Re7+ Kf8 41. Bb4 Nxf6 42. Rxc7+ Ke8 43. Rxc6 Nd5 44. Rxa6 Kf7 45. Bd2 Nf6 46. Kb2 Nd5 47. b4 Ke7 48. b5 Bc8 49. Rxg6 Kd7 50. a4 Ne7 51. Rg7 Ke6 52. a5 Kd7 53. a6 Ke6 54. a7 Bb7 55. Bb4 Nd5 56. Rxb7 Nxb4 57. a8=Q Nd3+ 58. Kc3 Nxf4 59. Qe8+ Kf6 60. Rf7+ Kg5 61. Qg8+ Kh6 62. Rh7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "75"]
+[White "Maia3 (elo 2661)"]
+[Black "Maia3 (elo 583)"]
+[WhiteElo "2661"]
+[BlackElo "583"]
+[Result "1-0"]
+
+1. e4 a5 2. d4 c5 3. Bf4 d6 4. dxc5 Qb6 5. cxb6 f6 6. Nc3 Ra6 7. Bxa6 bxa6 8. Nd5 Nc6 9. Nf3 e6 10. Nc7+ Kf7 11. Bxd6 Bxd6 12. Qxd6 e5 13. Qxc6 Bh3 14. gxh3 Ne7 15. Qe6+ Kg6 16. b7 Kh5 17. Qg4+ Kh6 18. Ne6 Rb8 19. Qxg7+ Kh5 20. Qxh7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "76"]
+[White "Maia3 (elo 2374)"]
+[Black "Maia3 (elo 2294)"]
+[WhiteElo "2374"]
+[BlackElo "2294"]
+[Result "1-0"]
+
+1. Nf3 d5 2. d4 e6 3. e3 Ne7 4. Bd3 g6 5. O-O Bg7 6. b3 O-O 7. Bb2 a5 8. Nbd2 a4 9. a3 axb3 10. cxb3 b6 11. Rc1 c5 12. Qc2 Ba6 13. Bxa6 Nxa6 14. Rfd1 Rc8 15. Qb1 Qd6 16. Qa1 Nf5 17. dxc5 bxc5 18. Bxg7 Nxg7 19. Ne4 Qb6 20. Nf6+ Kh8 21. Nd7 Qd6 22. Nxf8 Rxf8 23. Ng5 Kg8 24. Qc3 Nf5 25. Ne4 Qe7 26. Nxc5 Rc8 27. b4 Nd6 28. Qd3 Nxc5 29. Rxc5 Rxc5 30. bxc5 Nc4 31. c6 Qc5 32. Rc1 Qxc6 33. h3 Qa4 34. Qc3 Qxa3 35. Qxa3 Nxa3 36. Rc7 Nc4 37. g4 Kg7 38. Kg2 g5 39. Kg3 Nd2 40. h4 gxh4+ 41. Kxh4 h6 42. Rc1 Ne4 43. Rc2 Kf6 44. Kh5 Kg7 45. f3 Nf6+ 46. Kh4 Nd7 47. Kg3 Ne5 48. f4 Nc4 49. e4 Nb6 50. Rc6 Nc4 51. exd5 exd5 52. Rc5 Ne3 53. Kf3 d4 54. Rc7 Kg6 55. Rc6+ f6 56. Rd6 Nc2 57. Ke4 Ne3 58. Kf3 Nc2 59. Ke4 h5 60. g5 h4 61. Rxf6+ Kh5 62. g6 Kh6 63. f5 h3 64. Rf7 Ne3 65. Rh7+ Kg5 66. g7 Nxf5 67. g8=Q+ Kf6 68. Rf7+ Ke6 69. Rxf5+ Ke7 70. Qg5+ Kd6 71. Rf6+ Kc7 72. Qg7+ Kc8 73. Kd5 d3 74. Rf8# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "77"]
+[White "Maia3 (elo 1865)"]
+[Black "Maia3 (elo 1883)"]
+[WhiteElo "1865"]
+[BlackElo "1883"]
+[Result "1-0"]
+
+1. e4 c5 2. c3 Nc6 3. d4 cxd4 4. cxd4 e6 5. Nc3 d5 6. exd5 exd5 7. Nf3 Bb4 8. Bd3 Nf6 9. O-O O-O 10. h3 Re8 11. Bg5 Be6 12. Qc2 g6 13. a3 Be7 14. b4 a6 15. Rfe1 Rc8 16. Rad1 b5 17. Qd2 Qd7 18. Ne5 Nxe5 19. dxe5 Nh5 20. Bxe7 Qxe7 21. Bf1 Ng7 22. Nxd5 Bxd5 23. Qxd5 Qe6 24. Qb7 Nf5 25. Rd6 Nxd6 26. Qxa6 Ra8 27. Qc6 Nc4 28. Qxb5 Nxa3 29. Qe2 Rab8 30. Qd3 Nb5 31. Qg3 Nd4 32. Qc3 Qxe5 33. Rxe5 Rxe5 34. Qxd4 Re1 35. h4 h5 36. g3 Rb1 37. Kg2 R8xb4 38. Qd8+ Kg7 39. Qd7 R4b2 40. Qd4+ Kf8 41. Bd3 Rd1 42. Qh8+ Ke7 43. Qxb2 Rxd3 44. Qb4+ Rd6 45. Kf3 Ke6 46. Kf4 f6 47. Qc4+ Rd5 48. Qc8+ Rd7 49. Qe8+ Re7 50. Qg8+ Kd7 51. Qd5+ Ke8 52. Qg8+ Kd7 53. Qxg6 f5 54. Qxf5+ Kc7 55. Qxh5 Rf7+ 56. Qxf7+ Kb6 57. h5 Kb5 58. h6 Kc6 59. h7 Kc5 60. h8=Q Kb4 61. Qc7 Ka4 62. Qhb8 Ka3 63. Qca7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "78"]
+[White "Maia3 (elo 144)"]
+[Black "Maia3 (elo 2020)"]
+[WhiteElo "144"]
+[BlackElo "2020"]
+[Result "0-1"]
+
+1. e3 e5 2. b4 Bxb4 3. Bc4 Ba5 4. Qh5 Qe7 5. Bxf7+ Qxf7 6. Qxe5+ Qe7 7. Qf4 Nh6 8. Qh4 Qxh4 9. g3 Qf6 10. c4 O-O 11. Ke2 Qf3+ 12. Nxf3 d5 13. Ba3 Rf6 14. Kf1 Rxf3 15. e4 dxe4 16. g4 Nxg4 17. h3 Nxf2 18. Nc3 Nxh1+ 19. Kg1 Bxc3 20. d3 Bxh3 21. c5 Ng3 22. d4 Nf5 23. d5 Bxa1 24. Bb4 Be5 25. c6 Rf1# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "79"]
+[White "Maia3 (elo 785)"]
+[Black "Maia3 (elo 963)"]
+[WhiteElo "785"]
+[BlackElo "963"]
+[Result "1-0"]
+
+1. e4 e5 2. Nc3 Nc6 3. d3 Bc5 4. Nf3 Nf6 5. Bg5 Nxe4 6. Bxd8 Bxf2+ 7. Ke2 Nd4+ 8. Nxd4 Nxc3+ 9. bxc3 d6 10. Nf5 Bxf5 11. Kxf2 Rxd8 12. d4 O-O 13. dxe5 dxe5 14. Bd3 Bxd3 15. cxd3 Rfe8 16. Re1 e4 17. Rxe4 Rxe4 18. d4 Rf4+ 19. Kg1 c5 20. dxc5 Rxd1+ 21. Rxd1 Re4 22. Rd8+ Re8 23. Rxe8# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "80"]
+[White "Maia3 (elo 378)"]
+[Black "Maia3 (elo 148)"]
+[WhiteElo "378"]
+[BlackElo "148"]
+[Result "1-0"]
+
+1. e3 d5 2. c4 c5 3. cxd5 Qa5 4. Nc3 Qb5 5. Bxb5+ Kd8 6. e4 Bf5 7. exf5 Na6 8. d6 Rc8 9. f6 Rc6 10. dxe7+ Kc7 11. e8=Q b6 12. Nd5+ Kb7 13. Bxc6# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "81"]
+[White "Maia3 (elo 2805)"]
+[Black "Maia3 (elo 410)"]
+[WhiteElo "2805"]
+[BlackElo "410"]
+[Result "1-0"]
+
+1. e4 g6 2. Nf3 b5 3. d4 h6 4. Bxb5 Ba6 5. Qe2 Bxb5 6. Qxb5 Bg7 7. Nc3 g5 8. Na4 a6 9. Qb7 Bxd4 10. Qxa8 Nc6 11. Qxd8+ Kxd8 12. Nxd4 Nxd4 13. O-O Ne2+ 14. Kh1 Nf6 15. Be3 Nxe4 16. Rae1 N4g3+ 17. hxg3 c5 18. Rxe2 c4 19. Bb6+ Kc8 20. Rxe7 g4 21. Rd1 d6 22. Rc7+ Kb8 23. Rxd6 h5 24. Rdd7 h4 25. Rb7+ Ka8 26. Ra7+ Kb8 27. Rdb7+ Kc8 28. Rxf7 Rg8 29. Ra8# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "82"]
+[White "Maia3 (elo 1740)"]
+[Black "Maia3 (elo 326)"]
+[WhiteElo "1740"]
+[BlackElo "326"]
+[Result "1-0"]
+
+1. e4 g5 2. Qf3 e5 3. h3 Qf6 4. g3 Qxf3 5. Nxf3 Bb4 6. Bg2 f6 7. O-O g4 8. hxg4 f5 9. exf5 Nf6 10. Nxe5 Nxg4 11. Nxg4 O-O 12. Nh6+ Kg7 13. d3 Re8 14. c3 Re1 15. Rxe1 Bxc3 16. Nxc3 Kf6 17. Bg5+ Kg7 18. Re8 Nc6 19. f6+ Kg6 20. Rg8+ Kh5 21. Ne4 Nd4 22. g4# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "83"]
+[White "Maia3 (elo 2473)"]
+[Black "Maia3 (elo 1054)"]
+[WhiteElo "2473"]
+[BlackElo "1054"]
+[Result "1-0"]
+
+1. e4 Nc6 2. Nf3 e5 3. Bc4 h6 4. Nc3 Nf6 5. O-O Bc5 6. a3 O-O 7. h3 d6 8. b4 Bb6 9. d3 Be6 10. Nd5 Nxd5 11. exd5 Bf5 12. dxc6 bxc6 13. Bb3 d5 14. Nxe5 Bxh3 15. gxh3 Qf6 16. d4 Qg5+ 17. Bxg5 hxg5 18. c3 Rae8 19. Qh5 a6 20. h4 g6 21. Nxg6 Bxd4 22. cxd4 Re4 23. Qh8# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "84"]
+[White "Maia3 (elo 2608)"]
+[Black "Maia3 (elo 1640)"]
+[WhiteElo "2608"]
+[BlackElo "1640"]
+[Result "0-1"]
+
+1. e4 Nc6 2. d4 Nf6 3. d5 Nb8 4. e5 Ne4 5. Qd4 Nc5 6. Qxc5 d6 7. Bb5+ c6 8. dxc6 dxc5 9. c7+ Qd7 10. Nc3 Nc6 11. Bf4 e6 12. Nf3 Qxc7 13. O-O-O Bd7 14. Rhe1 O-O-O 15. Ng5 a6 16. Ba4 Be8 17. Nce4 Rxd1+ 18. Rxd1 h6 19. Nd6+ Bxd6 20. exd6 Qb6 21. d7+ Bxd7 22. Nxf7 Rf8 23. Nd6+ Kd8 24. Bg3 Qb4 25. Bb3 Nd4 26. Bc4 Ke7 27. c3 Ne2+ 28. Bxe2 Qa4 29. Nc4 Rd8 30. Bc7 Rf8 31. Bd6+ Ke8 32. Bh5+ Rf7 33. Ne5 Qxa2 34. Bxf7+ Kd8 35. Bxc5 Qa1+ 36. Kc2 Qa4+ 37. Kc1 Qa1+ 38. Kd2 Qxb2+ 39. Ke3 Qxc3+ 40. Kf4 g5+ 41. Kg4 Qxe5 42. Bg6 Qxc5 43. f3 Qb4+ 44. Kg3 Ke7 45. Be4 Bc6 46. Rb1 Qd6+ 47. Kg4 Bxe4 48. fxe4 Qf4+ 49. Kh5 Qf7+ 50. Kxh6 Qf6+ 51. Kh5 Qf7+ 52. Kxg5 a5 53. Rxb7+ Kf8 54. Rxf7+ Kxf7 55. Kf4 a4 56. Ke3 a3 57. Kf4 a2 58. g4 a1=Q 59. h3 Qh1 60. h4 Qxh4 61. Kf3 Kf6 62. Kf4 Qg5+ 63. Kf3 Ke5 64. Kg3 Kxe4 65. Kh3 e5 66. Kg3 Ke3 67. Kg2 Qxg4+ 68. Kh2 Qe2+ 69. Kg3 Qf3+ 70. Kh4 Qg2 71. Kh5 e4 72. Kh6 Kf3 73. Kh7 e3 74. Kh8 e2 75. Kh7 e1=Q 76. Kh8 Qgh1+ 77. Kg8 Qe6+ 78. Kg7 Qhh6# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "85"]
+[White "Maia3 (elo 1205)"]
+[Black "Maia3 (elo 2959)"]
+[WhiteElo "1205"]
+[BlackElo "2959"]
+[Result "0-1"]
+
+1. e4 d5 2. exd5 Nf6 3. Nc3 Nxd5 4. Nxd5 Qxd5 5. d4 Bf5 6. c4 Qd6 7. Nf3 Nc6 8. a3 O-O-O 9. c5 Qe6+ 10. Be2 g5 11. d5 Rxd5 12. Bd2 Bd3 13. Nxg5 Rxg5 14. Bxg5 Ba6 15. Be3 Bh6 16. Bg4 f5 17. Bxf5 Qxf5 18. f4 e5 19. g3 exf4 20. a4 fxe3 21. Rf1 Qxf1# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "86"]
+[White "Maia3 (elo 1297)"]
+[Black "Maia3 (elo 1951)"]
+[WhiteElo "1297"]
+[BlackElo "1951"]
+[Result "0-1"]
+
+1. e4 e5 2. d4 exd4 3. c3 Nc6 4. cxd4 d5 5. Nc3 dxe4 6. Nxe4 Nxd4 7. Be3 Bb4+ 8. Nc3 Bxc3+ 9. bxc3 Nc6 10. Qxd8+ Nxd8 11. Bd4 Nf6 12. Bd3 Ne6 13. Be5 Nd7 14. Bg3 O-O 15. f4 Ndc5 16. Bf5 g6 17. Bg4 h5 18. Bxe6 Bxe6 19. Nf3 Nd3+ 20. Ke2 Bc4 21. Kd2 Rad8 22. Nd4 c5 23. Bh4 f6 24. Bg3 cxd4 25. Rab1 h4 26. Bxh4 b5 27. cxd4 Kg7 28. a3 Nxf4 29. Bf2 Nxg2 30. Kc3 Rfe8 31. Rhg1 Nf4 32. Rg4 g5 33. Bg3 Re3+ 34. Kb4 Rxd4 35. Bxf4 Be2+ 36. Ka5 Rxa3# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "87"]
+[White "Maia3 (elo 765)"]
+[Black "Maia3 (elo 2285)"]
+[WhiteElo "765"]
+[BlackElo "2285"]
+[Result "1/2-1/2"]
+
+1. d4 e5 2. e4 exd4 3. Qxd4 Nc6 4. Qd1 Qe7 5. Nf3 Qxe4+ 6. Qe2 Qxe2+ 7. Bxe2 Nf6 8. Ne5 Nxe5 9. O-O Bd6 10. Re1 O-O 11. Kh1 Bb4 12. c3 Bc5 13. Bf4 Bxf2 14. Rf1 Neg4 15. h3 Ne3 16. Rxf2 Ne4 17. Bxe3 Nxf2+ 18. Bxf2 d5 19. Nd2 Bd7 20. Bf3 c6 21. Nb3 Rfe8 22. Nd4 Re7 23. Re1 Rxe1+ 24. Bxe1 g6 25. Bg3 Re8 26. Bf4 Re1+ 27. Kh2 c5 28. Ne2 Rb1 29. Bxd5 Rxb2 30. Be5 Rxe2 31. Bb8 Be6 32. Bxe6 Rxe6 33. Bxa7 Ra6 34. Bxc5 Rxa2 35. Bd4 Kf8 36. Kg3 Ke7 37. Bf2 Rxf2 38. Kxf2 f5 39. Kf3 Kd6 40. Ke3 Ke5 41. g4 f4+ 42. Kf3 g5 43. c4 Kd4 44. h4 h6 45. c5 Kxc5 46. hxg5 hxg5 47. Ke4 b5 48. Kd3 b4 49. Kc2 f3 50. Kd3 b3 51. Ke3 f2 52. Kxf2 b2 53. Kf3 b1=Q 54. Ke3 Kd5 55. Kf3 Ke5 56. Kg3 Qb2 57. Kf3 Qd2 58. Kg3 Ke4 59. Kh3 Kf4 1/2-1/2
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "88"]
+[White "Maia3 (elo 2199)"]
+[Black "Maia3 (elo 3102)"]
+[WhiteElo "2199"]
+[BlackElo "3102"]
+[Result "1-0"]
+
+1. e4 e5 2. Nc3 Nc6 3. Nf3 Nf6 4. Bd3 Bc5 5. O-O O-O 6. Bb5 d6 7. d3 Bg4 8. Bxc6 bxc6 9. h3 Bh5 10. Be3 Bb4 11. g4 Bg6 12. Bd2 h5 13. Nh4 hxg4 14. Nxg6 fxg6 15. hxg4 Nh5 16. Kg2 Nf4+ 17. Bxf4 Rxf4 18. f3 Bxc3 19. bxc3 Rb8 20. Rb1 Rb6 21. c4 c5 22. Rh1 a6 23. Rxb6 cxb6 24. a4 Qf8 25. Rh3 Qd8 26. Kf2 Rxg4 27. fxg4 Qf6+ 28. Ke1 Qf4 29. Rf3 Qh2 30. Rf2 Qg1+ 31. Rf1 Qe3+ 32. Qe2 Qc1+ 33. Qd1 Qe3+ 34. Qe2 Qc1+ 35. Kf2 Qh6 36. Kg2 Qg5 37. Rb1 Qf4 38. Rxb6 Kh7 39. a5 Qc1 40. Rxa6 Kh6 41. Qf2 Kg5 42. Qe2 Qf4 43. Rxd6 Qf7 44. Rb6 Qd7 45. a6 Qd8 46. Qe3+ Kxg4 47. Rxg6+ Kh5 48. Rxg7 Qf6 49. Qg3 Kh6 50. Rg8 Qf2+ 51. Kxf2 Kh7 52. Qg7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "89"]
+[White "Maia3 (elo 157)"]
+[Black "Maia3 (elo 2266)"]
+[WhiteElo "157"]
+[BlackElo "2266"]
+[Result "0-1"]
+
+1. b4 c5 2. c4 cxb4 3. d3 g6 4. Nc3 bxc3 5. Qd2 cxd2+ 6. Kd1 dxc1=Q+ 7. Kxc1 d5 8. Kc2 Bg7 9. Kd2 Qa5+ 10. Kd1 Bxa1 11. cxd5 Bd7 12. Kc2 Ba4+ 13. Kc1 Qe1# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "90"]
+[White "Maia3 (elo 2382)"]
+[Black "Maia3 (elo 3057)"]
+[WhiteElo "2382"]
+[BlackElo "3057"]
+[Result "1-0"]
+
+1. Nf3 d6 2. d3 c5 3. e4 Nc6 4. d4 cxd4 5. Nxd4 Nf6 6. Nc3 e5 7. Nb3 Be7 8. Be2 Be6 9. Be3 Nxe4 10. Nxe4 O-O 11. O-O f5 12. Ned2 Kh8 13. f3 d5 14. Kh1 f4 15. Bc5 Qc7 16. Bxe7 Qxe7 17. c4 e4 18. fxe4 dxe4 19. Nxe4 Rad8 20. Qe1 Bf5 21. Ned2 Nb4 22. Bd1 Qf6 23. Nf3 Nd3 24. Qc3 Nxb2 25. Qxf6 gxf6 26. Be2 Rfe8 27. Nbd4 Bg4 28. Rab1 Bxf3 29. Rxb2 Rxd4 30. Bxf3 Rxc4 31. Rxb7 Ra4 32. h3 Rxa2 33. Rc1 a5 34. Bh5 Rg8 35. Bg4 h5 36. Bf3 Rg7 37. Rc8+ Kh7 38. Rbb8 Kh6 39. Rh8+ Rh7 40. Rxh7+ Kxh7 41. Bxh5 a4 42. Bf7 Ra1+ 43. Kh2 a3 44. Ra8 Kg7 45. Be6 f5 46. Bb3 Kf6 47. Ra4 Ke5 48. h4 f3 49. gxf3 f4 50. Ra5+ Kd4 51. h5 Kc3 52. Bf7 Rf1 53. Rxa3+ Kd4 54. Bg6 Ke5 55. Kg2 Ra1 56. Rxa1 Kf6 57. Kh3 Ke7 58. Bc2 Kf7 59. Ra5 Kg7 60. Kh4 Kf7 61. Ra7+ Kg8 62. h6 Kh8 63. Ra8# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "91"]
+[White "Maia3 (elo 368)"]
+[Black "Maia3 (elo 1348)"]
+[WhiteElo "368"]
+[BlackElo "1348"]
+[Result "0-1"]
+
+1. d3 d5 2. e3 Nc6 3. c3 Nf6 4. b3 e6 5. Nd2 Bd6 6. Bb2 O-O 7. Ngf3 a5 8. Qe2 b5 9. Qd1 Ba6 10. Rg1 b4 11. g3 h6 12. Bg2 bxc3 13. Ba3 cxd2+ 14. Nxd2 Bxd3 15. Bxd6 Qxd6 16. Qh5 Nxh5 17. Nc4 Bxc4 18. Bxd5 Bxd5 19. f4 Qb4+ 20. Ke2 a4 21. Kd1 axb3 22. Rg2 Bxg2 23. Rb1 b2 24. Rxb2 Qxb2 25. e4 Rxa2 26. Ke1 Ra1# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "92"]
+[White "Maia3 (elo 2210)"]
+[Black "Maia3 (elo 1956)"]
+[WhiteElo "2210"]
+[BlackElo "1956"]
+[Result "1-0"]
+
+1. e4 d5 2. exd5 Nf6 3. c4 c6 4. d4 cxd5 5. Nf3 dxc4 6. Bxc4 e6 7. O-O Bd6 8. Qe2 h6 9. Nc3 O-O 10. Rd1 Re8 11. Ne5 a6 12. Qf3 Qe7 13. Bf4 Qc7 14. Bd3 Nc6 15. Bxh6 Nxe5 16. dxe5 Bxe5 17. Bg5 Bd7 18. Rac1 Bc6 19. Ne4 Bxh2+ 20. Kh1 Nxe4 21. Bxe4 Bxe4 22. Qxe4 Qb8 23. g3 f6 24. Bxf6 gxf6 25. Qg6+ Kf8 26. Rd7 Re7 27. Qxf6+ Ke8 28. Qxe7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "93"]
+[White "Maia3 (elo 1385)"]
+[Black "Maia3 (elo 2564)"]
+[WhiteElo "1385"]
+[BlackElo "2564"]
+[Result "0-1"]
+
+1. d4 Nf6 2. f3 e6 3. e4 Nh5 4. Ne2 d5 5. e5 Qh4+ 6. g3 Qd8 7. Be3 g6 8. c3 Ng7 9. Bg2 c6 10. Nd2 f5 11. exf6 Qxf6 12. c4 Nf5 13. Bf2 Bh6 14. cxd5 exd5 15. O-O O-O 16. Nb3 Ne3 17. Bxe3 Bxe3+ 18. Kh1 b6 19. Qd3 Bh6 20. Nd2 Ba6 21. Qc2 Bxe2 22. Rfe1 Ba6 23. Nf1 Nd7 24. Qxc6 Qxc6 25. Rac1 Bxc1 26. Ne3 Rae8 27. f4 Bxe3 28. Rxe3 Rxe3 29. Bxd5+ Qxd5+ 30. Kg1 Re2 31. b4 Qg2# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "94"]
+[White "Maia3 (elo 1912)"]
+[Black "Maia3 (elo 1691)"]
+[WhiteElo "1912"]
+[BlackElo "1691"]
+[Result "1-0"]
+
+1. Nf3 g6 2. g3 d6 3. Bg2 c6 4. d3 Bg7 5. c4 Be6 6. O-O Qc8 7. Ng5 Bd7 8. Re1 h6 9. Nf3 Bh3 10. Bh1 g5 11. e4 Na6 12. Nc3 Bg4 13. Be3 Nf6 14. Qd2 Qe6 15. d4 Nxe4 16. Nxe4 Qxe4 17. Nxg5 Qf5 18. Ne4 Nc7 19. Bf4 Ne6 20. Rac1 Bxd4 21. Be3 Bxe3 22. Rxe3 O-O-O 23. f3 Bh3 24. Rec3 Rhg8 25. Qxh6 Rg6 26. Qh4 Ng5 27. Nxg5 Rxg5 28. R3c2 Qc5+ 29. Rf2 Rh5 30. Qe4 e5 31. a3 f5 32. Qd3 e4 33. Qe2 Re8 34. fxe4 Rg5 35. b4 Qb6 36. c5 dxc5 37. bxc5 Qc7 38. Qe3 f4 39. Rxf4 Rg4 40. Rc2 Rg5 41. Kf2 Rgg8 42. Re2 Bg4 43. Rd2 Qa5 44. Bg2 Re5 45. Rxg4 Rxg4 46. Bh3 Rxe4 47. Bxg4+ Rxg4 48. Qe6+ Kb8 49. Qe8+ Kc7 50. Rd7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "95"]
+[White "Maia3 (elo 838)"]
+[Black "Maia3 (elo 1773)"]
+[WhiteElo "838"]
+[BlackElo "1773"]
+[Result "0-1"]
+
+1. e4 Nc6 2. g3 d5 3. d3 dxe4 4. dxe4 Qxd1+ 5. Kxd1 Nf6 6. f3 Nd4 7. Bb5+ Nxb5 8. Ke1 e5 9. a4 Nd6 10. b3 Bd7 11. g4 Be7 12. Bg5 h6 13. Bxf6 Bxf6 14. h3 Bh4+ 15. Kd1 O-O-O 16. Ne2 Bg5 17. Ng3 Bc6 18. h4 Nf5+ 19. Nd2 Rxd2+ 20. Ke1 Nxg3 21. Rh3 Bf4 22. Rxg3 Bxg3+ 23. Kxd2 Bf4+ 24. Kd3 Rd8+ 25. Kc4 Rd4+ 26. Kc3 Be3 27. h5 Rd6 28. Kc4 Bd4 29. c3 Be3 30. Re1 Bf4 31. b4 Rd2 32. b5 Bd7 33. Kb3 Be6+ 34. Kb4 b6 35. Rc1 Rb2+ 36. Ka3 Bxc1 37. c4 Rh2+ 38. Kb4 Rb2+ 39. Kc3 Rf2 40. Kb4 Rxf3 41. c5 Rb3# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "96"]
+[White "Maia3 (elo 1531)"]
+[Black "Maia3 (elo 483)"]
+[WhiteElo "1531"]
+[BlackElo "483"]
+[Result "1-0"]
+
+1. d4 d6 2. e4 e5 3. dxe5 dxe5 4. Qxd8+ Kxd8 5. h3 Nd7 6. Nf3 Bb4+ 7. c3 Bd6 8. Bc4 Ne7 9. Ng5 Rf8 10. Nxh7 Re8 11. Bxf7 Nd5 12. exd5 Re7 13. Bg5 Nf6 14. Nxf6 Rxf7 15. Ne4+ Kd7 16. Nxd6 cxd6 17. Nd2 Rf5 18. h4 Rxf2 19. Bf6 Rxg2 20. Bg5 b6 21. Nf1 Rxb2 22. Ne3 b5 23. Ng4 g6 24. Nf6+ Kd8 25. O-O Bh3 26. Ne4+ Kc7 27. Rfb1 Re2 28. Nf2 Rf8 29. Nxh3 Rd2 30. Rxb5 Rf3 31. Bxd2 Rxh3 32. Rb4 Rg3+ 33. Kh2 Rd3 34. Rd1 Rxd5 35. Kh3 Rd4 36. cxd4 Kc6 37. dxe5 Kc7 38. exd6+ Kxd6 39. Be3+ Ke5 40. Rc1 Kf6 41. Rb7 g5 42. hxg5+ Kf5 43. Rxa7 Ke5 44. g6 Ke6 45. g7 Kd6 46. g8=Q Ke5 47. Qe8+ Kf5 48. Rc5+ Kf6 49. Ra6+ Kg7 50. Rc7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "97"]
+[White "Maia3 (elo 284)"]
+[Black "Maia3 (elo 2202)"]
+[WhiteElo "284"]
+[BlackElo "2202"]
+[Result "0-1"]
+
+1. a4 e5 2. Ra3 Bxa3 3. b3 Bc5 4. Ba3 Qf6 5. Bxc5 Ne7 6. Bxa7 Rxa7 7. Nc3 Ra6 8. Qa1 Qg6 9. Nf3 Qxc2 10. Qa3 Rb6 11. b4 Nbc6 12. b5 Nd4 13. Qc1 Qxc1+ 14. Nd1 Nc2# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "98"]
+[White "Maia3 (elo 2858)"]
+[Black "Maia3 (elo 535)"]
+[WhiteElo "2858"]
+[BlackElo "535"]
+[Result "1-0"]
+
+1. d4 Nc6 2. d5 Nf6 3. dxc6 dxc6 4. Qxd8+ Kxd8 5. Nf3 g5 6. Ne5 Ne4 7. Nxf7+ Ke8 8. Nxh8 h5 9. Ng6 Bf5 10. Nxf8 Kxf8 11. f3 Nc5 12. Bxg5 Rd8 13. e4 Rd1+ 14. Kxd1 Bxe4 15. fxe4 Nxe4 16. Bd3 Nf2+ 17. Kd2 Nxh1 18. Nc3 Nf2 19. Rf1 Kg7 20. Rxf2 a6 21. Bxe7 Kg8 22. Ne4 h4 23. Ng5 Kg7 24. Rf6 h3 25. Rg6+ Kh8 26. Bf6# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "99"]
+[White "Maia3 (elo 2470)"]
+[Black "Maia3 (elo 2540)"]
+[WhiteElo "2470"]
+[BlackElo "2540"]
+[Result "1-0"]
+
+1. e4 g5 2. Nc3 Bg7 3. d4 h6 4. h4 gxh4 5. Rxh4 c5 6. Be3 Nc6 7. dxc5 Qa5 8. Qd2 Bxc3 9. Qxc3 Qxc3+ 10. bxc3 Nd8 11. Nf3 Ne6 12. Kd2 b6 13. cxb6 axb6 14. Bxb6 Nf6 15. a4 d6 16. e5 Nd5 17. Be3 Nxe3 18. Kxe3 d5 19. Bb5+ Kf8 20. Nd4 Nc7 21. Rah1 Nxb5 22. axb5 Ra3 23. Kd3 Kg7 24. f4 Bd7 25. g4 Rc8 26. Rxh6 Raxc3+ 27. Kd2 Bxg4 28. Rh7+ Kg6 29. R1h6# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "100"]
+[White "Maia3 (elo 1168)"]
+[Black "Maia3 (elo 1562)"]
+[WhiteElo "1168"]
+[BlackElo "1562"]
+[Result "0-1"]
+
+1. e4 c5 2. d4 cxd4 3. Nf3 Nc6 4. Nxd4 d6 5. Bb5 Bd7 6. Bxc6 Bxc6 7. Nxc6 bxc6 8. O-O g6 9. c3 Nf6 10. Re1 Bg7 11. Nd2 Nd7 12. Nc4 Ne5 13. Nxe5 dxe5 14. Qxd8+ Rxd8 15. b3 Rd3 16. c4 O-O 17. Bb2 Rfd8 18. Kf1 Rd2 19. Bc3 Rc2 20. Ba5 Rd4 21. Bb4 e6 22. f3 h6 23. Rec1 Rb2 24. Bc5 Rdd2 25. Rab1 Rxg2 26. Rxb2 Rxb2 27. Ra1 a6 28. Bf2 f5 29. exf5 exf5 30. Bc5 Rxh2 31. a4 e4 32. fxe4 Rh1+ 33. Bg1 fxe4 34. Re1 Bd4 35. Kg2 Rxg1+ 36. Rxg1 Bxg1 37. Kxg1 Kf7 38. Kf2 Ke6 39. Ke3 Ke5 40. b4 g5 41. b5 axb5 42. axb5 Kd6 43. bxc6 Kxc6 44. Kxe4 g4 45. Kf4 h5 46. Kg5 g3 47. Kxh5 g2 48. Kg4 g1=Q+ 49. Kf5 Qc5+ 50. Ke4 Qxc4+ 51. Ke5 Qd3 52. Ke6 Qe4+ 53. Kf6 Kd6 54. Kf7 Qe5 55. Kf8 Qf6+ 56. Ke8 Qe7# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "101"]
+[White "Maia3 (elo 1697)"]
+[Black "Maia3 (elo 3070)"]
+[WhiteElo "1697"]
+[BlackElo "3070"]
+[Result "0-1"]
+
+1. e4 e5 2. Nf3 Nc6 3. Nc3 Nf6 4. Bb5 Nd4 5. Be2 Bd6 6. Nxd4 exd4 7. Nb5 Nxe4 8. d3 Bb4+ 9. c3 dxc3 10. dxe4 cxb2+ 11. Bd2 Bxd2+ 12. Kxd2 bxa1=R 13. Qxa1 O-O 14. Qc1 c6 15. Nc3 d5 16. exd5 cxd5 17. Nb5 Qg5+ 18. Kd3 Bf5+ 19. Kd4 Qf6+ 20. Kxd5 Rfd8+ 21. Nd6 Rxd6+ 22. Kc5 Rc8+ 23. Kb4 a5+ 24. Kxa5 Rd5+ 25. Bb5 Qa6+ 26. Kb4 Rxb5# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "102"]
+[White "Maia3 (elo 1840)"]
+[Black "Maia3 (elo 632)"]
+[WhiteElo "1840"]
+[BlackElo "632"]
+[Result "1-0"]
+
+1. e4 e5 2. Nf3 Nf6 3. d4 Nxe4 4. Nxe5 Qg5 5. Bxg5 d5 6. h4 Nxf2 7. Kxf2 h5 8. Bb5+ Nc6 9. Qf3 a6 10. Qxf7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "103"]
+[White "Maia3 (elo 2985)"]
+[Black "Maia3 (elo 2202)"]
+[WhiteElo "2985"]
+[BlackElo "2202"]
+[Result "1-0"]
+
+1. e4 c6 2. d4 d5 3. e5 c5 4. Nf3 cxd4 5. Nxd4 Nc6 6. Bb5 Bd7 7. Nc3 e6 8. Bxc6 Bxc6 9. Qd3 Bc5 10. O-O Qb6 11. Nce2 O-O-O 12. c3 Bxd4 13. Nxd4 Qc7 14. a4 Ne7 15. Re1 Be8 16. Qe2 Qc4 17. Qe3 Qc7 18. Nb5 Bxb5 19. axb5 b6 20. Qf3 Ng6 21. h4 h5 22. Bg5 Rd7 23. c4 dxc4 24. Qc3 Rf8 25. Ra4 Kb8 26. Rxc4 Qb7 27. Rc6 Rd5 28. Qa3 Rxb5 29. Qd6+ Ka8 30. Rc7 Rd5 31. Rxb7 Kxb7 32. Qa3 Rc8 33. Qf3 Rc7 34. Rd1 Nxe5 35. Qe2 Rxd1+ 36. Qxd1 Rd7 37. Qxh5 Rd5 38. f4 Ng6 39. Qf3 f6 40. h5 Nh8 41. h6 gxh6 42. Bxf6 Nf7 43. f5 Kb8 44. fxe6 Rd8 45. Bxd8 Nxd8 46. e7 Kc7 47. Qd5 Nb7 48. e8=Q Nd6 49. Qdc6# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "104"]
+[White "Maia3 (elo 1356)"]
+[Black "Maia3 (elo 1768)"]
+[WhiteElo "1356"]
+[BlackElo "1768"]
+[Result "0-1"]
+
+1. e4 Nf6 2. e5 Nd5 3. d4 d6 4. Bc4 e6 5. Bxd5 exd5 6. exd6 Bxd6 7. Nc3 O-O 8. Nf3 Re8+ 9. Be3 c6 10. a3 Bg4 11. O-O Nd7 12. Qd3 Qc7 13. Ne5 Bxe5 14. g3 Bf6 15. Qd1 Bxd1 16. Nxd1 Nb6 17. Nc3 Nc4 18. f4 Nxe3 19. Rfe1 Nxc2 20. Re7 Rxe7 21. Rd1 Rae8 22. Nxd5 cxd5 23. Re1 Rxe1+ 24. Kg2 R1e2+ 25. Kh3 Qd7+ 26. g4 R8e3# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "105"]
+[White "Maia3 (elo 2075)"]
+[Black "Maia3 (elo 1219)"]
+[WhiteElo "2075"]
+[BlackElo "1219"]
+[Result "1-0"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Bc5 5. c3 b5 6. Bc2 Nf6 7. O-O Qe7 8. d4 exd4 9. cxd4 Bb6 10. e5 Nd5 11. Bg5 Qb4 12. Nc3 Nxc3 13. bxc3 Qxc3 14. Be3 O-O 15. Rc1 Qc4 16. Bb3 Qb4 17. d5 Re8 18. dxc6 Bxe3 19. fxe3 dxc6 20. Ng5 Rxe5 21. Nxf7 Rf5 22. Nh6+ Kh8 23. Qd8+ Rf8 24. Nf7+ Kg8 25. Nh6+ Kh8 26. Rxf8+ Qxf8 27. Qxf8# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "106"]
+[White "Maia3 (elo 825)"]
+[Black "Maia3 (elo 2955)"]
+[WhiteElo "825"]
+[BlackElo "2955"]
+[Result "0-1"]
+
+1. h3 c5 2. c4 Nc6 3. Na3 e5 4. Nc2 d5 5. cxd5 Qxd5 6. e3 Nf6 7. d3 Be6 8. h4 e4 9. Bd2 exd3 10. Na3 c4 11. Rb1 Ne4 12. f3 Bd6 13. fxe4 Bg3# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "107"]
+[White "Maia3 (elo 798)"]
+[Black "Maia3 (elo 2360)"]
+[WhiteElo "798"]
+[BlackElo "2360"]
+[Result "0-1"]
+
+1. d4 d5 2. e3 Nf6 3. Qd2 e6 4. Qd3 Be7 5. Qxh7 Nxh7 6. e4 dxe4 7. Kd2 Bg5+ 8. Kd1 Bxc1 9. Bd3 exd3 10. Nf3 Bxb2 11. Nbd2 Bxa1 12. Ne4 dxc2+ 13. Ke2 Bxd4 14. Neg5 Nxg5 15. Rc1 Nxf3 16. Rxc2 Ne5 17. Rb2 Bxb2 18. a3 b6 19. f3 Qd3+ 20. Kf2 Qd2+ 21. Kg3 Qe1+ 22. Kf4 Rh4+ 23. Kg5 Bc1+ 24. f4 f6# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "108"]
+[White "Maia3 (elo 1448)"]
+[Black "Maia3 (elo 1373)"]
+[WhiteElo "1448"]
+[BlackElo "1373"]
+[Result "1-0"]
+
+1. c4 e5 2. Nc3 Nf6 3. Nf3 d5 4. cxd5 e4 5. Nxe4 Nxe4 6. d3 Nf6 7. e4 Bc5 8. Bg5 Bg4 9. h3 Bh5 10. Qa4+ Nbd7 11. b4 Bxf3 12. bxc5 Bh5 13. c6 bxc6 14. dxc6 Nb6 15. Qb5 Qd6 16. e5 Qc5 17. Qxc5 O-O-O 18. Qa5 Nfd5 19. Qxa7 f6 20. Qb7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "109"]
+[White "Maia3 (elo 2555)"]
+[Black "Maia3 (elo 2802)"]
+[WhiteElo "2555"]
+[BlackElo "2802"]
+[Result "0-1"]
+
+1. e4 d5 2. exd5 Qxd5 3. Nf3 Bf5 4. c4 Qe6+ 5. Qe2 Nc6 6. Qxe6 fxe6 7. Na3 a6 8. d4 Nf6 9. Be2 O-O-O 10. Be3 h6 11. O-O g5 12. Rad1 Bg7 13. Rd2 Nb4 14. Ne5 Ne4 15. Rdd1 c5 16. Nf7 cxd4 17. Bc1 d3 18. Bf3 Nxa2 19. Nxh8 d2 20. Bxe4 dxc1=Q 21. Rxc1 Nxc1 22. Bxf5 exf5 23. Rxc1 Bxb2 24. Re1 Rxh8 25. Nc2 Rd8 26. Ne3 e6 27. g4 fxg4 28. Nxg4 h5 29. Ne5 a5 30. Nf7 Rf8 31. Nd6+ Kd7 32. Nxb7 Bc3 33. Nc5+ Kc6 34. Rxe6+ Kxc5 35. Rg6 Bf6 36. Rh6 h4 37. Rxf6 Rxf6 38. h3 Rb6 39. Kf1 a4 40. Kg2 Rb3 41. Kf1 a3 42. f4 gxf4 43. Kg2 a2 44. Kf2 Re3 45. Kg1 Rxh3 46. Kg2 Rd3 47. Kf2 h3 48. Ke2 Kxc4 49. Kf2 Re3 50. Kg1 a1=Q+ 51. Kf2 Qe1# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "110"]
+[White "Maia3 (elo 1968)"]
+[Black "Maia3 (elo 1083)"]
+[WhiteElo "1968"]
+[BlackElo "1083"]
+[Result "1-0"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 c5 4. c3 e6 5. Nd2 cxd4 6. exd4 Nc6 7. Ngf3 Bd6 8. Ne5 O-O 9. Bd3 Nh5 10. Qxh5 Nxe5 11. Qxh7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "111"]
+[White "Maia3 (elo 1304)"]
+[Black "Maia3 (elo 708)"]
+[WhiteElo "1304"]
+[BlackElo "708"]
+[Result "1-0"]
+
+1. e4 Nf6 2. e5 Ng4 3. d4 Nxf2 4. Kxf2 d6 5. Bf4 dxe5 6. Bxe5 Nc6 7. Nf3 Nxe5 8. Nxe5 e6 9. Qf3 Qh4+ 10. g3 Qxd4+ 11. Qe3 Qxb2 12. Qc3 Qb6+ 13. Kg2 Qd6 14. Bb5+ Bd7 15. Bxd7+ Kd8 16. Nxf7+ Kxd7 17. Nxd6 Kxd6 18. Rd1+ Ke7 19. Qxc7+ Kf6 20. Rf1+ Kg6 21. Qxb7 Re8 22. Qf7+ Kh6 23. Qxe8 Ba3 24. Qxh8 Kg5 25. Qxg7+ Kh5 26. g4+ Kh4 27. h3 Bb4 28. Qh6# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "112"]
+[White "Maia3 (elo 437)"]
+[Black "Maia3 (elo 1306)"]
+[WhiteElo "437"]
+[BlackElo "1306"]
+[Result "0-1"]
+
+1. e4 e5 2. Nf3 Nf6 3. Nxe5 Qe7 4. Qe2 Qxe5 5. c4 Bc5 6. d3 O-O 7. d4 Bxd4 8. Bf4 Qxf4 9. e5 Qc1+ 10. Qd1 Qxd1+ 11. Kxd1 Ne8 12. Nc3 Bxc3 13. bxc3 d6 14. g4 dxe5 15. f4 exf4 16. Bd3 Nd6 17. Re1 Bxg4+ 18. Kc2 f3 19. Re5 Nc6 20. Rg5 Be6 21. Rg4 Bxg4 22. Bxh7+ Kxh7 23. Rf1 Nxc4 24. Rxf3 Bxf3 25. Kb3 Nd2+ 26. Kc2 Nc4 27. a4 Be4+ 28. Kc1 g5 29. a5 f5 30. h4 gxh4 31. a6 N6a5 32. axb7 Nxb7 33. Kd1 h3 34. Ke2 f4 35. Kf2 h2 36. Ke2 h1=Q 37. Kf2 Qg2+ 38. Ke1 Ne3 39. c4 Nc2+ 40. Kd1 Rfd8+ 41. Kc1 Na3 42. c5 Rd1+ 43. Kxd1 f3 44. Kc1 f2 45. c6 Bxc6 46. Kd1 f1=N 47. Kc1 Nc4 48. Kd1 Rf8 49. Kc1 Nfe3 50. Kb1 Qb2# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "113"]
+[White "Maia3 (elo 1782)"]
+[Black "Maia3 (elo 1701)"]
+[WhiteElo "1782"]
+[BlackElo "1701"]
+[Result "0-1"]
+
+1. d4 Nf6 2. Nf3 d5 3. Nc3 g6 4. g3 Bg7 5. Bg2 O-O 6. O-O b6 7. Re1 c5 8. e4 dxe4 9. Nxe4 Bb7 10. Bg5 Nxe4 11. Rxe4 Bxe4 12. dxc5 Qxd1+ 13. Rxd1 bxc5 14. Bxe7 Re8 15. Bxc5 Na6 16. Bd4 Bxd4 17. Nxd4 Bxg2 18. Kxg2 Rad8 19. c3 Nc7 20. Rd2 Nb5 21. c4 Nxd4 22. c5 Kg7 23. b4 Nc6 24. b5 Rxd2 25. bxc6 Rc8 26. c7 Rxc7 27. c6 Rxc6 28. h3 Rcc2 29. Kf3 Rxf2+ 30. Kg4 Rg2 31. a4 h5+ 32. Kg5 Rxg3+ 33. Kh4 Ra3 34. a5 Rc4+ 35. Kg5 Rxa5# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "114"]
+[White "Maia3 (elo 3170)"]
+[Black "Maia3 (elo 1991)"]
+[WhiteElo "3170"]
+[BlackElo "1991"]
+[Result "1-0"]
+
+1. d4 d5 2. c4 Nf6 3. Nc3 Nc6 4. cxd5 Nxd5 5. e4 Nxc3 6. bxc3 e5 7. Nf3 exd4 8. cxd4 Bb4+ 9. Bd2 Qd6 10. Rb1 O-O 11. Bxb4 Nxb4 12. Be2 Kh8 13. O-O Nxa2 14. Qd2 Qe6 15. Rfe1 Rd8 16. Ng5 Qe7 17. Bc4 Nc3 18. Nxf7+ Qxf7 19. Bxf7 Nxb1 20. Rxb1 Rd7 21. Qf4 Rb8 22. Be8 h6 23. Bxd7 Bxd7 24. Qxc7 Rc8 25. Qxd7 Rc1+ 26. Rxc1 Kh7 27. Qf5+ g6 28. Qf7+ Kh8 29. Rc8# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "115"]
+[White "Maia3 (elo 787)"]
+[Black "Maia3 (elo 3065)"]
+[WhiteElo "787"]
+[BlackElo "3065"]
+[Result "0-1"]
+
+1. a4 e5 2. Nc3 d5 3. e4 Nf6 4. Bb5+ c6 5. Bxc6+ Nxc6 6. Nf3 dxe4 7. h4 exf3 8. O-O Nd4 9. gxf3 Bh3 10. Ne4 Nxe4 11. c4 Qxh4 12. Kh2 Bg4+ 13. Kg2 Qh3+ 14. Kg1 Bxf3 15. c5 Qg2# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "116"]
+[White "Maia3 (elo 802)"]
+[Black "Maia3 (elo 1131)"]
+[WhiteElo "802"]
+[BlackElo "1131"]
+[Result "0-1"]
+
+1. e4 e5 2. g3 Nf6 3. d3 h6 4. f4 d6 5. fxe5 dxe5 6. Bh3 Bc5 7. c3 Bxh3 8. Nxh3 O-O 9. b4 Bb6 10. Bxh6 gxh6 11. Ng5 hxg5 12. h4 gxh4 13. Rxh4 Nh7 14. Rh1 Qg5 15. Nd2 Qxg3+ 16. Kf1 Qxd3+ 17. Ke1 Nc6 18. Nb3 Qe3+ 19. Kf1 Qf2# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "117"]
+[White "Maia3 (elo 1446)"]
+[Black "Maia3 (elo 649)"]
+[WhiteElo "1446"]
+[BlackElo "649"]
+[Result "1-0"]
+
+1. d4 e6 2. e4 Nf6 3. e5 Ne4 4. Qg4 Qf6 5. exf6 c5 6. Qxe4 d5 7. fxg7 cxd4 8. Qxd4 Bb4+ 9. Qxb4 Rg8 10. Bh6 Kd7 11. Bb5+ Nc6 12. Bxc6+ bxc6 13. Nf3 Rxg7 14. Qf8 Ba6 15. Ne5+ Kc7 16. Qxa8 Bd3 17. Bxg7 Kb6 18. Qxc6+ Ka5 19. Nxd3 a6 20. b4# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "118"]
+[White "Maia3 (elo 1119)"]
+[Black "Maia3 (elo 1341)"]
+[WhiteElo "1119"]
+[BlackElo "1341"]
+[Result "1/2-1/2"]
+
+1. d4 d5 2. c3 Bf5 3. e3 Nc6 4. h4 a6 5. Nd2 e6 6. g4 Be4 7. f3 Bg6 8. h5 Qd6 9. hxg6 Qg3+ 10. Ke2 hxg6 11. Rxh8 Nf6 12. Rh1 O-O-O 13. Bh3 Bd6 14. Qf1 e5 15. Qf2 exd4 16. Qxg3 Bxg3 17. cxd4 Kb8 18. e4 dxe4 19. Nxe4 Nxe4 20. fxe4 Nxd4+ 21. Kd3 Nb3+ 22. Kc3 Nxa1 23. Ne2 c5 24. Nxg3 b5 25. Bf4+ Ka7 26. Rxa1 f6 27. g5 b4+ 28. Kc4 Rd2 29. Bxd2 fxg5 30. Kxc5 b3 31. Bxg5 a5 32. Re1 bxa2 33. e5 a4 34. e6 a3 35. bxa3 Ka6 36. e7 Ka5 37. e8=Q a1=Q 38. Qxg6 Ka4 39. Kd6 Qxe1 40. Qxg7 Qxg3+ 41. Ke6 Qxh3+ 42. Kf6 Qh5 43. Qa7+ Kb3 44. a4 Qh8+ 45. Qg7 Qxg7+ 46. Kxg7 Kxa4 1/2-1/2
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "119"]
+[White "Maia3 (elo 1785)"]
+[Black "Maia3 (elo 3182)"]
+[WhiteElo "1785"]
+[BlackElo "3182"]
+[Result "1-0"]
+
+1. e4 e5 2. Nc3 Nf6 3. Nf3 Nc6 4. Bc4 Nxe4 5. Bd3 Nf6 6. O-O d5 7. Bb5 Bd7 8. Re1 e4 9. d3 Bb4 10. dxe4 dxe4 11. a3 Bxc3 12. bxc3 O-O 13. Bxc6 Bxc6 14. Nd4 Qd6 15. Bb2 Rad8 16. Nf5 Qc5 17. Nd4 Rfe8 18. Qe2 Ba4 19. c4 Rxd4 20. Bxd4 Qxd4 21. Rad1 Qc5 22. Qd2 h5 23. Qb4 Qc6 24. Rc1 Qb6 25. c3 Nd7 26. c5 Nxc5 27. Qb1 Rd8 28. Qxb6 cxb6 29. f3 exf3 30. gxf3 Nd3 31. Rcd1 Bxd1 32. Rxd1 Ne5 33. Rxd8+ Kh7 34. f4 Ng6 35. f5 Ne5 36. Rd5 f6 37. h3 Kh6 38. h4 Nf3+ 39. Kf2 Nxh4 40. c4 g5 41. fxg6 Nxg6 42. c5 Ne5 43. cxb6 axb6 44. Rb5 Kg5 45. Rxb6 h4 46. Rxb7 f5 47. a4 Nc4 48. Rg7+ Kf4 49. Rc7 Ne5 50. a5 h3 51. Kg1 Nf3+ 52. Kf2 h2 53. Rh7 Ng5 54. Rh6 Nh3+ 55. Kg2 Ng5 56. Kxh2 Nf3+ 57. Kg2 Ne1+ 58. Kf2 Nd3+ 59. Ke2 Nc5 60. Rc6 Nb3 61. Ra6 Ke5 62. Ra7 Kf6 63. a6 Nc5 64. Ke3 Kg5 65. Ra8 f4+ 66. Kf3 Kg6 67. Kxf4 Na4 68. Rc8 Nb6 69. Rc6+ Kf7 70. Rxb6 Kg7 71. Kf5 Kf8 72. a7 Kf7 73. Rg6 Ke7 74. a8=Q Kf7 75. Qb7+ Kf8 76. Rh6 Kg8 77. Rg6+ Kh8 78. Qg7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "120"]
+[White "Maia3 (elo 2730)"]
+[Black "Maia3 (elo 2401)"]
+[WhiteElo "2730"]
+[BlackElo "2401"]
+[Result "0-1"]
+
+1. e4 c5 2. Nf3 Nc6 3. Bb5 Qb6 4. Nc3 e6 5. O-O Nd4 6. Bd3 Ne7 7. b3 Nec6 8. Nxd4 Nxd4 9. a4 Be7 10. Na2 O-O 11. c3 Nxb3 12. Rb1 Qd6 13. Bc2 Nxc1 14. Qxc1 Rb8 15. f4 b6 16. e5 Qc7 17. Qe1 d6 18. Qe4 g6 19. Qe3 dxe5 20. fxe5 Bb7 21. Rf4 Bg5 22. Nc1 Qc6 23. Be4 Bxf4 24. Bxc6 Bxe3+ 25. dxe3 Bxc6 26. Ra1 Rfd8 27. Ne2 Rd2 28. Nf4 g5 29. Nh5 Rxg2+ 30. Kf1 Rxh2 31. Nf6+ Kg7 32. Ra3 Kg6 33. Ng4 Rh4 34. Kf2 Rxg4 35. c4 Rxc4 36. Rc3 Rxc3 37. Kg1 Rxe3 38. Kf2 Rf3+ 39. Ke2 Be4 40. Ke1 Rd8 41. a5 Rb3 42. Ke2 Rc3 43. a6 g4 44. Kf2 Rd2+ 45. Ke1 Rh2 46. Kd1 Rg3 47. Kc1 Rg1# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "121"]
+[White "Maia3 (elo 1583)"]
+[Black "Maia3 (elo 3073)"]
+[WhiteElo "1583"]
+[BlackElo "3073"]
+[Result "0-1"]
+
+1. e4 b6 2. d4 e6 3. Bd3 d5 4. exd5 Qxd5 5. Nc3 Qxg2 6. Be4 Qxh1 7. Bxh1 c6 8. Bg5 Bd6 9. Qf3 Be7 10. Qg3 Nf6 11. h4 O-O 12. Ne4 Kh8 13. h5 Nxe4 14. Bxe7 Nxg3 15. fxg3 Re8 16. Bd6 Ba6 17. b4 Rd8 18. Nf3 Rxd6 19. O-O-O f6 20. h6 Nd7 21. hxg7+ Kxg7 22. a4 Bc4 23. Re1 a5 24. bxa5 Bd5 25. axb6 Nxb6 26. Kd2 Rxa4 27. Kc3 Ra3+ 28. Kb4 Ra4+ 29. Kc5 Nc8 30. Nh4 Rc4# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "122"]
+[White "Maia3 (elo 2271)"]
+[Black "Maia3 (elo 2101)"]
+[WhiteElo "2271"]
+[BlackElo "2101"]
+[Result "1-0"]
+
+1. Nf3 d5 2. d4 c5 3. e3 Nf6 4. Be2 Bg4 5. O-O e6 6. c4 Nbd7 7. b3 Bd6 8. Nc3 O-O 9. cxd5 exd5 10. Bb2 cxd4 11. Qxd4 Nb6 12. Rfd1 Bxf3 13. Bxf3 Bc7 14. Nxd5 Nbxd5 15. Bxd5 Nxd5 16. Qxg7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "123"]
+[White "Maia3 (elo 1301)"]
+[Black "Maia3 (elo 2799)"]
+[WhiteElo "1301"]
+[BlackElo "2799"]
+[Result "0-1"]
+
+1. e4 c6 2. d4 d5 3. e5 c5 4. c3 Nc6 5. Nf3 Bg4 6. Nbd2 e6 7. Be2 cxd4 8. cxd4 Qb6 9. b3 Nxd4 10. Nxd4 Qxd4 11. Bxg4 Qxa1 12. O-O Qxe5 13. Re1 Qc7 14. Bxe6 fxe6 15. Nf3 O-O-O 16. Bg5 Be7 17. Rxe6 Bxg5 18. Nxg5 Nf6 19. Re1 Rhe8 20. Ne6 Rxe6 21. Rxe6 Ne4 22. g3 Qf7 23. Re5 Qxf2+ 24. Kh1 Qf6 25. Rxe4 dxe4 26. Qc2+ Kb8 27. Qc8+ Rxc8 28. Kg2 Qf3+ 29. Kg1 Rc1# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "124"]
+[White "Maia3 (elo 1010)"]
+[Black "Maia3 (elo 1650)"]
+[WhiteElo "1010"]
+[BlackElo "1650"]
+[Result "0-1"]
+
+1. e4 e5 2. Nc3 Nf6 3. d3 c6 4. Nf3 Be7 5. Bg5 d6 6. Be2 Be6 7. O-O Nbd7 8. h3 h6 9. Bh4 g5 10. Bg3 g4 11. hxg4 Nxg4 12. Nd2 h5 13. Bxg4 hxg4 14. f3 Bh4 15. Kf2 Bxg3+ 16. Kxg3 Qh4# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "125"]
+[White "Maia3 (elo 2718)"]
+[Black "Maia3 (elo 1616)"]
+[WhiteElo "2718"]
+[BlackElo "1616"]
+[Result "1/2-1/2"]
+
+1. e4 c5 2. Nf3 d6 3. Bc4 h6 4. d4 cxd4 5. O-O Nf6 6. e5 dxe5 7. Nxe5 e6 8. c3 dxc3 9. Qxd8+ Kxd8 10. bxc3 Ke8 11. Rd1 a6 12. Na3 Nbd7 13. Nxd7 Bxd7 14. Be2 Nd5 15. c4 Nc3 16. Re1 Nxe2+ 17. Rxe2 Bc5 18. Nc2 Ba4 19. Be3 Bd6 20. Rd2 Bxc2 21. Rxd6 Ke7 22. Rb6 Be4 23. f3 Bc6 24. Bc5+ Kf6 25. Bd4+ Kg6 26. a4 Rhd8 27. Be5 f6 28. Bf4 Rd3 29. Kf2 Rad8 30. Be3 Rc3 31. Rb4 Rdd3 32. Re1 Kf7 33. Re2 Rb3 34. Rxb3 Rxb3 35. a5 e5 36. Rd2 h5 37. Ke2 Ra3 38. Bb6 g5 39. Rd8 Ra2+ 40. Rd2 Rxd2+ 41. Kxd2 Kg6 42. Ke3 Kf7 43. g3 Kg6 44. f4 exf4+ 45. gxf4 g4 46. Kd4 Kf5 47. Ke3 h4 48. Bd4 g3 49. hxg3 hxg3 50. Bc3 Kg4 51. Bxf6 Kh3 52. f5 g2 53. Kf2 Be4 54. Be5 Bxf5 55. c5 Bg4 56. Kg1 Be6 57. Bf4 Bd5 58. Bc7 Bc6 59. Bf4 Bb5 60. Be5 Bf1 61. Bc7 Kg4 62. Kf2 Kf5 63. Bb6 Ke5 64. c6 bxc6 65. Ba7 Kd5 66. Kg1 Kd6 67. Bb8+ Kc5 68. Bc7 Kc4 69. Bb6 c5 70. Kf2 Kb5 71. Kg1 c4 72. Bd4 Kxa5 73. Bc3+ Ka4 74. Bg7 Kb3 75. Ba1 c3 76. Kf2 c2 77. Bd4 Ka2 78. Be3 Kb2 79. Bd4+ Kb1 80. Bg7 c1=Q 81. Bf6 Ka2 82. Bd4 Bd3 83. Kxg2 Qg5+ 84. Kf2 Kb1 85. Be3 Qh4+ 86. Kg2 a5 87. Kg1 Kc2 88. Bb6 Qb4 89. Be3 a4 90. Kf2 a3 91. Kf3 a2 92. Bd4 Qxd4 93. Kg3 a1=Q 94. Kf3 Bc4 95. Kg2 Qg4+ 96. Kf2 Qf6+ 97. Ke3 Qfe6+ 98. Kf2 Qf6+ 99. Ke3 Qfg5+ 100. Kf2 Qg2+ 101. Ke1 Qf4 1/2-1/2
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "126"]
+[White "Maia3 (elo 2112)"]
+[Black "Maia3 (elo 1589)"]
+[WhiteElo "2112"]
+[BlackElo "1589"]
+[Result "1-0"]
+
+1. d4 Nf6 2. c4 e5 3. dxe5 Ne4 4. Qd4 Nc5 5. Nf3 Nc6 6. Qd1 Be7 7. Nc3 O-O 8. Bf4 a6 9. e3 g5 10. Bg3 g4 11. Nd4 Nxd4 12. Qxg4+ Kh8 13. exd4 Ne6 14. Bd3 Rg8 15. Qf5 Ng7 16. Qxh7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "127"]
+[White "Maia3 (elo 729)"]
+[Black "Maia3 (elo 279)"]
+[WhiteElo "729"]
+[BlackElo "279"]
+[Result "1/2-1/2"]
+
+1. d4 d5 2. e3 e5 3. dxe5 d4 4. exd4 Qxd4 5. Qxd4 Ba3 6. Bg5 Bh3 7. g4 Nh6 8. e6 Nf5 9. Qd3 Kf8 10. exf7 a5 11. gxf5 Ra6 12. Bf4 Ke7 13. Bxc7 h5 14. Qd5 Kf6 15. Bxh3 g6 16. Qxb7 Rb6 17. Qxb6+ Kg5 18. bxa3 Nd7 19. Qxa5 Ne5 20. Ne2 Kh4 21. Qxe5 Rh6 22. fxg6 Rh8 23. g7 Rf8 24. Qd6 Rc8 25. Bxc8 Kg5 26. Qd5+ Kh4 27. g8=Q 1/2-1/2
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "128"]
+[White "Maia3 (elo 1237)"]
+[Black "Maia3 (elo 644)"]
+[WhiteElo "1237"]
+[BlackElo "644"]
+[Result "1-0"]
+
+1. e4 e5 2. Nf3 Qe7 3. d3 Qd8 4. Nbd2 Bc5 5. g3 Nf6 6. Bg2 Nh5 7. c3 Bxf2+ 8. Kxf2 g5 9. Nf1 Qf6 10. Kg1 Nf4 11. Qe1 Nxg2 12. Kxg2 g4 13. Nh4 Qf2+ 14. Qxf2 d5 15. Nd2 dxe4 16. Nxe4 Rg8 17. Nf6+ Ke7 18. Nxg8+ Ke6 19. Qf5+ Kd5 20. Qxc8 Kc5 21. Qxc7+ Nc6 22. Be3+ Kd5 23. c4+ Ke6 24. Rhf1 Rxg8 25. Qxb7 Nd4 26. Bxd4 Kd6 27. Qd5+ Ke7 28. Rxf7+ Ke8 29. Qe6+ Kd8 30. Qd7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "129"]
+[White "Maia3 (elo 384)"]
+[Black "Maia3 (elo 687)"]
+[WhiteElo "384"]
+[BlackElo "687"]
+[Result "1-0"]
+
+1. a4 d5 2. a5 d4 3. Ra4 b6 4. Rxd4 bxa5 5. Rxd8+ Kxd8 6. Na3 a4 7. Nb5 c5 8. b3 a6 9. Ba3 e6 10. bxa4 Ra7 11. Nxa7 c4 12. c3 f6 13. Bxf8 Nh6 14. a5 Rxf8 15. Nxc8 Kxc8 16. Qb3 Rf7 17. Qa4 Nc6 18. Qxc6+ Kd8 19. Qxc4 e5 20. Qb4 Rb7 21. Qxb7 Nf5 22. Qxa6 Nh4 23. g3 e4 24. gxh4 h6 25. Qb5 e3 26. h5 exf2+ 27. Kxf2 Kc7 28. a6 Kc8 29. Qa5 f5 30. Qxf5+ Kd8 31. Qc5 g5 32. a7 g4 33. a8=Q+ Kd7 34. Qb6 Ke7 35. Qaa7+ Ke8 36. Qbb8# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "130"]
+[White "Maia3 (elo 1335)"]
+[Black "Maia3 (elo 2659)"]
+[WhiteElo "1335"]
+[BlackElo "2659"]
+[Result "0-1"]
+
+1. e4 c5 2. Nc3 g6 3. a3 Bg7 4. d3 Nc6 5. Bd2 Rb8 6. a4 Nf6 7. g3 a6 8. Bg2 b5 9. axb5 axb5 10. Qc1 b4 11. Nd5 e6 12. Bf4 Nxd5 13. exd5 Ne5 14. Nf3 d6 15. dxe6 Bxe6 16. Ng5 Bc8 17. Bxe5 Bxe5 18. O-O O-O 19. f4 Bd4+ 20. Kh1 d5 21. c3 bxc3 22. bxc3 Bf6 23. c4 Bxa1 24. Qxa1 h6 25. Qe5 dxc4 26. Bd5 hxg5 27. Qxb8 Qxd5+ 28. Kg1 Bh3 29. Qxf8+ Kxf8 30. dxc4 Qg2# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "131"]
+[White "Maia3 (elo 690)"]
+[Black "Maia3 (elo 2358)"]
+[WhiteElo "690"]
+[BlackElo "2358"]
+[Result "0-1"]
+
+1. g3 e5 2. Bh3 d5 3. Nf3 Bxh3 4. g4 e4 5. Nd4 Nc6 6. g5 Nxd4 7. e3 Nf3+ 8. Qxf3 exf3 9. e4 Qe7 10. Rg1 Qxe4+ 11. Kd1 Qe2# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "132"]
+[White "Maia3 (elo 1805)"]
+[Black "Maia3 (elo 713)"]
+[WhiteElo "1805"]
+[BlackElo "713"]
+[Result "1-0"]
+
+1. e4 e5 2. Qf3 Bb4 3. c3 Ba5 4. b4 Bb6 5. a4 Nc6 6. a5 Qf6 7. axb6 cxb6 8. Bc4 a5 9. Qxf6 gxf6 10. b5 Na7 11. d3 Nh6 12. Bxh6 Rg8 13. g3 f5 14. Bd5 Rg6 15. Be3 fxe4 16. Bxe4 d6 17. f4 Nxb5 18. Bxg6 exf4 19. gxf4 Kd7 20. Bxf7 a4 21. Bxb6 h5 22. c4 Ra6 23. cxb5 Rxb6 24. Rxa4 Ke7 25. Ra7 Rxb5 26. Rxb7+ Bxb7 27. Nc3 Bxh1 28. Nxb5 Kf8 29. Bxh5 Kg7 30. Nd4 Bg2 31. Kf2 Kf6 32. Kxg2 d5 33. Be8 Ke7 34. Ngf3 Kxe8 35. h4 Kf7 36. Ng5+ Kg6 37. Kg3 Kf6 38. Kg4 Kg6 39. f5+ Kf6 40. h5 Ke5 41. Nde6 Kd6 42. h6 Ke7 43. h7 Kf6 44. h8=Q+ Ke7 45. Nc5 d4 46. f6+ Kd6 47. Qf8+ Kc6 48. Nge4 Kd5 49. f7 Ke5 50. Qh8+ Kd5 51. f8=N Kc6 52. Qxd4 Kb5 53. Qc4+ Kb6 54. Qa6+ Kc7 55. Nfe6+ Kb8 56. Qb7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "133"]
+[White "Maia3 (elo 2897)"]
+[Black "Maia3 (elo 1687)"]
+[WhiteElo "2897"]
+[BlackElo "1687"]
+[Result "1-0"]
+
+1. c4 h6 2. d4 g5 3. e4 g4 4. Nc3 Na6 5. h3 d6 6. hxg4 f6 7. g5 fxg5 8. Qh5+ Kd7 9. Nf3 Qe8 10. Qh3+ Kd8 11. g4 Nb4 12. Kd1 Nxa2 13. Qg3 Nxc1 14. Kxc1 h5 15. gxh5 g4 16. Nh2 Bh6+ 17. Kd1 Nf6 18. e5 Nxh5 19. Qd3 Nf4 20. Qe4 Qf7 21. Kc2 Bf5 22. Nxg4 Bxe4+ 23. Nxe4 Qf8 24. exd6 Qf5 25. dxe7+ Kxe7 26. f3 Bg7 27. Rg1 Bxd4 28. Rg3 Ne6 29. Re1 Qf4 30. c5 Rh2+ 31. Nxh2 Nxc5 32. Nxc5+ Kf7 33. Bc4+ Kf8 34. Nd7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "134"]
+[White "Maia3 (elo 1725)"]
+[Black "Maia3 (elo 1874)"]
+[WhiteElo "1725"]
+[BlackElo "1874"]
+[Result "0-1"]
+
+1. d4 c6 2. Nf3 c5 3. e3 cxd4 4. exd4 Nf6 5. Nc3 d6 6. Bd3 g6 7. Bg5 Qa5 8. Bd2 Bg7 9. Nb5 Qd8 10. O-O O-O 11. Qc1 a6 12. Nc3 b5 13. Bh6 Bb7 14. a3 Nbd7 15. Bxg7 Kxg7 16. Be2 e5 17. dxe5 dxe5 18. Qg5 e4 19. Nd2 h6 20. Qg3 Nc5 21. Rad1 Qe7 22. b4 Ne6 23. Ncxe4 Nxe4 24. Nxe4 Bxe4 25. Qe5+ Qf6 26. Qxe4 Ng5 27. Qg4 Rac8 28. Bd3 h5 29. Qg3 h4 30. Qxh4 Rh8 31. Qg4 Rhe8 32. Rfe1 Rxe1+ 33. Rxe1 Ne6 34. g3 Qc3 35. Rxe6 fxe6 36. h4 Qf6 37. h5 Rf8 38. f4 g5 39. Kg2 Kh6 40. Qh3 gxf4 41. g4 Qg5 42. Kf3 e5 43. Qg2 Qh4 44. Bf5 Rc8 45. Bxc8 Kg5 46. Bxa6 Qe1 47. Bxb5 Qe3# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "135"]
+[White "Maia3 (elo 2757)"]
+[Black "Maia3 (elo 1967)"]
+[WhiteElo "2757"]
+[BlackElo "1967"]
+[Result "1-0"]
+
+1. d4 Nf6 2. c4 e6 3. g3 c5 4. d5 exd5 5. cxd5 d6 6. Nc3 g6 7. Bg2 Bg7 8. Nf3 O-O 9. O-O a6 10. a4 Nbd7 11. Bf4 Nb6 12. Qb3 Rb8 13. a5 Na8 14. Nd2 b5 15. axb6 Rxb6 16. Qc2 Nh5 17. Be3 Rb4 18. Ra4 Rxa4 19. Qxa4 Nb6 20. Qa5 Nf6 21. b4 cxb4 22. Bxb6 bxc3 23. Bxd8 cxd2 24. Bxf6 d1=Q 25. Rxd1 Bxf6 26. Rc1 Bg7 27. e3 h5 28. Qc7 Be5 29. Rb1 Bf6 30. Rb8 Bf5 31. Rxf8+ Kxf8 32. Qxd6+ Be7 33. Qxa6 Kg7 34. d6 Bf6 35. Qc6 Bd7 36. Qxd7 Bg5 37. Bd5 h4 38. Qxf7+ Kh6 39. Be4 hxg3 40. Qxg6# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "136"]
+[White "Maia3 (elo 1403)"]
+[Black "Maia3 (elo 2218)"]
+[WhiteElo "1403"]
+[BlackElo "2218"]
+[Result "0-1"]
+
+1. d4 Nf6 2. c4 c5 3. Bg5 cxd4 4. Qxd4 Nc6 5. Qh4 e5 6. Nc3 Be7 7. O-O-O Qa5 8. Kb1 h6 9. Nf3 d6 10. Nd5 Nxd5 11. cxd5 Bf5+ 12. e4 Bxe4+ 13. Qxe4 Nb4 14. a3 Qa4 15. Qxb4 Qxd1+ 16. Bc1 O-O 17. Qxb7 Rac8 18. Ba6 Rxc1+ 19. Ka2 Ra1# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "137"]
+[White "Maia3 (elo 194)"]
+[Black "Maia3 (elo 2714)"]
+[WhiteElo "194"]
+[BlackElo "2714"]
+[Result "0-1"]
+
+1. h4 e5 2. Nf3 e4 3. Rh3 d5 4. e3 Bxh3 5. Be2 Bxg2 6. Ng5 h6 7. a4 hxg5 8. Bf3 Bxf3 9. c4 Rxh4 10. Qxf3 exf3 11. d3 dxc4 12. Nd2 Qxd3 13. e4 Qe2# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "138"]
+[White "Maia3 (elo 2685)"]
+[Black "Maia3 (elo 2584)"]
+[WhiteElo "2685"]
+[BlackElo "2584"]
+[Result "0-1"]
+
+1. e4 c6 2. d4 d5 3. e5 Bf5 4. Nd2 e6 5. Nb3 Nd7 6. Nf3 a5 7. a4 h6 8. Be3 Ne7 9. h3 Qc7 10. Be2 Nc8 11. O-O Ncb6 12. Bd3 Nc4 13. Bxc4 dxc4 14. Nbd2 Nb6 15. g4 Bh7 16. Nh2 h5 17. c3 Bd3 18. Re1 hxg4 19. hxg4 O-O-O 20. b4 axb4 21. cxb4 Bxb4 22. a5 Nd5 23. a6 b5 24. Qf3 Kb8 25. Rec1 Ka7 26. Ne4 f6 27. Nc5 Bxc5 28. dxc5 fxe5 29. Qg3 g5 30. Bd2 Nf4 31. Ba5 Ne2+ 32. Kg2 Qh7 33. Bb6+ Ka8 34. Qxe5 Qh3+ 35. Kh1 Be4+ 36. f3 Bxf3# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "139"]
+[White "Maia3 (elo 1387)"]
+[Black "Maia3 (elo 600)"]
+[WhiteElo "1387"]
+[BlackElo "600"]
+[Result "1-0"]
+
+1. Nf3 e5 2. Nxe5 Qg5 3. Nf3 Qd8 4. d4 Nc6 5. Bf4 Bb4+ 6. c3 Ba5 7. e3 Nxd4 8. Nxd4 d6 9. Bd3 a6 10. O-O Nf6 11. Bc2 Bg4 12. Qe1 c5 13. f3 cxd4 14. exd4+ Kd7 15. fxg4 Nxg4 16. b4 Qe8 17. Qg3 Nh6 18. bxa5 Rc8 19. Ba4+ Rc6 20. Bxd6 Qc8 21. Bxc6+ Kxc6 22. c4 Qa8 23. d5+ Kd7 24. Qxg7 Rf8 25. Bxf8 Qa7+ 26. Rf2 Ng4 27. Qxg4+ Kd8 28. Qh4+ f6 29. Qxf6+ Kc7 30. Bd6+ Kd7 31. Qe7+ Kc8 32. Qc7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "140"]
+[White "Maia3 (elo 142)"]
+[Black "Maia3 (elo 668)"]
+[WhiteElo "142"]
+[BlackElo "668"]
+[Result "0-1"]
+
+1. a3 e6 2. f3 Bd6 3. Ra2 Qh4+ 4. g3 Bxg3+ 5. hxg3 Qxh1 6. f4 Qxg1 7. Ra1 Qxg3# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "141"]
+[White "Maia3 (elo 553)"]
+[Black "Maia3 (elo 296)"]
+[WhiteElo "553"]
+[BlackElo "296"]
+[Result "0-1"]
+
+1. f4 Nc6 2. c3 f5 3. g3 b6 4. Bg2 Ba6 5. b4 Nf6 6. h3 b5 7. g4 fxg4 8. hxg4 Bb7 9. Bb2 Nd5 10. Bxd5 Ne5 11. Bxb7 Qb8 12. Bxa8 Qxa8 13. c4 g6 14. a4 Nxc4 15. axb5 Nxb2 16. Qb3 Qxh1 17. Rxa7 Qxg1# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "142"]
+[White "Maia3 (elo 346)"]
+[Black "Maia3 (elo 970)"]
+[WhiteElo "346"]
+[BlackElo "970"]
+[Result "0-1"]
+
+1. Nc3 d5 2. Nxd5 Qxd5 3. Nf3 Bg4 4. Nd4 Qxd4 5. g3 Qe4 6. Rg1 e6 7. Bg2 Qf5 8. h3 Bc5 9. f3 Bxh3 10. Bxh3 Qxh3 11. d3 Bxg1 12. Qd2 Qxg3+ 13. Kd1 Bf2 14. Qg5 Qxg5 15. f4 Qg1+ 16. Kd2 Qe1# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "143"]
+[White "Maia3 (elo 866)"]
+[Black "Maia3 (elo 1192)"]
+[WhiteElo "866"]
+[BlackElo "1192"]
+[Result "0-1"]
+
+1. Nf3 d5 2. d4 Nc6 3. e3 Bf5 4. Bd3 e6 5. c3 Bg6 6. Nbd2 Nge7 7. Qe2 f6 8. e4 e5 9. O-O f5 10. dxe5 fxe4 11. Bc2 exf3 12. Qxf3 Bxc2 13. e6 Qd6 14. Re1 O-O-O 15. Nf1 Ng6 16. Bf4 Qxf4 17. Qxf4 Nxf4 18. Ne3 d4 19. Nxc2 d3 20. Ne3 Nxe6 21. Nf5 Nf4 22. Red1 Ne2+ 23. Kf1 Bc5 24. b4 Bxf2 25. Kxf2 Rhf8 26. h4 Rxf5+ 27. Ke1 Re8 28. Rxd3 Nc1+ 29. Kd1 Re1+ 30. Kxe1 Nxd3+ 31. Kd2 Rd5 32. Rd1 Nf2+ 33. Ke2 Nxd1 34. b5 Rxb5 35. Kxd1 Ra5 36. Kc2 Rxa2+ 37. Kb3 Rxg2 38. h5 Rg4 39. Ka3 g6 40. Kb3 gxh5 41. c4 h4 42. c5 h3 43. Kc2 h2 44. Kd2 Nd8 45. Kc3 h1=Q 46. c6 Qh3+ 47. Kd2 Rg2+ 48. Ke1 Qh1# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "144"]
+[White "Maia3 (elo 2908)"]
+[Black "Maia3 (elo 2227)"]
+[WhiteElo "2908"]
+[BlackElo "2227"]
+[Result "1-0"]
+
+1. e4 Nc6 2. d4 e5 3. d5 Nb8 4. Nf3 Nf6 5. Nxe5 Nxe4 6. Bd3 Nf6 7. O-O Nxd5 8. Bc4 Nf6 9. Nxf7 Bc5 10. Nxd8 Kxd8 11. a3 c6 12. Be3 Bxe3 13. fxe3 d5 14. Rxf6 h5 15. Rf4 Nd7 16. Bd3 b6 17. c4 Nf6 18. e4 dxe4 19. Bxe4+ Kc7 20. Rxf6 gxf6 21. Qf3 Bd7 22. Nc3 h4 23. Nb5+ cxb5 24. Qf4+ Kc8 25. Bxa8 Kd8 26. Rd1 Ke8 27. Qxf6 Rf8 28. Re1+ Be6 29. Qxe6+ Kd8 30. Qd6+ Kc8 31. Re7 Rf1+ 32. Kxf1 h3 33. Qc7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "145"]
+[White "Maia3 (elo 452)"]
+[Black "Maia3 (elo 3021)"]
+[WhiteElo "452"]
+[BlackElo "3021"]
+[Result "0-1"]
+
+1. c3 g5 2. Qa4 b5 3. Nf3 bxa4 4. g4 Nf6 5. Nxg5 d5 6. d3 Nxg4 7. Be3 e5 8. Rg1 Nxe3 9. fxe3 Rg8 10. Rg3 Rxg5 11. Rxg5 Qxg5 12. Nd2 Qxe3 13. Kd1 Bh6 14. b3 Qxd2# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "146"]
+[White "Maia3 (elo 2335)"]
+[Black "Maia3 (elo 851)"]
+[WhiteElo "2335"]
+[BlackElo "851"]
+[Result "1-0"]
+
+1. d4 e5 2. dxe5 Nc6 3. Nf3 Bb4+ 4. c3 Bc5 5. Bg5 f6 6. exf6 gxf6 7. Bc1 d6 8. Nd4 Nxd4 9. cxd4 Bb4+ 10. Nc3 Ne7 11. e3 Qd7 12. Qh5+ Ng6 13. Bd3 Bxc3+ 14. bxc3 Qd8 15. O-O Rg8 16. Qxh7 Rf8 17. Bxg6+ Rf7 18. Qxf7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "147"]
+[White "Maia3 (elo 2761)"]
+[Black "Maia3 (elo 538)"]
+[WhiteElo "2761"]
+[BlackElo "538"]
+[Result "1-0"]
+
+1. d4 Nc6 2. e4 e6 3. Nf3 Be7 4. d5 exd5 5. exd5 Nf6 6. dxc6 Rg8 7. cxd7+ Bxd7 8. Be2 Bb4+ 9. c3 Nd5 10. Qxd5 Bxc3+ 11. Nxc3 c6 12. Qe5+ Qe7 13. Rb1 Qxe5 14. Nxe5 O-O-O 15. h4 Be6 16. b4 b5 17. Be3 Kc7 18. O-O Bxa2 19. Nxa2 f6 20. Nf3 g5 21. hxg5 fxg5 22. Bxg5 Rd1 23. Rfxd1 Rg7 24. Bf4+ Kb7 25. Rd6 Rxg2+ 26. Kxg2 Kc7 27. Rc1 Kb6 28. Rd7 h6 29. Be3+ Ka6 30. Rxa7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "148"]
+[White "Maia3 (elo 539)"]
+[Black "Maia3 (elo 2000)"]
+[WhiteElo "539"]
+[BlackElo "2000"]
+[Result "0-1"]
+
+1. e4 d5 2. Nc3 d4 3. Na4 Nc6 4. Ba6 bxa6 5. Nb6 axb6 6. Qe2 Nb4 7. f4 Nxc2+ 8. Kf1 Nb4 9. f5 a5 10. Qa6 Bxa6+ 11. Kf2 Nd3+ 12. Ke2 Qd6 13. Kf3 Qf4+ 14. Ke2 Qf2+ 15. Kd1 Qe1+ 16. Kc2 Qxe4 17. Nf3 Nb4+ 18. Kb3 Qc2+ 19. Ka3 e5 20. Nxd4 Nd5+ 21. b4 axb4# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "149"]
+[White "Maia3 (elo 2252)"]
+[Black "Maia3 (elo 1161)"]
+[WhiteElo "2252"]
+[BlackElo "1161"]
+[Result "1-0"]
+
+1. c4 d5 2. cxd5 Qxd5 3. Nc3 Qd7 4. Nf3 e6 5. d4 Nc6 6. Bf4 Nce7 7. e4 Ng6 8. Bg3 c6 9. h4 Bb4 10. h5 N6e7 11. Ne5 Qxd4 12. Qxd4 Nf6 13. Qxb4 O-O 14. Qxe7 Bd7 15. Nxd7 Nxd7 16. Qxd7 g6 17. hxg6 fxg6 18. Qxh7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "150"]
+[White "Maia3 (elo 2710)"]
+[Black "Maia3 (elo 2450)"]
+[WhiteElo "2710"]
+[BlackElo "2450"]
+[Result "1/2-1/2"]
+
+1. e4 c5 2. Nf3 d6 3. Bb5+ Bd7 4. Bxd7+ Qxd7 5. c4 Nc6 6. Nc3 g6 7. d3 Bg7 8. Be3 Rb8 9. d4 cxd4 10. Nxd4 Nf6 11. f3 Nxd4 12. Bxd4 a6 13. O-O O-O 14. a4 Rfc8 15. b3 Ne8 16. Bxg7 Kxg7 17. Qd4+ Kg8 18. e5 Qc6 19. Kh1 Qc5 20. Qf4 dxe5 21. Qd2 Nf6 22. Rac1 Qb4 23. Qa2 b5 24. axb5 axb5 25. Nxb5 Ra8 26. Qb2 e4 27. Qc3 Qxc3 28. Nxc3 exf3 29. Rxf3 Ra3 30. Nb5 Ra2 31. Nc3 Rd2 32. h3 Rb8 33. Nb5 Kg7 34. Nc3 Rxb3 35. Ne4 Rxf3 36. Nxd2 Rd3 37. Nf3 Ne8 38. c5 Kf6 39. c6 Nc7 40. Kh2 Ke6 41. Ng5+ Kd6 42. Nxf7+ Kd5 43. Ng5 h5 44. Nf3 e5 45. Nh4 g5 46. Nf3 g4 47. hxg4 hxg4 48. Ng5 Ra3 49. g3 Ra2+ 50. Kg1 Ra4 51. Kf2 Ra2+ 52. Kg1 Ra6 53. Rd1+ Kxc6 54. Ne4 Nd5 55. Rc1+ Kb5 56. Rc5+ Kb6 57. Rxd5 Ra1+ 58. Kg2 Ra2+ 59. Kg1 Ra1+ 60. Kf2 Ra5 61. Rd2 Kb5 62. Ke3 Kc4 63. Rd6 Ra3+ 64. Kf2 Ra2+ 65. Ke3 Ra3+ 66. Ke2 Rf3 67. Nd2+ Kc5 68. Ne4+ Kc4 69. Rd8 Kb4 70. Rd5 Rf5 71. Rc5 Rh5 72. Rc8 Rf5 73. Rg8 Kc4 74. Rxg4 Kd5 75. Nf2 Rf8 76. Ne4 Rh8 77. Nf6+ Ke6 78. Ne4 Rh6 79. Rh4 Rg6 80. Kf3 Kd5 81. Rh8 Ra6 82. Rd8+ Kc4 83. Nd2+ Kc3 84. Ne4+ Kc4 85. Kg4 Ra2 86. Kf5 Kb5 87. g4 Kc4 88. Kxe5 Rg2 89. g5 Rg1 90. Kf6 Rf1+ 91. Ke5 Rg1 92. Kf5 Rf1+ 93. Ke5 Kb5 94. g6 Rg1 95. Kf6 Rxg6+ 96. Kxg6 Ka5 97. Rb8 Ka6 98. Kf7 Ka5 99. Ke7 Ka4 100. Kd6 Ka3 101. Kc5 Ka2 102. Nc3+ Ka3 103. Kc4 1/2-1/2
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "151"]
+[White "Maia3 (elo 2645)"]
+[Black "Maia3 (elo 1877)"]
+[WhiteElo "2645"]
+[BlackElo "1877"]
+[Result "1-0"]
+
+1. e4 e5 2. d4 exd4 3. Nf3 Bb4+ 4. c3 dxc3 5. Nxc3 Bxc3+ 6. bxc3 Ne7 7. Bc4 O-O 8. O-O h6 9. Nd4 Ng6 10. Qh5 Nh8 11. Re1 d6 12. Re3 g6 13. Qxh6 Nc6 14. Nf5 Bxf5 15. exf5 Qf6 16. Rh3 Qg7 17. Qh4 Rad8 18. Bh6 Qe5 19. Bxf8 Kxf8 20. f6 Ke8 21. Kh1 Kd7 22. Re3 Qf5 23. Be2 Ne5 24. f4 Kc8 25. fxe5 dxe5 26. Bg4 g5 27. Bxf5+ Kb8 28. Qxg5 Ng6 29. Bxg6 Rd2 30. Bxf7 Rf2 31. Qxe5 Rf1+ 32. Rxf1 Kc8 33. Qe8# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "152"]
+[White "Maia3 (elo 1399)"]
+[Black "Maia3 (elo 271)"]
+[WhiteElo "1399"]
+[BlackElo "271"]
+[Result "1-0"]
+
+1. e4 c6 2. d4 c5 3. d5 Na6 4. c3 Nb4 5. cxb4 Qc7 6. g3 b5 7. Bf4 Kd8 8. bxc5 a6 9. Bxc7+ Kxc7 10. d6+ Kb8 11. b4 Bb7 12. Nc3 exd6 13. cxd6 a5 14. bxa5 Bxd6 15. Nxb5 Ne7 16. Qc1 Bc6 17. Nxd6 Rxa5 18. Qb2+ Ka7 19. Rb1 f6 20. Qb6+ Ka8 21. Qxa5# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "153"]
+[White "Maia3 (elo 3019)"]
+[Black "Maia3 (elo 1509)"]
+[WhiteElo "3019"]
+[BlackElo "1509"]
+[Result "1-0"]
+
+1. e4 d5 2. exd5 Nf6 3. Bc4 Nxd5 4. d4 Nf6 5. a3 Nd5 6. Nf3 Nf4 7. Bxf4 e6 8. O-O Nc6 9. d5 exd5 10. Bxd5 Bd6 11. Bg5 f6 12. Re1+ Ne7 13. Bh4 Qd7 14. Bg3 Bxg3 15. hxg3 c6 16. Be4 Qxd1 17. Rxd1 f5 18. Bd3 Be6 19. Re1 Kf8 20. Rxe6 Kf7 21. Ng5+ Kf8 22. Nc3 h6 23. Nh7+ Rxh7 24. Rae1 g5 25. g4 Rf7 26. Rxh6 fxg4 27. Rh5 Rd8 28. Rxg5 Nd5 29. Nxd5 cxd5 30. Rxg4 Rd6 31. Re5 Rff6 32. g3 Rd7 33. Rgg5 Rfd6 34. Ref5+ Ke8 35. Rg8+ Ke7 36. Kg2 b6 37. Bb5 Rc7 38. Re8# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "154"]
+[White "Maia3 (elo 1689)"]
+[Black "Maia3 (elo 1829)"]
+[WhiteElo "1689"]
+[BlackElo "1829"]
+[Result "1-0"]
+
+1. d4 d6 2. c4 e5 3. e3 exd4 4. exd4 Nf6 5. Nf3 d5 6. Nc3 c6 7. Be2 Be7 8. O-O O-O 9. cxd5 cxd5 10. Qb3 Nc6 11. Bf4 Na5 12. Qb5 b6 13. Rac1 a6 14. Qd3 h6 15. Nd2 Be6 16. Nf3 Nb7 17. Ne5 b5 18. a3 Rc8 19. Bf3 Nd6 20. Qd2 Nc4 21. Nxc4 bxc4 22. Rfe1 Re8 23. Re5 Kh7 24. h3 Bd6 25. Rxe6 Rxe6 26. Bxd5 Nxd5 27. Nxd5 Bf8 28. Nc3 Qb6 29. Nd5 Qc6 30. Nb4 Bxb4 31. axb4 Re4 32. Be3 Re7 33. Bf4 Rce8 34. Qc2+ Qg6 35. Qxg6+ fxg6 36. Be5 Rxe5 37. dxe5 Rxe5 38. Rxc4 Re2 39. b3 Rb2 40. Rc6 Rxb3 41. Rxa6 Rxb4 42. g4 g5 43. Kg2 Rb3 44. Ra7 Rb6 45. Kg3 Kg6 46. Ra4 h5 47. gxh5+ Kxh5 48. f3 g6 49. Ra8 Kh6 50. Ra7 Rb4 51. Ra6 Rf4 52. Ra7 Rc4 53. Ra8 Rc6 54. Rh8+ Kg7 55. Re8 Rc4 56. Re4 Rc1 57. Rg4 Rg1+ 58. Kf2 Ra1 59. Kg2 Kf6 60. f4 Ra2+ 61. Kg3 Ra3+ 62. Kg2 Ra4 63. fxg5+ Kf5 64. Rxa4 Kxg5 65. Rg4+ Kh5 66. Kg3 g5 67. Kf3 Kg6 68. Ke4 Kf6 69. Kd4 Kf5 70. Ke3 Kg6 71. Ke4 Kh5 72. Kf5 Kh6 73. Rxg5 Kh7 74. Kf6 Kh6 75. Rg8 Kh7 76. Rg1 Kh6 77. Rg2 Kh7 78. Kf7 Kh6 79. Rg8 Kh5 80. Kf6 Kh4 81. Kf5 Kxh3 82. Kf4 Kh4 83. Rh8# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "155"]
+[White "Maia3 (elo 2986)"]
+[Black "Maia3 (elo 624)"]
+[WhiteElo "2986"]
+[BlackElo "624"]
+[Result "1-0"]
+
+1. e4 d5 2. exd5 Qxd5 3. Nc3 Qd8 4. Nf3 Nf6 5. d4 e6 6. Bf4 Bb4 7. Bd3 O-O 8. O-O Ne8 9. Ne4 Bd6 10. Nxd6 cxd6 11. c4 d5 12. Bxh7+ Kxh7 13. Ng5+ Kg8 14. Qh5 Nf6 15. Qh4 dxc4 16. Be5 Re8 17. Rac1 b5 18. Bxf6 Qxf6 19. Qh7+ Kf8 20. Qh8+ Ke7 21. Qh5 g6 22. Qh4 Bb7 23. Rfe1 Rh8 24. Qg3 Na6 25. d5 Kf8 26. dxe6 Kg7 27. exf7 Qxb2 28. Rb1 Rxh2 29. Ne6+ Kxf7 30. Rxb2 Rxg2+ 31. Qxg2 Bxg2 32. Kxg2 b4 33. Rd2 Re8 34. Rd7+ Kf6 35. Rd6 Nb8 36. Nc7+ Kf7 37. Rxe8 Nd7 38. Rxd7+ Kf6 39. Nd5+ Kf5 40. Rf7+ Kg4 41. Re3 Kg5 42. Re5+ Kh6 43. Nf6 g5 44. Re8 Kg6 45. Ng4 Kxf7 46. Re4 b3 47. Rxc4 bxa2 48. Ra4 Ke8 49. Rxa7 a1=Q 50. Rxa1 Kf7 51. Ra7+ Ke6 52. f3 Kd5 53. Ra5+ Ke6 54. Rxg5 Ke7 55. f4 Ke6 56. f5+ Ke7 57. f6+ Kf7 58. Rg7+ Kf8 59. Nh6 Ke8 60. Kf3 Kd8 61. Ra7 Ke8 62. Ke4 Kd8 63. f7 Kc8 64. f8=Q# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "156"]
+[White "Maia3 (elo 2420)"]
+[Black "Maia3 (elo 1052)"]
+[WhiteElo "2420"]
+[BlackElo "1052"]
+[Result "1-0"]
+
+1. Nf3 d5 2. d4 c5 3. dxc5 Nc6 4. e3 e5 5. c4 Bxc5 6. cxd5 Nb4 7. Nc3 Nf6 8. Nxe5 Qe7 9. Bb5+ Bd7 10. Nxd7 Nxd7 11. a3 Nd3+ 12. Qxd3 O-O-O 13. O-O Kb8 14. e4 a6 15. Bf4+ Bd6 16. Bxd6+ Qxd6 17. Bxd7 Rxd7 18. f4 Rc8 19. e5 Qh6 20. Rac1 Rcd8 21. d6 g5 22. fxg5 Qxg5 23. Rce1 h5 24. Nd5 Rg8 25. Rf2 h4 26. Nf6 h3 27. Nxd7+ Kc8 28. Qc4+ Kxd7 29. Rxf7+ Ke8 30. Re7+ Qxe7 31. Qxg8+ Qf8 32. d7+ Kxd7 33. Qxf8 hxg2 34. Qf7+ Kc8 35. e6 Kb8 36. e7 Ka7 37. Qf2+ b6 38. e8=Q Kb7 39. Qfe3 b5 40. Qc5 a5 41. Re7+ Ka6 42. Qa8# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "157"]
+[White "Maia3 (elo 1845)"]
+[Black "Maia3 (elo 2493)"]
+[WhiteElo "1845"]
+[BlackElo "2493"]
+[Result "0-1"]
+
+1. e4 c5 2. c4 g6 3. Nf3 Bg7 4. Nc3 Nc6 5. Be2 d6 6. O-O Nf6 7. d3 O-O 8. h3 a6 9. a3 e5 10. Bg5 h6 11. Bh4 g5 12. Bg3 Rb8 13. Rb1 b5 14. b4 cxb4 15. axb4 Be6 16. cxb5 Rxb5 17. Nxb5 axb5 18. Qc2 Qb6 19. Rfc1 Rc8 20. Qb2 Nh5 21. Kh2 Nf4 22. Bxf4 exf4 23. Qd2 Qxf2 24. Rc2 Ne7 25. Rxc8+ Nxc8 26. Rf1 Qg3+ 27. Kg1 Bxh3 28. Bd1 Bc3 29. Qf2 Qxf2+ 30. Rxf2 Bg4 31. Rc2 Bxf3 32. gxf3 Bd4+ 33. Kg2 Ne7 34. Rc7 Ng6 35. Rb7 h5 36. Rxb5 Ne5 37. Rb8+ Kh7 38. Be2 Nc6 39. Rb7 Kg6 40. b5 Ne5 41. Rb8 Nd7 42. b6 Nxb8 43. b7 Kf6 44. Bd1 Be3 45. Ba4 Ke5 46. Kh3 Kf6 47. Kg2 g4 48. fxg4 hxg4 49. Bd1 Kg5 50. Ba4 f3+ 51. Kg3 Kh5 52. Bb5 Kg5 53. Bc6 Bf4+ 54. Kf2 Be5 55. Ke3 Bf4+ 56. Kf2 Nxc6 57. d4 Nb8 58. e5 dxe5 59. dxe5 Bxe5 60. Ke3 f5 61. Kf2 Kf4 62. Kg1 Ke3 63. Kh1 Ke2 64. Kg1 Nc6 65. b8=Q Bxb8 66. Kh1 Bc7 67. Kg1 f2+ 68. Kh1 f1=Q# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "158"]
+[White "Maia3 (elo 806)"]
+[Black "Maia3 (elo 1916)"]
+[WhiteElo "806"]
+[BlackElo "1916"]
+[Result "0-1"]
+
+1. Nf3 d5 2. g3 Nf6 3. Bg2 e6 4. d4 Be7 5. O-O O-O 6. Bg5 h6 7. Be3 Ne4 8. Nbd2 Nxd2 9. Qxd2 Nd7 10. b3 Nf6 11. Rac1 b6 12. Rb1 c5 13. c4 cxd4 14. Nxd4 Bb7 15. cxd5 Nxd5 16. Bxh6 gxh6 17. Qxh6 Bg5 18. Qh5 Qf6 19. f4 Qxd4+ 20. Kh1 Bf6 21. Rfd1 Qc5 22. Qg5+ Bxg5 23. Bxd5 Bxd5+ 24. Rxd5 Qxd5+ 25. Kg1 Bf6 26. e4 Qxe4 27. Re1 Qxe1+ 28. Kg2 Rad8 29. Kh3 Qg1 30. g4 Rd3# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "159"]
+[White "Maia3 (elo 2893)"]
+[Black "Maia3 (elo 1282)"]
+[WhiteElo "2893"]
+[BlackElo "1282"]
+[Result "1-0"]
+
+1. c4 e5 2. Nc3 c6 3. d4 Bb4 4. dxe5 Qh4 5. Nf3 d6 6. Nxh4 dxe5 7. Bd2 Bg4 8. h3 Bxc3 9. Bxc3 Bh5 10. Qb3 f6 11. Qxb7 Bf3 12. Rd1 c5 13. gxf3 Ne7 14. f4 exf4 15. Nf5 Nxf5 16. Bg2 Nd7 17. Qxd7+ Kf8 18. Bxa8 Ne7 19. Qe6 h6 20. Rd8# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "160"]
+[White "Maia3 (elo 1628)"]
+[Black "Maia3 (elo 2561)"]
+[WhiteElo "1628"]
+[BlackElo "2561"]
+[Result "0-1"]
+
+1. d4 d5 2. Bf4 e6 3. e3 c6 4. c4 Nf6 5. Nc3 Bd6 6. Bxd6 Qxd6 7. Qb3 O-O 8. cxd5 exd5 9. g3 Qe7 10. Bg2 c5 11. Nxd5 Nxd5 12. Bxd5 cxd4 13. e4 Nc6 14. Nf3 Kh8 15. O-O Bg4 16. Rab1 Rad8 17. Bxc6 bxc6 18. Rbd1 Qxe4 19. Rd3 h6 20. Re1 Qf5 21. Nh4 Qf6 22. f4 Rg8 23. Qb4 Rge8 24. Rxe8+ Rxe8 25. Qxd4 Qe6 26. Ng2 Qxa2 27. Ne3 Bf3 28. Nf5 Qb1+ 29. Kf2 Qe1+ 30. Kxf3 Qe2# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "161"]
+[White "Maia3 (elo 1839)"]
+[Black "Maia3 (elo 2545)"]
+[WhiteElo "1839"]
+[BlackElo "2545"]
+[Result "0-1"]
+
+1. d4 Nf6 2. Nf3 g6 3. c4 Bg7 4. Nc3 d6 5. e4 O-O 6. g3 c5 7. d5 e6 8. Bg2 exd5 9. cxd5 Re8 10. O-O Nxe4 11. Nxe4 Rxe4 12. Qc2 Bf5 13. Nh4 Rf4 14. Nxf5 Rxf5 15. Be3 Na6 16. Be4 Re5 17. a3 Nc7 18. Rad1 f5 19. Bg2 Rc8 20. Bf4 Re7 21. Qb3 b5 22. Qc2 c4 23. Qd2 Na6 24. Qa5 Qxa5 25. Bxd6 Rd7 26. Bf4 Bxb2 27. d6 c3 28. Bd5+ Kg7 29. Be5+ Kh6 30. Bf4+ Kg7 31. Be5+ Kf8 32. Be6 Rcd8 33. Bxd7 Rxd7 34. Rd5 Qxa3 35. Rxb5 Nb4 36. Re1 Nc6 37. Rc5 Qxc5 38. Bf4 c2 39. Bh6+ Kf7 40. Re7+ Rxe7 41. dxe7 Bd4 42. Bc1 Qxe7 43. Bb2 Bxb2 44. Kg2 c1=Q 45. Kh3 Qe4 46. f4 Qf1+ 47. Kh4 Qe7# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "162"]
+[White "Maia3 (elo 3076)"]
+[Black "Maia3 (elo 692)"]
+[WhiteElo "3076"]
+[BlackElo "692"]
+[Result "1-0"]
+
+1. e4 d6 2. d4 d5 3. e5 Nc6 4. c3 f6 5. f4 g5 6. Qh5+ Kd7 7. e6+ Kd6 8. fxg5 Nxd4 9. cxd4 Nh6 10. gxh6 Bxe6 11. Nf3 Kc6 12. Nc3 Rc8 13. b4 Bxh6 14. Qxh6 Bf5 15. Ne5+ Kd6 16. Bb5 Qg8 17. O-O Qg6 18. Nxg6 Bxg6 19. Bf4+ Ke6 20. Rae1+ Kf7 21. Bd7 Rcg8 22. Nxd5 Bf5 23. Rxe7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "163"]
+[White "Maia3 (elo 2850)"]
+[Black "Maia3 (elo 287)"]
+[WhiteElo "2850"]
+[BlackElo "287"]
+[Result "1-0"]
+
+1. e4 g6 2. d4 Nf6 3. e5 Nc6 4. exf6 a6 5. d5 Na7 6. fxe7 Bxe7 7. Bh6 Rb8 8. Qd4 Rf8 9. Qxa7 Bg5 10. Bxf8 b5 11. Qxb8 Kxf8 12. Nf3 Bd2+ 13. Nbxd2 Qe7+ 14. Be2 Qe8 15. Qxc7 d6 16. Ng5 Qxe2+ 17. Kxe2 Bg4+ 18. Ndf3 Bxf3+ 19. gxf3 f5 20. Qf7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "164"]
+[White "Maia3 (elo 1514)"]
+[Black "Maia3 (elo 440)"]
+[WhiteElo "1514"]
+[BlackElo "440"]
+[Result "1-0"]
+
+1. d4 h6 2. c4 a5 3. Bxh6 gxh6 4. Nc3 f5 5. Nf3 b6 6. e3 f4 7. Qc2 fxe3 8. Qg6# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "165"]
+[White "Maia3 (elo 2110)"]
+[Black "Maia3 (elo 1061)"]
+[WhiteElo "2110"]
+[BlackElo "1061"]
+[Result "1-0"]
+
+1. d4 d5 2. Nf3 f6 3. Bf4 Bg4 4. Nbd2 Nc6 5. c3 Bxf3 6. Nxf3 h6 7. Bg3 e5 8. dxe5 Nxe5 9. Bxe5 fxe5 10. Nxe5 Bd6 11. Ng6 Rh7 12. Qxd5 Nf6 13. Qe6+ Be7 14. Rd1 Qd6 15. Rxd6 cxd6 16. Qxe7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "166"]
+[White "Maia3 (elo 742)"]
+[Black "Maia3 (elo 827)"]
+[WhiteElo "742"]
+[BlackElo "827"]
+[Result "0-1"]
+
+1. e4 Nc6 2. d4 e5 3. d5 Nd4 4. Be3 Nf6 5. Bxd4 exd4 6. Qxd4 Qe7 7. Nc3 d6 8. Bb5+ Bd7 9. Bxd7+ Qxd7 10. O-O-O Be7 11. Nf3 O-O 12. e5 Ng4 13. Rde1 dxe5 14. Nxe5 Nxe5 15. Qxe5 Rfe8 16. Qd4 Bf6 17. Qd3 Rxe1+ 18. Rxe1 Bg5+ 19. Kb1 Re8 20. Re5 Rxe5 21. Nb5 Re1+ 22. Qd1 Rxd1# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "167"]
+[White "Maia3 (elo 1090)"]
+[Black "Maia3 (elo 824)"]
+[WhiteElo "1090"]
+[BlackElo "824"]
+[Result "1-0"]
+
+1. e4 e5 2. Nc3 Nf6 3. Nf3 d5 4. d3 d4 5. Nxd4 Nc6 6. f3 exd4 7. Nd5 Nh5 8. f4 Be6 9. Qxh5 g6 10. Qe5 Bb4+ 11. Nxb4 Nxe5 12. fxe5 Qd7 13. Bh6 Qb5 14. a3 a5 15. Nd5 Qxb2 16. Rd1 Qxc2 17. Nf6+ Ke7 18. h4 Rhc8 19. Be2 Rd8 20. Bg5 Qc3+ 21. Rd2 b5 22. Nd5+ Kf8 23. Bxd8 Qc1+ 24. Rd1 Ke8 25. Rxc1 Rxd8 26. Nxc7+ Kd7 27. Nxb5 Rb8 28. a4 f5 29. Nxd4 fxe4 30. Nxe6 Kxe6 31. dxe4 Rb5 32. Bxb5 Kxe5 33. Rc7 Kxe4 34. Bc6+ Ke3 35. Rh3+ Kf4 36. Ra7 Ke5 37. Rxa5+ Kd4 38. Rg5 h6 39. Ra5 Kc4 40. Ra6 g5 41. a5 gxh4 42. Rb6 Kc5 43. Rxh4 Kd6 44. Be8+ Ke7 45. a6 Kxe8 46. a7 Kd8 47. a8=Q+ Kc7 48. Rbxh6 Kd7 49. Rh7+ Kd6 50. R7h6+ Kd7 51. Qa7+ Kc8 52. Qg7 Kb8 53. Rb4+ Ka8 54. Rf4 Kb8 55. Rh8# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "168"]
+[White "Maia3 (elo 2762)"]
+[Black "Maia3 (elo 906)"]
+[WhiteElo "2762"]
+[BlackElo "906"]
+[Result "1-0"]
+
+1. d4 d5 2. e3 e5 3. dxe5 f6 4. exf6 Nxf6 5. Nf3 Nc6 6. a3 Bg4 7. Nc3 Bc5 8. Be2 a5 9. b3 d4 10. Nxd4 Bxe2 11. Qxe2 Nxd4 12. exd4+ Kd7 13. dxc5 c6 14. O-O Re8 15. Qd3+ Kc7 16. Bf4+ Kc8 17. Qc4 Qc7 18. Bxc7 b5 19. Nxb5 Nd5 20. Qxd5 Kb7 21. Qf3 Re2 22. Qxe2 Ka6 23. Nd6+ Ka7 24. Qe7 Ka6 25. Bxa5 Rc8 26. Nxc8 h5 27. Qa7+ Kb5 28. Qb6# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "169"]
+[White "Maia3 (elo 2431)"]
+[Black "Maia3 (elo 139)"]
+[WhiteElo "2431"]
+[BlackElo "139"]
+[Result "1-0"]
+
+1. e4 f6 2. Qh5+ g6 3. Qb5 Bh6 4. Qb3 Bg7 5. Bc4 Na6 6. Bxg8 e5 7. Qf7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "170"]
+[White "Maia3 (elo 823)"]
+[Black "Maia3 (elo 1446)"]
+[WhiteElo "823"]
+[BlackElo "1446"]
+[Result "1-0"]
+
+1. e4 e5 2. d4 f6 3. dxe5 fxe5 4. Qh5+ g6 5. Qxe5+ Kf7 6. Qxh8 h6 7. Bc4+ d5 8. Qh7+ Ke8 9. Bxd5 Be6 10. Bxe6 Qg5 11. Qxg8 Qa5+ 12. c3 Ke7 13. Qxg6 Qb6 14. Qf7+ Kd8 15. Qxf8# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "171"]
+[White "Maia3 (elo 1410)"]
+[Black "Maia3 (elo 2272)"]
+[WhiteElo "1410"]
+[BlackElo "2272"]
+[Result "0-1"]
+
+1. e4 e6 2. d4 c5 3. dxc5 Bxc5 4. Nc3 Qb6 5. Be3 Bxe3 6. fxe3 Qxe3+ 7. Be2 Nf6 8. Nf3 Nxe4 9. Nxe4 Qxe4 10. O-O Qe3+ 11. Kh1 O-O 12. Re1 Qb6 13. Bc4 d5 14. Bb3 Nc6 15. Ne5 a5 16. Nxc6 bxc6 17. a4 c5 18. Qc1 c4 19. Ba2 Bd7 20. Re3 Bxa4 21. b3 cxb3 22. Bxb3 Bxb3 23. Rxb3 Qc5 24. Rd3 a4 25. Rda3 e5 26. Rxa4 Rxa4 27. Rxa4 d4 28. Ra3 e4 29. Ra4 e3 30. h3 d3 31. Re4 d2 32. Qd1 Qc3 33. Kh2 Rc8 34. Qe2 Qc7+ 35. Kg1 Qxc2 36. Qxe3 d1=Q+ 37. Kh2 h6 38. Re8+ Rxe8 39. Qxe8+ Kh7 40. Qxf7 Qd6+ 41. Kh1 Qc1+ 42. Qf1 Qxf1# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "172"]
+[White "Maia3 (elo 2806)"]
+[Black "Maia3 (elo 1167)"]
+[WhiteElo "2806"]
+[BlackElo "1167"]
+[Result "1-0"]
+
+1. e4 e5 2. Nf3 Nc6 3. d4 exd4 4. Nxd4 Nxd4 5. Qxd4 Nf6 6. e5 Nh5 7. Be2 c5 8. Qe3 d6 9. Bxh5 dxe5 10. Qf3 b5 11. Qxa8 Bf5 12. Bxf7+ Ke7 13. Bg5+ Kxf7 14. Qxd8 Be7 15. Qxh8 Bxg5 16. O-O Bc1 17. Rd1 Bxb2 18. Rd8 Bxa1 19. Qe8+ Kf6 20. Nd2 g6 21. Nf3 Bd7 22. Rxd7 Kf5 23. Rf7+ Kg4 24. Qe6+ Kh5 25. Rxh7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "173"]
+[White "Maia3 (elo 881)"]
+[Black "Maia3 (elo 3179)"]
+[WhiteElo "881"]
+[BlackElo "3179"]
+[Result "0-1"]
+
+1. Nf3 d5 2. g3 c5 3. e3 d4 4. Bg2 Nc6 5. O-O e5 6. exd4 exd4 7. d3 h6 8. c3 Bd6 9. Re1+ Nge7 10. cxd4 O-O 11. dxc5 Bxc5 12. d4 Nxd4 13. Nxd4 Bxd4 14. Qxd4 Qxd4 15. Rxe7 Qd1+ 16. Re1 Qxe1+ 17. Bf1 Bh3 18. Nd2 Rad8 19. Kh1 Bxf1 20. h4 Rxd2 21. Bxd2 Qxf2 22. Re1 Qg2# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "174"]
+[White "Maia3 (elo 1042)"]
+[Black "Maia3 (elo 2795)"]
+[WhiteElo "1042"]
+[BlackElo "2795"]
+[Result "0-1"]
+
+1. d4 Nf6 2. Nf3 d5 3. h3 Qd6 4. Bg5 Bf5 5. Bxf6 gxf6 6. g4 Bg6 7. Bg2 Qb4+ 8. c3 Qxb2 9. Nbd2 e6 10. Qb1 Bxb1 11. Nxb1 Qxa1 12. O-O Qxa2 13. Nfd2 Nc6 14. Bxd5 exd5 15. Nf3 h5 16. gxh5 Rg8+ 17. Kh1 Qxe2 18. Ng1 Qxf1 19. Na3 Qg2# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "175"]
+[White "Maia3 (elo 1971)"]
+[Black "Maia3 (elo 166)"]
+[WhiteElo "1971"]
+[BlackElo "166"]
+[Result "1-0"]
+
+1. Nf3 e5 2. Nxe5 d5 3. d4 f6 4. Nf3 Bd6 5. e3 Bg4 6. h4 Nc6 7. Bb5 a6 8. Ba4 Bxf3 9. Qxf3 b5 10. Bb3 Kf8 11. Bxd5 Nb4 12. Qf5 Ne7 13. Qe6 Nxc2+ 14. Kd1 Nxa1 15. Qf7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "176"]
+[White "Maia3 (elo 2807)"]
+[Black "Maia3 (elo 1300)"]
+[WhiteElo "2807"]
+[BlackElo "1300"]
+[Result "1-0"]
+
+1. d4 d5 2. Nf3 Nc6 3. e3 f6 4. c4 dxc4 5. Bxc4 e5 6. Nc3 Qxd4 7. exd4 g5 8. dxe5 g4 9. Qd5 Nh6 10. Nb5 Bb4+ 11. Nd2 Rb8 12. exf6 Bxd2+ 13. Bxd2 Rf8 14. Nxc7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "177"]
+[White "Maia3 (elo 2251)"]
+[Black "Maia3 (elo 795)"]
+[WhiteElo "2251"]
+[BlackElo "795"]
+[Result "1-0"]
+
+1. d4 Nc6 2. d5 d6 3. dxc6 Bh3 4. gxh3 d5 5. cxb7 Kd7 6. Qxd5+ Ke8 7. bxa8=Q Qb8 8. Qxb8# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "178"]
+[White "Maia3 (elo 1152)"]
+[Black "Maia3 (elo 625)"]
+[WhiteElo "1152"]
+[BlackElo "625"]
+[Result "1-0"]
+
+1. e4 e5 2. d4 exd4 3. Qxd4 Bb4+ 4. Qxb4 Nf6 5. Be3 Ng8 6. Qd2 Qf6 7. c3 Qd6 8. Qxd6 cxd6 9. Nf3 Nc6 10. Be2 Ne5 11. Nxe5 dxe5 12. O-O b6 13. Na3 b5 14. Nxb5 a5 15. Nc7+ Kd8 16. Nxa8 Nf6 17. Nb6 Nxe4 18. Nxc8 Kxc8 19. f3 Nf2 20. Rxf2 f5 21. Bb6 Kb7 22. Bxa5 Ra8 23. Bb4 e4 24. fxe4 fxe4 25. h3 Rxa2 26. Rf7 Rxa1+ 27. Kf2 e3+ 28. Kxe3 Rc1 29. Rxd7+ Kb6 30. Rxg7 Kc6 31. Rxh7 Re1 32. Rh6+ Kd5 33. g4 Rf1 34. g5 Rf7 35. g6 Rg7 36. b3 Ke6 37. Bc4+ Kf5 38. Rh5+ Kf6 39. Rg5 Rf7 40. Bxf7 Kxg5 41. g7 Kh4 42. g8=R Kxh3 43. c4 Kh2 44. c5 Kh3 45. Kf3 Kh2 46. Bc4 Kh3 47. Rh8# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "179"]
+[White "Maia3 (elo 2252)"]
+[Black "Maia3 (elo 2561)"]
+[WhiteElo "2252"]
+[BlackElo "2561"]
+[Result "0-1"]
+
+1. e4 d5 2. exd5 Qxd5 3. Nf3 Nf6 4. d4 Qe4+ 5. Qe2 Bf5 6. Qxe4 Bxe4 7. c3 e6 8. Nfd2 Bg6 9. Nf3 c5 10. Bb5+ Nbd7 11. Be3 cxd4 12. Bxd4 a6 13. Ba4 b5 14. Bb3 Bc5 15. O-O O-O 16. Nbd2 a5 17. a4 bxa4 18. Bxa4 Rfc8 19. Rfd1 Bxd4 20. Nxd4 Nc5 21. N2f3 Nd3 22. Nc6 Nxb2 23. Ne7+ Kf8 24. Nxc8 Nxd1 25. Nb6 Rb8 26. Rxd1 Rxb6 27. Rd8+ Ke7 28. Rd1 Nd5 29. c4 Nf6 30. Ne5 Rb1 31. Nc6+ Kf8 32. Rxb1 Bxb1 33. Nxa5 Ne4 34. f3 Nc5 35. Bb5 Ke7 36. Kf2 Kd6 37. Nc6 Nd3+ 38. Ke3 Ne1 39. Nd8 f6 40. Ba4 Nxg2+ 41. Kf2 Nf4 42. Ke3 e5 43. Nb7+ Kc7 44. Nc5 Bf5 45. Bb5 Ne6 46. Nxe6+ Bxe6 47. Ke4 Kd6 48. f4 exf4 49. Kxf4 g5+ 50. Kf3 Kc5 51. Ba6 f5 52. Bb5 Bxc4 53. Bd7 Bd3 54. h4 h6 55. Ke3 Bc2 56. hxg5 hxg5 57. Kf2 Kd4 58. Kg3 Bb1 59. Bc8 Ke3 60. Be6 Be4 61. Bd7 Bc2 62. Bc6 f4+ 63. Kg2 Be4+ 64. Bxe4 Kxe4 65. Kf2 f3 66. Kf1 Kf4 67. Kf2 g4 68. Kg1 g3 69. Kf1 Ke3 70. Kg1 Ke2 71. Kh1 f2 72. Kg2 f1=Q+ 73. Kxg3 Qf5 74. Kh4 Qg6 75. Kh3 Kf3 76. Kh2 Qg2# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "180"]
+[White "Maia3 (elo 1788)"]
+[Black "Maia3 (elo 216)"]
+[WhiteElo "1788"]
+[BlackElo "216"]
+[Result "1-0"]
+
+1. e4 e5 2. Bc4 d5 3. Bxd5 f5 4. Qh5+ Ke7 5. b3 Kd7 6. Qf7+ Qe7 7. Qxf5+ Kd6 8. Ba3+ c5 9. Qf3 Qc7 10. b4 Ke7 11. bxc5 Kd7 12. Qf7+ Kd8 13. Qxf8+ Kd7 14. c6+ Qxc6 15. Bxc6+ Ke6 16. Qf5# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "181"]
+[White "Maia3 (elo 1381)"]
+[Black "Maia3 (elo 2646)"]
+[WhiteElo "1381"]
+[BlackElo "2646"]
+[Result "0-1"]
+
+1. e4 c5 2. Nf3 Nc6 3. d4 cxd4 4. Nxd4 g6 5. Nf3 a6 6. Nc3 Bg7 7. Bd3 e6 8. O-O Nge7 9. Re1 b5 10. Bg5 h6 11. Be3 Bb7 12. a4 b4 13. Ne2 d5 14. exd5 Nxd5 15. c4 bxc3 16. bxc3 Nxe3 17. fxe3 Na5 18. Rc1 O-O 19. Rc2 Nb3 20. Rb2 Bxf3 21. gxf3 Nc5 22. Rd2 Qg5+ 23. Ng3 Nxd3 24. Rxd3 Rac8 25. f4 Qa5 26. Qa1 Rxc3 27. Qb1 Rxd3 28. Re2 Rfd8 29. Re1 Qxa4 30. Kg2 Rd2+ 31. Kh3 Qb5 32. e4 Rf2 33. Qxb5 axb5 34. f5 exf5 35. exf5 gxf5 36. Nh5 b4 37. Rg1 Rd3+ 38. Ng3 Kh7 39. Kh4 Rxh2# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "182"]
+[White "Maia3 (elo 1111)"]
+[Black "Maia3 (elo 2304)"]
+[WhiteElo "1111"]
+[BlackElo "2304"]
+[Result "0-1"]
+
+1. e4 a6 2. d4 h6 3. Nf3 d6 4. Nc3 g6 5. Bf4 Bg7 6. Bc4 e6 7. d5 e5 8. Be3 f5 9. b3 b5 10. Bd3 Ne7 11. exf5 Bxf5 12. Bxf5 gxf5 13. Nd2 e4 14. Ndxe4 fxe4 15. Qh5+ Kd7 16. Bd2 Qf8 17. Qg4+ Qf5 18. Qxg7 Rg8 19. Qxh6 Rxg2 20. O-O-O Rxf2 21. Rhg1 b4 22. Rg6 Nxg6 23. Qh7+ Ne7 24. Qxf5+ Rxf5 25. Nxe4 Nxd5 26. Ng3 Rf2 27. Rf1 Rxf1+ 28. Nxf1 c5 29. Kb2 Nc6 30. Ng3 Rg8 31. a4 bxa3+ 32. Kxa3 Ndb4 33. Ne2 Rg2 34. h4 Rxe2 35. Bxb4 Nxb4 36. Kb2 Rxc2+ 37. Ka3 Ra2# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "183"]
+[White "Maia3 (elo 1661)"]
+[Black "Maia3 (elo 2952)"]
+[WhiteElo "1661"]
+[BlackElo "2952"]
+[Result "0-1"]
+
+1. e3 e5 2. Qh5 Nc6 3. Bc4 d5 4. Bd3 Nf6 5. Qd1 Bd6 6. Nf3 e4 7. O-O exf3 8. Qxf3 Bg4 9. Qxf6 Qxf6 10. f4 Nb4 11. Nc3 O-O-O 12. f5 Rhe8 13. b3 Qe5 14. Ne2 Qxa1 15. Kf2 Bxh2 16. Ba3 Nxd3+ 17. cxd3 Qxa2 18. f6 Qxa3 19. fxg7 d4 20. Nxd4 Rxd4 21. exd4 Qd6 22. g8=Q Qg3# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "184"]
+[White "Maia3 (elo 1923)"]
+[Black "Maia3 (elo 224)"]
+[WhiteElo "1923"]
+[BlackElo "224"]
+[Result "1-0"]
+
+1. e4 f5 2. exf5 e5 3. Qh5+ g6 4. fxg6 Qg5 5. Qxg5 Nf6 6. Qxf6 Be7 7. Qxh8+ Bf8 8. g7 Kf7 9. gxf8=Q+ Kg6 10. Qhg7+ Kh5 11. Qff7+ Kh4 12. Nf3# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "185"]
+[White "Maia3 (elo 1108)"]
+[Black "Maia3 (elo 1597)"]
+[WhiteElo "1108"]
+[BlackElo "1597"]
+[Result "1-0"]
+
+1. d4 g6 2. c4 Bg7 3. Nc3 Nc6 4. d5 Ne5 5. e4 d6 6. f4 Nd7 7. Nf3 Ngf6 8. b3 Nxe4 9. Nxe4 Bxa1 10. Bd3 Bg7 11. O-O O-O 12. Qe1 e5 13. Neg5 h6 14. f5 hxg5 15. Nxg5 Nc5 16. Qh4 Re8 17. Qh7+ Kf8 18. fxg6 f6 19. Ne6+ Bxe6 20. dxe6 Nxe6 21. Bh6 Bxh6 22. Qf7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "186"]
+[White "Maia3 (elo 2439)"]
+[Black "Maia3 (elo 2323)"]
+[WhiteElo "2439"]
+[BlackElo "2323"]
+[Result "0-1"]
+
+1. c4 Nf6 2. Nc3 c6 3. g3 d5 4. Nf3 g6 5. cxd5 cxd5 6. Bg2 Bg7 7. d4 O-O 8. Ne5 Nc6 9. O-O Bf5 10. Bg5 h6 11. Bf4 g5 12. Nxc6 bxc6 13. Be5 Rc8 14. Qa4 Qb6 15. b3 e6 16. Qa3 Nd7 17. Bxg7 Kxg7 18. Rfd1 c5 19. Na4 Qb4 20. Qxb4 cxb4 21. Rac1 Bc2 22. Re1 Bg6 23. f3 Kf6 24. e4 Nb6 25. e5+ Ke7 26. Nc5 a5 27. Re3 Nd7 28. Bf1 Nxc5 29. dxc5 Kd7 30. Bb5+ Kc7 31. Ree1 Rb8 32. Ba4 Rfc8 33. Kf2 Rd8 34. Red1 Rf8 35. Ke3 Rfc8 36. Kd4 Rf8 37. f4 g4 38. c6 h5 39. Rc5 Ra8 40. Rb5 Rfb8 41. Rb7+ Rxb7 42. cxb7 Kxb7 43. Rc1 Ra6 44. Rc5 Ra7 45. Bb5 Kb6 46. Bd3 Rc7 47. Rb5+ Ka6 48. Rc5+ Kb6 49. Rb5+ Ka6 50. Rc5+ Kb6 51. Rxc7 Kxc7 52. Bxg6 fxg6 53. Kc5 Kd7 54. Kd4 Kc7 55. Kc5 Kd7 56. Kd4 Kc6 57. Kd3 Kc5 58. Ke3 Kc6 59. Kd4 Kb5 60. Kd3 Kc5 61. Ke3 d4+ 62. Kd3 Kd5 63. Ke2 Ke4 64. Kd2 h4 65. Ke2 d3+ 66. Kd2 Kd4 67. gxh4 Ke4 68. f5 Kxf5 69. Kxd3 Kxe5 70. Kc4 Kf4 71. Kd3 e5 72. Ke2 e4 73. Kf2 e3+ 74. Ke2 Ke4 75. Ke1 Kd3 76. Kd1 e2+ 77. Ke1 Ke3 78. h5 gxh5 79. h4 gxh3 80. a3 bxa3 81. b4 h2 82. bxa5 h1=R# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "187"]
+[White "Maia3 (elo 1960)"]
+[Black "Maia3 (elo 2297)"]
+[WhiteElo "1960"]
+[BlackElo "2297"]
+[Result "1/2-1/2"]
+
+1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 a6 6. Bg5 Nbd7 7. Bc4 e5 8. Nf5 h6 9. Be3 Nb6 10. Bxb6 Qxb6 11. Bb3 Bxf5 12. exf5 Qd4 13. Qxd4 exd4 14. Nd5 O-O-O 15. Nxf6 gxf6 16. Bxf7 d5 17. Be6+ Kc7 18. O-O-O Bc5 19. a3 a5 20. g3 Kc6 21. Rd3 b5 22. Re1 h5 23. f4 h4 24. Bf7 hxg3 25. hxg3 Rd6 26. Re6 b4 27. axb4 axb4 28. g4 Rxe6 29. fxe6 Rh2 30. g5 fxg5 31. fxg5 Rg2 32. g6 Be7 33. Rxd4 Kc5 34. Rd1 Kc4 35. Kb1 d4 36. b3+ Kd5 37. Rf1 d3 38. cxd3 Kd4 39. Kc1 Bg5+ 40. Kb1 Be7 41. Be8 Kxd3 42. Rf3+ Kd4 43. Bf7 Ke5 44. Re3+ Kf4 45. Rd3 Bf6 46. Rd7 Rb2+ 47. Kc1 Rxb3 48. e7 Rc3+ 49. Kb1 Re3 50. e8=Q Rxe8 51. Bxe8 b3 52. Rf7 Kg5 53. g7 Bxg7 54. Rxg7+ Kf6 55. Rf7+ Ke6 56. Kb2 Ke5 57. Rf8 Kd6 58. Kxb3 Kc5 59. Bf7 Kd6 60. Re8 Kd7 61. Ra8 Ke7 62. Bd5 Kd6 63. Bh1 Kc7 64. Kc4 Kd6 65. Kd4 Kc7 66. Kc5 Kd7 67. Bc6+ Ke7 68. Ra7+ Kf6 69. Kd5 Kg5 70. Rf7 Kg6 71. Rf1 Kg5 72. Ke6 Kg4 73. Ke5 Kh3 74. Rf8 Kg3 75. Bd5 Kh2 76. Kf4 Kg1 77. Kg3 1/2-1/2
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "188"]
+[White "Maia3 (elo 2231)"]
+[Black "Maia3 (elo 196)"]
+[WhiteElo "2231"]
+[BlackElo "196"]
+[Result "1-0"]
+
+1. e4 f5 2. Qh5+ g6 3. Be2 gxh5 4. Bxh5# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "189"]
+[White "Maia3 (elo 265)"]
+[Black "Maia3 (elo 1217)"]
+[WhiteElo "265"]
+[BlackElo "1217"]
+[Result "0-1"]
+
+1. e4 e5 2. Bb5 Nc6 3. Bc4 Bc5 4. Bxf7+ Kxf7 5. a4 Qf6 6. Qh5+ g6 7. Qd1 Nd4 8. c4 Nc2+ 9. Qxc2 Qxf2+ 10. Kd1 Qf1# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "190"]
+[White "Maia3 (elo 1767)"]
+[Black "Maia3 (elo 2997)"]
+[WhiteElo "1767"]
+[BlackElo "2997"]
+[Result "0-1"]
+
+1. d4 e6 2. e4 d5 3. exd5 exd5 4. c4 Nf6 5. Nc3 Bb4 6. Bd3 dxc4 7. Bxc4 O-O 8. Nf3 Nc6 9. O-O Bg4 10. Be3 Bh5 11. Be2 Bg6 12. Rc1 Rc8 13. Bg5 Be7 14. Ne5 Nxe5 15. dxe5 Ne4 16. Bg4 Nxg5 17. Bxc8 Qxc8 18. Re1 c6 19. Qa4 Bc5 20. b3 Qf5 21. Qh4 Rd8 22. Ne4 Be7 23. Rc4 Qxe5 24. f4 Nxe4 25. fxe5 Bxh4 26. Rcxe4 Bxe1 27. Rxe1 Rd2 28. e6 fxe6 29. Rxe6 Kf7 30. a4 Kxe6 31. Kf1 Kd5 32. h3 Rb2 33. b4 Ke4 34. Ke1 Kd3 35. Kf1 Ra2 36. Kg1 Ke3 37. a5 Be4 38. g4 Kf3 39. b5 Ra1+ 40. Kh2 Kf2 41. bxc6 Rh1# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "191"]
+[White "Maia3 (elo 1130)"]
+[Black "Maia3 (elo 1252)"]
+[WhiteElo "1130"]
+[BlackElo "1252"]
+[Result "1/2-1/2"]
+
+1. e4 b6 2. Nc3 Bb7 3. d4 e6 4. b4 Bxb4 5. Qd3 d5 6. Rb1 Bxc3+ 7. Qxc3 dxe4 8. d5 Nf6 9. dxe6 fxe6 10. Bb2 Nc6 11. f3 exf3 12. gxf3 O-O 13. Bc4 Na5 14. f4 Nxc4 15. Nf3 Nxb2 16. Rxb2 Bxf3 17. Qxf3 Qd4 18. Qc3 Qxc3+ 19. Kf2 Qxb2 20. h4 Qxc2+ 21. Kg1 Qxa2 22. Rh2 Rad8 23. Rxa2 a5 24. h5 Nxh5 25. Rf2 Rd4 26. f5 exf5 27. Rf1 f4 28. Re1 c5 29. Re5 g6 30. Rxc5 Rfd8 31. Rb5 R8d6 32. Rxb6 Rxb6 33. Kh1 a4 34. Kh2 a3 35. Kh3 Rb3+ 36. Kh4 Rd5 37. Kg4 Rd4 38. Kg5 f3 39. Kh6 Rh4 40. Kg5 Rbb4 41. Kh6 Kf7 42. Kg5 Nf6 1/2-1/2
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "192"]
+[White "Maia3 (elo 2682)"]
+[Black "Maia3 (elo 1372)"]
+[WhiteElo "2682"]
+[BlackElo "1372"]
+[Result "1-0"]
+
+1. e4 e6 2. Nf3 Nc6 3. d4 d5 4. e5 f6 5. Bb5 fxe5 6. Nxe5 Bd7 7. Qh5+ Ke7 8. Bxc6 bxc6 9. Qf7+ Kd6 10. Qf3 Ke7 11. Qf7+ Kd6 12. b3 Qh4 13. Qxd7# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "193"]
+[White "Maia3 (elo 620)"]
+[Black "Maia3 (elo 1418)"]
+[WhiteElo "620"]
+[BlackElo "1418"]
+[Result "0-1"]
+
+1. e4 e5 2. d4 exd4 3. Bc4 Nf6 4. Qxd4 Nc6 5. Qd5 Nxd5 6. exd5 Ne5 7. Bf4 Nxc4 8. b3 Bb4+ 9. Bd2 Nxd2 10. Ne2 Qg5 11. Nxd2 Qxd2+ 12. Kf1 Qxd5 13. a3 Bxa3 14. Rxa3 Qd1# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "194"]
+[White "Maia3 (elo 112)"]
+[Black "Maia3 (elo 1440)"]
+[WhiteElo "112"]
+[BlackElo "1440"]
+[Result "0-1"]
+
+1. d4 d5 2. c4 dxc4 3. d5 Nf6 4. Qd3 cxd3 5. Bg5 dxe2 6. Nc3 exf1=Q+ 7. Kd2 Qxf2+ 8. Nge2 Qxg2 9. Kc2 Qxg5 10. Kb1 Bf5+ 11. Ne4 Bxe4# 0-1
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "195"]
+[White "Maia3 (elo 1321)"]
+[Black "Maia3 (elo 1169)"]
+[WhiteElo "1321"]
+[BlackElo "1169"]
+[Result "1-0"]
+
+1. d4 d5 2. Nc3 Nf6 3. Bg5 c5 4. Bxf6 cxd4 5. Bxd4 Nc6 6. Nf3 Nxd4 7. Qxd4 f6 8. Nxd5 Qa5+ 9. Nd2 e6 10. Nc3 Bc5 11. Nb3 Qb6 12. Nxc5 Qxb2 13. Rb1 Qxc2 14. e3 O-O 15. Bd3 e5 16. Bxc2 exd4 17. exd4 Re8+ 18. Kd2 b6 19. Bb3+ Kh8 20. N5a4 Bf5 21. Rbe1 h6 22. Rxe8+ Rxe8 23. Re1 Rxe1 24. Kxe1 g5 25. Nd5 Kg7 26. Nac3 Kf8 27. Nxf6 Ke7 28. Nfd5+ Kd6 29. Ne3 Bg6 30. Kd2 a5 31. g3 Bb1 32. Nc4+ Kc6 33. Ke3 Bg6 34. f4 gxf4+ 35. gxf4 b5 36. Nxa5+ Kb6 37. Nc4+ bxc4 38. Bxc4 Kc6 39. Ne4 Bxe4 40. Kxe4 Kd6 41. h4 Kd7 42. Kf5 Kc6 43. Bb3 Kd6 44. Bd5 Kxd5 45. Kg6 Kxd4 46. f5 Ke4 47. f6 Kf4 48. f7 Ke5 49. a4 Ke6 50. f8=Q Kd5 51. Kxh6 Ke6 52. Kg7 Ke5 53. a5 Ke6 54. Qf6+ Kd7 55. a6 Kc7 56. h5 Kd7 57. a7 Kc7 58. h6 Kb7 59. h7 Ka8 60. h8=R+ Kxa7 61. Rh6 Kb7 62. Qf7+ Kc8 63. Rh8# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "196"]
+[White "Maia3 (elo 2529)"]
+[Black "Maia3 (elo 1342)"]
+[WhiteElo "2529"]
+[BlackElo "1342"]
+[Result "1-0"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 Bb4+ 4. Bd2 d5 5. Bxb4 Nc6 6. Ba3 Ne4 7. e3 dxc4 8. Bxc4 b5 9. Bxb5 Nd2 10. Bxc6+ Bd7 11. Bxd7+ Qxd7 12. Qxd2 Rb8 13. Nc3 Ra8 14. Rc1 Rb8 15. O-O Rxb2 16. Ra1 Rxd2 17. Nxd2 e5 18. Rab1 f6 19. Rb8+ Qd8 20. Rxd8+ Kxd8 21. Nf3 exd4 22. Nxd4 Kc8 23. Rb1 Rd8 24. Ne4 f5 25. Ng5 f4 26. exf4 Rxd4 27. Nxh7 Rxf4 28. Ng5 Rg4 29. Bc1 c5 30. g3 Rxg5 31. Bxg5 c4 32. Rc1 Kb7 33. Rxc4 a6 34. Be3 g6 35. h4 a5 36. Kg2 Ka6 37. Rg4 Kb5 38. a3 Kc6 39. Rxg6+ Kd5 40. Ra6 Kc4 41. Rxa5 Kb3 42. h5 Ka2 43. h6 Kb3 44. h7 Kb2 45. h8=N Kb3 46. g4 Kb2 47. g5 Kc2 48. g6 Kb1 49. g7 Kb2 50. g8=Q Kc2 51. Qc4+ Kb1 52. Rb5+ Ka1 53. Bd4# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "197"]
+[White "Maia3 (elo 2314)"]
+[Black "Maia3 (elo 696)"]
+[WhiteElo "2314"]
+[BlackElo "696"]
+[Result "1-0"]
+
+1. d4 e6 2. c4 Nf6 3. Nc3 Ng8 4. e4 Qh4 5. Nf3 Qxf2+ 6. Kxf2 Bb4 7. e5 Nf6 8. exf6 O-O 9. fxg7 e5 10. gxf8=Q+ Kxf8 11. Nxe5 Bxc3 12. Qh5 Be1+ 13. Kf3 Ke7 14. Qxf7+ Kd6 15. Qd5+ Ke7 16. Qf7+ Kd6 17. Qf6# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "198"]
+[White "Maia3 (elo 2939)"]
+[Black "Maia3 (elo 1723)"]
+[WhiteElo "2939"]
+[BlackElo "1723"]
+[Result "1-0"]
+
+1. Nf3 Nf6 2. b4 e6 3. Bb2 Bxb4 4. Nc3 Bxc3 5. Bxc3 O-O 6. d3 d5 7. e3 Nbd7 8. g4 Nxg4 9. Rg1 h5 10. h3 Ngf6 11. Ne5 Nxe5 12. Bxe5 h4 13. Qf3 g6 14. Bxf6 Qd6 15. Qh5 Qb4+ 16. c3 Qb1+ 17. Rxb1 b5 18. Qh8# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "199"]
+[White "Maia3 (elo 2946)"]
+[Black "Maia3 (elo 1355)"]
+[WhiteElo "2946"]
+[BlackElo "1355"]
+[Result "1-0"]
+
+1. c4 d5 2. cxd5 Nf6 3. Nc3 Nxd5 4. Qa4+ Nc6 5. Nf3 a6 6. h3 Be6 7. d4 Nxc3 8. bxc3 b5 9. Qc2 Bd5 10. e4 Bc4 11. Bxc4 bxc4 12. Qa4 Qd7 13. d5 e6 14. dxc6 Qc8 15. Bf4 Rb8 16. O-O f5 17. exf5 g6 18. Rae1 gxf5 19. Qxc4 Kf7 20. Ng5+ Kf6 21. Rxe6+ Qxe6 22. Qxe6+ Kg7 23. Be5# 1-0
+
+[Event "Maia3 self-play (random UCI elo)"]
+[Site "selfplay"]
+[Date "2026.08.27"]
+[Round "200"]
+[White "Maia3 (elo 2327)"]
+[Black "Maia3 (elo 477)"]
+[WhiteElo "2327"]
+[BlackElo "477"]
+[Result "1-0"]
+
+1. b3 e5 2. Bb2 h5 3. Bxe5 f6 4. Bb2 h4 5. Nc3 Rh7 6. g3 hxg3 7. fxg3 c5 8. Rc1 Ke7 9. Nd5+ Kd6 10. Nxf6 gxf6 11. Bc3 Rh6 12. Ba5 a6 13. Bxd8 Ke5 14. Rb1 Rxh2 15. Rxh2 c4 16. Bxf6+ Kxf6 17. a4 d6 18. Rf2+ Ke7 19. Nh3 cxb3 20. Rxb3 b5 21. Qa1 bxa4 22. Rbf3 a3 23. Rxf8 Nd7 24. Qg7+ Ke6 25. Qxg8+ Ke5 26. R2f5+ Kd4 27. Qd5# 1-0
+

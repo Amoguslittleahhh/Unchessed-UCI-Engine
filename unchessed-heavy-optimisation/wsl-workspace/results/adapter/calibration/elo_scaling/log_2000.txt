@@ -1,0 +1,114 @@
+Indexing opening suite...
+Started game 3 of 30 (Adapter2000 vs SF1800)
+Started game 2 of 30 (SF1800 vs Adapter2000)
+Started game 4 of 30 (SF1800 vs Adapter2000)
+Started game 1 of 30 (Adapter2000 vs SF1800)
+Finished game 1 (Adapter2000 vs SF1800): 0-1 {Black wins by adjudication}
+Score of Adapter2000 vs SF1800: 0 - 1 - 0  [0.000] 1
+Started game 5 of 30 (Adapter2000 vs SF1800)
+Finished game 4 (SF1800 vs Adapter2000): 1-0 {White wins by adjudication}
+Score of Adapter2000 vs SF1800: 0 - 2 - 0  [0.000] 2
+Started game 6 of 30 (SF1800 vs Adapter2000)
+Finished game 2 (SF1800 vs Adapter2000): 1-0 {White wins by adjudication}
+Score of Adapter2000 vs SF1800: 0 - 3 - 0  [0.000] 3
+Started game 7 of 30 (Adapter2000 vs SF1800)
+Finished game 3 (Adapter2000 vs SF1800): 0-1 {Black wins by adjudication}
+Score of Adapter2000 vs SF1800: 0 - 4 - 0  [0.000] 4
+Started game 8 of 30 (SF1800 vs Adapter2000)
+Finished game 6 (SF1800 vs Adapter2000): 0-1 {Black mates}
+Score of Adapter2000 vs SF1800: 1 - 4 - 0  [0.200] 5
+Started game 9 of 30 (Adapter2000 vs SF1800)
+Finished game 5 (Adapter2000 vs SF1800): 0-1 {Black wins by adjudication}
+Score of Adapter2000 vs SF1800: 1 - 5 - 0  [0.167] 6
+Started game 10 of 30 (SF1800 vs Adapter2000)
+Finished game 7 (Adapter2000 vs SF1800): 0-1 {Black wins by adjudication}
+Score of Adapter2000 vs SF1800: 1 - 6 - 0  [0.143] 7
+Started game 11 of 30 (Adapter2000 vs SF1800)
+Finished game 8 (SF1800 vs Adapter2000): 1-0 {White wins by adjudication}
+Score of Adapter2000 vs SF1800: 1 - 7 - 0  [0.125] 8
+Started game 12 of 30 (SF1800 vs Adapter2000)
+Finished game 9 (Adapter2000 vs SF1800): 1-0 {White mates}
+Score of Adapter2000 vs SF1800: 2 - 7 - 0  [0.222] 9
+Started game 13 of 30 (Adapter2000 vs SF1800)
+Finished game 11 (Adapter2000 vs SF1800): 1-0 {White wins by adjudication}
+Score of Adapter2000 vs SF1800: 3 - 7 - 0  [0.300] 10
+Started game 14 of 30 (SF1800 vs Adapter2000)
+Finished game 10 (SF1800 vs Adapter2000): 1-0 {White wins by adjudication}
+Score of Adapter2000 vs SF1800: 3 - 8 - 0  [0.273] 11
+Started game 15 of 30 (Adapter2000 vs SF1800)
+Finished game 12 (SF1800 vs Adapter2000): 1-0 {White wins by adjudication}
+Score of Adapter2000 vs SF1800: 3 - 9 - 0  [0.250] 12
+Started game 16 of 30 (SF1800 vs Adapter2000)
+Finished game 13 (Adapter2000 vs SF1800): 1-0 {White mates}
+Score of Adapter2000 vs SF1800: 4 - 9 - 0  [0.308] 13
+Started game 17 of 30 (Adapter2000 vs SF1800)
+Finished game 14 (SF1800 vs Adapter2000): 1-0 {White wins by adjudication}
+Score of Adapter2000 vs SF1800: 4 - 10 - 0  [0.286] 14
+Started game 18 of 30 (SF1800 vs Adapter2000)
+Finished game 16 (SF1800 vs Adapter2000): 1-0 {White wins by adjudication}
+Score of Adapter2000 vs SF1800: 4 - 11 - 0  [0.267] 15
+Started game 19 of 30 (Adapter2000 vs SF1800)
+Finished game 15 (Adapter2000 vs SF1800): 0-1 {Black wins by adjudication}
+Score of Adapter2000 vs SF1800: 4 - 12 - 0  [0.250] 16
+Started game 20 of 30 (SF1800 vs Adapter2000)
+Finished game 17 (Adapter2000 vs SF1800): 1-0 {White mates}
+Score of Adapter2000 vs SF1800: 5 - 12 - 0  [0.294] 17
+Started game 21 of 30 (Adapter2000 vs SF1800)
+Finished game 21 (Adapter2000 vs SF1800): 1-0 {White mates}
+Score of Adapter2000 vs SF1800: 6 - 12 - 0  [0.333] 18
+Started game 22 of 30 (SF1800 vs Adapter2000)
+Finished game 19 (Adapter2000 vs SF1800): 0-1 {Black wins by adjudication}
+Score of Adapter2000 vs SF1800: 6 - 13 - 0  [0.316] 19
+Started game 23 of 30 (Adapter2000 vs SF1800)
+Finished game 20 (SF1800 vs Adapter2000): 0-1 {Black wins by adjudication}
+Score of Adapter2000 vs SF1800: 7 - 13 - 0  [0.350] 20
+Started game 24 of 30 (SF1800 vs Adapter2000)
+Finished game 18 (SF1800 vs Adapter2000): 1/2-1/2 {Draw by fifty moves rule}
+Score of Adapter2000 vs SF1800: 7 - 13 - 1  [0.357] 21
+Started game 25 of 30 (Adapter2000 vs SF1800)
+Finished game 23 (Adapter2000 vs SF1800): 0-1 {Black wins by adjudication}
+Score of Adapter2000 vs SF1800: 7 - 14 - 1  [0.341] 22
+Started game 26 of 30 (SF1800 vs Adapter2000)
+Finished game 22 (SF1800 vs Adapter2000): 1-0 {White wins by adjudication}
+Score of Adapter2000 vs SF1800: 7 - 15 - 1  [0.326] 23
+Started game 27 of 30 (Adapter2000 vs SF1800)
+Finished game 24 (SF1800 vs Adapter2000): 0-1 {Black wins by adjudication}
+Score of Adapter2000 vs SF1800: 8 - 15 - 1  [0.354] 24
+Started game 28 of 30 (SF1800 vs Adapter2000)
+Finished game 25 (Adapter2000 vs SF1800): 0-1 {Black wins by adjudication}
+Score of Adapter2000 vs SF1800: 8 - 16 - 1  [0.340] 25
+Started game 29 of 30 (Adapter2000 vs SF1800)
+Finished game 29 (Adapter2000 vs SF1800): 1-0 {White mates}
+Score of Adapter2000 vs SF1800: 9 - 16 - 1  [0.365] 26
+Started game 30 of 30 (SF1800 vs Adapter2000)
+Finished game 26 (SF1800 vs Adapter2000): 1-0 {White wins by adjudication}
+Score of Adapter2000 vs SF1800: 9 - 17 - 1  [0.352] 27
+Finished game 27 (Adapter2000 vs SF1800): 0-1 {Black wins by adjudication}
+Score of Adapter2000 vs SF1800: 9 - 18 - 1  [0.339] 28
+Finished game 30 (SF1800 vs Adapter2000): 1-0 {White wins by adjudication}
+Score of Adapter2000 vs SF1800: 9 - 19 - 1  [0.328] 29
+Finished game 28 (SF1800 vs Adapter2000): 1-0 {White wins by adjudication}
+Score of Adapter2000 vs SF1800: 9 - 20 - 1  [0.317] 30
+...      Adapter2000 playing White: 6 - 9 - 0  [0.400] 15
+...      Adapter2000 playing Black: 3 - 11 - 1  [0.233] 15
+...      White vs Black: 17 - 12 - 1  [0.583] 30
+Elo difference: -133.6 +/- 141.1, LOS: 2.1 %, DrawRatio: 3.3 %
+SPRT: llr 0 (0.0%), lbound -inf, ubound inf
+
+Player: Adapter2000
+   "Draw by fifty moves rule": 1
+   "Loss: Black wins by adjudication": 9
+   "Loss: White wins by adjudication": 11
+   "Win: Black mates": 1
+   "Win: Black wins by adjudication": 2
+   "Win: White mates": 5
+   "Win: White wins by adjudication": 1
+Player: SF1800
+   "Draw by fifty moves rule": 1
+   "Loss: Black mates": 1
+   "Loss: Black wins by adjudication": 2
+   "Loss: White mates": 5
+   "Loss: White wins by adjudication": 1
+   "Win: Black wins by adjudication": 9
+   "Win: White wins by adjudication": 11
+Finished match

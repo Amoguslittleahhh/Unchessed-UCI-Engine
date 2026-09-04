@@ -1,0 +1,15 @@
+=== RubiChess LimitNps=500 vs Adapter(UCI_Elo=2400) ===
+Score of Adapter2400 vs Rubi500: 36 - 1 - 3  [0.938] 40
+=== RubiChess LimitNps=1000 vs Adapter(UCI_Elo=2400) ===
+Score of Adapter2400 vs Rubi1000: 26 - 9 - 5  [0.713] 40
+=== RubiChess LimitNps=2000 vs Adapter(UCI_Elo=2400) ===
+Score of Adapter2400 vs Rubi2000: 33 - 4 - 3  [0.863] 40
+=== RubiChess LimitNps=4000 vs Adapter(UCI_Elo=2400) ===
+Score of Adapter2400 vs Rubi4000: 22 - 15 - 3  [0.588] 40
+=== RubiChess LimitNps=8000 vs Adapter(UCI_Elo=2400) ===
+Score of Adapter2400 vs Rubi8000: 19 - 15 - 6  [0.550] 40
+=== RubiChess LimitNps=16000 vs Adapter(UCI_Elo=2400) ===
+Score of Adapter2400 vs Rubi16000: 14 - 22 - 4  [0.400] 40
+=== RubiChess LimitNps=32000 vs Adapter(UCI_Elo=2400) ===
+Score of Adapter2400 vs Rubi32000: 8 - 26 - 6  [0.275] 40
+CALIBRATION DONE

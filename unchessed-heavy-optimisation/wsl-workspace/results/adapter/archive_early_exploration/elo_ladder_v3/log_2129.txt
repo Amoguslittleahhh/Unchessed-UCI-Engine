@@ -1,0 +1,14 @@
+Indexing opening suite...
+Started game 1 of 1 (Adapter2129 vs Stockfish)
+Finished game 1 (Adapter2129 vs Stockfish): 1-0 {White mates}
+Score of Adapter2129 vs Stockfish: 1 - 0 - 0  [1.000] 1
+...      Adapter2129 playing White: 1 - 0 - 0  [1.000] 1
+...      White vs Black: 1 - 0 - 0  [1.000] 1
+Elo difference: inf +/- nan, LOS: 84.1 %, DrawRatio: 0.0 %
+SPRT: llr 0 (0.0%), lbound -inf, ubound inf
+
+Player: Adapter2129
+   "Win: White mates": 1
+Player: Stockfish
+   "Loss: White mates": 1
+Finished match
