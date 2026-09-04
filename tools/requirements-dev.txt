@@ -36,3 +36,8 @@ pytest>=7.4
 # A Rust toolchain is a hard requirement for building and testing the engine
 # itself (cargo test --workspace --release) but cannot be expressed here. See
 # docs/dev-environment.md for what to do when cargo is unavailable.
+#
+# openvino -- imported only by tools/npu_dispatch_benchmark.py, which is
+# specific to benchmarking on an actual Intel NPU/GPU host and already
+# defers the import so --help and everything else in tools/ works fine
+# without it installed. Not needed for the tools/ test suite.

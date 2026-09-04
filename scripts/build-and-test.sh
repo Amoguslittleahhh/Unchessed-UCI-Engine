@@ -48,6 +48,24 @@ if ! command -v cargo >/dev/null 2>&1; then
   exit 3
 fi
 
+# Rust needs a native C linker (cc/gcc/clang) to produce a binary at all --
+# without this check, a missing one only surfaces minutes later as a bare
+# "linker `cc` not found" from deep inside `cargo build`'s first link step,
+# after the compile-only work already ran. Skipped on Windows: MSVC's
+# link.exe comes from a Visual Studio install cargo already knows how to
+# find via its own toolchain detection, not a plain PATH lookup here.
+case "$(uname -s 2>/dev/null || echo unknown)" in
+  MINGW*|MSYS*|CYGWIN*|Windows_NT) ;;  # MSVC toolchain, not a PATH-visible cc/gcc/clang
+  *)
+    if ! command -v cc >/dev/null 2>&1 && ! command -v gcc >/dev/null 2>&1 && ! command -v clang >/dev/null 2>&1; then
+      echo "no native C linker (cc/gcc/clang) found on PATH." >&2
+      echo "cargo needs one to link any binary -- install build-essential" >&2
+      echo "(Debian/Ubuntu) or the equivalent for this OS before continuing." >&2
+      exit 3
+    fi
+    ;;
+esac
+
 # Guard against a partial checkout before spending minutes on a build.
 test -f Cargo.lock
 for m in unchessed-core unchessed-adapter unchessed-reviewer unchessed-datagen; do
@@ -70,23 +88,48 @@ else
   cargo test --workspace --lib --bins
 fi
 
+echo "== cargo test --workspace perft::tests::deep -- --ignored (excluded from the default run above) =="
+# perft::tests::deep is #[ignore]d (it's slow, ~13s) and this is the only
+# place that supplies --ignored -- without it, the deepest correctness gate
+# this workspace has never actually runs as part of a normal gate pass.
+cargo test --workspace perft::tests::deep -- --ignored
+
 ADAPTER=target/debug/unchessed-adapter
 test -x "$ADAPTER"
 
+# `go` starts the real search in a background thread inside the adapter and
+# returns control to its UCI read loop immediately; sending `quit` right
+# after in the same pipe races that search against a stop request a real
+# GUI would never issue mid-search (it always waits for `bestmove` first).
+# The engine now (correctly) honors `stop`/`quit` essentially immediately
+# rather than after an up-to-~2048-node grace window, so what used to be a
+# lucky, unintentional head start is no longer there to mask this: without
+# a real pause here, `quit` can arrive before a single depth completes,
+# discarding this smoke test's power to check anything. These are trivial,
+# sub-10ms searches once actually running, so a short fixed pause is not a
+# meaningful cost.
 echo "== UCI smoke: startpos depth 5 =="
-out=$(printf 'uci\nisready\nposition startpos\ngo depth 5\nquit\n' | "$ADAPTER")
+out=$( { printf 'uci\nisready\nposition startpos\ngo depth 5\n'; sleep 2; printf 'quit\n'; } | "$ADAPTER")
 echo "$out" | grep -q "^bestmove" || { echo "no bestmove from startpos search" >&2; exit 1; }
 echo "$out" | grep "^bestmove" | head -1
 
 echo "== UCI smoke: matetrack back-rank mate (must find Ra8#) =="
 # First position of benchmarks/matetrack.epd; the unique mate is a1a8.
-out=$(printf 'uci\nsetoption name Adaptive value false\nposition fen 6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1\ngo depth 6\nquit\n' | "$ADAPTER")
+out=$( { printf 'uci\nsetoption name Adaptive value false\nposition fen 6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1\ngo depth 6\n'; sleep 2; printf 'quit\n'; } | "$ADAPTER")
 echo "$out" | grep "^bestmove" | head -1
 echo "$out" | grep -q "^bestmove a1a8" || { echo "expected bestmove a1a8 (Ra8#)" >&2; exit 1; }
 
 if [ "${1:-}" = "--release" ]; then
   echo "== cargo build --workspace --release (opt 3 + LTO; slow) =="
   cargo build --workspace --release
+
+  echo "== cargo test --workspace --release (the debug-profile pass above never" \
+       "exercises the optimized code path actually shipped) =="
+  if command -v rustdoc >/dev/null 2>&1; then
+    cargo test --workspace --release
+  else
+    cargo test --workspace --release --lib --bins
+  fi
 fi
 
 echo "== disk =="

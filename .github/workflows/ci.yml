@@ -1,0 +1,69 @@
+name: CI
+
+# The project's own dev sandbox has no Rust toolchain and can't reach the
+# toolchain hosts (see docs/dev-environment.md) -- this workflow exists
+# specifically because GitHub's runners are a different environment with
+# normal internet access, so the correctness gate that can't run in the
+# sandbox can still run here on every push and pull request.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust (rust-toolchain.toml pins the channel)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry and build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: cargo build --workspace
+        run: cargo build --workspace
+
+      - name: cargo test --workspace
+        run: cargo test --workspace
+
+      # perft::tests::deep is #[ignore]d for speed; this is the only gate
+      # that actually exercises it, matching scripts/build-and-test.sh.
+      - name: cargo test --workspace perft::tests::deep -- --ignored
+        run: cargo test --workspace perft::tests::deep -- --ignored
+
+      - name: cargo build --workspace --release
+        run: cargo build --workspace --release
+
+      - name: cargo test --workspace --release
+        run: cargo test --workspace --release
+
+  lint:
+    runs-on: ubuntu-latest
+    # Informational only, not a merge gate: the current codebase has real,
+    # already-known formatting and clippy findings (see the adversarial
+    # audit), and clippy's lint set moves with the toolchain version this
+    # project deliberately floats on ("stable", per rust-toolchain.toml) --
+    # a passing gate today can go red tomorrow with zero code changes.
+    # Promote either step to build-and-test once there's been a deliberate
+    # cleanup pass to actually clear the current findings.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: cargo fmt --check
+        run: cargo fmt --all -- --check
+        continue-on-error: true
+      - name: cargo clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+        continue-on-error: true
