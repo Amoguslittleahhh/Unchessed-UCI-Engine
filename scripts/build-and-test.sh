@@ -103,19 +103,43 @@ test -x "$ADAPTER"
 # GUI would never issue mid-search (it always waits for `bestmove` first).
 # The engine now (correctly) honors `stop`/`quit` essentially immediately
 # rather than after an up-to-~2048-node grace window, so what used to be a
-# lucky, unintentional head start is no longer there to mask this: without
-# a real pause here, `quit` can arrive before a single depth completes,
-# discarding this smoke test's power to check anything. These are trivial,
-# sub-10ms searches once actually running, so a short fixed pause is not a
-# meaningful cost.
+# lucky, unintentional head start is no longer there to mask this.
+#
+# A fixed `sleep N` here is not actually robust -- it was independently
+# reproduced still racing (Manus's adversarial re-audit hit the exact same
+# a1b1-instead-of-a1a8 failure against this script's own sleep-2 version,
+# on a slower/more loaded machine than the one that sleep was tuned on).
+# Waits for a real `bestmove` line instead, up to a generous timeout, so
+# this can't be a matter of guessing a large-enough constant for every
+# environment it might run on.
+uci_wait_bestmove() {
+  # $1 = commands to send (each already newline-terminated); $2 = timeout (s)
+  local commands="$1" timeout_s="${2:-20}"
+  coproc ENGINE { "$ADAPTER"; }
+  printf '%s' "$commands" >&"${ENGINE[1]}"
+  local out="" line deadline=$((SECONDS + timeout_s))
+  while [ "$SECONDS" -lt "$deadline" ]; do
+    if IFS= read -r -t 1 line <&"${ENGINE[0]}"; then
+      out+="$line"$'\n'
+      case "$line" in
+        bestmove*) break ;;
+      esac
+    fi
+  done
+  printf 'quit\n' >&"${ENGINE[1]}" 2>/dev/null || true
+  exec {ENGINE[1]}>&- 2>/dev/null || true
+  wait "$ENGINE_PID" 2>/dev/null || true
+  printf '%s' "$out"
+}
+
 echo "== UCI smoke: startpos depth 5 =="
-out=$( { printf 'uci\nisready\nposition startpos\ngo depth 5\n'; sleep 2; printf 'quit\n'; } | "$ADAPTER")
+out=$(uci_wait_bestmove $'uci\nisready\nposition startpos\ngo depth 5\n')
 echo "$out" | grep -q "^bestmove" || { echo "no bestmove from startpos search" >&2; exit 1; }
 echo "$out" | grep "^bestmove" | head -1
 
 echo "== UCI smoke: matetrack back-rank mate (must find Ra8#) =="
 # First position of benchmarks/matetrack.epd; the unique mate is a1a8.
-out=$( { printf 'uci\nsetoption name Adaptive value false\nposition fen 6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1\ngo depth 6\n'; sleep 2; printf 'quit\n'; } | "$ADAPTER")
+out=$(uci_wait_bestmove $'uci\nsetoption name Adaptive value false\nposition fen 6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1\ngo depth 6\n')
 echo "$out" | grep "^bestmove" | head -1
 echo "$out" | grep -q "^bestmove a1a8" || { echo "expected bestmove a1a8 (Ra8#)" >&2; exit 1; }
 
