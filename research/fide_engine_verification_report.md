@@ -11,7 +11,7 @@
 
 The current checkout **builds and executes**, and the observed automated suites provide strong evidence for the implemented Rust and Python test surfaces: the repository’s default Rust suite reported **123 passed, 0 failed, and 6 ignored**; the separately executed ignored Rust suite reported **6 passed, 0 failed**; and the complete Python suite reported **385 passed, 22 skipped, and 347 subtests passed**. The release workspace also built successfully. These are Level 4 automated-test results, with Level 5 runtime evidence for the UCI executable.
 
-The engine also returned a legal move for all **115 non-terminal valid positions** in the differential harness, including fixed castling, en-passant, promotion, pin/check, and 100 deterministic reachable positions checked against `python-chess 1.11.2`. A forced mate at halfmove clocks 100 and 150 was found, consistent with FIDE Article 5.1.1 taking precedence over the 50/75-move rules. This is meaningful evidence of move-generation/runtime soundness, not proof of complete FIDE compliance.
+The engine also returned a legal move for all **1,011 non-terminal valid positions** in the expanded differential harness, including fixed castling, en-passant, promotion, pin/check, and 1,000 deterministic reachable positions checked against `python-chess 1.11.2`. A forced mate at halfmove clocks 100 and 150 was found, consistent with FIDE Article 5.1.1 taking precedence over the 50/75-move rules. This is meaningful evidence of move-generation/runtime soundness, not proof of complete FIDE compliance.
 
 The broader claim “test the engine against literally all FIDE scenarios” is **not confirmed**. Three material boundaries remain. First, the engine returns a move in dead positions such as king versus king, king and bishop versus king, and king and knight versus king, whereas FIDE Article 5.2.2 requires an immediate draw when neither side can possibly checkmate. Second, the UCI parser reports malformed FEN as “could not parse” but continues searching the previous position and emits a normal `bestmove`; this is a protocol-level recovery behavior that can conceal rejected input from a caller. Third, the FIDE Laws include clock, physical-touch, scoresheet, arbiter, venue, penalty, rapid, blitz, and tournament-administration rules that a UCI chess engine cannot establish through ordinary position/search commands. Those clauses were explicitly catalogued as out of scope rather than counted as passes.
 
@@ -20,7 +20,7 @@ The broader claim “test the engine against literally all FIDE scenarios” is 
 | Workspace compiles in debug and release profiles | 4 | **confirmed** | Current commit, current sandbox, Rust 1.98.1 |
 | Built-in Rust tests pass | 4 | **confirmed** | 123 default tests plus 6 ignored tests |
 | Built-in Python tests pass | 4 | **confirmed** | 385 passed, 22 skipped, 347 subtests |
-| UCI returns legal moves on tested valid positions | 5 | **partially confirmed** | 115 non-terminal cases, including 100 deterministic reachable positions |
+| UCI returns legal moves on tested valid positions | 5 | **partially confirmed** | 1,011 non-terminal cases, including 1,000 deterministic reachable positions |
 | Forced mate beats halfmove draw guard | 5 | **confirmed** | Tested white mate-in-one at halfmove 100 and 150 |
 | Complete FIDE move/state rules are implemented | 3–5 | **refuted for the full claim** | Dead-position adjudication is absent in observed behavior; other clauses are not engine-testable |
 | Full FIDE Laws, including OTB competitive rules, were tested | 2–5 | **could not verify** | Matrix is comprehensive by clause, but OTB-only rules require an arbiter/clock/scoresheet environment |
@@ -48,7 +48,10 @@ The complete tracked-file inventory, code-surface inspection, source symbol map,
 | `research/ignored_tests_v2.log` | Six ignored Rust tests |
 | `research/python_pytest_v2.log` | Complete Python test suite |
 | `research/fide_uci_differential.py` | Reproducible runtime differential harness |
-| `research/fide_uci_differential_results.json` | Raw per-case FENs, outcomes, transcripts, and oracle fields |
+| `research/fide_uci_differential_results_v3.json` | Raw per-case FENs, outcomes, transcripts, and oracle fields for the expanded run |
+| `research/fide_rigorous_perft.log` | Branch-local canonical perft integration test |
+| `research/python_chess_perft_crosscheck_results.json` | 24 independent python-chess perft checks |
+| `research/online_testing_authorities.md` | Online sources and method notes |
 | `research/malformed_fen_completion.log` | Individual malformed-FEN reproductions |
 | `research/halfmove_boundary_valid_probes.log` | Valid halfmove 100/150 probes |
 | `research/individual_terminal_invalid_reproduction.log` | Dead-position and invalid-FEN reproductions |
@@ -60,15 +63,15 @@ The FIDE authority states that the Laws cover over-the-board play, comprise Basi
 
 The repository script `scripts/build-and-test.sh` was run after installing Rust 1.98.1 because the system Cargo 1.75.0 could not read the repository’s lockfile version 4. The script’s captured output ends with `OK: build + tests + smoke passed`, including `bestmove d2d4` from start position and `bestmove a1a8` for the forced back-rank mate. The direct rerun of the ignored test command returned exit status 0. The optimized release build returned exit status 0 and produced `target/release/unchessed-adapter` at approximately 1.1 MB.
 
-The complete Python suite was run with the dependencies declared by `tools/requirements-dev.txt`. The observed result was `385 passed, 22 skipped, 347 subtests passed in 22.33s`. The skips are preserved in the raw log and were not converted into passes.
+The complete Python suite was run with the dependencies declared by `tools/requirements-dev.txt`. The observed result was `385 passed, 22 skipped, 347 subtests passed in 22.33s`. In addition, a branch-local integration test independently reasserted canonical online perft counts across six positions, including the deeper Kiwipete depth-5 checkpoint, and reported `1 passed`. A separate pure-Python `python-chess 1.11.2` oracle recomputed 24 tractable canonical counts through depth 4 and reported `all_pass: true`; deeper counts were intentionally left to the Rust test because pure Python expansion to 193,690,690 Kiwipete nodes is not a tractable execution method. The skips are preserved in the raw log and were not converted into passes.
 
-The differential harness sent 122 cases through a current debug UCI executable: 16 fixed valid positions, 100 deterministic reachable positions, and 6 malformed-FEN inputs. For valid non-terminal cases, the returned UCI move was checked against the legal move set from `python-chess 1.11.2`. The summary reported `115` legal-bestmove passes and `0` non-terminal legal-move failures. Terminal handling was analyzed separately because a terminal position may legitimately return `0000` rather than a legal move.
+The expanded differential harness sent 1,022 cases through a current debug UCI executable: 16 fixed valid positions, 1,000 deterministic reachable positions, and 6 malformed-FEN inputs. For valid non-terminal cases, the returned UCI move was checked against the legal move set from `python-chess 1.11.2`. The summary reported `1,011` legal-bestmove passes and `0` non-terminal legal-move failures. Terminal handling was analyzed separately because a terminal position may legitimately return `0000` rather than a legal move.
 
 | Runtime group | Count | Observation |
 |---|---:|---|
 | Fixed valid positions | 16 | Includes castling, en passant, promotion, pins, mate, stalemate, and material cases |
-| Deterministic reachable positions | 100 | Seed `20260904`, up to 60 legal plies each |
-| Valid non-terminal legal-bestmove passes | 115 | No observed illegal bestmove |
+| Deterministic reachable positions | 1,000 | Seed `20260904`, up to 60 legal plies each |
+| Valid non-terminal legal-bestmove passes | 1,011 | No observed illegal bestmove |
 | Stalemate | 1 | Returned `bestmove 0000`; consistent with no legal move |
 | Dead positions | 3 | Returned ordinary moves; inconsistent with immediate Article 5.2.2 draw adjudication |
 | Malformed FEN inputs | 6 | Parser emitted an error for invalid king/rights/EP cases but continued with prior state; back-rank pawn was accepted |
@@ -95,7 +98,7 @@ On valid non-check FENs with halfmove clocks 100 and 150, the engine continued w
 
 ## Boundary of proof
 
-The runtime evidence establishes behavior only for the audited commit, the installed Rust 1.98.1 environment, the debug/release binaries built there, the listed commands, and the finite FEN corpus. The 100 reachable positions were deterministic samples, not an enumeration of the game graph. Perft and unit tests provide strong internal evidence but do not prove all UCI paths, all model/runtime configurations, all memory sizes, all thread counts, or all long-running searches.
+The runtime evidence establishes behavior only for the audited commit, the installed Rust 1.98.1 environment, the debug/release binaries built there, the listed commands, and the finite FEN corpus. The 1,000 reachable positions were deterministic samples, not an enumeration of the game graph. Perft and unit tests provide strong internal evidence but do not prove all UCI paths, all model/runtime configurations, all memory sizes, all thread counts, or all long-running searches.
 
 The audit did not and cannot establish physical one-hand movement, touch-move obligations, clock pressing, flag falls, default time, scoresheets, draw offers, arbiter intervention, penalties, venue/device conduct, appeals, rapid/blitz event administration, or tournament scoring through a normal UCI engine interface. These are explicitly marked out of scope in `research/fide_scenario_matrix.md`.
 
@@ -110,3 +113,6 @@ Add explicit game-state/result tests for threefold and fivefold repetition, 50-m
 ## References
 
 [1]: https://handbook.fide.com/chapter/e012023 "FIDE Handbook — FIDE Laws of Chess taking effect from 1 January 2023"
+[2]: https://chessprogramming.org/Perft_Results "Chess Programming Wiki — Perft Results"
+[3]: https://www.shredderchess.com/chess-features/uci-universal-chess-interface.html "Shredder Chess — Universal Chess Interface (UCI)"
+[4]: https://python-chess.readthedocs.io/en/latest/core.html "python-chess — Core documentation"

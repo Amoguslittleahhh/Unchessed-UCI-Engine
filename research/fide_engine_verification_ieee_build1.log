@@ -1,0 +1,237 @@
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex)
+ restricted \write18 enabled.
+entering extended mode
+(./fide_engine_verification_ieee.tex
+LaTeX2e <2023-11-01> patch level 1
+L3 programming layer <2024-01-22>
+(/usr/share/texlive/texmf-dist/tex/latex/ieeetran/IEEEtran.cls
+Document Class: IEEEtran 2015/08/26 V1.8b by Michael Shell
+-- See the "IEEEtran_HOWTO" manual for usage information.
+-- http://www.michaelshell.org/tex/ieeetran/
+(/usr/share/texlive/texmf-dist/tex/latex/psnfss/ot1ptm.fd)
+-- Using 8.5in x 11in (letter) paper.
+-- Using PDF output.
+-- This is a 10 point document.
+) (/usr/share/texlive/texmf-dist/tex/latex/cite/cite.sty)
+(/usr/share/texlive/texmf-dist/tex/latex/amsmath/amsmath.sty
+For additional information on amsmath, use the `?' option.
+(/usr/share/texlive/texmf-dist/tex/latex/amsmath/amstext.sty
+(/usr/share/texlive/texmf-dist/tex/latex/amsmath/amsgen.sty))
+(/usr/share/texlive/texmf-dist/tex/latex/amsmath/amsbsy.sty)
+(/usr/share/texlive/texmf-dist/tex/latex/amsmath/amsopn.sty))
+(/usr/share/texlive/texmf-dist/tex/latex/amsfonts/amssymb.sty
+(/usr/share/texlive/texmf-dist/tex/latex/amsfonts/amsfonts.sty))
+(/usr/share/texlive/texmf-dist/tex/latex/booktabs/booktabs.sty)
+(/usr/share/texlive/texmf-dist/tex/latex/tools/tabularx.sty
+(/usr/share/texlive/texmf-dist/tex/latex/tools/array.sty))
+(/usr/share/texlive/texmf-dist/tex/latex/url/url.sty)
+(/usr/share/texlive/texmf-dist/tex/latex/hyperref/hyperref.sty
+(/usr/share/texlive/texmf-dist/tex/generic/iftex/iftex.sty)
+(/usr/share/texlive/texmf-dist/tex/latex/graphics/keyval.sty)
+(/usr/share/texlive/texmf-dist/tex/latex/kvsetkeys/kvsetkeys.sty)
+(/usr/share/texlive/texmf-dist/tex/generic/kvdefinekeys/kvdefinekeys.sty)
+(/usr/share/texlive/texmf-dist/tex/generic/pdfescape/pdfescape.sty
+(/usr/share/texlive/texmf-dist/tex/generic/ltxcmds/ltxcmds.sty)
+(/usr/share/texlive/texmf-dist/tex/generic/pdftexcmds/pdftexcmds.sty
+(/usr/share/texlive/texmf-dist/tex/generic/infwarerr/infwarerr.sty)))
+(/usr/share/texlive/texmf-dist/tex/latex/hycolor/hycolor.sty)
+(/usr/share/texlive/texmf-dist/tex/latex/auxhook/auxhook.sty)
+(/usr/share/texlive/texmf-dist/tex/latex/hyperref/nameref.sty
+(/usr/share/texlive/texmf-dist/tex/latex/refcount/refcount.sty)
+(/usr/share/texlive/texmf-dist/tex/generic/gettitlestring/gettitlestring.sty
+(/usr/share/texlive/texmf-dist/tex/latex/kvoptions/kvoptions.sty)))
+(/usr/share/texlive/texmf-dist/tex/latex/etoolbox/etoolbox.sty)
+(/usr/share/texlive/texmf-dist/tex/latex/hyperref/pd1enc.def)
+(/usr/share/texlive/texmf-dist/tex/generic/intcalc/intcalc.sty)
+(/usr/share/texlive/texmf-dist/tex/latex/hyperref/puenc.def)
+(/usr/share/texlive/texmf-dist/tex/generic/bitset/bitset.sty
+(/usr/share/texlive/texmf-dist/tex/generic/bigintcalc/bigintcalc.sty))
+(/usr/share/texlive/texmf-dist/tex/latex/base/atbegshi-ltx.sty))
+(/usr/share/texlive/texmf-dist/tex/latex/hyperref/hpdftex.def
+(/usr/share/texlive/texmf-dist/tex/latex/base/atveryend-ltx.sty)
+(/usr/share/texlive/texmf-dist/tex/latex/rerunfilecheck/rerunfilecheck.sty
+(/usr/share/texlive/texmf-dist/tex/generic/uniquecounter/uniquecounter.sty)))
+(/usr/share/texlive/texmf-dist/tex/latex/xcolor/xcolor.sty
+(/usr/share/texlive/texmf-dist/tex/latex/graphics-cfg/color.cfg)
+(/usr/share/texlive/texmf-dist/tex/latex/graphics-def/pdftex.def)
+(/usr/share/texlive/texmf-dist/tex/latex/graphics/mathcolor.ltx))
+(/usr/share/texlive/texmf-dist/tex/latex/listings/listings.sty
+(/usr/share/texlive/texmf-dist/tex/latex/listings/lstmisc.sty)
+(/usr/share/texlive/texmf-dist/tex/latex/listings/listings.cfg))
+(/usr/share/texlive/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def)
+No file fide_engine_verification_ieee.aux.
+-- Lines per column: 56 (exact).
+(/usr/share/texlive/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
+[Loading MPS to PDF converter (version 2006.09.02).]
+) (/usr/share/texlive/texmf-dist/tex/latex/psnfss/ot1pcr.fd)
+
+LaTeX Warning: Citation `fide' on page 1 undefined on input line 36.
+
+
+LaTeX Warning: Citation `perft' on page 1 undefined on input line 43.
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 46--47
+[]\OT1/ptm/m/n/10 The repos-i-tory was cloned from
+
+Underfull \hbox (badness 10000) in paragraph at lines 46--47
+\OT1/pcr/m/n/10 Amoguslittleahhh/Unchessed-UCI-Engine\OT1/ptm/m/n/10 .
+
+Underfull \hbox (badness 10000) in paragraph at lines 46--47
+\OT1/ptm/m/n/10 The au-dited main-branch com-mit was
+
+Underfull \hbox (badness 10000) in paragraph at lines 46--47
+\OT1/pcr/m/n/10 9c4f1f8e82dca8e4c729f275e8c15cb0e87e7b74\OT1/ptm/m/n/10 ,
+
+Underfull \hbox (badness 10000) in paragraph at lines 46--47
+\OT1/ptm/m/n/10 with com-mit mes-sage ``Fix check-mate scored as
+
+Underfull \hbox (badness 10000) in paragraph at lines 46--47
+\OT1/ptm/m/n/10 a draw at half-move clock 100.'' A new branch,
+
+Underfull \hbox (badness 7685) in paragraph at lines 46--47
+\OT1/pcr/m/n/10 manus/research-facilities\OT1/ptm/m/n/10 , was cre-ated be-fore
+
+[1{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}{/usr/share/texlive/texmf-
+dist/fonts/enc/dvips/base/8r.enc}]
+Underfull \hbox (badness 10000) in paragraph at lines 48--49
+[]\OT1/ptm/m/n/10 The Rust workspace con-tains four mem-bers:
+
+Underfull \hbox (badness 10000) in paragraph at lines 48--49
+\OT1/pcr/m/n/10 unchessed-core\OT1/ptm/m/n/10 , \OT1/pcr/m/n/10 unchessed-adapt
+er\OT1/ptm/m/n/10 ,
+
+Underfull \hbox (badness 10000) in paragraph at lines 48--49
+\OT1/pcr/m/n/10 unchessed-reviewer\OT1/ptm/m/n/10 , and \OT1/pcr/m/n/10 unchess
+ed-datagen\OT1/ptm/m/n/10 .
+
+Underfull \hbox (badness 5119) in paragraph at lines 48--49
+\OT1/ptm/m/n/10 ar-ti-facts, con-fig-u-ra-tion, doc-u-men-ta-tion, and large PG
+N
+
+Underfull \hbox (badness 8113) in paragraph at lines 50--51
+[]\OT1/ptm/m/n/10 The ini-tial sys-tem Cargo 1.75.0 could not parse
+
+Underfull \hbox (badness 6575) in paragraph at lines 50--51
+\OT1/ptm/m/n/10 the repos-i-tory's lock-file ver-sion 4. A cur-rent sta-ble
+
+Underfull \hbox (badness 7168) in paragraph at lines 50--51
+\OT1/ptm/m/n/10 Rust toolchain, rustc/-cargo 1.98.1, was in-stalled and
+
+Underfull \hbox (badness 2495) in paragraph at lines 50--51
+\OT1/ptm/m/n/10 recorded. Python de-pen-den-cies were in-stalled from the
+
+Underfull \hbox (badness 2359) in paragraph at lines 63--64
+\OT1/ptm/m/n/10 con-tain-ing 16 fixed valid po-si-tions, 1,000 de-ter-min-is-ti
+c
+
+Underfull \hbox (badness 1803) in paragraph at lines 63--64
+\OT1/ptm/m/n/10 able po-si-tions were gen-er-ated from the stan-dard ini-tial
+
+Underfull \hbox (badness 2913) in paragraph at lines 63--64
+\OT1/ptm/m/n/10 Each non-terminal re-turned move was checked against
+
+LaTeX Warning: Citation `fide' on page 2 undefined on input line 66.
+
+
+LaTeX Warning: Reference `tab:tests' on page 2 undefined on input line 70.
+
+(/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsa.fd)
+(/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsb.fd) [2]
+Underfull \hbox (badness 4846) in paragraph at lines 113--114
+[]\OT1/ptm/m/n/10 For the forced back-rank mate, the ex-e-cutable re-
+
+Underfull \hbox (badness 1755) in paragraph at lines 113--114
+\OT1/ptm/m/n/10 turned \OT1/pcr/m/n/10 bestmove a1a8 \OT1/ptm/m/n/10 and re-por
+ted mate in one at
+
+Underfull \hbox (badness 2512) in paragraph at lines 113--114
+\OT1/ptm/m/n/10 both half-move clocks 100 and 150. This agrees with
+
+Underfull \hbox (badness 5316) in paragraph at lines 113--114
+\OT1/ptm/m/n/10 the FIDE rule that a check-mate re-sult-ing from the
+
+Underfull \hbox (badness 7116) in paragraph at lines 113--114
+\OT1/pcr/m/n/10 unchessed-core/src/search.rs:519--530\OT1/ptm/m/n/10 . This
+
+LaTeX Warning: Citation `fide' on page 3 undefined on input line 117.
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 120--121
+[]\OT1/ptm/m/n/10 The UCI loop prints ``could not parse'' when
+
+Underfull \hbox (badness 10000) in paragraph at lines 120--121
+\OT1/pcr/m/n/10 parse_position \OT1/ptm/m/n/10 re-turns \OT1/pcr/m/n/10 None\OT
+1/ptm/m/n/10 , while the outer
+
+Underfull \hbox (badness 10000) in paragraph at lines 120--121
+\OT1/ptm/m/n/10 loop re-tains the pre-vi-ous \OT1/pcr/m/n/10 Game\OT1/ptm/m/n/1
+0 . The parser uses
+
+LaTeX Warning: Citation `fide' on page 3 undefined on input line 122.
+
+
+LaTeX Warning: Citation `fide' on page 3 undefined on input line 125.
+
+
+LaTeX Warning: Citation `perft' on page 3 undefined on input line 132.
+
+
+LaTeX Warning: Citation `uci' on page 3 undefined on input line 132.
+
+
+LaTeX Warning: Citation `pychess' on page 3 undefined on input line 132.
+
+[3]
+Underfull \hbox (badness 5771) in paragraph at lines 146--147
+[]\OT1/ptm/m/n/10 All source, ma-trix, scripts, raw tran-scripts, re-sults,
+
+Underfull \hbox (badness 10000) in paragraph at lines 146--147
+\OT1/ptm/m/n/10 and this pa-per's La-TeX source are com-mit-ted on
+
+Underfull \hbox (badness 10000) in paragraph at lines 146--147
+\OT1/pcr/m/n/10 manus/research-facilities\OT1/ptm/m/n/10 . The strongest
+
+Underfull \hbox (badness 2573) in paragraph at lines 146--147
+\OT1/ptm/m/n/10 de-fen-si-ble con-clu-sion is there-fore: **the en-gine passes
+
+Underfull \hbox (badness 10000) in paragraph at lines 151--152
+[]\OT1/ptm/m/n/8 Shredder Chess, ``Uni-ver-sal Chess In-ter-face (UCI).'' [On-l
+ine].
+
+Underfull \hbox (badness 10000) in paragraph at lines 151--152
+\OT1/ptm/m/n/8 Avail-able: []$https : / / www . shredderchess . com / chess-[]f
+eatures /
+
+** Conference Paper **
+Before submitting the final camera ready copy, remember to:
+
+ 1. Manually equalize the lengths of two columns on the last page
+ of your paper;
+
+ 2. Ensure that any PostScript and/or PDF output post-processing
+ uses only Type 1 fonts and that every step in the generation
+ process uses the appropriate paper size.
+
+[4] (./fide_engine_verification_ieee.aux)
+
+LaTeX Warning: There were undefined references.
+
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
+
+Package rerunfilecheck Warning: File `fide_engine_verification_ieee.out' has ch
+anged.
+(rerunfilecheck)                Rerun to get outlines right
+(rerunfilecheck)                or use package `bookmark'.
+
+ )
+(see the transcript file for additional information)</usr/share/texlive/texmf-d
+ist/fonts/type1/urw/courier/ucrb8a.pfb></usr/share/texlive/texmf-dist/fonts/typ
+e1/urw/courier/ucrr8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/
+utmb8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmbi8a.pfb></u
+sr/share/texlive/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/share/texliv
+e/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
+Output written on fide_engine_verification_ieee.pdf (4 pages, 104849 bytes).
+Transcript written on fide_engine_verification_ieee.log.

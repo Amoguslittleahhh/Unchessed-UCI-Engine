@@ -12,7 +12,7 @@ import chess
 
 ROOT = Path(__file__).resolve().parents[1]
 ENGINE = ROOT / "target/debug/unchessed-adapter"
-OUT = ROOT / "research/fide_uci_differential_results.json"
+OUT = ROOT / "research/fide_uci_differential_results_v3.json"
 
 CASES = [
     ("startpos", chess.Board().fen()),
@@ -67,7 +67,7 @@ def run_uci(fen: str) -> tuple[str, str, int]:
     best, transcript, rc = run_batch([fen])
     return (best[0] if best else ""), transcript, rc
 
-def random_positions(n: int = 100) -> list[tuple[str, str]]:
+def random_positions(n: int = 1000) -> list[tuple[str, str]]:
     rng = random.Random(20260904)
     out = []
     for i in range(n):
@@ -101,7 +101,7 @@ def main() -> int:
                         "returncode": rc, "stdout_stderr": transcript})
     summary = {
         "engine": str(ENGINE), "cases": len(results),
-        "valid_position_cases": len(CASES) + 100,
+        "valid_position_cases": len(named_valid),
         "legal_bestmove_pass": sum(1 for r in results if "bestmove_legal" in r and r["bestmove_legal"]),
         "legal_bestmove_fail": sum(1 for r in results if "bestmove_legal" in r and not r["bestmove_legal"] and not r["terminal_reference"]),
         "invalid_fen_cases": len(INVALID_FENS),

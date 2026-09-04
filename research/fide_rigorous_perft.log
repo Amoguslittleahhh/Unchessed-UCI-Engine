@@ -1,0 +1,9 @@
+[1m[92m   Compiling[0m unchessed-core v0.2.3 (/home/ubuntu/unchessed_audit/repo/unchessed-core)
+[1m[92m    Finished[0m `test` profile [optimized + debuginfo] target(s) in 0.32s
+[1m[92m     Running[0m tests/fide_rigorous_perft.rs (target/debug/deps/fide_rigorous_perft-1f4d2f640bb0fcf1)
+
+running 1 test
+test canonical_online_perft_positions_match ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.50s
+

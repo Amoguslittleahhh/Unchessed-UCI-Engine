@@ -1,0 +1,6 @@
+{
+  "library": "python-chess",
+  "version": "1.11.2",
+  "checks": 24,
+  "all_pass": true
+}
