@@ -388,7 +388,14 @@ def coalesced_export_weights(model):
 
 def export_net(model, path):
     ft_export = coalesced_export_weights(model)
-    with open(path, "wb") as f:
+    # Write under a temp name in the same directory and rename into place
+    # only once the whole file is flushed and durable -- writing the real
+    # path directly meant a crash, kill, or disk-full event partway through
+    # left a truncated net sitting at the exact filename a UCI EvalFile
+    # load or a later training run would treat as a genuine, complete net.
+    path = Path(path)
+    tmp = path.with_name(path.name + ".tmp")
+    with open(tmp, "wb") as f:
         f.write(MAGIC)
         f.write(struct.pack("<III", VERSION, FT_IN, ACC))
         f.write(ft_export.tobytes())
@@ -399,6 +406,9 @@ def export_net(model, path):
             model.out.weight.detach().cpu().numpy().astype("<f4").reshape(-1).tobytes()
         )
         f.write(model.out.bias.detach().cpu().numpy().astype("<f4").tobytes())
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, path)
 
 
 def train(shards, out_path, epochs):

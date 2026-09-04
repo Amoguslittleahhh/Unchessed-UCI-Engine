@@ -703,10 +703,24 @@ def cmd_build(args: argparse.Namespace) -> int:
         for q, bands in r["dist"].items():
             for band, v in bands.items():
                 dist[q][band] += v
+    def _sha256_streamed(path: Path, block_bytes: int = 1 << 20) -> str:
+        digest = hashlib.sha256()
+        with path.open("rb") as fh:
+            for chunk in iter(lambda: fh.read(block_bytes), b""):
+                digest.update(chunk)
+        return digest.hexdigest()
+
     report = {
         "tool": "tools/pretrain_v5_data.py",
         "magic": MAGIC.decode("ascii"),
-        "sources": [str(p) for p in args.pgn],
+        # A path string alone can't independently prove which bytes actually
+        # produced this dataset -- reusing a path with changed content (or
+        # relying on a filename alone to identify a source) left no way to
+        # detect it. Streamed, not read into memory at once, since these can
+        # be tens-of-GB PGN files.
+        "sources": [
+            {"path": str(p), "sha256": _sha256_streamed(p)} for p in files
+        ],
         "games": {
             "kept_total": n_kept_total,
             "train": n_kept_total - val_n,

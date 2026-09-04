@@ -314,6 +314,17 @@ def main():
             return
     if args.nodes_per_action <= 0 or args.threads <= 0 or args.hash_mb <= 0:
         raise SystemExit("nodes, threads, and hash must be positive")
+    # --input-sha256 used to be recorded verbatim in the manifest when
+    # supplied, instead of verified against the real input bytes -- a wrong
+    # digest was silently accepted and the worker still exited successfully.
+    # Checked up front, before the expensive engine-driven generation run,
+    # so a bad digest fails fast instead of after wasting that work.
+    actual_input_sha256 = sha256_file(args.input)
+    if args.input_sha256 and args.input_sha256 != actual_input_sha256:
+        raise SystemExit(
+            f"--input-sha256 {args.input_sha256} does not match actual "
+            f"input digest {actual_input_sha256} for {args.input}"
+        )
     resolved_engine = shutil.which(args.engine) or args.engine
     command = [resolved_engine, *args.engine_arg]
     started = time.monotonic()
@@ -340,7 +351,7 @@ def main():
     manifest = {
         "schema": 1,
         "input": str(Path(args.input).resolve()),
-        "input_sha256": args.input_sha256 or sha256_file(args.input),
+        "input_sha256": actual_input_sha256,
         "output": str(args.output.resolve()),
         "output_sha256": sha256_file(args.output),
         "engine": str(Path(resolved_engine).resolve()),

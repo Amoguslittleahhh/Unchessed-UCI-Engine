@@ -24,8 +24,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import queue
 import re
 import subprocess
+import threading
 import time
 
 POSITIONS = [
@@ -49,6 +51,14 @@ DEPTH_RE = re.compile(r"\binfo depth (\d+)\b")
 BESTMOVE_RE = re.compile(r"^bestmove (\S+)")
 
 
+def _pump_lines(stream, out_queue):
+    """Runs in a background thread: forwards each line as it arrives, and a
+    single None once the stream closes (process exited)."""
+    for line in iter(stream.readline, ""):
+        out_queue.put(line)
+    out_queue.put(None)
+
+
 def run_go(engine_path, model_path, hint_enabled, min_time_ms, position, time_left_ms, timeout_s):
     proc = subprocess.Popen(
         [engine_path],
@@ -58,6 +68,25 @@ def run_go(engine_path, model_path, hint_enabled, min_time_ms, position, time_le
         text=True,
         bufsize=1,
     )
+    # A direct, blocking proc.stdout.readline() defeats any deadline check
+    # wrapped around it: the surrounding `while time.monotonic() < deadline`
+    # only gets evaluated BETWEEN reads, so a silent or stalled engine that
+    # never writes another line hangs this script indefinitely regardless
+    # of the advertised timeout. Reading through a background thread and a
+    # queue lets the deadline actually be enforced with queue.get(timeout=).
+    line_queue: queue.Queue = queue.Queue()
+    reader = threading.Thread(target=_pump_lines, args=(proc.stdout, line_queue), daemon=True)
+    reader.start()
+
+    def read_until(deadline):
+        """One line, or None on timeout/EOF -- never blocks past `deadline`."""
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return None
+        try:
+            return line_queue.get(timeout=remaining)
+        except queue.Empty:
+            return None
 
     def send(line):
         proc.stdin.write(line + "\n")
@@ -75,8 +104,10 @@ def run_go(engine_path, model_path, hint_enabled, min_time_ms, position, time_le
     send("isready")
 
     deadline = time.monotonic() + 5.0
-    while time.monotonic() < deadline:
-        line = proc.stdout.readline()
+    while True:
+        line = read_until(deadline)
+        if line is None:  # timed out, or the process exited without readyok
+            break
         if line.strip() == "readyok":
             break
 
@@ -91,9 +122,9 @@ def run_go(engine_path, model_path, hint_enabled, min_time_ms, position, time_le
     charged_ms = None
     deadline = started + timeout_s
     bestmove = None
-    while time.monotonic() < deadline:
-        line = proc.stdout.readline()
-        if not line:
+    while True:
+        line = read_until(deadline)
+        if line is None:  # advertised timeout reached, or engine went silent
             break
         depth_match = DEPTH_RE.search(line)
         if depth_match:
