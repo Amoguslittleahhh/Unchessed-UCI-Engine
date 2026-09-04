@@ -1,0 +1,763 @@
+== ROOT MANIFEST ==
+[workspace]
+resolver = "2"
+members = ["unchessed-core", "unchessed-adapter", "unchessed-reviewer", "unchessed-datagen"]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+
+[profile.test]
+opt-level = 2
+
+== BUILD SCRIPT ==
+#!/usr/bin/env bash
+# One-shot build, test, and smoke for the Unchessed Rust workspace.
+#
+# The sandbox this project develops in has no Rust toolchain and cannot
+# reach the toolchain hosts (see "When there is no Rust toolchain" in
+# docs/dev-environment.md). On any machine that has one, this script is the
+# entire job:
+#
+#   bash scripts/build-and-test.sh            # debug build + test + smoke
+#   bash scripts/build-and-test.sh --release  # additionally: release build
+#                                             # (opt-level 3 + LTO, slow)
+#
+# Toolchain: rustc >= 1.70 (the code uses std::sync::OnceLock; any recent
+# stable is fine). To use a toolchain provided at a non-default location,
+# point TOOLCHAIN_DIR at the toolchain root (the directory containing bin/):
+#
+#   TOOLCHAIN_DIR=/opt/rust-1.85.0-x86_64-unknown-linux-gnu \
+#     bash scripts/build-and-test.sh
+#
+# A standard rustup layout (~/.cargo/bin + ~/.rustup) works as-is once
+# ~/.cargo/bin is on PATH.
+
+# Disk budget (measured 2026-08-26 on a 21 GB volume with 19 GB free):
+# the workspace is small (13.6k lines of core, ZERO external crate
+# dependencies — every member is std-only plus path deps), so
+#   target/debug  ~200-400 MB,  target (test profile, opt-level 2) ~300-500 MB,
+#   target/release (opt 3 + LTO + 1 codegen unit) ~0.5-1 GB.
+# Space has never been the blocker; the toolchain is.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+# Optional provided toolchain: TOOLCHAIN_DIR is the toolchain root
+# (the directory containing bin/cargo). Plain extracted
+# rust-1.7x+-x86_64-unknown-linux-gnu trees work directly; rustup shims work
+# too if their ~/.rustup is visible from the default environment.
+if [ -n "${TOOLCHAIN_DIR:-}" ]; then
+  test -x "$TOOLCHAIN_DIR/bin/cargo" || {
+    echo "TOOLCHAIN_DIR=$TOOLCHAIN_DIR has no executable bin/cargo" >&2
+    exit 3
+  }
+  export PATH="$TOOLCHAIN_DIR/bin:$PATH"
+fi
+
+if ! command -v cargo >/dev/null 2>&1; then
+  echo "cargo not found on PATH. Nothing else in this script can proceed;" >&2
+  echo "see docs/dev-environment.md for the egress audit of why the sandbox" >&2
+  echo "cannot fetch a toolchain itself." >&2
+  exit 3
+fi
+
+# Rust needs a native C linker (cc/gcc/clang) to produce a binary at all --
+# without this check, a missing one only surfaces minutes later as a bare
+# "linker `cc` not found" from deep inside `cargo build`'s first link step,
+# after the compile-only work already ran. Skipped on Windows: MSVC's
+# link.exe comes from a Visual Studio install cargo already knows how to
+# find via its own toolchain detection, not a plain PATH lookup here.
+case "$(uname -s 2>/dev/null || echo unknown)" in
+  MINGW*|MSYS*|CYGWIN*|Windows_NT) ;;  # MSVC toolchain, not a PATH-visible cc/gcc/clang
+  *)
+    if ! command -v cc >/dev/null 2>&1 && ! command -v gcc >/dev/null 2>&1 && ! command -v clang >/dev/null 2>&1; then
+      echo "no native C linker (cc/gcc/clang) found on PATH." >&2
+      echo "cargo needs one to link any binary -- install build-essential" >&2
+      echo "(Debian/Ubuntu) or the equivalent for this OS before continuing." >&2
+      exit 3
+    fi
+    ;;
+esac
+
+# Guard against a partial checkout before spending minutes on a build.
+test -f Cargo.lock
+for m in unchessed-core unchessed-adapter unchessed-reviewer unchessed-datagen; do
+  test -d "$m/src" || { echo "missing member $m/src" >&2; exit 2; }
+done
+
+echo "== cargo build --workspace (debug) =="
+cargo build --workspace
+
+echo "== cargo test --workspace (test profile: opt-level 2) =="
+# Runs every unit test, including the perft correctness gate, the
+# SearchParams/EvalParams defaults, and budget_speeds_up_as_clock_drains.
+# The offline toolchain shipped via `arena-rust-toolchain` on PyPI has no
+# rustdoc, and this codebase has no doctests, so the doc-test phase is
+# skipped (nothing is lost) when rustdoc is absent.
+if command -v rustdoc >/dev/null 2>&1; then
+  cargo test --workspace
+else
+  echo "(rustdoc not in this toolchain; no doctests exist, running --lib --bins)"
+  cargo test --workspace --lib --bins
+fi
+
+echo "== cargo test --workspace perft::tests::deep -- --ignored (excluded from the default run above) =="
+# perft::tests::deep is #[ignore]d (it's slow, ~13s) and this is the only
+# place that supplies --ignored -- without it, the deepest correctness gate
+# this workspace has never actually runs as part of a normal gate pass.
+cargo test --workspace perft::tests::deep -- --ignored
+
+ADAPTER=target/debug/unchessed-adapter
+test -x "$ADAPTER"
+
+# `go` starts the real search in a background thread inside the adapter and
+# returns control to its UCI read loop immediately; sending `quit` right
+# after in the same pipe races that search against a stop request a real
+# GUI would never issue mid-search (it always waits for `bestmove` first).
+# The engine now (correctly) honors `stop`/`quit` essentially immediately
+# rather than after an up-to-~2048-node grace window, so what used to be a
+# lucky, unintentional head start is no longer there to mask this: without
+# a real pause here, `quit` can arrive before a single depth completes,
+# discarding this smoke test's power to check anything. These are trivial,
+# sub-10ms searches once actually running, so a short fixed pause is not a
+# meaningful cost.
+echo "== UCI smoke: startpos depth 5 =="
+out=$( { printf 'uci\nisready\nposition startpos\ngo depth 5\n'; sleep 2; printf 'quit\n'; } | "$ADAPTER")
+echo "$out" | grep -q "^bestmove" || { echo "no bestmove from startpos search" >&2; exit 1; }
+echo "$out" | grep "^bestmove" | head -1
+
+echo "== UCI smoke: matetrack back-rank mate (must find Ra8#) =="
+# First position of benchmarks/matetrack.epd; the unique mate is a1a8.
+out=$( { printf 'uci\nsetoption name Adaptive value false\nposition fen 6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1\ngo depth 6\n'; sleep 2; printf 'quit\n'; } | "$ADAPTER")
+echo "$out" | grep "^bestmove" | head -1
+echo "$out" | grep -q "^bestmove a1a8" || { echo "expected bestmove a1a8 (Ra8#)" >&2; exit 1; }
+
+if [ "${1:-}" = "--release" ]; then
+  echo "== cargo build --workspace --release (opt 3 + LTO; slow) =="
+  cargo build --workspace --release
+
+  echo "== cargo test --workspace --release (the debug-profile pass above never" \
+       "exercises the optimized code path actually shipped) =="
+  if command -v rustdoc >/dev/null 2>&1; then
+    cargo test --workspace --release
+  else
+    cargo test --workspace --release --lib --bins
+  fi
+fi
+
+echo "== disk =="
+df -h . | tail -1
+echo "OK: build + tests + smoke passed"
+
+== RECENT COMMITS ==
+[33m81a4181[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Close out the audit's build/CI tail: linker preflight, release tests, CI
+[33m17b6d66[m Fix remaining audit tail: atomic writes, false-hash trust, and a blocking hang
+[33m8d1ec82[m Fix duplicate-game leakage and corrupt-partial-dataset bugs from the audit
+[33m9da9158[m Fix remaining protocol/correctness bugs from Manus's adversarial audit
+[33mf043dca[m Fix adapter pre-search timing: opponent-observation/troll-check probes ran uncharged
+[33mca08170[m Fix go movetime/nodes overshoot: check_limits() was polled every 2048 nodes
+[33m9c4f1f8[m Fix checkmate scored as a draw at halfmove clock 100
+[33m719a387[m Archive Manus briefing/research-topic prompts from this session
+[33ma40a64c[m Fix four confirmed-severe defects from Manus's adversarial main-branch audit
+[33m0b6e793[m Fix crash on illegal FEN: reject positions where the opponent is in check
+[33mf4f0def[m NNUE soft reweighting: real negative result, closes the piece-count-bucket reweighting thread
+[33m644b6e2[m Predeclare soft-reweighting design for NNUE piece-count buckets
+[33me31f506[m NNUE coverage-vs-capacity rerun on real 178M corpus: confound resolved, mixed result
+[33mc9e514a[m NNUE coverage-vs-capacity diagnostic: small, real, honest negative result
+[33mf16c5e0[m Merge Manus Tier 1 research round: NNUE ceiling reframed, 17 engine topics investigated, corrects a real error in the master brief
+[33m7348e53[m Expand Tier 1 engine research facilities
+[33m6667f6f[m NNUE label-noise measurement: two more samples, confirms the trend
+[33m6c8513c[m NNUE label noise: real paired measurement contradicts the working theory
+[33mc8af570[m Fix Windows fsync-directory failure in nnue_relabel_existing.py
+[33m667e906[m Add bounded CPU RL calibration prototype
+
+== DIFF FROM PRIOR AUDITED COMMIT (STAT) ==
+ .github/workflows/ci.yml                           |  69 [32m+++++++[m
+ scripts/build-and-test.sh                          |  47 [32m++++[m[31m-[m
+ tools/pretrain_move_dataset.py                     |  39 [32m+++[m[31m-[m
+ tools/pretrain_v5_data.py                          | 107 [32m++++++++[m[31m--[m
+ tools/requirements-dev.txt                         |   5 [32m+[m
+ tools/test_pretrain_v5.py                          |   8 [32m+[m[31m-[m
+ tools/train_nnue.py                                |  12 [32m+[m[31m-[m
+ tools/unarchitectured_v1_depth_time_calibration.py |  41 [32m+++[m[31m-[m
+ tools/unarchitectured_v1_uci_teacher_worker.py     |  13 [32m+[m[31m-[m
+ unchessed-core/src/board.rs                        |  44 [32m++++[m[31m-[m
+ unchessed-core/src/search.rs                       |  71 [32m+++++[m[31m--[m
+ unchessed-core/src/uci.rs                          | 216 [32m++++++++++++++[m[31m-------[m
+ 12 files changed, 545 insertions(+), 127 deletions(-)
+
+== RUST SOURCES/TESTS ==
+unchessed-adapter/Cargo.toml
+unchessed-adapter/src/main.rs
+unchessed-core/Cargo.toml
+unchessed-core/src/adapt.rs
+unchessed-core/src/aegis_v4_runtime.rs
+unchessed-core/src/board.rs
+unchessed-core/src/book.rs
+unchessed-core/src/eval.rs
+unchessed-core/src/fen.rs
+unchessed-core/src/lib.rs
+unchessed-core/src/movegen.rs
+unchessed-core/src/nnue.rs
+unchessed-core/src/perft.rs
+unchessed-core/src/policy.rs
+unchessed-core/src/polyglot_keys.rs
+unchessed-core/src/san.rs
+unchessed-core/src/search.rs
+unchessed-core/src/see.rs
+unchessed-core/src/tt.rs
+unchessed-core/src/uci.rs
+unchessed-core/src/unarchitectured_v1.rs
+unchessed-datagen/Cargo.toml
+unchessed-datagen/src/main.rs
+unchessed-reviewer/Cargo.toml
+unchessed-reviewer/src/main.rs
+
+== PYTHON TESTS ==
+tools/maia3_cloud_selfplay/test_generate.py
+tools/test_a100_common.py
+tools/test_analyse_adapter_telemetry.py
+tools/test_analyse_oracle_rating_conditioning.py
+tools/test_archive_blocks.py
+tools/test_build_elo_bands.py
+tools/test_build_level_conditioned_moves.py
+tools/test_elo_detector.py
+tools/test_experiment_low_cp_val_mae.py
+tools/test_gab_ablation.py
+tools/test_game_phase_definitions.py
+tools/test_hashfull_reporting.py
+tools/test_hint_disagreements.py
+tools/test_int8_activation_calibration.py
+tools/test_king_buckets.py
+tools/test_maia3_cloud_selfplay.py
+tools/test_matetrack_suite.py
+tools/test_nnue_cloud_runtime.py
+tools/test_nnue_relabel_existing.py
+tools/test_nnue_train_control.py
+tools/test_ordering_risk.py
+tools/test_pentanomial_sprt.py
+tools/test_persona_stability_sprt.py
+tools/test_policy_prior_calibration.py
+tools/test_pretrain_move.py
+tools/test_pretrain_v5.py
+tools/test_rating_conditioning.py
+tools/test_rl_calibration.py
+tools/test_rust_bracket_check.py
+tools/test_search_param_consistency.py
+tools/test_selfplay_elo_mixer.py
+tools/test_simulate_time_budget.py
+tools/test_sprt_persona_smooth_detect.py
+tools/test_theme_breakdown.py
+tools/test_train_nnue.py
+tools/test_train_nnue_xt_a100.py
+tools/test_training_blocks.py
+tools/test_unarchitectured_v1_architecture_audit.py
+tools/test_unarchitectured_v1_calibration.py
+tools/test_unarchitectured_v1_runtime.py
+tools/test_unarchitectured_v1_runtime_readiness.py
+tools/test_unarchitectured_v1_safety.py
+tools/test_unarchitectured_v1_scripts.py
+tools/test_unarchitectured_v1_watchdog.py
+
+== RULE SYMBOLS ==
+unchessed-core/src/adapt.rs:632:        // Widen the CLINCH deadband when we are unsure of the opponent:
+unchessed-core/src/adapt.rs:846:        // pawn moves in front of our castled king feel scary to humans
+unchessed-core/src/adapt.rs:866:        // Voluntarily forfeiting castling rights is a near-universal red
+unchessed-core/src/adapt.rs:877:        // 3.Kd2 get sampled as a "human blunder", forfeiting all castling
+unchessed-core/src/adapt.rs:880:            let own_castle = if let Color::White = us {
+unchessed-core/src/adapt.rs:885:            if (pos.castling & own_castle) != 0 && (next.castling & own_castle) == 0 {
+unchessed-core/src/adapt.rs:1406:    fn king_move_that_forfeits_castling_scores_far_below_a_normal_king_walk() {
+unchessed-core/src/adapt.rs:1409:        // castling rights on move 3) because the old flat 0.45 king-walk
+unchessed-core/src/adapt.rs:1411:        // developing move. White has both castling rights here; Ke1d2
+unchessed-core/src/adapt.rs:1433:            "castling-forfeiting king walk (weight {}) should score well below an ordinary \
+unchessed-core/src/aegis_v4_runtime.rs:684:            ("castling_embedding.weight", 16 * D_MODEL),
+unchessed-core/src/aegis_v4_runtime.rs:686:            ("halfmove_embedding.weight", 16 * D_MODEL),
+unchessed-core/src/aegis_v4_runtime.rs:703:            ("promotion_bias.weight", 5),
+unchessed-core/src/aegis_v4_runtime.rs:706:            ("regret_promotion.weight", 5 * REGRET_WIDTH),
+unchessed-core/src/aegis_v4_runtime.rs:754:/// `unarchitectured_v1_data.encode_action` (source | target<<6 | promotion<<12, with
+unchessed-core/src/aegis_v4_runtime.rs:755:/// promotion in 0..=4 for none/N/B/R/Q).
+unchessed-core/src/aegis_v4_runtime.rs:762:    pub castling: u8,
+unchessed-core/src/aegis_v4_runtime.rs:763:    /// 0..7 file, or 8 if no en-passant square.
+unchessed-core/src/aegis_v4_runtime.rs:765:    pub halfmove_clock: u8,
+unchessed-core/src/aegis_v4_runtime.rs:832:/// position, promotion set, persona, rating, time class, or elastic exit.
+unchessed-core/src/aegis_v4_runtime.rs:873:/// UCI/search path constructs this worker yet; promotion still requires the
+unchessed-core/src/aegis_v4_runtime.rs:2165:    if input.castling >= 16 || input.ep_file > 8 || input.time_class >= 5 {
+unchessed-core/src/aegis_v4_runtime.rs:2211:        weights.t("castling_embedding.weight"),
+unchessed-core/src/aegis_v4_runtime.rs:2212:        input.castling as usize,
+unchessed-core/src/aegis_v4_runtime.rs:2222:    let halfmove_bucket = ((input.halfmove_clock / 8) as usize).min(15);
+unchessed-core/src/aegis_v4_runtime.rs:2224:        weights.t("halfmove_embedding.weight"),
+unchessed-core/src/aegis_v4_runtime.rs:2225:        halfmove_bucket,
+unchessed-core/src/aegis_v4_runtime.rs:2406:    let promotion_bias = weights.t("promotion_bias.weight"); // (5, 1)
+unchessed-core/src/aegis_v4_runtime.rs:2411:        let promotion = ((action >> 12) as usize).min(4);
+unchessed-core/src/aegis_v4_runtime.rs:2414:        logits[idx] = dot_kernel(source, target) * scale + promotion_bias.get(promotion);
+unchessed-core/src/aegis_v4_runtime.rs:2420:    let regret_promotion = weights.t("regret_promotion.weight"); // (5, REGRET_WIDTH)
+unchessed-core/src/aegis_v4_runtime.rs:2455:        let promotion = ((action >> 12) as usize).min(4);
+unchessed-core/src/aegis_v4_runtime.rs:2460:                + regret_promotion.get(promotion * REGRET_WIDTH + i))
+unchessed-core/src/aegis_v4_runtime.rs:2591:    let mut castling = 0u8;
+unchessed-core/src/aegis_v4_runtime.rs:2592:    if pos.castling & mk != 0 {
+unchessed-core/src/aegis_v4_runtime.rs:2593:        castling |= 1;
+unchessed-core/src/aegis_v4_runtime.rs:2595:    if pos.castling & mq != 0 {
+unchessed-core/src/aegis_v4_runtime.rs:2596:        castling |= 2;
+unchessed-core/src/aegis_v4_runtime.rs:2598:    if pos.castling & ok != 0 {
+unchessed-core/src/aegis_v4_runtime.rs:2599:        castling |= 4;
+unchessed-core/src/aegis_v4_runtime.rs:2601:    if pos.castling & oq != 0 {
+unchessed-core/src/aegis_v4_runtime.rs:2602:        castling |= 8;
+unchessed-core/src/aegis_v4_runtime.rs:2606:    let halfmove_clock = pos.halfmove.min(255) as u8;
+unchessed-core/src/aegis_v4_runtime.rs:2616:            let promotion: u16 = if m.is_promo() {
+unchessed-core/src/aegis_v4_runtime.rs:2627:            from as u16 | (to as u16) << 6 | (promotion << 12)
+unchessed-core/src/aegis_v4_runtime.rs:2633:        castling,
+unchessed-core/src/aegis_v4_runtime.rs:2635:        halfmove_clock,
+unchessed-core/src/aegis_v4_runtime.rs:2657:    // exercise opening, castled middlegame, tactical, endgame, and promotion-
+unchessed-core/src/aegis_v4_runtime.rs:2701:            castling: 15,
+unchessed-core/src/aegis_v4_runtime.rs:2703:            halfmove_clock: 0,
+unchessed-core/src/aegis_v4_runtime.rs:2791:        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+unchessed-core/src/aegis_v4_runtime.rs:2797:                std::time::Instant::now() < deadline,
+unchessed-core/src/aegis_v4_runtime.rs:2916:            castling: 15,
+unchessed-core/src/aegis_v4_runtime.rs:2918:            halfmove_clock: 0,
+unchessed-core/src/aegis_v4_runtime.rs:3564:             inference_ms={:.3}/position bestmove_agreement={}/{}",
+unchessed-core/src/aegis_v4_runtime.rs:3589:        assert_eq!(live_input.castling, fixture_input.castling, "castling");
+unchessed-core/src/board.rs:151:    pub castle: [u64; 16],
+unchessed-core/src/board.rs:183:    let mut castle = [0u64; 16];
+unchessed-core/src/board.rs:188:        castle[i] = v;
+unchessed-core/src/board.rs:191:    // castle[0] = 0 so "no rights" contributes nothing; keeps hashes tidy.
+unchessed-core/src/board.rs:192:    castle[0] = 0;
+unchessed-core/src/board.rs:204:        castle,
+unchessed-core/src/board.rs:211:/// castling &= CASTLE_MASK[from] & CASTLE_MASK[to]
+unchessed-core/src/board.rs:212:const fn build_castle_mask() -> [u8; 64] {
+unchessed-core/src/board.rs:223:pub static CASTLE_MASK: [u8; 64] = build_castle_mask();
+unchessed-core/src/board.rs:237:    pub castling: u8,
+unchessed-core/src/board.rs:239:    pub halfmove: u16,
+unchessed-core/src/board.rs:252:            castling: 0,
+unchessed-core/src/board.rs:254:            halfmove: 0,
+unchessed-core/src/board.rs:309:    /// to move: zero unless a real en-passant capture is actually available
+unchessed-core/src/board.rs:316:    /// having a dead ep flag (no pawn able to actually use it) get
+unchessed-core/src/board.rs:318:    /// repetition behind an irrelevant difference.
+unchessed-core/src/board.rs:345:        h ^= ZOBRIST.castle[self.castling as usize];
+unchessed-core/src/board.rs:364:        // clear old en passant (board/side unchanged from `self` so far --
+unchessed-core/src/board.rs:416:        // castling rights
+unchessed-core/src/board.rs:417:        let old = p.castling;
+unchessed-core/src/board.rs:418:        p.castling &= CASTLE_MASK[from as usize] & CASTLE_MASK[to as usize];
+unchessed-core/src/board.rs:419:        if p.castling != old {
+unchessed-core/src/board.rs:420:            p.hash ^= ZOBRIST.castle[old as usize] ^ ZOBRIST.castle[p.castling as usize];
+unchessed-core/src/board.rs:424:            p.halfmove = 0;
+unchessed-core/src/board.rs:426:            p.halfmove += 1;
+unchessed-core/src/board.rs:443:        p.halfmove += 1;
+unchessed-core/src/book.rs:256:    // Polyglot encodes castling as king-takes-rook (e1h1, e1a1, e8h8, e8a8).
+unchessed-core/src/book.rs:258:        let is_castle_encoding = match c {
+unchessed-core/src/book.rs:262:        if is_castle_encoding {
+unchessed-core/src/book.rs:304:    if pos.castling & WK != 0 {
+unchessed-core/src/book.rs:307:    if pos.castling & WQ != 0 {
+unchessed-core/src/book.rs:310:    if pos.castling & BK != 0 {
+unchessed-core/src/book.rs:313:    if pos.castling & BQ != 0 {
+unchessed-core/src/eval.rs:250:/// vs RubiChess's real formula: no castling-rights-based penalty for a
+unchessed-core/src/eval.rs:251:/// rook stuck behind pawns -- would need castling-rights-history
+unchessed-core/src/eval.rs:407:/// Same-file-only mask of squares strictly ahead of `s` (toward promotion
+unchessed-core/src/fen.rs:78:    pos.castling = 0;
+unchessed-core/src/fen.rs:82:                pos.castling |= match ch {
+unchessed-core/src/fen.rs:87:                    _ => return Err(format!("bad castling '{}'", ch)),
+unchessed-core/src/fen.rs:92:    // A castling right is meaningless (and downstream code assumes it's
+unchessed-core/src/fen.rs:94:    // builds the castling move purely from the rights bit plus path/attack
+unchessed-core/src/fen.rs:97:    // rather than letting a later synthetic castling move panic trying to
+unchessed-core/src/fen.rs:102:    if pos.castling & WK != 0 && !king_rook_ok(sq(4, 0), sq(7, 0), Color::White) {
+unchessed-core/src/fen.rs:103:        return Err("castling right K without king/rook on e1/h1".into());
+unchessed-core/src/fen.rs:105:    if pos.castling & WQ != 0 && !king_rook_ok(sq(4, 0), sq(0, 0), Color::White) {
+unchessed-core/src/fen.rs:106:        return Err("castling right Q without king/rook on e1/a1".into());
+unchessed-core/src/fen.rs:108:    if pos.castling & BK != 0 && !king_rook_ok(sq(4, 7), sq(7, 7), Color::Black) {
+unchessed-core/src/fen.rs:109:        return Err("castling right k without king/rook on e8/h8".into());
+unchessed-core/src/fen.rs:111:    if pos.castling & BQ != 0 && !king_rook_ok(sq(4, 7), sq(0, 7), Color::Black) {
+unchessed-core/src/fen.rs:112:        return Err("castling right q without king/rook on e8/a8".into());
+unchessed-core/src/fen.rs:123:            // "en passant" capture with no real pawn behind it, which
+unchessed-core/src/fen.rs:144:    pos.halfmove = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+unchessed-core/src/fen.rs:202:    if pos.castling == 0 {
+unchessed-core/src/fen.rs:205:        if pos.castling & WK != 0 {
+unchessed-core/src/fen.rs:208:        if pos.castling & WQ != 0 {
+unchessed-core/src/fen.rs:211:        if pos.castling & BK != 0 {
+unchessed-core/src/fen.rs:214:        if pos.castling & BQ != 0 {
+unchessed-core/src/fen.rs:224:    out.push_str(&format!(" {} {}", pos.halfmove, pos.fullmove));
+unchessed-core/src/lib.rs:10:pub mod perft;
+unchessed-core/src/movegen.rs:515:/// Pseudo-legal move generation. `caps_only` = captures + promotions (for qsearch).
+unchessed-core/src/movegen.rs:627:    // en passant (counts as a capture)
+unchessed-core/src/movegen.rs:694:    // --- castling ---
+unchessed-core/src/movegen.rs:697:            if pos.castling & WK != 0
+unchessed-core/src/movegen.rs:705:            if pos.castling & WQ != 0
+unchessed-core/src/movegen.rs:714:            if pos.castling & BK != 0
+unchessed-core/src/movegen.rs:722:            if pos.castling & BQ != 0
+unchessed-core/src/nnue.rs:570:    /// en passant, castling, and promotion all fall out correctly for
+unchessed-core/src/nnue.rs:802:        let weights = xorshift_weights(4 * ACC, 0xdead_beef_cafe_0001);
+unchessed-core/src/nnue.rs:1085:    /// (square ^56), side flipped, castling rights swapped, ep mirrored.
+unchessed-core/src/nnue.rs:1103:        let castling = if parts[2] == "-" {
+unchessed-core/src/nnue.rs:1126:            castling,
+unchessed-core/src/nnue.rs:1136:        // asymmetric middlegame, black castled short, white king in the center
+unchessed-core/src/nnue.rs:1138:        // both castled, opposite sides (white short, black long)
+unchessed-core/src/nnue.rs:1140:        // en-passant square set, black to move next after mirror
+unchessed-core/src/nnue.rs:1273:    /// row nowhere near the mover's destination, en passant removes a row
+unchessed-core/src/nnue.rs:1274:    /// at neither the origin nor the destination, promotion changes which
+unchessed-core/src/nnue.rs:1275:    /// piece-type row gets added, and castling moves two pieces at once
+unchessed-core/src/nnue.rs:1288:                "en passant",
+unchessed-core/src/nnue.rs:1293:                "kingside castling",
+unchessed-core/src/nnue.rs:1298:                "queenside castling",
+unchessed-core/src/nnue.rs:1302:            ("promotion (quiet)", "8/4P1k1/8/8/8/8/6K1/8 w - - 0 1", "e7e8q"),
+unchessed-core/src/nnue.rs:1304:                "promotion + capture",
+unchessed-core/src/nnue.rs:1309:                "king move (non-castling)",
+unchessed-core/src/nnue.rs:1326:    /// (opening theory including a capture and castling both sides), state
+unchessed-core/src/perft.rs:6:pub fn perft(pos: &Position, depth: u32) -> u64 {
+unchessed-core/src/perft.rs:16:        nodes += perft(&pos.make(m), depth - 1);
+unchessed-core/src/perft.rs:22:pub fn perft_divide(pos: &Position, depth: u32) -> Vec<(String, u64)> {
+unchessed-core/src/perft.rs:29:            perft(&pos.make(m), depth - 1)
+unchessed-core/src/perft.rs:43:        assert_eq!(perft(&pos, depth), expected, "perft({}) of {}", depth, fen);
+unchessed-core/src/policy.rs:18://! v1 nets use 768 inputs (piece planes only). v2 nets add 4 castling-rights
+unchessed-core/src/policy.rs:19://! bits (mover K/Q, opponent K/Q) and 8 en-passant-file one-hots (780 total)
+unchessed-core/src/policy.rs:137:                ", v2 (castle/ep aware)"
+unchessed-core/src/policy.rs:145:    /// indices (castling rights / ep file, v2 nets only), and the flip flag.
+unchessed-core/src/policy.rs:166:            if pos.castling & mk != 0 {
+unchessed-core/src/policy.rs:169:            if pos.castling & mq != 0 {
+unchessed-core/src/policy.rs:172:            if pos.castling & ok != 0 {
+unchessed-core/src/policy.rs:175:            if pos.castling & oq != 0 {
+unchessed-core/src/policy.rs:238:            // the net's from-to output cannot see promotion piece choice:
+unchessed-core/src/policy.rs:239:            // underpromotions are rare in human play
+unchessed-core/src/san.rs:20:    // castling
+unchessed-core/src/san.rs:64:    // promotion suffix "=X" (or a bare trailing piece letter, e.g. "e8Q")
+unchessed-core/src/san.rs:198:    fn promotion() {
+unchessed-core/src/search.rs:305:        // -- using fewer than 2,048 total nodes, so the deadline is never
+unchessed-core/src/search.rs:324:    /// Only the most recent `halfmove` entries can possibly match: the
+unchessed-core/src/search.rs:325:    /// halfmove clock resets to zero on every capture and pawn push, and
+unchessed-core/src/search.rs:336:    /// Note the bound uses `halfmove` from the node being tested, and
+unchessed-core/src/search.rs:337:    /// `make_null` increments `halfmove` without clearing the path, so the
+unchessed-core/src/search.rs:340:    fn is_repetition(&self, hash: u64, halfmove: u16) -> bool {
+unchessed-core/src/search.rs:341:        let window = (halfmove as usize).min(self.path.len());
+unchessed-core/src/search.rs:378:        // SEE-based ordering: a capture/promotion that nets material (or is
+unchessed-core/src/search.rs:542:        // reached at halfmove 100 with the side to move in check and no
+unchessed-core/src/search.rs:543:        // legal reply is a completed game (checkmate), not a draw --
+unchessed-core/src/search.rs:546:        // rare in-check-at-halfmove-100 case, not on the hot path; the
+unchessed-core/src/search.rs:549:        if pos.halfmove >= 100 && (!in_chk || legal(pos).len != 0) {
+unchessed-core/src/search.rs:552:        if self.is_repetition(pos.hash, pos.halfmove) {
+unchessed-core/src/search.rs:601:            // en-passant state), so the evaluator's accumulators are
+unchessed-core/src/search.rs:624:        // a handful of captures/promotions already confirm a fail-high well
+unchessed-core/src/search.rs:873:/// Zobrist hashes of all game positions before `pos` (used for repetition
+unchessed-core/src/search.rs:916:/// `preprocessing_elapsed` is charged against the same soft/hard deadline as
+unchessed-core/src/search.rs:929:/// node limit, no repetition path -- so it is deterministic and cheap.
+unchessed-core/src/search.rs:984:    // castling/en-passant/promotion notation is handled exactly like move
+unchessed-core/src/search.rs:1254:    /// The halfmove-bounded repetition scan must agree with a full scan for
+unchessed-core/src/search.rs:1255:    /// every hash that could legally still be a repetition.
+unchessed-core/src/search.rs:1257:    /// The bound is a strict narrowing: entries older than the halfmove
+unchessed-core/src/search.rs:1260:    /// -- it must never invent a repetition, and never miss one inside the
+unchessed-core/src/search.rs:1263:    fn bounded_repetition_scan_matches_full_scan_within_window() {
+unchessed-core/src/search.rs:1280:            let halfmove = (next() % 60) as u16;
+unchessed-core/src/search.rs:1281:            // Small alphabet so repetitions actually occur.
+unchessed-core/src/search.rs:1304:            let bounded = searcher.is_repetition(probe, halfmove);
+unchessed-core/src/search.rs:1305:            let window = (halfmove as usize).min(path.len());
+unchessed-core/src/search.rs:1310:                "bounded scan must exactly cover the halfmove window"
+unchessed-core/src/search.rs:1315:                    "bounded scan must never invent a repetition the full scan misses"
+unchessed-core/src/search.rs:1636:    fn stalemate_position_ignores_root_hints() {
+unchessed-core/src/search.rs:1935:    /// strongly preferring quiet castling (the only move it scores above
+unchessed-core/src/search.rs:1979:            ("e1g1", 0.136316), // model's top choice: castle
+unchessed-core/src/see.rs:43:/// nets material, negative means it loses material. Quiet non-promoting
+unchessed-core/src/see.rs:63:/// happens to contain no captures or promotions never needs pin information
+unchessed-core/src/see.rs:147:    // A promotion nets the promoted piece's value minus the pawn it replaces,
+unchessed-core/src/see.rs:148:    // on top of whatever was captured (or nothing, for a quiet promotion).
+unchessed-core/src/see.rs:156:    // the promoted piece for a promotion, otherwise the moving piece itself.
+unchessed-core/src/uci.rs:234:    // behavior) meant it ran to completion and returned `bestmove`
+unchessed-core/src/uci.rs:240:    // fabricating a bestmove for a position the game may have already
+unchessed-core/src/uci.rs:336:                println!("uciok");
+unchessed-core/src/uci.rs:350:            "isready" => println!("readyok"),
+unchessed-core/src/uci.rs:401:                if let Some(g) = parse_position(&line, &game) {
+unchessed-core/src/uci.rs:939:fn parse_position(line: &str, old: &Game) -> Option<Game> {
+unchessed-core/src/uci.rs:1152:        let deadline = std::time::Instant::now() + std::time::Duration::from_millis(100);
+unchessed-core/src/uci.rs:1160:            if ready.is_some() || std::time::Instant::now() >= deadline {
+unchessed-core/src/uci.rs:1202:        // forward to the real search deadline.
+unchessed-core/src/uci.rs:1396:    // deadline via preprocessing_elapsed, the same mechanism already used
+unchessed-core/src/uci.rs:1404:        println!("bestmove 0000");
+unchessed-core/src/uci.rs:1424:    // skip when THIS move's own hard deadline is tight regardless of the
+unchessed-core/src/uci.rs:1680:                    println!("bestmove {}", entry.mv.uci());
+unchessed-core/src/uci.rs:1744:    // Everything charged against this move's deadline: real search work
+unchessed-core/src/uci.rs:1790:        println!("bestmove 0000");
+unchessed-core/src/uci.rs:1893:        println!("bestmove {}", sel.mv.uci());
+unchessed-core/src/uci.rs:1895:        println!("bestmove {}", lines[0].mv.uci());
+unchessed-core/src/uci.rs:2094:        let resent = parse_position("position startpos moves e2e4", &game).expect("position");
+unchessed-core/src/uci.rs:2113:    // move. parse_position() used to ignore the previous Game entirely and
+unchessed-core/src/uci.rs:2123:        let mut g1 = parse_position("position startpos moves e2e4", &g0).unwrap();
+unchessed-core/src/uci.rs:2132:        let mut g2 = parse_position("position startpos moves e2e4 e7e5", &g1).unwrap();
+unchessed-core/src/uci.rs:2202:        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+unchessed-core/src/uci.rs:2213:            assert!(std::time::Instant::now() < deadline, "candidate timed out");
+unchessed-core/src/uci.rs:2403:        let mut g1 = parse_position("position startpos moves e2e4", &g0).unwrap();
+unchessed-core/src/uci.rs:2407:        let g2 = parse_position("position startpos moves d2d4", &g1).unwrap();
+unchessed-datagen/src/main.rs:10://!   100          castling rights: bit0 mover-K, bit1 mover-Q, bit2 opp-K, bit3 opp-Q
+unchessed-datagen/src/main.rs:11://!   101          en-passant file 0-7, or 0xFF
+unchessed-datagen/src/main.rs:12://!   102          flags: 1 = castle move, 2 = en passant, 4 = promotion
+unchessed-datagen/src/main.rs:15://! En-passant and promotion samples bypass the acceptance subsample (they are
+unchessed-datagen/src/main.rs:100:    // castling rights, mover-relative
+unchessed-datagen/src/main.rs:106:    let mut castle = 0u8;
+unchessed-datagen/src/main.rs:107:    if pos.castling & mk != 0 {
+unchessed-datagen/src/main.rs:108:        castle |= 1;
+unchessed-datagen/src/main.rs:110:    if pos.castling & mq != 0 {
+unchessed-datagen/src/main.rs:111:        castle |= 2;
+unchessed-datagen/src/main.rs:113:    if pos.castling & ok != 0 {
+unchessed-datagen/src/main.rs:114:        castle |= 4;
+unchessed-datagen/src/main.rs:116:    if pos.castling & oq != 0 {
+unchessed-datagen/src/main.rs:117:        castle |= 8;
+unchessed-datagen/src/main.rs:119:    buf[100] = castle;
+unchessed-datagen/src/main.rs:934:        // skip tactical best moves: captures, en passant, promotions
+unchessed-datagen/src/main.rs:953:        // already-quiet-filtered, fully-legal position (real castling
+unchessed-datagen/src/main.rs:954:        // rights/en passant included, since `p` came from live SAN
+tools/analyse_gab_contribution.py:99:        "castling": torch.tensor([enc["castling"]], dtype=torch.long),
+tools/analyse_gab_contribution.py:101:        "halfmove_bucket": torch.tensor([enc["halfmove_bucket"]], dtype=torch.long),
+tools/analyse_int8_activation_calibration.py:28:makes "int8 activations failed" sound like a dead end when it isn't
+tools/analyse_int8_activation_calibration.py:204:        "castling": torch.tensor([15], dtype=torch.long),
+tools/analyse_int8_activation_calibration.py:206:        "halfmove_bucket": torch.tensor([0], dtype=torch.long),
+tools/analyse_int8_activation_calibration.py:231:        "castling": torch.tensor([enc["castling"]], dtype=torch.long),
+tools/analyse_int8_activation_calibration.py:233:        "halfmove_bucket": torch.tensor([enc["halfmove_bucket"]], dtype=torch.long),
+tools/analyse_int8_activation_calibration.py:461:                        "castling": _torch.tensor([enc["castling"]], dtype=_torch.long),
+tools/analyse_int8_activation_calibration.py:463:                        "halfmove_bucket": _torch.tensor(
+tools/analyse_int8_activation_calibration.py:464:                            [enc["halfmove_bucket"]], dtype=_torch.long
+tools/analyse_int8_activation_calibration.py:575:                "castling": torch.tensor([enc["castling"]], dtype=torch.long),
+tools/analyse_int8_activation_calibration.py:577:                "halfmove_bucket": torch.tensor(
+tools/analyse_int8_activation_calibration.py:578:                    [enc["halfmove_bucket"]], dtype=torch.long
+tools/analyse_oracle_rating_conditioning.py:12:raw response metrics rather than inferring a strength or promotion conclusion.
+tools/analyse_oracle_rating_conditioning.py:226:        "castling": torch.full((rows,), int(encoded["castling"]), dtype=torch.long),
+tools/analyse_oracle_rating_conditioning.py:228:        "halfmove_bucket": torch.full(
+tools/analyse_oracle_rating_conditioning.py:229:            (rows,), int(encoded["halfmove_bucket"]), dtype=torch.long
+tools/analyse_policy_prior_calibration.py:118:            "castling": torch.tensor([enc["castling"]], dtype=torch.long),
+tools/analyse_policy_prior_calibration.py:120:            "halfmove_bucket": torch.tensor([enc["halfmove_bucket"]], dtype=torch.long),
+tools/analyse_rating_conditioning.py:97:        "castling": torch.tensor([enc["castling"]], dtype=torch.long),
+tools/analyse_rating_conditioning.py:99:        "halfmove_bucket": torch.tensor([enc["halfmove_bucket"]], dtype=torch.long),
+tools/analyse_unarchitectured_v1_ordering_risk.py:109:        "castling": torch.tensor([enc["castling"]], dtype=torch.long),
+tools/analyse_unarchitectured_v1_ordering_risk.py:111:        "halfmove_bucket": torch.tensor([enc["halfmove_bucket"]], dtype=torch.long),
+tools/build_matetrack_suite.py:110:        mate = board.is_checkmate()
+tools/build_matetrack_suite.py:177:            if dm == 1 and not board.is_checkmate():
+tools/calibrate_unarchitectured_v1_policy.py:119:# by 400, and WDL outcome buckets use a +/-50cp deadband around the teacher's
+tools/calibrate_unarchitectured_v1_policy.py:132:        "castling": torch.tensor([encoded["castling"]], dtype=torch.long),
+tools/calibrate_unarchitectured_v1_policy.py:134:        "halfmove_bucket": torch.tensor([encoded["halfmove_bucket"]], dtype=torch.long),
+tools/calibrate_unarchitectured_v1_policy.py:156:    """A nearly-free static ordering score: MVV-LVA, promotions, checks.
+tools/calibrate_unarchitectured_v1_policy.py:164:    if board.is_en_passant(move):
+tools/calibrate_unarchitectured_v1_policy.py:169:    if move.promotion:
+tools/calibrate_unarchitectured_v1_policy.py:170:        score += _MVV_LVA_VALUE[move.promotion]
+tools/calibrate_unarchitectured_v1_policy.py:485:            "description": "MVV-LVA + promotion + check static ordering",
+tools/find_unarchitectured_v1_hint_disagreements.py:84:# move and asserting checkmate, so a typo cannot silently produce a bogus
+tools/find_unarchitectured_v1_hint_disagreements.py:138:        "castling": torch.tensor([enc["castling"]], dtype=torch.long),
+tools/find_unarchitectured_v1_hint_disagreements.py:140:        "halfmove_bucket": torch.tensor([enc["halfmove_bucket"]], dtype=torch.long),
+tools/find_unarchitectured_v1_hint_disagreements.py:178:        is_mate = probe.is_checkmate()
+tools/find_unarchitectured_v1_hint_disagreements.py:184:            if scan.is_checkmate():
+tools/maia3_cloud_selfplay/generate.py:35:    never deadlocks on interleaved I/O,
+tools/maia3_cloud_selfplay/generate.py:313:        self.wait("uciok", self.timeout)
+tools/maia3_cloud_selfplay/generate.py:336:            raise RuntimeError(f"{self.name}: engine process is dead")
+tools/maia3_cloud_selfplay/generate.py:359:        self.wait("readyok", self.timeout)
+tools/maia3_cloud_selfplay/generate.py:371:    def bestmove(self, fen: str, ms: int) -> str | None:
+tools/maia3_cloud_selfplay/generate.py:375:            line = self.wait("bestmove", max(30.0, ms / 1000.0 * 10 + 30))
+tools/maia3_cloud_selfplay/generate.py:391:        self.wait("uciok", self.timeout)
+tools/maia3_cloud_selfplay/generate.py:556:            uci = eng.bestmove(fen, side_move_ms(prof, elo, args))
+tools/maia3_cloud_selfplay/generate.py:559:                uci = eng.bestmove(fen, side_move_ms(prof, elo, args))
+tools/maia3_cloud_selfplay/generate.py:768:        mv = e.wait("bestmove", 60).split()[1]
+tools/maia3_cloud_selfplay/generate.py:771:        report[p.id] = f"ok (startpos bestmove {mv})"
+tools/maia3_cloud_selfplay/generate.py:925:                          "sha256('seed:game_id'); uci engines: bestmove "
+tools/maia3_cloud_selfplay/generate.py:1069:        print("note: conditioning check skipped (insufficient maia3 "
+tools/maia3_cloud_selfplay/generate.py:1277:    line = e.wait("bestmove", 120)
+tools/maia3_cloud_selfplay/generate.py:1282:    print(f"[{pid}] self-test ok: startpos bestmove {mv}", flush=True)
+tools/maia3_cloud_selfplay/generate.py:1299:        "self_test_bestmove": mv,
+tools/measure_game_phase_definitions.py:237:        fen_parts = tokens[:4]  # placement, side-to-move, castling, ep
+tools/measure_game_phase_definitions.py:239:        # halfmove/fullmove clocks are optional in EPD; take leading int fields
+tools/pretrain_move_dataset.py:10:to<<6; castling bits 0/1 mover-K/Q, 2/3 opponent-K/Q), and actions
+tools/pretrain_move_dataset.py:11:live in the 4096x5 = 20480 move-promotion space (move*5 + promotion,
+tools/pretrain_move_dataset.py:12:promotion 0 none / 1 knight / 2 bishop / 3 rook / 4 queen) — the same
+tools/pretrain_move_dataset.py:36:  action       (N,)   u32   target = move*5 + promotion
+tools/pretrain_move_dataset.py:83:    return move * 5 + PROMO_IDS[mv.promotion]
+tools/pretrain_move_dataset.py:88:    """STM-normalized (bitboards(12,), castling byte, legal actions,
+tools/pretrain_move_dataset.py:102:                        mv.promotion)
+tools/pretrain_move_dataset.py:107:    castling = 0
+tools/pretrain_move_dataset.py:108:    if board.has_castling_rights(chess.H1):
+tools/pretrain_move_dataset.py:109:        castling |= 1
+tools/pretrain_move_dataset.py:110:    if board.has_castling_rights(chess.A1):
+tools/pretrain_move_dataset.py:111:        castling |= 2
+tools/pretrain_move_dataset.py:112:    if board.has_castling_rights(chess.H8):
+tools/pretrain_move_dataset.py:113:        castling |= 4
+tools/pretrain_move_dataset.py:114:    if board.has_castling_rights(chess.A8):
+tools/pretrain_move_dataset.py:115:        castling |= 8
+tools/pretrain_move_dataset.py:117:    return (np.asarray(planes, dtype=np.uint64), castling, legal,
+tools/pretrain_move_dataset.py:190:    castling = np.empty(n, dtype=np.uint8)
+tools/pretrain_move_dataset.py:211:            castling[i] = c
+tools/pretrain_move_dataset.py:234:        "bitboards": bitboards, "castling": castling, "action": actions,
+tools/pretrain_move_dataset.py:359:        "action_space": "4096 moves x 5 promotion classes = 20480 "
+tools/pretrain_move_predictor.py:7:5 promotion classes, the Unarchitectured v1 student action
+tools/pretrain_move_predictor.py:23:Model: [768 board bits + castling one-hot + elo_self/100 +
+tools/pretrain_move_predictor.py:56:    """[768 board bits + 4 castling bits + 2 elo] float32."""
+tools/pretrain_move_predictor.py:65:    cast = np.stack([((arrays["castling"] >> i) & 1).astype(np.float32)
+tools/pretrain_v1_a100.py:134:            ("promotion", "u1"),
+tools/pretrain_v1_a100.py:137:            ("castling", "u1"),
+tools/pretrain_v1_a100.py:139:            ("halfmove", "u1"),
+tools/pretrain_v1_a100.py:256:        promotion = torch.where(kind == 1, ((history >> 12) & 3) + 1, 0)
+tools/pretrain_v1_a100.py:262:            + self.history_promotion(promotion)
+tools/pretrain_v5_data.py:35:                 encoding (kind bit set for promotions)
+tools/pretrain_v5_data.py:135:# unarchitectured_v1_base_data: 12 bitboards, move, promotion, wdl,
+tools/pretrain_v5_data.py:136:# rating, castling, ep_file, halfmove, time_class, flags, history_len,
+tools/pretrain_v5_data.py:187:    promo = PROMO_TO_BIT[mv.promotion]
+tools/pretrain_v5_data.py:188:    if mv.promotion is None:
+tools/pretrain_v5_data.py:196:    promo = PROMO_TO_BIT[mv.promotion]
+tools/pretrain_v5_data.py:197:    if mv.promotion is None:
+tools/pretrain_v5_data.py:210:def castling_byte(board: chess.Board) -> int:
+tools/pretrain_v5_data.py:214:    if board.has_castling_rights(chess.H1):
+tools/pretrain_v5_data.py:216:    if board.has_castling_rights(chess.A1):
+tools/pretrain_v5_data.py:218:    if board.has_castling_rights(chess.H8):
+tools/pretrain_v5_data.py:220:    if board.has_castling_rights(chess.A8):
+tools/pretrain_v5_data.py:225:def pack_record(bb: tuple, move: int, promotion: int, wdl: int, rating: int,
+tools/pretrain_v5_data.py:226:                castling: int, ep_file: int, halfmove: int, time_class: int,
+tools/pretrain_v5_data.py:238:        *bb, move, promotion, wdl, rating, castling, ep_file, halfmove,
+tools/pretrain_v5_data.py:261:        "move": base[12], "promotion": base[13], "wdl": base[14],
+tools/pretrain_v5_data.py:262:        "rating": base[15], "castling": base[16], "ep_file": base[17],
+tools/pretrain_v5_data.py:263:        "halfmove": base[18], "time_class": base[19], "flags": base[20],
+tools/pretrain_v5_data.py:378:        halfmove = min(board.halfmove_clock, 255)
+tools/pretrain_v5_data.py:380:        if mv.promotion is not None:
+tools/pretrain_v5_data.py:382:        if board.is_castling(mv):
+tools/pretrain_v5_data.py:384:        if board.is_en_passant(mv):
+tools/pretrain_v5_data.py:403:            "castling": castling_byte(board), "ep_file": ep_file,
+tools/pretrain_v5_data.py:404:            "halfmove": halfmove, "time_class": 0, "flags": flags,
+tools/pretrain_v5_data.py:765:        promotion=1 if row["target"] & (1 << 14) else 0,
+tools/pretrain_v5_data.py:766:        wdl=row["wdl"], rating=row["rating"], castling=row["castling"],
+tools/pretrain_v5_data.py:767:        ep_file=row["ep_file"], halfmove=row["halfmove"],
+tools/pretrain_v5_data.py:831:            if not (0 <= rec["castling"] <= 15):
+tools/pretrain_v5_data.py:832:                errors.append(f"{path} record {i}: bad castling byte")
+tools/reference_forward_unarchitectured_v1.py:110:        F.embedding(batch["castling"], w["castling_embedding.weight"])
+tools/reference_forward_unarchitectured_v1.py:112:        + F.embedding(batch["halfmove_bucket"], w["halfmove_embedding.weight"])
+tools/reference_forward_unarchitectured_v1.py:155:    promotion = (actions >> 12).clamp(0, 4)
+tools/reference_forward_unarchitectured_v1.py:163:    logits = logits + F.embedding(promotion, w["promotion_bias.weight"]).squeeze(-1)
+tools/reference_forward_unarchitectured_v1.py:171:        + F.embedding(promotion, w["regret_promotion.weight"])
+tools/reference_forward_unarchitectured_v1.py:224:        "castling": torch.tensor([15], dtype=torch.long),
+tools/reference_forward_unarchitectured_v1.py:226:        "halfmove_bucket": torch.tensor([0], dtype=torch.long),
+tools/render_ieee_pdf.py:85:         "stays default false. A net is promoted only after SPRT versus unchessed-nnue.bin "
+tools/render_ieee_pdf.py:129:         "Then SPRT with Adaptive=true. Do not promote on val-MAE alone."),
+tools/selfplay.py:26:        self.wait(lambda l: l == "uciok")
+tools/selfplay.py:37:        deadline = time.time() + timeout
+tools/selfplay.py:38:        while time.time() < deadline:
+tools/selfplay.py:40:                line = self.q.get(timeout=max(0.05, deadline - time.time()))
+tools/selfplay.py:47:    def bestmove(self, moves, movetime):
+tools/selfplay.py:51:        line = self.wait(lambda l: l.startswith("bestmove"), timeout=movetime / 1000 + 10)
+tools/selfplay.py:73:        e.wait(lambda l: l == "readyok")
+tools/selfplay.py:79:        mv = eng.bestmove(moves, movetime)
+tools/selfplay.py:81:            result = f"game over at ply {ply} (mate/stalemate)"
+tools/selfplay_elo_mixer.py:43:          entries exist but are never legal); rank-7->8 promotions:
+tools/smoke_unarchitectured_v1_uci.py:28:    deadline = time.monotonic() + timeout
+tools/smoke_unarchitectured_v1_uci.py:30:    while time.monotonic() < deadline:
+tools/smoke_unarchitectured_v1_uci.py:54:        uci_lines = read_until(process, lambda line: line == "uciok", args.timeout)
+tools/smoke_unarchitectured_v1_uci.py:63:        read_until(process, lambda line: line == "readyok", args.timeout)
+tools/smoke_unarchitectured_v1_uci.py:66:        search_lines = read_until(process, lambda line: line.startswith("bestmove "), args.timeout)
+tools/tag_calibration_themes.py:39:  promotion          teacher's best move promotes
+tools/tag_calibration_themes.py:113:        if not board.is_en_passant(best):
+tools/tag_calibration_themes.py:119:    if best.promotion:
+tools/tag_calibration_themes.py:120:        themes.add("promotion")
+tools/tag_calibration_themes.py:121:    if not (is_capture or gives_check or best.promotion):
+tools/tag_calibration_themes.py:170:        "castling": torch.tensor([enc["castling"]], dtype=torch.long),
+tools/tag_calibration_themes.py:172:        "halfmove_bucket": torch.tensor([enc["halfmove_bucket"]], dtype=torch.long),
+tools/test_build_level_conditioned_moves.py:116:    stalemate = write_game(tmp_path / "s.pgn", white="W", black="B",
+tools/test_build_level_conditioned_moves.py:124:    rows, skips = collect(stalemate, (1500,), 0, 0)
+tools/test_hint_disagreements.py:67:                self.assertEqual(probe.is_checkmate(), r["correct_is_mate"])
+tools/test_hint_disagreements.py:72:                    if board.is_checkmate():
+tools/test_maia3_cloud_selfplay.py:228:    # 694 moves < 1000 -> the check reports None (insufficient data);
+tools/test_matetrack_suite.py:80:                    if board.is_checkmate():
+tools/test_matetrack_suite.py:95:                self.assertTrue(board.is_checkmate())
+tools/test_nnue_cloud_runtime.py:35:    def test_cloud_with_token_passes(self):
+tools/test_ordering_risk.py:117:    def test_preprocessing_is_charged_to_the_deadline(self):
+tools/test_pentanomial_sprt.py:117:        """A dead-even result is evidence against 'gained 5 Elo'."""
+tools/test_pretrain_move.py:60:    assert a["castling"][0] == b["castling"][0]
+tools/test_pretrain_move.py:68:def test_castling_and_promotion_encode():
+tools/test_pretrain_move.py:70:    assert c["castling"][0] == 0b1111  # both sides have KQ
+tools/test_pretrain_v5.py:6:  * promotion/castling 16-bit action encoding (exact values),
+tools/test_pretrain_v5.py:118:    return dict(bb=bb, move=0x123, promotion=1, wdl=2, rating=1500,
+tools/test_pretrain_v5.py:119:                castling=0xF, ep_file=3, halfmove=5, time_class=0,
+tools/test_pretrain_v5.py:154:    # e1-g1 castle (no promo): e1 (4) mirrors to e8 (60), g1 (7) to g8
+tools/test_pretrain_v5.py:158:    # d7-d8 knight promotion
+tools/test_pretrain_v5.py:200:        assert 0 <= r["castling"] <= 15
+tools/test_pretrain_v5.py:202:    # the castling move (GAME_A ply 8) set FLAG_CASTLE
+tools/test_pretrain_v5.py:203:    castle = [r for r in a_rows if r["target_action"] ==
+tools/test_pretrain_v5.py:205:    assert castle and castle[0]["flags"] & 1
+tools/test_unarchitectured_v1_calibration.py:65:        self.assertEqual(encoded["castling"], 15)
+tools/test_unarchitectured_v1_calibration.py:93:    def test_promotion_and_castling_encoding(self):
+tools/test_unarchitectured_v1_calibration.py:97:        self.assertEqual(action >> 12, 4, "queen promotion code")
+tools/test_unarchitectured_v1_calibration.py:99:        self.assertEqual(knight >> 12, 1, "knight promotion code")
+tools/test_unarchitectured_v1_calibration.py:101:        # Mover-relative castling bits: black to move sees its own rights first.
+tools/test_unarchitectured_v1_calibration.py:104:        self.assertEqual(encoded["castling"], 15)
+tools/test_unarchitectured_v1_calibration.py:106:        self.assertEqual(module.encode_position(black_king_only)["castling"], 1)
+tools/test_unarchitectured_v1_calibration.py:194:    def test_wdl_bucket_deadband(self):
+tools/test_unarchitectured_v1_calibration.py:199:        self.assertEqual(module.wdl_bucket(50), 1, "deadband is inclusive")
+tools/test_unarchitectured_v1_scripts.py:71:            promotion=0,
+tools/test_unarchitectured_v1_scripts.py:74:            castling=0,
+tools/test_unarchitectured_v1_scripts.py:76:            halfmove=0,
+tools/train_policy.py:6:  + u16 rating + u8 castling rights + u8 ep file (0xFF none) + u8 flags
+tools/train_policy.py:7:  (1 castle, 2 en passant, 4 promotion) + u8 pad.
+tools/train_policy.py:9:Features (780): 768 piece-plane bits + 4 castling-rights bits + 8 ep-file
+tools/train_policy.py:13:(castling / en passant / promotions) so rule handling is measurable.
+tools/train_policy.py:31:        ("castle", "u1"),
+tools/train_policy.py:53:    castle = np.unpackbits(
+tools/train_policy.py:54:        sel["castle"].reshape(n, 1), axis=1, bitorder="little"
+tools/train_policy.py:59:    return np.concatenate([bits, castle, ep], axis=1)
+tools/train_policy.py:71:    """(overall, castle, ep, promo) top-1 accuracies on idx."""
+tools/train_policy.py:118:            f"val-top1 {acc[0]*100:.1f}% [castle {acc[1]*100:.1f}% "
+tools/train_policy.py:152:            f"  bucket {lo}-{hi}: top1 {acc[0]*100:.1f}% castle {acc[1]*100:.1f}% "
+tools/train_unarchitectured_v1_a100.py:316:        self.castling_embedding = nn.Embedding(16, width)
+tools/train_unarchitectured_v1_a100.py:318:        self.halfmove_embedding = nn.Embedding(16, width)
+tools/train_unarchitectured_v1_a100.py:335:        self.action_promotion = nn.Embedding(5, width)
+tools/train_unarchitectured_v1_a100.py:349:        self.history_promotion = nn.Embedding(5, history_width)
+tools/train_unarchitectured_v1_a100.py:381:        promotion = torch.where(kind == 1, ((history >> 12) & 3) + 1, 0)
+tools/train_unarchitectured_v1_a100.py:386:            + self.history_promotion(promotion)
+tools/train_unarchitectured_v1_a100.py:404:            self.castling_embedding(batch["castling"])
+tools/train_unarchitectured_v1_a100.py:406:            + self.halfmove_embedding(batch["halfmove_bucket"])
+tools/train_unarchitectured_v1_a100.py:423:        promotion = (actions >> 12).clamp(0, 4)
+tools/train_unarchitectured_v1_a100.py:427:            + self.action_promotion(promotion)
+tools/train_unarchitectured_v1_student_a100.py:6:- legal promotion-aware policy logits over at most 218 supplied actions;
+tools/train_unarchitectured_v1_student_a100.py:274:        self.castling_embedding = nn.Embedding(16, d)
+tools/train_unarchitectured_v1_student_a100.py:276:        self.halfmove_embedding = nn.Embedding(16, d)
+tools/train_unarchitectured_v1_student_a100.py:294:        self.promotion_bias = nn.Embedding(5, 1)
+tools/train_unarchitectured_v1_student_a100.py:295:        nn.init.zeros_(self.promotion_bias.weight)
+tools/train_unarchitectured_v1_student_a100.py:300:        self.history_promotion = nn.Embedding(5, history_width)
+tools/train_unarchitectured_v1_student_a100.py:315:        self.regret_promotion = nn.Embedding(5, regret_width)
+tools/train_unarchitectured_v1_student_a100.py:333:        promotion = torch.where(kind == 1, ((history >> 12) & 3) + 1, 0)
+tools/train_unarchitectured_v1_student_a100.py:338:            + self.history_promotion(promotion)
+tools/train_unarchitectured_v1_student_a100.py:357:            self.castling_embedding(batch["castling"])
+tools/train_unarchitectured_v1_student_a100.py:359:            + self.halfmove_embedding(batch["halfmove_bucket"])
+tools/train_unarchitectured_v1_student_a100.py:387:        promotion = (actions >> 12).clamp(0, 4)
+tools/train_unarchitectured_v1_student_a100.py:391:        logits = logits + self.promotion_bias(promotion).squeeze(-1)
+tools/train_unarchitectured_v1_student_a100.py:399:            + self.regret_promotion(promotion)
+tools/train_unarchitectured_v1_student_a100.py:449:    castling = numpy_to_device(np.ascontiguousarray(records["castling"]).astype(np.int64), device)
+tools/train_unarchitectured_v1_student_a100.py:453:    halfmove = numpy_to_device(np.ascontiguousarray(records["halfmove"]).astype(np.int64), device)
+tools/train_unarchitectured_v1_student_a100.py:475:        mirrored_castling = (
+tools/train_unarchitectured_v1_student_a100.py:476:            ((castling & 1) << 1)
+tools/train_unarchitectured_v1_student_a100.py:477:            | ((castling & 2) >> 1)
+tools/train_unarchitectured_v1_student_a100.py:478:            | ((castling & 4) << 1)
+tools/train_unarchitectured_v1_student_a100.py:479:            | ((castling & 8) >> 1)
+tools/train_unarchitectured_v1_student_a100.py:481:        castling = torch.where(mirror, mirrored_castling, castling)
+tools/train_unarchitectured_v1_student_a100.py:506:        "castling": castling,
+tools/train_unarchitectured_v1_student_a100.py:508:        "halfmove_bucket": (halfmove // 8).clamp(0, 15),
+tools/uci_smoke.py:40:        deadline = time.time() + timeout
+tools/uci_smoke.py:41:        while time.time() < deadline:
+tools/uci_smoke.py:43:                line = self.q.get(timeout=max(0.05, deadline - time.time()))
+tools/uci_smoke.py:67:    e.expect(lambda l: l == "uciok", desc="uciok")
+tools/uci_smoke.py:73:    e.expect(lambda l: l == "readyok", desc="readyok")
+tools/uci_smoke.py:82:    e.expect(lambda l: l == "readyok", desc="readyok after setoption")
+tools/uci_smoke.py:86:    # 4. fixed-time search returns a legal-looking bestmove
+tools/uci_smoke.py:91:    bm = e.expect(lambda l: l.startswith("bestmove"), timeout=6, desc="bestmove")
+tools/uci_smoke.py:94:    assert len(mv) in (4, 5) and mv != "0000", f"bad bestmove {bm}"
+tools/uci_smoke.py:102:    bm = e.expect(lambda l: l.startswith("bestmove"), timeout=15, desc="bestmove clocks")
+tools/uci_smoke.py:106:    # 6. go infinite + stop must yield bestmove promptly
+tools/uci_smoke.py:111:    bm = e.expect(lambda l: l.startswith("bestmove"), timeout=5, desc="bestmove after stop")
+tools/uci_smoke.py:119:    bm = e.expect(lambda l: l.startswith("bestmove"), timeout=5, desc="bestmove mate")
+tools/uci_smoke.py:124:    # 8. stalemate/checkmate position handling: no legal moves -> bestmove 0000
+tools/uci_smoke.py:125:    e.send("position fen 7k/5Q2/6K1/8/8/8/8/8 b - - 0 1")  # black is stalemated
+tools/uci_smoke.py:127:    bm = e.expect(lambda l: l.startswith("bestmove"), timeout=5, desc="bestmove stalemate")
+tools/unarchitectured_v1_architecture_audit.py:70:        == 64 * 64 * runtime["promotion_classes"],
+tools/unarchitectured_v1_base_data.py:7:promotion identity, WDL, recent moves, privacy-preserving game/player hashes,
+tools/unarchitectured_v1_base_data.py:39:SCHEMA_DESCRIPTOR = """Unchessed Hydra Aegis data record v3;little-endian;header=magic:8,version:u16,header_bytes:u16,record_bytes:u16,flags:u16,endian:u32,records:u64,schema_sha256:32,crc32:u32;record=bitboards:12xu64,move:u16,promotion:u8,wdl:u8,rating:u16,castling:u8,ep_file:u8,halfmove:u8,time_class:u8,flags:u8,history_len:u8,history:8xu16,game_hash:u64,player_hash:u64,teacher_score:i16,best_move:u16,best_score:i16,move_score:i16,ply:u16,remaining_ms:u32,increment_ms:u32,reserved:u16"""
+tools/unarchitectured_v1_base_data.py:71:    promotion: int
+tools/unarchitectured_v1_base_data.py:74:    castling: int
+tools/unarchitectured_v1_base_data.py:76:    halfmove: int
+tools/unarchitectured_v1_base_data.py:99:        if not 0 <= self.promotion <= 4:
+tools/unarchitectured_v1_base_data.py:100:            raise FormatError("promotion must be 0 none, 1 knight, 2 bishop, 3 rook, or 4 queen")
+tools/unarchitectured_v1_base_data.py:101:        is_promotion = bool(self.flags & FLAG_PROMOTION)
+tools/unarchitectured_v1_base_data.py:102:        if is_promotion != (self.promotion != 0):
+tools/unarchitectured_v1_base_data.py:103:            raise FormatError("promotion flag and promotion identity disagree")
+tools/unarchitectured_v1_base_data.py:108:        if not 0 <= self.castling < 16:
+tools/unarchitectured_v1_base_data.py:109:            raise FormatError("castling rights use only four bits")
+tools/unarchitectured_v1_base_data.py:111:            raise FormatError("en-passant file must be 0..7 or 0xff")
+tools/unarchitectured_v1_base_data.py:112:        if not 0 <= self.halfmove <= 255:
+tools/unarchitectured_v1_base_data.py:113:            raise FormatError("halfmove clock outside u8 range")
+tools/unarchitectured_v1_base_data.py:159:            self.promotion,
+tools/unarchitectured_v1_base_data.py:162:            self.castling,
+tools/unarchitectured_v1_base_data.py:164:            self.halfmove,
+tools/unarchitectured_v1_base_data.py:189:            promotion=values[13],

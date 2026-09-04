@@ -1,0 +1,37 @@
+[1m[92m    Finished[0m `release` profile [optimized] target(s) in 0.01s
+[1m[92m     Running[0m unittests src/main.rs (target/release/deps/unchessed_adapter-7d08f21cfb89949d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[92m     Running[0m unittests src/lib.rs (target/release/deps/unchessed_core-b059989670f65129)
+
+running 6 tests
+test aegis_v4_runtime::tests::benchmark_fixture_disjoint_exit_calibration ... ok
+test aegis_v4_runtime::tests::benchmark_exit_ladder ... ok
+test aegis_v4_runtime::tests::benchmark_forward_pass ... ok
+test perft::tests::deep ... ok
+test aegis_v4_runtime::tests::benchmark_integer_matrix_speedup ... ok
+test aegis_v4_runtime::tests::benchmark_precharged_shallow_root_hint_search ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 123 filtered out; finished in 21.70s
+
+[1m[92m     Running[0m unittests src/main.rs (target/release/deps/unchessed_datagen-120dbcfe494d12b0)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[92m     Running[0m unittests src/main.rs (target/release/deps/unchessed_reviewer-f1b4a83162677651)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[92m   Doc-tests[0m unchessed_core
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

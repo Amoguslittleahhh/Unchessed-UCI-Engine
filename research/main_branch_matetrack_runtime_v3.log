@@ -1,0 +1,6 @@
+{
+  "engine": "/home/ubuntu/unchessed_audit/main_repo/target/debug/unchessed-adapter",
+  "cases": 7,
+  "passed": 7,
+  "failed": 0
+}

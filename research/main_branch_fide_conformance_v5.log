@@ -1,0 +1,20 @@
+{
+  "engine": "/home/ubuntu/unchessed_audit/main_repo/target/debug/unchessed-adapter",
+  "fixed_cases": 14,
+  "reachable_cases": 1000,
+  "protocol": {
+    "uciok": true,
+    "readyok": true,
+    "returncode": 0
+  },
+  "valid_cases": 1014,
+  "nonterminal_cases": 1004,
+  "nonterminal_legal_pass": 1004,
+  "nonterminal_legal_fail": 0,
+  "terminal_cases": 10,
+  "terminal_0000": 9,
+  "invalid_cases": 5,
+  "invalid_parser_error": 5,
+  "invalid_bestmove_emitted": 5,
+  "engine_returncode_invalid_run": 0
+}

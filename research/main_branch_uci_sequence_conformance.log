@@ -1,0 +1,11 @@
+{
+  "sequence_cases": 252,
+  "legal_or_terminal_pass": 252,
+  "fail": 0,
+  "uciok": true,
+  "readyok": true,
+  "invalid_parser_error": true,
+  "invalid_bestmoves": 2,
+  "engine_returncode": 0,
+  "invalid_returncode": 0
+}

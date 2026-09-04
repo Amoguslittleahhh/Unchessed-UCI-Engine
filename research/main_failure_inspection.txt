@@ -1,0 +1,863 @@
+== BUILD SCRIPT MATE EXPECTATION ==
+108-# discarding this smoke test's power to check anything. These are trivial,
+109-# sub-10ms searches once actually running, so a short fixed pause is not a
+110-# meaningful cost.
+111-echo "== UCI smoke: startpos depth 5 =="
+112-out=$( { printf 'uci\nisready\nposition startpos\ngo depth 5\n'; sleep 2; printf 'quit\n'; } | "$ADAPTER")
+113-echo "$out" | grep -q "^bestmove" || { echo "no bestmove from startpos search" >&2; exit 1; }
+114-echo "$out" | grep "^bestmove" | head -1
+115-
+116:echo "== UCI smoke: matetrack back-rank mate (must find Ra8#) =="
+117:# First position of benchmarks/matetrack.epd; the unique mate is a1a8.
+118-out=$( { printf 'uci\nsetoption name Adaptive value false\nposition fen 6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1\ngo depth 6\n'; sleep 2; printf 'quit\n'; } | "$ADAPTER")
+119-echo "$out" | grep "^bestmove" | head -1
+120:echo "$out" | grep -q "^bestmove a1a8" || { echo "expected bestmove a1a8 (Ra8#)" >&2; exit 1; }
+121-
+122-if [ "${1:-}" = "--release" ]; then
+123-  echo "== cargo build --workspace --release (opt 3 + LTO; slow) =="
+124-  cargo build --workspace --release
+125-
+126-  echo "== cargo test --workspace --release (the debug-profile pass above never" \
+127-       "exercises the optimized code path actually shipped) =="
+128-  if command -v rustdoc >/dev/null 2>&1; then
+== SEARCH TERMINAL ==
+293-            }
+294-        }
+295-        false
+296-    }
+297-
+298-    #[inline]
+299-    fn check_limits(&mut self) {
+300-        // Checked on every node, not masked to a periodic cadence. The old
+301-        // "every 2,048 nodes" cadence is fine for ordinary time controls
+302-        // (that's only ~2ms of wall time at this engine's typical NPS), but
+303-        // for a genuinely short `go movetime`/`go nodes` budget a shallow
+304-        // search can complete entirely -- several iterative-deepening passes
+305:        // -- using fewer than 2,048 total nodes, so the deadline is never
+306-        // consulted again after the very first (trivially-passing) check at
+307-        // node 0. An AtomicBool load and an Instant::elapsed() read are both
+308-        // cheap enough per node that checking every time costs no measurable
+309-        // NPS (verified: ~975k nodes/s before and after on a real search).
+310-        if self.stop.load(Ordering::Relaxed) {
+311-            self.abort = true;
+312-            return;
+313-        }
+314-        if let Some(h) = self.hard_ms {
+315-            if self.start.elapsed().as_millis() as u64 >= h {
+316-                self.abort = true;
+317-            }
+318-        }
+319-    }
+320-
+321-    /// Has `hash` already occurred on the path from the game start to this
+322-    /// node?
+323-    ///
+324:    /// Only the most recent `halfmove` entries can possibly match: the
+325:    /// halfmove clock resets to zero on every capture and pawn push, and
+326-    /// those moves are irreversible, so no position before the last one can
+327-    /// ever recur. Scanning the entire path (which is seeded with the whole
+328-    /// game history) therefore compared a long tail of entries that are
+329-    /// provably non-matching -- at move 40 that is ~80 wasted comparisons on
+330-    /// every single node.
+331-    ///
+332-    /// This is a strict narrowing of the search space, not a heuristic: any
+333-    /// entry it now skips could not have compared equal anyway, so the
+334-    /// returned value -- and hence the search tree -- is unchanged.
+335-    ///
+336:    /// Note the bound uses `halfmove` from the node being tested, and
+337:    /// `make_null` increments `halfmove` without clearing the path, so the
+338-    /// window can only ever be too generous (safe), never too tight.
+339-    #[inline]
+340:    fn is_repetition(&self, hash: u64, halfmove: u16) -> bool {
+341:        let window = (halfmove as usize).min(self.path.len());
+342-        self.path[self.path.len() - window..]
+343-            .iter()
+344-            .rev()
+345-            .any(|&h| h == hash)
+346-    }
+347-
+348-    /// Draw value from the perspective of the side to move at `ply`.
+349-    #[inline]
+350-    fn draw(&self, ply: usize) -> i32 {
+351-        if ply % 2 == 0 {
+352-            self.root_draw
+353-        } else {
+--
+530-        if self.abort {
+531-            return 0;
+532-        }
+533-        if ply >= MAX_PLY {
+534-            return self.eval.eval_with_state(pos, &self.eval_states[ply]);
+535-        }
+536-
+537-        let in_chk = in_check(pos);
+538-
+539-        // draws
+540-        //
+541-        // Checkmate takes precedence over the 50-move rule: a position
+542:        // reached at halfmove 100 with the side to move in check and no
+543:        // legal reply is a completed game (checkmate), not a draw --
+544-        // mirrors Stockfish's own is_draw() guard for this exact edge
+545-        // case. Generating the legal move list here is only paid in that
+546:        // rare in-check-at-halfmove-100 case, not on the hot path; the
+547-        // ordinary (not-in-check, or in-check-with-a-reply) cases below
+548-        // still return immediately without it.
+549:        if pos.halfmove >= 100 && (!in_chk || legal(pos).len != 0) {
+550-            return self.draw(ply);
+551-        }
+552:        if self.is_repetition(pos.hash, pos.halfmove) {
+553-            return self.draw(ply);
+554-        }
+555-
+556-        let depth = if in_chk { depth.max(1) } else { depth };
+557-        if depth <= 0 {
+558-            self.nodes -= 1; // qsearch counts it
+559-            return self.qsearch(pos, alpha, beta, ply);
+560-        }
+561-
+562-        // TT probe
+563-        let mut tt_mv = Move::NONE;
+564-        if let Some(e) = self.tt.probe(pos.hash) {
+--
+861-            } else {
+862-                self.draw(ply)
+863-            };
+864-        }
+865-
+866-        self.tt
+867-            .store(pos.hash, best_mv, to_tt(best, ply), depth, bound);
+868-        best
+869-    }
+870-}
+871-
+872-/// Run a search. `eval` is the static evaluator (HCE or NNUE). `history` =
+873:/// Zobrist hashes of all game positions before `pos` (used for repetition
+874-/// detection). `draw_score` is the value of a drawn line from the root side's
+875-/// perspective (0 = neutral; negative = contempt, we want to avoid draws).
+876-/// `tt` is a shared reference: safe to call `go` concurrently from multiple
+877-/// threads against the same table (see tt.rs) — this is what Lazy SMP helper
+878-/// threads do. `start_depth` skips the (cheap, mostly-redundant-across-
+879-/// threads) shallow iterations; Lazy SMP helpers stagger this per-thread so
+880-/// they diverge from the main thread's search sooner instead of all threads
+881-/// retracing the same shallow tree in lockstep. Pass 1 for a normal search.
+882-/// Returns MultiPV lines sorted best-first.
+883-#[allow(clippy::too_many_arguments)]
+884-pub fn go(
+885-    pos: &Position,
+--
+904-        history,
+905-        draw_score,
+906-        params,
+907-        start_depth,
+908-        &[],
+909-        std::time::Duration::ZERO,
+910-        info,
+911-    )
+912-}
+913-
+914-/// Experimental, default-unreachable root-hint trial entry point.
+915-///
+916:/// `preprocessing_elapsed` is charged against the same soft/hard deadline as
+917-/// search. This prevents a synchronous caller from treating neural inference
+918-/// as free time. The normal UCI path calls [`go`] and supplies no hints.
+919-/// Static evaluation and quiescence evaluation of `pos`, from the side to
+920-/// move's perspective.
+921-///
+922-/// Exposed for training-data generation. Tan & Watkinson Medina,
+923-/// *Study of the Proper NNUE Dataset* (arXiv:2412.17948), define a "quiet"
+924-/// position partly as one where these two values agree closely: a large gap
+925-/// means a capture sequence is available that will swing the evaluation, so
+926-/// the static score is not a label worth training on.
+927-///
+928-/// Runs no search bookkeeping beyond quiescence itself -- no time limit, no
+929:/// node limit, no repetition path -- so it is deterministic and cheap.
+930-pub fn static_and_quiescence(pos: &Position, eval: &dyn Eval, tt: &TT) -> (i32, i32) {
+931-    let stop = AtomicBool::new(false);
+932-    let mut searcher = Searcher {
+933-        tt,
+934-        eval,
+935-        params: SearchParams::default(),
+936-        stop: &stop,
+937-        start: Instant::now(),
+938-        hard_ms: None,
+939-        node_limit: None,
+940-        nodes: 0,
+941-        abort: false,
+--
+1242-    }
+1243-    completed.sort_by_key(|l| -l.score);
+1244-    completed
+1245-}
+1246-
+1247-#[cfg(test)]
+1248-mod tests {
+1249-    use super::*;
+1250-    use crate::eval::Hce;
+1251-    use crate::fen;
+1252-    use std::sync::atomic::AtomicBool;
+1253-
+1254:    /// The halfmove-bounded repetition scan must agree with a full scan for
+1255:    /// every hash that could legally still be a repetition.
+1256-    ///
+1257:    /// The bound is a strict narrowing: entries older than the halfmove
+1258-    /// clock sit behind an irreversible move and can never recur, so
+1259-    /// skipping them cannot change the answer. This checks both directions
+1260:    /// -- it must never invent a repetition, and never miss one inside the
+1261-    /// window.
+1262-    #[test]
+1263:    fn bounded_repetition_scan_matches_full_scan_within_window() {
+1264-        fn full_scan(path: &[u64], hash: u64) -> bool {
+1265-            path.iter().rev().any(|&h| h == hash)
+1266-        }
+1267-
+1268-        let mut state = 0x2026_0824_u64;
+1269-        let mut next = || {
+1270-            state ^= state << 13;
+1271-            state ^= state >> 7;
+1272-            state ^= state << 17;
+1273-            state
+1274-        };
+1275-
+1276-        let tt = TT::new(1);
+1277-        let stop = AtomicBool::new(false);
+1278-        for _ in 0..2000 {
+1279-            let len = (next() % 120) as usize + 1;
+1280:            let halfmove = (next() % 60) as u16;
+1281:            // Small alphabet so repetitions actually occur.
+1282-            let path: Vec<u64> = (0..len).map(|_| next() % 40).collect();
+1283-            let probe = next() % 40;
+1284-
+1285-            let searcher = Searcher {
+1286-                tt: &tt,
+1287-                eval: &Hce::default(),
+1288-                params: SearchParams::default(),
+1289-                stop: &stop,
+1290-                start: Instant::now(),
+1291-                hard_ms: None,
+1292-                node_limit: None,
+1293-                nodes: 0,
+1294-                abort: false,
+1295-                root_draw: 0,
+1296-                killers: [[Move::NONE; 2]; MAX_PLY],
+1297-                history: [[[0; 64]; 64]; 2],
+1298-                path: path.clone(),
+1299-                pv_table: [[Move::NONE; MAX_PLY]; MAX_PLY],
+1300-                pv_len: [0; MAX_PLY],
+1301-                eval_states: Vec::new(),
+1302-            };
+1303-
+1304:            let bounded = searcher.is_repetition(probe, halfmove);
+1305:            let window = (halfmove as usize).min(path.len());
+1306-            let inside = path[path.len() - window..].iter().any(|&h| h == probe);
+1307-
+1308-            assert_eq!(
+1309-                bounded, inside,
+1310:                "bounded scan must exactly cover the halfmove window"
+1311-            );
+1312-            if bounded {
+1313-                assert!(
+1314-                    full_scan(&path, probe),
+1315:                    "bounded scan must never invent a repetition the full scan misses"
+1316-                );
+1317-            }
+1318-        }
+1319-    }
+1320-
+1321-    /// `static_and_quiescence` must actually separate quiet from noisy
+1322-    /// positions -- that is the entire basis of the arXiv:2412.17948 filter.
+1323-    #[test]
+1324-    fn static_and_quiescence_separates_quiet_from_hanging_positions() {
+1325-        let tt = TT::new(1);
+1326-        let hce = Hce::default();
+1327-
+--
+1624-                    mv: legal(&pos).as_slice()[0],
+1625-                    policy_score: f32::NAN,
+1626-                },
+1627-            ],
+1628-            std::time::Duration::ZERO,
+1629-            &mut |_| {},
+1630-        );
+1631-        assert_eq!(hinted[0].mv, baseline[0].mv);
+1632-        assert_eq!(hinted[0].score, baseline[0].score);
+1633-    }
+1634-
+1635-    #[test]
+1636:    fn stalemate_position_ignores_root_hints() {
+1637-        let pos = fen::parse("7k/5Q2/6K1/8/8/8/8/8 b - - 0 1").unwrap();
+1638-        assert_eq!(legal(&pos).len, 0);
+1639-        let tt = TT::new(4);
+1640-        let stop = AtomicBool::new(false);
+1641-        let lines = go_with_root_hints(
+1642-            &pos,
+1643-            &Hce::default(),
+1644-            &Limits::depth(4),
+1645-            1,
+1646-            &tt,
+1647-            &stop,
+1648-            &[],
+== UCI PARSER ==
+389-                        }
+390-                    }
+391-                }
+392-            }
+393-            "position" => {
+394-                join_worker(&mut worker, &stop);
+395-                // A new position while still pondering the old one means the
+396-                // opponent's actual move has already been established some
+397-                // other way (or the GUI is resetting) -- the pondered guess
+398-                // no longer applies to anything, so it's discarded, not
+399-                // started stale.
+400-                pending_ponder = None;
+401:                if let Some(g) = parse_position(&line, &game) {
+402-                    game = g;
+403-                } else {
+404:                    println!("info string [Unchessed] could not parse: {}", line);
+405-                }
+406-            }
+407-            "go" => {
+408-                join_worker(&mut worker, &stop);
+409-                let limits = parse_go(&line);
+410-                let pending = collect_pending(&mut game);
+411-                let telemetry_enabled = ident.adaptive_engine && opt.adapter_telemetry;
+412-                let observation_indices = if telemetry_enabled {
+413-                    (0..pending.len())
+414-                        .map(|_| {
+415-                            game.observation_index = game.observation_index.saturating_add(1);
+416-                            game.observation_index
+--
+927-    let same_so_far = old
+928-        .positions
+929-        .iter()
+930-        .zip(new_positions.iter())
+931-        .all(|(a, b)| a.hash == b.hash);
+932-    if same_so_far {
+933-        old.observed_plies
+934-    } else {
+935-        0
+936-    }
+937-}
+938-
+939:fn parse_position(line: &str, old: &Game) -> Option<Game> {
+940-    let mut toks = line.split_whitespace().peekable();
+941-    toks.next(); // "position"
+942-    let start = match toks.next()? {
+943-        "startpos" => fen::startpos(),
+944-        "fen" => {
+945-            let mut fen_str = String::new();
+946-            for t in toks.by_ref() {
+947-                if t == "moves" {
+948-                    // rebuild iterator state: handled below via flag
+949-                    fen_str.push_str("moves ");
+950-                    break;
+951-                }
+--
+2082-        assert!(!opt.adapter_telemetry);
+2083-    }
+2084-
+2085-    #[test]
+2086-    fn telemetry_indexes_are_reset_per_new_game_and_preserved_on_position_resend() {
+2087-        let mut game = Game::new(7);
+2088-        assert_eq!(
+2089-            (game.game_id, game.decision_index, game.observation_index),
+2090-            (7, 0, 0)
+2091-        );
+2092-        game.decision_index = 4;
+2093-        game.observation_index = 9;
+2094:        let resent = parse_position("position startpos moves e2e4", &game).expect("position");
+2095-        assert_eq!(
+2096-            (
+2097-                resent.game_id,
+2098-                resent.decision_index,
+2099-                resent.observation_index
+2100-            ),
+2101-            (7, 4, 9)
+2102-        );
+2103-        let next = Game::new(8);
+2104-        assert_eq!(
+2105-            (next.game_id, next.decision_index, next.observation_index),
+2106-            (8, 0, 0)
+2107-        );
+2108-    }
+2109-
+2110-    // Regression test for a real bug caught via a live game log: GUIs (En
+2111-    // Croissant, cutechess-cli, etc.) resend the full move list from
+2112-    // startpos on every `position` command rather than just the newest
+2113:    // move. parse_position() used to ignore the previous Game entirely and
+2114-    // always reset observed_plies to 0, so collect_pending() re-fed every
+2115-    // past opponent move into the live Elo model on every single turn
+2116-    // instead of just the new one -- repeat-counting early moves more and
+2117-    // more heavily as the game went on and distorting the estimate.
+2118-    #[test]
+2119-    fn position_carries_observed_plies_across_gui_resends() {
+2120-        let g0 = Game::new(0);
+2121-
+2122-        // turn 1: GUI sends "position startpos moves e2e4"
+2123:        let mut g1 = parse_position("position startpos moves e2e4", &g0).unwrap();
+2124-        assert_eq!(g1.observed_plies, 0, "nothing observed yet");
+2125-
+2126-        // engine observes that one opponent move (simulating what run_go
+2127-        // does with collect_pending's output) and advances the counter,
+2128-        // exactly like collect_pending() does.
+2129-        g1.observed_plies = 1;
+2130-
+2131-        // turn 2: GUI resends the FULL move list (startpos + both plies)
+2132:        let mut g2 = parse_position("position startpos moves e2e4 e7e5", &g1).unwrap();
+2133-        assert_eq!(
+2134-            g2.observed_plies, 1,
+2135-            "observed_plies must carry forward, not reset to 0, when the \
+2136-             new position is the same game continuing"
+2137-        );
+2138-
+2139-        // collect_pending on g2 should return only the ONE new opponent
+2140-        // move (e7e5), not re-return e2e4 (already observed on turn 1).
+2141-        let pending = collect_pending(&mut g2);
+2142-        assert_eq!(pending.len(), 1, "must not re-observe already-seen moves");
+2143-        assert_eq!(pending[0].mv.uci(), "e7e5");
+2144-    }
+--
+2391-        // Regression: an empty value (e.g. a GUI resetting EvalFile/BookFile
+2392-        // to nothing) used to be silently unparseable -- the caller's
+2393-        // .trim() strips the trailing space before this ever runs, so a
+2394-        // pattern requiring a trailing space after "value" could never
+2395-        // match, and the whole setoption line was dropped on the floor.
+2396-        assert_eq!(parse_setoption_kv("EvalFile value"), ("EvalFile", ""));
+2397-        assert_eq!(parse_setoption_kv("BookFile value"), ("BookFile", ""));
+2398-    }
+2399-
+2400-    #[test]
+2401-    fn position_resets_observed_plies_for_a_genuinely_different_game() {
+2402-        let g0 = Game::new(0);
+2403:        let mut g1 = parse_position("position startpos moves e2e4", &g0).unwrap();
+2404-        g1.observed_plies = 1;
+2405-
+2406-        // a real new game: different opening entirely, not a continuation
+2407:        let g2 = parse_position("position startpos moves d2d4", &g1).unwrap();
+2408-        assert_eq!(
+2409-            g2.observed_plies, 0,
+2410-            "a genuinely different game must reset observed_plies, not carry \
+2411-             over stale progress from an unrelated position"
+2412-        );
+2413-    }
+2414-}
+== RECENT DIFF DETAILS ==
+[1mdiff --git a/scripts/build-and-test.sh b/scripts/build-and-test.sh[m
+[1mindex 1e4fb9a..aec2610 100755[m
+[1m--- a/scripts/build-and-test.sh[m
+[1m+++ b/scripts/build-and-test.sh[m
+[36m@@ -48,6 +48,24 @@[m [mif ! command -v cargo >/dev/null 2>&1; then[m
+   exit 3[m
+ fi[m
+ [m
+[32m+[m[32m# Rust needs a native C linker (cc/gcc/clang) to produce a binary at all --[m
+[32m+[m[32m# without this check, a missing one only surfaces minutes later as a bare[m
+[32m+[m[32m# "linker `cc` not found" from deep inside `cargo build`'s first link step,[m
+[32m+[m[32m# after the compile-only work already ran. Skipped on Windows: MSVC's[m
+[32m+[m[32m# link.exe comes from a Visual Studio install cargo already knows how to[m
+[32m+[m[32m# find via its own toolchain detection, not a plain PATH lookup here.[m
+[32m+[m[32mcase "$(uname -s 2>/dev/null || echo unknown)" in[m
+[32m+[m[32m  MINGW*|MSYS*|CYGWIN*|Windows_NT) ;;  # MSVC toolchain, not a PATH-visible cc/gcc/clang[m
+[32m+[m[32m  *)[m
+[32m+[m[32m    if ! command -v cc >/dev/null 2>&1 && ! command -v gcc >/dev/null 2>&1 && ! command -v clang >/dev/null 2>&1; then[m
+[32m+[m[32m      echo "no native C linker (cc/gcc/clang) found on PATH." >&2[m
+[32m+[m[32m      echo "cargo needs one to link any binary -- install build-essential" >&2[m
+[32m+[m[32m      echo "(Debian/Ubuntu) or the equivalent for this OS before continuing." >&2[m
+[32m+[m[32m      exit 3[m
+[32m+[m[32m    fi[m
+[32m+[m[32m    ;;[m
+[32m+[m[32mesac[m
+[32m+[m
+ # Guard against a partial checkout before spending minutes on a build.[m
+ test -f Cargo.lock[m
+ for m in unchessed-core unchessed-adapter unchessed-reviewer unchessed-datagen; do[m
+[36m@@ -70,23 +88,48 @@[m [melse[m
+   cargo test --workspace --lib --bins[m
+ fi[m
+ [m
+[32m+[m[32mecho "== cargo test --workspace perft::tests::deep -- --ignored (excluded from the default run above) =="[m
+[32m+[m[32m# perft::tests::deep is #[ignore]d (it's slow, ~13s) and this is the only[m
+[32m+[m[32m# place that supplies --ignored -- without it, the deepest correctness gate[m
+[32m+[m[32m# this workspace has never actually runs as part of a normal gate pass.[m
+[32m+[m[32mcargo test --workspace perft::tests::deep -- --ignored[m
+[32m+[m
+ ADAPTER=target/debug/unchessed-adapter[m
+ test -x "$ADAPTER"[m
+ [m
+[32m+[m[32m# `go` starts the real search in a background thread inside the adapter and[m
+[32m+[m[32m# returns control to its UCI read loop immediately; sending `quit` right[m
+[32m+[m[32m# after in the same pipe races that search against a stop request a real[m
+[32m+[m[32m# GUI would never issue mid-search (it always waits for `bestmove` first).[m
+[32m+[m[32m# The engine now (correctly) honors `stop`/`quit` essentially immediately[m
+[32m+[m[32m# rather than after an up-to-~2048-node grace window, so what used to be a[m
+[32m+[m[32m# lucky, unintentional head start is no longer there to mask this: without[m
+[32m+[m[32m# a real pause here, `quit` can arrive before a single depth completes,[m
+[32m+[m[32m# discarding this smoke test's power to check anything. These are trivial,[m
+[32m+[m[32m# sub-10ms searches once actually running, so a short fixed pause is not a[m
+[32m+[m[32m# meaningful cost.[m
+ echo "== UCI smoke: startpos depth 5 =="[m
+[31m-out=$(printf 'uci\nisready\nposition startpos\ngo depth 5\nquit\n' | "$ADAPTER")[m
+[32m+[m[32mout=$( { printf 'uci\nisready\nposition startpos\ngo depth 5\n'; sleep 2; printf 'quit\n'; } | "$ADAPTER")[m
+ echo "$out" | grep -q "^bestmove" || { echo "no bestmove from startpos search" >&2; exit 1; }[m
+ echo "$out" | grep "^bestmove" | head -1[m
+ [m
+ echo "== UCI smoke: matetrack back-rank mate (must find Ra8#) =="[m
+ # First position of benchmarks/matetrack.epd; the unique mate is a1a8.[m
+[31m-out=$(printf 'uci\nsetoption name Adaptive value false\nposition fen 6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1\ngo depth 6\nquit\n' | "$ADAPTER")[m
+[32m+[m[32mout=$( { printf 'uci\nsetoption name Adaptive value false\nposition fen 6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1\ngo depth 6\n'; sleep 2; printf 'quit\n'; } | "$ADAPTER")[m
+ echo "$out" | grep "^bestmove" | head -1[m
+ echo "$out" | grep -q "^bestmove a1a8" || { echo "expected bestmove a1a8 (Ra8#)" >&2; exit 1; }[m
+ [m
+ if [ "${1:-}" = "--release" ]; then[m
+   echo "== cargo build --workspace --release (opt 3 + LTO; slow) =="[m
+   cargo build --workspace --release[m
+[32m+[m
+[32m+[m[32m  echo "== cargo test --workspace --release (the debug-profile pass above never" \[m
+[32m+[m[32m       "exercises the optimized code path actually shipped) =="[m
+[32m+[m[32m  if command -v rustdoc >/dev/null 2>&1; then[m
+[32m+[m[32m    cargo test --workspace --release[m
+[32m+[m[32m  else[m
+[32m+[m[32m    cargo test --workspace --release --lib --bins[m
+[32m+[m[32m  fi[m
+ fi[m
+ [m
+ echo "== disk =="[m
+[1mdiff --git a/unchessed-core/src/search.rs b/unchessed-core/src/search.rs[m
+[1mindex 96bbf30..79c507c 100644[m
+[1m--- a/unchessed-core/src/search.rs[m
+[1m+++ b/unchessed-core/src/search.rs[m
+[36m@@ -93,6 +93,20 @@[m [mpub struct Limits {[m
+     pub movestogo: Option<u64>,[m
+     pub nodes: Option<u64>,[m
+     pub infinite: bool,[m
+[32m+[m[32m    /// `go searchmoves <m1> <m2> ...`: raw UCI move strings restricting the[m
+[32m+[m[32m    /// root move set. Stored as strings (not `Move`) since parsing a UCI[m
+[32m+[m[32m    /// move string requires the position, which isn't known at `go`-line[m
+[32m+[m[32m    /// parse time -- resolved against the actual root move list in[m
+[32m+[m[32m    /// `go_with_root_hints`. Empty means unrestricted (the default for[m
+[32m+[m[32m    /// every internally-constructed `Limits`, e.g. the adapter's opponent-[m
+[32m+[m[32m    /// observation and book-troll-check probes, which must never be[m
+[32m+[m[32m    /// accidentally restricted by an outer command's searchmoves).[m
+[32m+[m[32m    pub searchmoves: Vec<String>,[m
+[32m+[m[32m    /// `go ponder`: the UCI-line "ponder" flag. `Limits` itself does nothing[m
+[32m+[m[32m    /// with this -- it's read by the UCI command loop to decide whether to[m
+[32m+[m[32m    /// defer starting the search until `ponderhit`, per this engine's[m
+[32m+[m[32m    /// pondering model (see uci.rs's "go"/"ponderhit" handling).[m
+[32m+[m[32m    pub ponder: bool,[m
+ }[m
+ [m
+ impl Limits {[m
+[36m@@ -136,7 +150,7 @@[m [mimpl Limits {[m
+     /// engine invests in depth; as the clock drains the budgets shrink[m
+     /// faster than linearly, and in real time trouble it moves near-[m
+     /// instantly on the increment.[m
+[31m-    fn budget(&self, side: Color) -> (Option<u64>, Option<u64>) {[m
+[32m+[m[32m    pub(crate) fn budget(&self, side: Color) -> (Option<u64>, Option<u64>) {[m
+         if self.infinite {[m
+             return (None, None);[m
+         }[m
+[36m@@ -283,17 +297,23 @@[m [mimpl<'a> Searcher<'a> {[m
+ [m
+     #[inline][m
+     fn check_limits(&mut self) {[m
+[31m-        // Stop and wall-clock polling retain their existing 2,048-node[m
+[31m-        // cadence. Explicit node budgets are handled before each node above.[m
+[31m-        if self.nodes & 2047 == 0 {[m
+[31m-            if self.stop.load(Ordering::Relaxed) {[m
+[32m+[m[32m        // Checked on every node, not masked to a periodic cadence. The old[m
+[32m+[m[32m        // "every 2,048 nodes" cadence is fine for ordinary time controls[m
+[32m+[m[32m        // (that's only ~2ms of wall time at this engine's typical NPS), but[m
+[32m+[m[32m        // for a genuinely short `go movetime`/`go nodes` budget a shallow[m
+[32m+[m[32m        // search can complete entirely -- several iterative-deepening passes[m
+[32m+[m[32m        // -- using fewer than 2,048 total nodes, so the deadline is never[m
+[32m+[m[32m        // consulted again after the very first (trivially-passing) check at[m
+[32m+[m[32m        // node 0. An AtomicBool load and an Instant::elapsed() read are both[m
+[32m+[m[32m        // cheap enough per node that checking every time costs no measurable[m
+[32m+[m[32m        // NPS (verified: ~975k nodes/s before and after on a real search).[m
+[32m+[m[32m        if self.stop.load(Ordering::Relaxed) {[m
+[32m+[m[32m            self.abort = true;[m
+[32m+[m[32m            return;[m
+[32m+[m[32m        }[m
+[32m+[m[32m        if let Some(h) = self.hard_ms {[m
+[32m+[m[32m            if self.start.elapsed().as_millis() as u64 >= h {[m
+                 self.abort = true;[m
+[31m-                return;[m
+[31m-            }[m
+[31m-            if let Some(h) = self.hard_ms {[m
+[31m-                if self.start.elapsed().as_millis() as u64 >= h {[m
+[31m-                    self.abort = true;[m
+[31m-                }[m
+             }[m
+         }[m
+     }[m
+[36m@@ -959,13 +979,35 @@[m [mpub fn go_with_root_hints([m
+     if root_moves_list.len == 0 {[m
+         return Vec::new();[m
+     }[m
+[31m-    let multipv = multipv.max(1).min(root_moves_list.len);[m
+[32m+[m[32m    // `go searchmoves`: restrict to the requested root moves, matched by[m
+[32m+[m[32m    // their own UCI notation against the already-legal move list (so[m
+[32m+[m[32m    // castling/en-passant/promotion notation is handled exactly like move[m
+[32m+[m[32m    // printing already does, no separate position-aware parsing needed).[m
+[32m+[m[32m    // Falls back to the full legal set if every requested move turns out[m
+[32m+[m[32m    // illegal here, rather than searching nothing or panicking on a stale[m
+[32m+[m[32m    // or malformed list.[m
+[32m+[m[32m    let restricted: Vec<Move> = if limits.searchmoves.is_empty() {[m
+[32m+[m[32m        Vec::new()[m
+[32m+[m[32m    } else {[m
+[32m+[m[32m        root_moves_list[m
+[32m+[m[32m            .as_slice()[m
+[32m+[m[32m            .iter()[m
+[32m+[m[32m            .copied()[m
+[32m+[m[32m            .filter(|m| limits.searchmoves.iter().any(|s| s == &m.uci()))[m
+[32m+[m[32m            .collect()[m
+[32m+[m[32m    };[m
+[32m+[m[32m    let root_slice: &[Move] = if restricted.is_empty() {[m
+[32m+[m[32m        root_moves_list.as_slice()[m
+[32m+[m[32m    } else {[m
+[32m+[m[32m        &restricted[m
+[32m+[m[32m    };[m
+[32m+[m[32m    let multipv = multipv.max(1).min(root_slice.len());[m
+ [m
+     // situation-based allocation: sharp or wide positions deserve more of[m
+     // the clock, simple ones less; a single legal move needs almost none[m
+     let root_in_check = in_check(pos);[m
+     let situation = {[m
+[31m-        let width = (0.65 + root_moves_list.len as f64 / 45.0).clamp(0.75, 1.3);[m
+[32m+[m[32m        let width = (0.65 + root_slice.len() as f64 / 45.0).clamp(0.75, 1.3);[m
+         let sharp = if root_in_check { 1.25 } else { 1.0 };[m
+         width * sharp[m
+     };[m
+[36m@@ -979,8 +1021,7 @@[m [mpub fn go_with_root_hints([m
+         pv: Vec<Move>,[m
+         depth: i32,[m
+     }[m
+[31m-    let mut roots: Vec<RootMove> = root_moves_list[m
+[31m-        .as_slice()[m
+[32m+[m[32m    let mut roots: Vec<RootMove> = root_slice[m
+         .iter()[m
+         .map(|&m| RootMove {[m
+             mv: m,[m
+[1mdiff --git a/unchessed-core/src/uci.rs b/unchessed-core/src/uci.rs[m
+[1mindex 0466e6a..d967797 100644[m
+[1m--- a/unchessed-core/src/uci.rs[m
+[1m+++ b/unchessed-core/src/uci.rs[m
+[36m@@ -227,6 +227,19 @@[m [mpub fn run(ident: EngineIdent) {[m
+     // persona persists across moves for hysteresis + EMA/dwell; worker updates it[m
+     let persona = Arc::new(Mutex::new(PersonaState::default()));[m
+     let mut worker: Option<JoinHandle<()>> = None;[m
+[32m+[m[32m    // `go ponder`: the search is deliberately NOT started yet -- its own[m
+[32m+[m[32m    // limits (movetime/wtime/etc) describe the budget for the move the GUI[m
+[32m+[m[32m    // expects to make AFTER the pondered move is confirmed, not time to[m
+[32m+[m[32m    // spend right now. Starting the search immediately (the previous[m
+[32m+[m[32m    // behavior) meant it ran to completion and returned `bestmove`[m
+[32m+[m[32m    // immediately, an outright protocol violation: a GUI must not see a[m
+[32m+[m[32m    // move while it still believes the engine is pondering. Held here until[m
+[32m+[m[32m    // `ponderhit` (start the real search, clock beginning now) or the ponder[m
+[32m+[m[32m    // is abandoned by `stop`/a new `position`/`quit` (discarded, no[m
+[32m+[m[32m    // response -- matching the common real-engine behavior of not[m
+[32m+[m[32m    // fabricating a bestmove for a position the game may have already[m
+[32m+[m[32m    // moved past).[m
+[32m+[m[32m    let mut pending_ponder: Option<GoJob> = None;[m
+     let mut game = Game::new(0);[m
+     // `ucinewgame` owns logical game boundaries. The initial pre-newgame[m
+     // position remains game 0 for permissive UCI clients.[m
+[36m@@ -379,6 +392,12 @@[m [mpub fn run(ident: EngineIdent) {[m
+             }[m
+             "position" => {[m
+                 join_worker(&mut worker, &stop);[m
+[32m+[m[32m                // A new position while still pondering the old one means the[m
+[32m+[m[32m                // opponent's actual move has already been established some[m
+[32m+[m[32m                // other way (or the GUI is resetting) -- the pondered guess[m
+[32m+[m[32m                // no longer applies to anything, so it's discarded, not[m
+[32m+[m[32m                // started stale.[m
+[32m+[m[32m                pending_ponder = None;[m
+                 if let Some(g) = parse_position(&line, &game) {[m
+                     game = g;[m
+                 } else {[m
+[36m@@ -459,16 +478,41 @@[m [mpub fn run(ident: EngineIdent) {[m
+                 if job.game_plies >= opt.book_depth {[m
+                     game.out_of_book_logged = true;[m
+                 }[m
+[31m-                let tt = Arc::clone(&tt);[m
+[31m-                let stop_c = Arc::clone(&stop);[m
+[31m-                let book = Arc::clone(&book);[m
+[31m-                let model = Arc::clone(&model);[m
+[31m-                let persona_c = Arc::clone(&persona);[m
+[31m-                worker = Some(std::thread::spawn(move || {[m
+[31m-                    run_go(job, tt, stop_c, book, model, persona_c);[m
+[31m-                }));[m
+[32m+[m[32m                if job.limits.ponder {[m
+[32m+[m[32m                    // Deliberately not spawned: see pending_ponder's[m
+[32m+[m[32m                    // definition. Waits for `ponderhit` (starts now, using[m
+[32m+[m[32m                    // these same limits) or `stop`/a new `position` (this[m
+[32m+[m[32m                    // guess is simply dropped).[m
+[32m+[m[32m                    pending_ponder = Some(job);[m
+[32m+[m[32m                } else {[m
+[32m+[m[32m                    let tt = Arc::clone(&tt);[m
+[32m+[m[32m                    let stop_c = Arc::clone(&stop);[m
+[32m+[m[32m                    let book = Arc::clone(&book);[m
+[32m+[m[32m                    let model = Arc::clone(&model);[m
+[32m+[m[32m                    let persona_c = Arc::clone(&persona);[m
+[32m+[m[32m                    worker = Some(std::thread::spawn(move || {[m
+[32m+[m[32m                        run_go(job, tt, stop_c, book, model, persona_c);[m
+[32m+[m[32m                    }));[m
+[32m+[m[32m                }[m
+[32m+[m[32m            }[m
+[32m+[m[32m            "ponderhit" => {[m
+[32m+[m[32m                // The predicted move was played: the budget given in the[m
+[32m+[m[32m                // original `go ponder ...` line describes the move we're[m
+[32m+[m[32m                // about to make now, so its clock starts here, not back[m
+[32m+[m[32m                // when we started pondering.[m
+[32m+[m[32m                if let Some(job) = pending_ponder.take() {[m
+[32m+[m[32m                    let tt = Arc::clone(&tt);[m
+[32m+[m[32m                    let stop_c = Arc::clone(&stop);[m
+[32m+[m[32m                    let book = Arc::clone(&book);[m
+[32m+[m[32m                    let model = Arc::clone(&model);[m
+[32m+[m[32m                    let persona_c = Arc::clone(&persona);[m
+[32m+[m[32m                    worker = Some(std::thread::spawn(move || {[m
+[32m+[m[32m                        run_go(job, tt, stop_c, book, model, persona_c);[m
+[32m+[m[32m                    }));[m
+[32m+[m[32m                }[m
+             }[m
+             "stop" => {[m
+[32m+[m[32m                pending_ponder = None;[m
+                 join_worker(&mut worker, &stop);[m
+             }[m
+             "quit" => {[m
+[36m@@ -979,6 +1023,14 @@[m [mfn parse_go(line: &str) -> Limits {[m
+             "movestogo" => num(&mut l.movestogo),[m
+             "nodes" => num(&mut l.nodes),[m
+             "infinite" => l.infinite = true,[m
+[32m+[m[32m            "ponder" => l.ponder = true,[m
+[32m+[m[32m            // Per UCI convention, searchmoves takes every remaining token as[m
+[32m+[m[32m            // a move (it's always the last thing on a `go` line in practice,[m
+[32m+[m[32m            // and nothing after it is a recognized keyword either way).[m
+[32m+[m[32m            "searchmoves" => {[m
+[32m+[m[32m                l.searchmoves = toks.by_ref().map(String::from).collect();[m
+[32m+[m[32m                break;[m
+[32m+[m[32m            }[m
+             _ => {}[m
+         }[m
+     }[m
+[36m@@ -1333,6 +1385,17 @@[m [mfn run_go([m
+     model: Arc<Mutex<OpponentModel>>,[m
+     persona: Arc<Mutex<PersonaState>>,[m
+ ) {[m
+[32m+[m[32m    // Sections 1 (opponent-observation probing) and 2 (book troll-line[m
+[32m+[m[32m    // recheck) below can run real, uncharged searches -- depth 14/400_000[m
+[32m+[m[32m    // nodes plus a possible depth 12/250_000 nodes for the former, depth[m
+[32m+[m[32m    // 8/40_000 nodes for the latter -- before the actual timed move search[m
+[32m+[m[32m    // in section 3 ever starts its own clock. On a normal clock these are[m
+[32m+[m[32m    // a rounding error; against a short go movetime/go nodes budget they[m
+[32m+[m[32m    // can dwarf it (measured up to ~130x the requested movetime). Timed[m
+[32m+[m[32m    // from here so that elapsed cost is charged against the real search's[m
+[32m+[m[32m    // deadline via preprocessing_elapsed, the same mechanism already used[m
+[32m+[m[32m    // to charge Unarchitectured-hint inference time.[m
+[32m+[m[32m    let job_start = std::time::Instant::now();[m
+     let tt_guard = tt.lock().unwrap();[m
+     let tt: &TT = &tt_guard;[m
+     let pos = job.pos;[m
+[36m@@ -1357,12 +1420,26 @@[m [mfn run_go([m
+         job.ident_adaptive && (job.opt.adaptive || job.opt.limit_strength) && game_mode;[m
+     let mut rng = Rng::from_time();[m
+     // in time trouble every millisecond goes to the move itself: the model[m
+[31m-    // pauses its measurements and the brain skips its side-searches[m
+[32m+[m[32m    // pauses its measurements and the brain skips its side-searches. Also[m
+[32m+[m[32m    // skip when THIS move's own hard deadline is tight regardless of the[m
+[32m+[m[32m    // overall game clock -- a fixed-movetime/fixed-nodes request (or a[m
+[32m+[m[32m    // fast-format game with no wtime/btime at all, where the check above[m
+[32m+[m[32m    // never fires) can be far shorter than the ~1s+ these probes can cost[m
+[32m+[m[32m    // (depth 14/400_000 nodes, plus up to depth 12/250_000 more), and[m
+[32m+[m[32m    // charging that cost after the fact (preprocessing_elapsed, below)[m
+[32m+[m[32m    // only stops it from ALSO overshooting the main search on top of the[m
+[32m+[m[32m    // probe -- it can't make the probe itself fast.[m
+     let low_time = job[m
+         .limits[m
+         .my_time(pos.side)[m
+         .map(|t| t < 10_000)[m
+[31m-        .unwrap_or(false);[m
+[32m+[m[32m        .unwrap_or(false)[m
+[32m+[m[32m        || job[m
+[32m+[m[32m            .limits[m
+[32m+[m[32m            .budget(pos.side)[m
+[32m+[m[32m            .1[m
+[32m+[m[32m            .map(|hard_ms| hard_ms < 1_000)[m
+[32m+[m[32m            .unwrap_or(false);[m
+ [m
+     // ------------------------------------------------------------------[m
+     // 1. Feed pending opponent moves to the live model[m
+[36m@@ -1663,74 +1740,51 @@[m [mfn run_go([m
+     let limits_ref = &job.limits;[m
+     let stop_ref: &AtomicBool = &stop;[m
+     let prepared_ref = prepared_hint.as_ref();[m
+[32m+[m[32m    let hint_slice: &[search::RootHint] = prepared_ref.map(|p| p.hints.as_slice()).unwrap_or(&[]);[m
+[32m+[m[32m    // Everything charged against this move's deadline: real search work[m
+[32m+[m[32m    // already done above (sections 1-2) plus, if applicable, Unarchitectured[m
+[32m+[m[32m    // hint preparation. `go_with_root_hints` treats preprocessing_elapsed as[m
+[32m+[m[32m    // already-spent time against the same soft/hard budget as the search[m
+[32m+[m[32m    // itself, so a short go movetime/go nodes request can no longer be[m
+[32m+[m[32m    // silently exceeded by work that happened before this point.[m
+[32m+[m[32m    let preprocessing_elapsed =[m
+[32m+[m[32m        job_start.elapsed() + prepared_ref.map(|p| p.elapsed).unwrap_or_default();[m
+     let lines = std::thread::scope(|scope| {[m
+         for i in 0..n_helpers {[m
+             let offset = 1 + (i % 3) as i32; // stagger: 1,2,3,1,2,3,...[m
+             scope.spawn(move || {[m
+[31m-                if let Some(prepared) = prepared_ref {[m
+[31m-                    let _ = search::go_with_root_hints([m
+[31m-                        &pos,[m
+[31m-                        eval_ref,[m
+[31m-                        limits_ref,[m
+[31m-                        1,[m
+[31m-                        tt,[m
+[31m-                        stop_ref,[m
+[31m-                        history_ref,[m
+[31m-                        draw_score,[m
+[31m-                        search_params,[m
+[31m-                        offset,[m
+[31m-                        &[],[m
+[31m-                        prepared.elapsed,[m
+[31m-                        &mut |_| {},[m
+[31m-                    );[m
+[31m-                } else {[m
+[31m-                    let _ = search::go([m
+[31m-                        &pos,[m
+[31m-                        eval_ref,[m
+[31m-                        limits_ref,[m
+[31m-                        1,[m
+[31m-                        tt,[m
+[31m-                        stop_ref,[m
+[31m-                        history_ref,[m
+[31m-                        draw_score,[m
+[31m-                        search_params,[m
+[31m-                        offset,[m
+[31m-                        &mut |_| {},[m
+[31m-                    );[m
+[31m-                }[m
+[32m+[m[32m                let _ = search::go_with_root_hints([m
+[32m+[m[32m                    &pos,[m
+[32m+[m[32m                    eval_ref,[m
+[32m+[m[32m                    limits_ref,[m
+[32m+[m[32m                    1,[m
+[32m+[m[32m                    tt,[m
+[32m+[m[32m                    stop_ref,[m
+[32m+[m[32m                    history_ref,[m
+[32m+[m[32m                    draw_score,[m
+[32m+[m[32m                    search_params,[m
+[32m+[m[32m                    offset,[m
+[32m+[m[32m                    &[],[m
+[32m+[m[32m                    preprocessing_elapsed,[m
+[32m+[m[32m                    &mut |_| {},[m
+[32m+[m[32m                );[m
+             });[m
+         }[m
+[31m-        if let Some(prepared) = prepared_ref {[m
+[31m-            search::go_with_root_hints([m
+[31m-                &pos,[m
+[31m-                eval_ref,[m
+[31m-                limits_ref,[m
+[31m-                multipv_search,[m
+[31m-                tt,[m
+[31m-                stop_ref,[m
+[31m-                history_ref,[m
+[31m-                draw_score,[m
