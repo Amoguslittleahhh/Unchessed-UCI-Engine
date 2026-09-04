@@ -1,0 +1,6 @@
+=== halfmove_100_valid_quiet ===
+info depth 1 multipv 1 score cp 0 nodes 15 nps 15000 hashfull 0 time 0 pv a1b1
+bestmove a1b1
+=== halfmove_150_valid_quiet ===
+info depth 1 multipv 1 score cp 0 nodes 15 nps 15000 hashfull 0 time 0 pv a1b1
+bestmove a1b1

@@ -1,0 +1,1821 @@
+=== status ===
+## [32mmanus/research-facilities[m
+[31m??[m research/
+=== tracked files ===
+.gitattributes
+.gitignore
+Cargo.lock
+Cargo.toml
+README.md
+artifacts/elo-detector-misfire.json
+artifacts/inspect-report.json
+artifacts/low-cp-val-mae-persona-experiments.json
+artifacts/persona-stability-sprt.json
+artifacts/unarchitectured-v1-calibration-corpus-replication.jsonl
+artifacts/unarchitectured-v1-calibration-corpus.jsonl
+artifacts/unarchitectured-v1-calibration-labels-replication.json
+artifacts/unarchitectured-v1-calibration-labels.json
+artifacts/unarchitectured-v1-calibration-report-replication.json
+artifacts/unarchitectured-v1-calibration-report.json
+artifacts/unarchitectured-v1-final.unarchv1
+artifacts/xt-nnue-v1-full.pt.best
+benchmarks/matetrack.epd
+benchmarks/unarchitectured-v1/README.md
+benchmarks/unarchitectured-v1/gab-ablation-2026-08-25.json
+benchmarks/unarchitectured-v1/game-phase-definitions.json
+benchmarks/unarchitectured-v1/hint-disagreements-2026-08-24.json
+benchmarks/unarchitectured-v1/int8-activation-calibration.json
+benchmarks/unarchitectured-v1/int8-weight-range-2026-08-25.json
+benchmarks/unarchitectured-v1/integration-trial-2026-08-23.json
+benchmarks/unarchitectured-v1/level-conditioned-moves-profile.json
+benchmarks/unarchitectured-v1/level-conditioned-moves-sample.jsonl
+benchmarks/unarchitectured-v1/ordering-risk-2026-08-24.json
+benchmarks/unarchitectured-v1/policy-prior-calibration-2026-08-25.json
+benchmarks/unarchitectured-v1/pretrain-probe-2026-08-28.json
+benchmarks/unarchitectured-v1/rating-conditioning-2026-08-25.json
+benchmarks/unarchitectured-v1/runtime-forward-2026-08-22.json
+benchmarks/unarchitectured-v1/runtime-forward-2026-08-22.md
+benchmarks/unarchitectured-v1/runtime-forward-2026-08-23.json
+benchmarks/unarchitectured-v1/runtime-forward-2026-08-23.md
+benchmarks/unarchitectured-v1/theme-breakdown-2026-08-25.json
+benchmarks/unarchitectured-v1/uci-candidate-2026-08-23.json
+config/a100_hybrid_training.json
+config/a100_hybrid_training_v1_short_run.json
+config/pretrain_v1_training.json
+config/unarchitectured_v1.json
+config/unarchitectured_v1_runtime_capabilities.json
+config/unarchitectured_v1_safety.json
+config/unarchitectured_v1_student.json
+config/unarchitectured_v1_training.json
+data/archive/1900-1945/alekhine.pgn
+data/archive/1900-1945/blackburne-1900-1945.pgn
+data/archive/1900-1945/capablanca.pgn
+data/archive/1900-1945/hastings-1920s.pgn
+data/archive/1900-1945/hastings-1930s.pgn
+data/archive/1900-1945/hastings-1945-1949.pgn
+data/archive/1900-1945/italy-championships-1900-1945.pgn
+data/archive/1900-1945/lasker-1900-1945.pgn
+data/archive/1900-1945/new-york-1924.pgn
+data/archive/1900-1945/nimzowitsch.pgn
+data/archive/1900-1945/nostalgia-1901-1920.pgn
+data/archive/1900-1945/nostalgia-1921-1940.pgn
+data/archive/1900-1945/reti.pgn
+data/archive/1900-1945/tartakower-1900-1945.pgn
+data/archive/1900-1945/world-championship-matches-1900-1945.pgn
+data/archive/1946-1970/british-championship-1946.pgn
+data/archive/1946-1970/british-championship-1947.pgn
+data/archive/1946-1970/british-championship-1948.pgn
+data/archive/1946-1970/british-championship-1949.pgn
+data/archive/1946-1970/british-championship-1950.pgn
+data/archive/1946-1970/british-championship-1951.pgn
+data/archive/1946-1970/british-championship-1952.pgn
+data/archive/1946-1970/british-championship-1953.pgn
+data/archive/1946-1970/british-championship-1954.pgn
+data/archive/1946-1970/british-championship-1955.pgn
+data/archive/1946-1970/british-championship-1965.pgn
+data/archive/1946-1970/british-championship-1966.pgn
+data/archive/1946-1970/british-championship-1967.pgn
+data/archive/1946-1970/british-championship-1968.pgn
+data/archive/1946-1970/british-championship-1969.pgn
+data/archive/1946-1970/british-championship-1970.pgn
+data/archive/1946-1970/candidates-leningrad-1973.pgn
+data/archive/1946-1970/hastings-1950s.pgn
+data/archive/1946-1970/hastings-1960s.pgn
+data/archive/1946-1970/hastings-1970s.pgn
+data/archive/1946-1970/interzonal-biel-1976.pgn
+data/archive/1946-1970/interzonal-manila-1976.pgn
+data/archive/1946-1970/interzonal-playoff-1973.pgn
+data/archive/1946-1970/interzonal-playoff-1976.pgn
+data/archive/1946-1970/interzonal-roosendaal-1976.pgn
+data/archive/1946-1970/italy-championships-1946-1970.pgn
+data/archive/1946-1970/moscow-candidates-1964.pgn
+data/archive/1946-1970/nostalgia-1941-1960.pgn
+data/archive/1946-1970/nostalgia-1961-1970.pgn
+data/archive/1946-1970/sweden-championships-1946-1970.pgn
+data/archive/1946-1970/tartakower-1946-1970.pgn
+data/archive/1946-1970/wcc-1957.pgn
+data/archive/1946-1970/wcc-1958.pgn
+data/archive/1946-1970/wcc-1960.pgn
+data/archive/1946-1970/wcc-1961.pgn
+data/archive/1946-1970/world-championship-matches-1946-1970.pgn
+data/archive/1946-1970/zones-petrograd-1973.pgn
+data/archive/1971-1999/british-championship-1971.pgn
+data/archive/1971-1999/british-championship-1972.pgn
+data/archive/1971-1999/british-championship-1973.pgn
+data/archive/1971-1999/british-championship-1974.pgn
+data/archive/1971-1999/british-championship-1975.pgn
+data/archive/1971-1999/british-championship-1976.pgn
+data/archive/1971-1999/british-championship-1977.pgn
+data/archive/1971-1999/british-championship-1978.pgn
+data/archive/1971-1999/british-championship-1979.pgn
+data/archive/1971-1999/british-championship-1990.pgn
+data/archive/1971-1999/canada-day-open-1992.pgn
+data/archive/1971-1999/candidates-1986-pairing-1.pgn
+data/archive/1971-1999/candidates-1986-pairing-2.pgn
+data/archive/1971-1999/candidates-1986-pairing-3.pgn
+data/archive/1971-1999/candidates-1986-pairing-4.pgn
+data/archive/1971-1999/candidates-1994-95-1.pgn
+data/archive/1971-1999/candidates-1994-95-2.pgn
+data/archive/1971-1999/candidates-1994-95-3.pgn
+data/archive/1971-1999/candidates-1994-95-4.pgn
+data/archive/1971-1999/candidates-1994-95-5.pgn
+data/archive/1971-1999/candidates-1994-95-6.pgn
+data/archive/1971-1999/candidates-1994-95-7.pgn
+data/archive/1971-1999/candidates-azov-1990.pgn
+data/archive/1971-1999/candidates-group-1993.pgn
+data/archive/1971-1999/candidates-las-palmas-1982.pgn
+data/archive/1971-1999/candidates-monaco-1985-1.pgn
+data/archive/1971-1999/candidates-monaco-1985-2.pgn
+data/archive/1971-1999/candidates-moscow-1982.pgn
+data/archive/1971-1999/candidates-toluca-1982.pgn
+data/archive/1971-1999/croatia-championships-1992-1995.pgn
+data/archive/1971-1999/denmark-championship-1980.pgn
+data/archive/1971-1999/denmark-championship-1984.pgn
+data/archive/1971-1999/hastings-1980s.pgn
+data/archive/1971-1999/hastings-1990s.pgn
+data/archive/1971-1999/interzonal-biel-1985.pgn
+data/archive/1971-1999/interzonal-biel-1993.pgn
+data/archive/1971-1999/interzonal-budapest-1987.pgn
+data/archive/1971-1999/interzonal-havana-1987.pgn
+data/archive/1971-1999/interzonal-playoff-1979-solo.pgn
+data/archive/1971-1999/interzonal-playoff-1985-solo.pgn
+data/archive/1971-1999/interzonal-playoff-1987-solo.pgn
+data/archive/1971-1999/interzonal-playoff-biel-1985.pgn
+data/archive/1971-1999/interzonal-playoff-budapest-1979.pgn
+data/archive/1971-1999/interzonal-playoff-tunis-1985.pgn
+data/archive/1971-1999/interzonal-riga-1979.pgn
+data/archive/1971-1999/interzonal-rio-de-janeiro-1979.pgn
+data/archive/1971-1999/interzonal-subotica-1987.pgn
+data/archive/1971-1999/interzonal-szirak-1987.pgn
+data/archive/1971-1999/interzonal-taxco-1985.pgn
+data/archive/1971-1999/interzonal-tunis-1985.pgn
+data/archive/1971-1999/interzonal-tuzla-1987.pgn
+data/archive/1971-1999/interzonal-zagreb-1987.pgn
+data/archive/1971-1999/ireland-championships-1964-1991.pgn
+data/archive/1971-1999/italy-championships-1971-1999.pgn
+data/archive/1971-1999/kasparov-vs-the-world-1999.pgn
+data/archive/1971-1999/kramnik-selected-games.pgn
+data/archive/1971-1999/megadatabase-2600-1970-1998.pgn
+data/archive/1971-1999/misc-candidates-1953-1994.pgn
+data/archive/1971-1999/pca-candidates-1993-1.pgn
+data/archive/1971-1999/pca-candidates-1993-2.pgn
+data/archive/1971-1999/pca-candidates-1993-3.pgn
+data/archive/1971-1999/pca-interzonals-1993.pgn
+data/archive/1971-1999/pca-world-championship-1993.pgn
+data/archive/1971-1999/sweden-championships-1971-1999.pgn
+data/archive/1971-1999/wcc-1984.pgn
+data/archive/1971-1999/wcc-1985.pgn
+data/archive/1971-1999/wcc-1986.pgn
+data/archive/1971-1999/wcc-playoff-1993-tiebreak.pgn
+data/archive/1971-1999/wcc-playoff-1993.pgn
+data/archive/1971-1999/wcc-playoff-1998-1.pgn
+data/archive/1971-1999/wcc-playoff-1998-2.pgn
+data/archive/1971-1999/wcc-playoff-1998-3.pgn
+data/archive/1971-1999/wcc-playoff-1998-4.pgn
+data/archive/1971-1999/world-championship-matches-1971-1999.pgn
+data/archive/2000-plus/2007_dortmund.pgn
+data/archive/2000-plus/2007_elista.pgn
+data/archive/2000-plus/2007_world_championship.pgn
+data/archive/2000-plus/2008_amberblind.pgn
+data/archive/2000-plus/2008_amberrapid.pgn
+data/archive/2000-plus/2008_baku___fide_grand_prix_2008_10.pgn
+data/archive/2000-plus/2008_biel.pgn
+data/archive/2000-plus/2008_bilbaomasters.pgn
+data/archive/2000-plus/2008_dortmund.pgn
+data/archive/2000-plus/2008_elista___fide_grand_prix_2008_10.pgn
+data/archive/2000-plus/2008_morelialinares.pgn
+data/archive/2000-plus/2008_north_urals_cup.pgn
+data/archive/2000-plus/2008_poikovsky.pgn
+data/archive/2000-plus/2008_sochi___fide_grand_prix_2008_10.pgn
+data/archive/2000-plus/2008_spice_cup.pgn
+data/archive/2000-plus/2008_tal_memorial.pgn
+data/archive/2000-plus/2008_world_championship___quasi_rematch.pgn
+data/archive/2000-plus/2009_acp_world_rapid.pgn
+data/archive/2000-plus/2009_amberblind.pgn
+data/archive/2000-plus/2009_amberrapid.pgn
+data/archive/2000-plus/2009_anand_karpov.pgn
+data/archive/2000-plus/2009_bazna.pgn
+data/archive/2000-plus/2009_biel.pgn
+data/archive/2000-plus/2009_bilbao.pgn
+data/archive/2000-plus/2009_corus.pgn
+data/archive/2000-plus/2009_dortmund.pgn
+data/archive/2000-plus/2009_fide_gp_jermuk.pgn
+data/archive/2000-plus/2009_fide_gp_nalchik.pgn
+data/archive/2000-plus/2009_karpov_kasparov.pgn
+data/archive/2000-plus/2009_korchnoi_spassky.pgn
+data/archive/2000-plus/2009_leko_anand.pgn
+data/archive/2000-plus/2009_linares.pgn
+data/archive/2000-plus/2009_london.pgn
+data/archive/2000-plus/2009_m_tel_masters.pgn
+data/archive/2000-plus/2009_mainz_rapid.pgn
+data/archive/2000-plus/2009_nanjing.pgn
+data/archive/2000-plus/2009_poikovsky.pgn
+data/archive/2000-plus/2009_presidents_cup.pgn
+data/archive/2000-plus/2009_russian_championship.pgn
+data/archive/2000-plus/2009_tal_memorial.pgn
+data/archive/2000-plus/2009_us_championship.pgn
+data/archive/2000-plus/2009_world_cup.pgn
+data/archive/2000-plus/2009_wtcc.pgn
+data/archive/2000-plus/2010_amsterdam.pgn
+data/archive/2000-plus/2010_astrakhan___fide_grand_prix_2008_10.pgn
+data/archive/2000-plus/2010_bazna.pgn
+data/archive/2000-plus/2010_biel.pgn
+data/archive/2000-plus/2010_bilbao.pgn
+data/archive/2000-plus/2010_cap_dagde.pgn
+data/archive/2000-plus/2010_dortmund.pgn
+data/archive/2000-plus/2010_havana.pgn
+data/archive/2000-plus/2010_kristiansund.pgn
+data/archive/2000-plus/2010_linares.pgn
+data/archive/2000-plus/2010_london.pgn
+data/archive/2000-plus/2010_nanjing.pgn
+data/archive/2000-plus/2010_poikovsky.pgn
+data/archive/2000-plus/2010_presidents_cup.pgn
+data/archive/2000-plus/2010_reggio_emilia.pgn
+data/archive/2000-plus/2010_russian_championship.pgn
+data/archive/2000-plus/2010_shanghai.pgn
+data/archive/2000-plus/2010_tal_memorial.pgn
+data/archive/2000-plus/2010_us_championship.pgn
+data/archive/2000-plus/2010_wijk_aan_zee.pgn
+data/archive/2000-plus/2010_world_blitz.pgn
+data/archive/2000-plus/2010_world_championship.pgn
+data/archive/2000-plus/2011_amber_rapid.pgn
+data/archive/2000-plus/2011_us_championship.pgn
+data/archive/2000-plus/2011_wijk_aan_zee.pgn
+data/archive/2000-plus/british-championship-2004.pgn
+data/archive/2000-plus/british-championship-2005.pgn
+data/archive/2000-plus/british-championship-2006.pgn
+data/archive/2000-plus/british-championship-2007.pgn
+data/archive/2000-plus/british-championship-2008.pgn
+data/archive/2000-plus/british-championship-2009.pgn
+data/archive/2000-plus/british-championship-2010.pgn
+data/archive/2000-plus/british-championship-2011.pgn
+data/archive/2000-plus/british-championship-2012.pgn
+data/archive/2000-plus/british-championship-2013.pgn
+data/archive/2000-plus/british-championship-2014.pgn
+data/archive/2000-plus/british-championship-2015.pgn
+data/archive/2000-plus/british-championship-2016.pgn
+data/archive/2000-plus/british-championship-2017.pgn
+data/archive/2000-plus/candidates-sparkassen-2002-final.pgn
+data/archive/2000-plus/candidates-sparkassen-2002-g1-tiebreak.pgn
+data/archive/2000-plus/candidates-sparkassen-2002-g1.pgn
+data/archive/2000-plus/candidates-sparkassen-2002-g2.pgn
+data/archive/2000-plus/candidates-sparkassen-2002-sf1.pgn
+data/archive/2000-plus/candidates-sparkassen-2002-tiebreak.pgn
+data/archive/2000-plus/hastings-2000s.pgn
+data/archive/2000-plus/hastings-2015.pgn
+data/archive/2000-plus/kvika-reykjavik-open-2022.pgn
+data/archive/2000-plus/sinqcup-2022.pgn
+data/archive/2000-plus/tata-steel-wijk-aan-zee-2003.pgn
+data/archive/2000-plus/tata-steel-wijk-aan-zee-2004.pgn
+data/archive/2000-plus/tata-steel-wijk-aan-zee-2005.pgn
+data/archive/2000-plus/tata-steel-wijk-aan-zee-2006.pgn
+data/archive/2000-plus/tata-steel-wijk-aan-zee-2007.pgn
+data/archive/2000-plus/tata-steel-wijk-aan-zee-2008.pgn
+data/archive/2000-plus/tata-steel-wijk-aan-zee-2009.pgn
+data/archive/2000-plus/tata-steel-wijk-aan-zee-2010.pgn
+data/archive/2000-plus/wcc-2000.pgn
+data/archive/2000-plus/wcc-2004.pgn
+data/archive/2000-plus/wcc-2006.pgn
+data/archive/README.md
+data/archive/classics-1834-1899/anderssen.pgn
+data/archive/classics-1834-1899/bird-classics-1834-1899.pgn
+data/archive/classics-1834-1899/blackburne-classics-1834-1899.pgn
+data/archive/classics-1834-1899/de-la-bourdonnais-mcdonnell-paris-1834.pgn
+data/archive/classics-1834-1899/great-masters.pgn
+data/archive/classics-1834-1899/hayes-annotated-classics.pgn
+data/archive/classics-1834-1899/horwitz.pgn
+data/archive/classics-1834-1899/immortal-games.pgn
+data/archive/classics-1834-1899/italy-championships-classics-1834-1899.pgn
+data/archive/classics-1834-1899/lasker-classics-1834-1899.pgn
+data/archive/classics-1834-1899/misc-19th-century.pgn
+data/archive/classics-1834-1899/morphy.pgn
+data/archive/classics-1834-1899/nostalgia-1800-1900.pgn
+data/archive/classics-1834-1899/saint-amant-staunton-1843.pgn
+data/archive/classics-1834-1899/schiller-annotated-classics.pgn
+data/archive/classics-1834-1899/staunton.pgn
+data/archive/classics-1834-1899/world-championship-matches-classics-1834-1899.pgn
+data/archive/classics-1834-1899/zukertort.pgn
+data/archive/correspondence/aa-semifinal-2018.pgn
+data/archive/correspondence/aa-semifinal-2021.pgn
+data/archive/correspondence/aiccf-2017.pgn
+data/archive/correspondence/copa-peru-2018.pgn
+data/archive/correspondence/finjub-55-2017.pgn
+data/archive/correspondence/ind-aus-2017.pgn
+data/archive/correspondence/interzonal-3-group-k-2018.pgn
+data/archive/correspondence/izit-2021.pgn
+data/archive/correspondence/russia-25-2018.pgn
+data/archive/correspondence/world-seniors-2017.pgn
+data/archive/manifest.json
+data/archive/womens/2008_ataturkwomen.pgn
+data/archive/womens/2008_sct_ladiesopen.pgn
+data/archive/womens/2008_womenwcc.pgn
+data/archive/womens/2009_fide_women_gp_istanbul.pgn
+data/archive/womens/2009_fide_women_gp_nanjing.pgn
+data/archive/womens/2009_us_womens_championship.pgn
+data/archive/womens/2010_fide_women_gp_jermuk.pgn
+data/archive/womens/2010_fide_women_gp_nalchik.pgn
+data/archive/womens/2010_fide_women_gp_ulan_bator.pgn
+data/archive/womens/2010_us_womens_championship.pgn
+data/archive/womens/2010_women_world.pgn
+data/archive/womens/2011_fide_women_gp_doha.pgn
+data/archive/womens/2011_us_womens_championship.pgn
+data/archive/womens/kosteniuk.pgn
+data/archive/womens/polgar-annotated.pgn
+data/archive/womens/polgar-judith.pgn
+data/archive/womens/polgar-suzanne.pgn
+data/archive/womens/polgar-zsofia.pgn
+data/archive/womens/women-interzonal-geneva-1990.pgn
+data/archive/womens/women-interzonal-playoff-1987.pgn
+data/archive/womens/women-interzonal-playoff-1990.pgn
+data/archive/womens/women-wcc-1993.pgn
+data/archive/womens/women-wcc-1994-95-match-1.pgn
+data/archive/womens/women-wcc-1994-95-match-2.pgn
+data/archive/womens/women-wcc-1994-95-match-3.pgn
+data/archive/womens/women-wcc-1994-95-match-4.pgn
+data/archive/womens/women-wcc-1994-95-match-5.pgn
+data/archive/womens/women-wcc-1994-match-1.pgn
+data/archive/womens/women-wcc-1994-match-2.pgn
+data/archive/womens/women-wcc-1994-match-3.pgn
+data/archive/womens/women-wcc-1994-match-4.pgn
+data/archive/womens/women-wcc-1994-match-5.pgn
+data/archive/womens/women-wcc-fide-1996.pgn
+data/archive/womens/women-wcc-pca-1995.pgn
+data/archive/womens/womens-invitational-2009-2017.pgn
+data/archive/world-championships/london-1851-first-world-championship.pgn
+data/archive/world-championships/london-1851-tournament-full.pgn
+data/selfplay/README.md
+data/selfplay/maia3-100-3200-labels.jsonl
+data/selfplay/maia3-100-3200.pgn
+data/training-elo/elo-0100.pgn
+data/training-elo/elo-0200.pgn
+data/training-elo/elo-0300.pgn
+data/training-elo/elo-0400.pgn
+data/training-elo/elo-0500.pgn
+data/training-elo/elo-0600.pgn
+data/training-elo/elo-0700.pgn
+data/training-elo/elo-0800.pgn
+data/training-elo/elo-0900.pgn
+data/training-elo/elo-1000.pgn
+data/training-elo/elo-1100.pgn
+data/training-elo/elo-1200.pgn
+data/training-elo/elo-1300.pgn
+data/training-elo/elo-1400.pgn
+data/training-elo/elo-1500.pgn
+data/training-elo/elo-1600.pgn
+data/training-elo/elo-1700.pgn
+data/training-elo/elo-1800.pgn
+data/training-elo/elo-1900.pgn
+data/training-elo/elo-2000.pgn
+data/training-elo/elo-2100.pgn
+data/training-elo/elo-2200.pgn
+data/training-elo/elo-2300.pgn
+data/training-elo/elo-2400.pgn
+data/training-elo/elo-2500.pgn
+data/training-elo/elo-2600.pgn
+data/training-elo/elo-2700.pgn
+data/training-elo/elo-2800.pgn
+data/training-elo/elo-2900.pgn
+data/training-elo/elo-3000.pgn
+data/training-elo/elo-3100.pgn
+data/training-elo/elo-3200.pgn
+data/training-elo/elo-3300.pgn
+data/training-elo/manifest.json
+data/training/README.md
+data/training/leagues/201707britchamp.pgn
+data/training/leagues/bl0607.pgn
+data/training/lichess-2022-10-05/elo-0000-1400.pgn
+data/training/lichess-2022-10-05/elo-1400-1700.pgn
+data/training/lichess-2022-10-05/elo-1700-2000.pgn
+data/training/lichess-2022-10-05/elo-2000-2300.pgn
+data/training/lichess-2022-10-05/elo-2300-2600.pgn
+data/training/lichess-2022-10-05/elo-2600-3500.pgn
+data/training/manifest.json
+data/training/players/Carlsen.pgn
+data/training/players/Nakamura.pgn
+data/training/twic/twic1000.pgn
+data/training/twic/twic1649.pgn
+data/training/twic/twic400.pgn
+data/training/world-championships/90GEN.pgn
+data/training/world-championships/93BIEL.pgn
+docs/dev-environment.md
+docs/elo-detector-high-level-integration.md
+docs/engine-commit-feed-review.md
+docs/fishtest-and-quantization-notes.md
+docs/full-scale-bug-audit-2026-08-21.md
+docs/gab-capacity-finding.md
+docs/history-answers-reconciliation.md
+docs/ieee-cloud-nnue-speed-quality.pdf
+docs/ieee-cloud-nnue-speed-quality.tex
+docs/ieee-low-cp-val-mae-and-persona.md
+docs/int8-activation-calibration-finding.md
+docs/llm-uci-matrix-assessment.md
+docs/memory-hierarchy-notes-285h.md
+docs/move-prediction-pretrain-plan.md
+docs/nnue-architecture-audit.md
+docs/nnue-coverage-capacity-matrix-178m.md
+docs/nnue-coverage-capacity-matrix-small.md
+docs/nnue-dataset-quiet-filters.md
+docs/nnue-label-noise-real-measurement.md
+docs/nnue-round-12-results.md
+docs/nnue-round-13-results.md
+docs/nnue-soft-reweighting-result.md
+docs/nnue-stronger-labels-existing-corpus.md
+docs/nnue-v4-108m-recipe-result.md
+docs/nnue-v4-retrain-data-scaling-finding.md
+docs/nnue-v4-training-recipe.md
+docs/npu-viability-285h.md
+docs/parameter-calibration-audit.md
+docs/performance-ceiling-and-gpu-viability.md
+docs/performance-round-1-implementation.md
+docs/performance-survey-2026-08-24.md
+docs/persona-engine-detect-uci-gate.md
+docs/persona-smooth-detect-sprt-result.md
+docs/persona-sprt-gate.md
+docs/persona-stability-and-sprt-correlation.md
+docs/policy-prior-calibration.md
+docs/rating-conditioning-finding.md
+docs/reinforcement/00-synthesis.md
+docs/reinforcement/01-search.md
+docs/reinforcement/02-nnue.md
+docs/reinforcement/03-persona.md
+docs/reinforcement/04-unarch.md
+docs/reinforcement/05-oracle.md
+docs/reinforcement/06-rl-selfplay.md
+docs/reinforcement/07-objective.md
+docs/reinforcement/08-label-noise.md
+docs/reinforcement/09-search-bandit.md
+docs/reinforcement/10-persona-protocol.md
+docs/reinforcement/11-tier1-synthesis.md
+docs/reinforcement/12-tier2-calibration.md
+docs/reinforcement/13-nnue-ceiling.md
+docs/reinforcement/14-check-extensions.md
+docs/reinforcement/15-qsearch-see-pruning.md
+docs/reinforcement/16-iir.md
+docs/reinforcement/17-multicut.md
+docs/reinforcement/18-razoring.md
+docs/reinforcement/19-late-move-pruning.md
+docs/reinforcement/20-countermove-continuation.md
+docs/reinforcement/21-king-safety-retry.md
+docs/reinforcement/22-null-move-nnue.md
+docs/reinforcement/23-multipv-aspiration.md
+docs/reinforcement/24-uci-searchmoves-mate.md
+docs/reinforcement/25-uci-move-overhead.md
+docs/reinforcement/26-uci-analyse-mode.md
+docs/reinforcement/27-wdl-output.md
+docs/reinforcement/28-dead-position-draws.md
+docs/reinforcement/29-tt-aging.md
+docs/reinforcement/30-continuous-sprt.md
+docs/reinforcement/31-tier1-master-synthesis.md
+docs/reinforcement/32-nnue-soft-reweighting.md
+docs/research-notes-diffusionblocks-2506.14202.md
+docs/research-notes-maia-levels-reverse-engineering.md
+docs/research-notes-moe-2507.11181.md
+docs/research-notes-moe-mcts-2401.16852.md
+docs/research-notes-vrzina-engine-thesis.md
+docs/research-survey-arxiv-2026-08-24.md
+docs/round-16-uci-gates.md
+docs/setup-rust-toolchain-sandbox-blocker.md
+docs/stockfish-empirical-data-notes.md
+docs/tuning-core-ultra-9-285h-and-low-end.md
+docs/unarchitectured-v1-calibration.md
+docs/unarchitectured-v1-integration-trial.md
+docs/unarchitectured-v1-runtime-optimization.md
+docs/unarchitectured-v1-runtime-scratch-and-gemm.md
+docs/unarchitectured-v1-theme-breakdown.md
+docs/unarchitectured-v1-why-the-hint-costs-elo.md
+docs/unarchitectured-v1.md
+docs/workspace-reset-recovery.md
+nnue-shards-safe/unchessed-nnue-v4-overtrained.bin
+nnue-shards-safe/v3_research_brief.md
+rust-toolchain.toml
+scripts/build-and-test.sh
+scripts/exhibition/check_series.sh
+scripts/exhibition/play_10min_conthist.py
+scripts/exhibition/play_3min_game.py
+scripts/exhibition/spsa_conthist_temp.py
+scripts/nnue-pipeline/README.md
+scripts/nnue-pipeline/cloud_startup.sh
+scripts/nnue-pipeline/cloud_startup_cpu_only.sh
+scripts/nnue-pipeline/cloud_train_v4.sh
+scripts/nnue-pipeline/full_pipeline.sh
+scripts/nnue-pipeline/full_pipeline_cloud.sh
+scripts/nnue-pipeline/label_only_cpu.sh
+scripts/nnue-pipeline/local_regen.sh
+scripts/nnue-pipeline/relabel_existing.sh
+scripts/nnue-pipeline/smoke_test_nnue.sh
+scripts/nnue-pipeline/train_recipe.sh
+scripts/nnue-pipeline/watch_and_handoff.sh
+scripts/nnue-pipeline/worker_bench.sh
+scripts/pretrain-pipeline/README.md
+scripts/pretrain-pipeline/cpu_stage.sh
+scripts/pretrain-pipeline/gpu_stage.sh
+scripts/research/200_research_ideas.md
+scripts/research/arena_agent_diffusionblocks_prompt.md
+scripts/research/arena_agent_project_history_response.md
+scripts/research/arena_agent_unarchitectured_v1_runtime_speed_prompt.md
+scripts/research/coverage_capacity_eval.py
+scripts/research/coverage_capacity_gen.sh
+scripts/research/coverage_capacity_sample.py
+scripts/research/deepseek_research_prompt.md
+scripts/research/glm_research_prompt.md
+scripts/research/manus_engine_improvement_topics.md
+scripts/research/manus_engine_improvement_topics_2.md
+scripts/research/manus_label_noise_update.md
+scripts/research/manus_master_prompt.md
+scripts/research/manus_research_facilities_prompt.md
+scripts/research/manus_rustc_bootstrap_prompt.md
+scripts/research/manus_topics_update_3.md
+scripts/research/remaining_research_topics.md
+scripts/research/wsl_sprt_nnue_108m.sh
+scripts/research/wsl_sprt_nnue_27m_recipe.sh
+scripts/research/wsl_sprt_nnue_real27m.sh
+scripts/research/wsl_sprt_nnue_real9m.sh
+scripts/research/wsl_sprt_nnue_v4.sh
+scripts/research/wsl_sprt_persona_run.sh
+scripts/setup-rust-toolchain.sh
+scripts/sprt-history/smoke_conthist.sh
+scripts/sprt-history/smoke_kingsafety.sh
+scripts/sprt-history/smoke_kingsafety_v2.sh
+scripts/sprt-history/smoke_mobility.sh
+scripts/sprt-history/smoke_persona_smooth_detect.sh
+scripts/sprt-history/smoke_rook.sh
+scripts/sprt-history/smoke_shelter.sh
+scripts/sprt-history/sprt_conthist.sh
+scripts/sprt-history/sprt_hanging.sh
+scripts/sprt-history/sprt_incremental_nnue.sh
+scripts/sprt-history/sprt_kingsafety.sh
+scripts/sprt-history/sprt_kingsafety_v2.sh
+scripts/sprt-history/sprt_knight_outpost.sh
+scripts/sprt-history/sprt_mobility.sh
+scripts/sprt-history/sprt_nnue_v1.sh
+scripts/sprt-history/sprt_persona_smooth_detect.sh
+scripts/sprt-history/sprt_punish_latch.sh
+scripts/sprt-history/sprt_rook.sh
+scripts/sprt-history/sprt_shelter.sh
+scripts/sprt-history/sprt_unarchitectured_v1_hint.sh
+tools/a100_common.py
+tools/analyse_adapter_telemetry.py
+tools/analyse_gab_contribution.py
+tools/analyse_int8_activation_calibration.py
+tools/analyse_oracle_rating_conditioning.py
+tools/analyse_policy_prior_calibration.py
+tools/analyse_rating_conditioning.py
+tools/analyse_unarchitectured_v1_ordering_risk.py
+tools/archive_blocks.py
+tools/archive_layout.json
+tools/build_elo_bands.py
+tools/build_level_conditioned_moves.py
+tools/build_matetrack_suite.py
+tools/build_unarchitectured_v1_calibration_corpus.py
+tools/calibrate_unarchitectured_v1_policy.py
+tools/calibrate_unarchitectured_v1_throughput.py
+tools/calibrate_xt_nnue_throughput.py
+tools/check_nnue_data.py
+tools/check_search_param_consistency.py
+tools/classics.pgn
+tools/elo_detector.py
+tools/experiment_low_cp_val_mae.py
+tools/export_unarchitectured_v1.py
+tools/find_unarchitectured_v1_hint_disagreements.py
+tools/inspect_unarchitectured_v1.py
+tools/maia3_cloud_selfplay/README.md
+tools/maia3_cloud_selfplay/generate.py
+tools/maia3_cloud_selfplay/requirements.txt
+tools/maia3_cloud_selfplay/test_generate.py
+tools/measure_game_phase_definitions.py
+tools/nnue_cloud_runtime.py
+tools/nnue_relabel_existing.py
+tools/nnue_train_control.py
+tools/npu_dispatch_benchmark.py
+tools/pentanomial_sprt.py
+tools/persona_stability_sprt.py
+tools/pretrain_move_dataset.py
+tools/pretrain_move_predictor.py
+tools/pretrain_v1_a100.py
+tools/pretrain_v5_data.py
+tools/reference_forward_unarchitectured_v1.py
+tools/render_ieee_pdf.py
+tools/requirements-dev.txt
+tools/rl_calibration.py
+tools/rust_bracket_check.py
+tools/selfplay.py
+tools/selfplay_elo_mixer.py
+tools/simulate_time_budget.py
+tools/smoke_unarchitectured_v1_uci.py
+tools/tag_calibration_themes.py
+tools/test_a100_common.py
+tools/test_analyse_adapter_telemetry.py
+tools/test_analyse_oracle_rating_conditioning.py
+tools/test_archive_blocks.py
+tools/test_build_elo_bands.py
+tools/test_build_level_conditioned_moves.py
+tools/test_elo_detector.py
+tools/test_experiment_low_cp_val_mae.py
+tools/test_gab_ablation.py
+tools/test_game_phase_definitions.py
+tools/test_hashfull_reporting.py
+tools/test_hint_disagreements.py
+tools/test_int8_activation_calibration.py
+tools/test_king_buckets.py
+tools/test_maia3_cloud_selfplay.py
+tools/test_matetrack_suite.py
+tools/test_nnue_cloud_runtime.py
+tools/test_nnue_relabel_existing.py
+tools/test_nnue_train_control.py
+tools/test_ordering_risk.py
+tools/test_pentanomial_sprt.py
+tools/test_persona_stability_sprt.py
+tools/test_policy_prior_calibration.py
+tools/test_pretrain_move.py
+tools/test_pretrain_v5.py
+tools/test_rating_conditioning.py
+tools/test_rl_calibration.py
+tools/test_rust_bracket_check.py
+tools/test_search_param_consistency.py
+tools/test_selfplay_elo_mixer.py
+tools/test_simulate_time_budget.py
+tools/test_sprt_persona_smooth_detect.py
+tools/test_theme_breakdown.py
+tools/test_train_nnue.py
+tools/test_train_nnue_xt_a100.py
+tools/test_training_blocks.py
+tools/test_unarchitectured_v1_architecture_audit.py
+tools/test_unarchitectured_v1_calibration.py
+tools/test_unarchitectured_v1_runtime.py
+tools/test_unarchitectured_v1_runtime_readiness.py
+tools/test_unarchitectured_v1_safety.py
+tools/test_unarchitectured_v1_scripts.py
+tools/test_unarchitectured_v1_watchdog.py
+tools/train_nnue.py
+tools/train_nnue_xt_a100.py
+tools/train_policy.py
+tools/train_unarchitectured_v1_a100.py
+tools/train_unarchitectured_v1_student_a100.py
+tools/training_blocks.py
+tools/uci_smoke.py
+tools/unarchitectured_v1_architecture_audit.py
+tools/unarchitectured_v1_base_data.py
+tools/unarchitectured_v1_data.py
+tools/unarchitectured_v1_dataset_gate.py
+tools/unarchitectured_v1_depth_time_calibration.py
+tools/unarchitectured_v1_package.py
+tools/unarchitectured_v1_position_encoding.py
+tools/unarchitectured_v1_runtime_readiness.py
+tools/unarchitectured_v1_safety.py
+tools/unarchitectured_v1_uci_teacher_worker.py
+tools/unarchitectured_v1_watchdog.py
+unchessed-adapter/Cargo.toml
+unchessed-adapter/src/main.rs
+unchessed-core/Cargo.toml
+unchessed-core/src/adapt.rs
+unchessed-core/src/aegis_v4_runtime.rs
+unchessed-core/src/board.rs
+unchessed-core/src/book.rs
+unchessed-core/src/eval.rs
+unchessed-core/src/fen.rs
+unchessed-core/src/lib.rs
+unchessed-core/src/movegen.rs
+unchessed-core/src/nnue.rs
+unchessed-core/src/perft.rs
+unchessed-core/src/policy.rs
+unchessed-core/src/polyglot_keys.rs
+unchessed-core/src/san.rs
+unchessed-core/src/search.rs
+unchessed-core/src/see.rs
+unchessed-core/src/tt.rs
+unchessed-core/src/uci.rs
+unchessed-core/src/unarchitectured_v1.rs
+unchessed-datagen/Cargo.toml
+unchessed-datagen/src/main.rs
+unchessed-nnue.bin
+unchessed-reviewer/Cargo.toml
+unchessed-reviewer/src/main.rs
+wsl-workspace/README.md
+wsl-workspace/logs/elo500_retry2_run.log
+wsl-workspace/logs/elo500_retry_run.log
+wsl-workspace/logs/elo500_v3_run.log
+wsl-workspace/logs/elo_ladder_analysis.log
+wsl-workspace/logs/elo_ladder_run.log
+wsl-workspace/logs/elo_ladder_v2_analysis.log
+wsl-workspace/logs/elo_ladder_v2_run.log
+wsl-workspace/logs/elo_ladder_v3_analysis.log
+wsl-workspace/logs/elo_ladder_v3_run.log
+wsl-workspace/logs/elo_outcomes_run.log
+wsl-workspace/logs/elo_points_analysis.log
+wsl-workspace/logs/elo_points_analysis_500.log
+wsl-workspace/logs/elo_points_analysis_500b.log
+wsl-workspace/logs/elo_points_crashed_500.pgn.bak
+wsl-workspace/logs/elo_points_run.log
+wsl-workspace/logs/elo_scaling_rubi_run.log
+wsl-workspace/logs/elo_scaling_run.log
+wsl-workspace/logs/feature_matrix_run.log
+wsl-workspace/logs/internal_ladder_run.log
+wsl-workspace/logs/internal_ladder_v2_run.log
+wsl-workspace/logs/internal_ladder_v3_run.log
+wsl-workspace/logs/s2_s3_analysis.log
+wsl-workspace/logs/spsa_pp2_run.log
+wsl-workspace/logs/spsa_pp_run.log
+wsl-workspace/logs/tenmin_full_run.log
+wsl-workspace/logs/tenmin_logged_run.log
+wsl-workspace/logs/tenmin_run.log
+wsl-workspace/results/README.md
+wsl-workspace/results/adapter/archive_early_exploration/elo_internal/1800_vs_3000.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_internal/500_vs_1800.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_internal/500_vs_3000.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_internal/log_1800v3000.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_internal/log_500v1800.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_internal/log_500v3000.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_internal_v2/1800v3000.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_internal_v2/500v1800.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_internal_v2/500v3000.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_internal_v2/log_1800v3000.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_internal_v2/log_500v1800.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_internal_v2/log_500v3000.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_internal_v3/1800v3000.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_internal_v3/500v1800.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_internal_v3/500v3000.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_internal_v3/log_1800v3000.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_internal_v3/log_500v1800.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_internal_v3/log_500v3000.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_1014.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_1057.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_1100.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_1143.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_1186.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_1229.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_1271.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_1314.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_1357.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_1400.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_1443.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_1486.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_1529.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_1571.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_1614.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_1657.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_1700.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_1743.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_1786.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_1829.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_1871.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_1914.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_1957.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_2000.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_2043.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_2086.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_2129.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_2171.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_2214.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_2257.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_2300.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_2343.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_2386.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_2429.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_2471.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_2514.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_2557.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_2600.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_2643.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_2686.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_2729.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_2771.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_2814.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_2857.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_2900.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_2943.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_2986.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_3029.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_3071.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_3114.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_3157.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_3200.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_500.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_543.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_586.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_629.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_671.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_714.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_757.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_800.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_843.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_886.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_929.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/elo_971.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/levels.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_1014.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_1057.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_1100.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_1143.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_1186.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_1229.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_1271.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_1314.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_1357.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_1400.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_1443.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_1486.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_1529.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_1571.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_1614.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_1657.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_1700.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_1743.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_1786.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_1829.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_1871.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_1914.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_1957.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_2000.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_2043.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_2086.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_2129.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_2171.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_2214.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_2257.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_2300.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_2343.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_2386.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_2429.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_2471.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_2514.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_2557.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_2600.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_2643.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_2686.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_2729.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_2771.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_2814.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_2857.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_2900.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_2943.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_2986.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_3029.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_3071.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_3114.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_3157.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_3200.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_500.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_543.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_586.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_629.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_671.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_714.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_757.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_800.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_843.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_886.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_929.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/log_971.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder/results.csv
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_1014.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_1057.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_1100.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_1143.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_1186.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_1229.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_1271.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_1314.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_1357.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_1400.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_1443.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_1486.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_1529.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_1571.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_1614.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_1657.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_1700.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_1743.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_1786.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_1829.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_1871.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_1914.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_1957.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_2000.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_2043.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_2086.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_2129.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_2171.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_2214.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_2257.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_2300.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_2343.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_2386.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_2429.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_2471.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_2514.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_2557.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_2600.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_2643.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_2686.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_2729.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_2771.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_2814.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_2857.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_2900.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_2943.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_2986.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_3029.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_3071.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_3114.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_3157.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_3200.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_500.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_543.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_586.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_629.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_671.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_714.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_757.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_800.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_843.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_886.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_929.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/elo_971.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/levels.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_1014.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_1057.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_1100.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_1143.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_1186.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_1229.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_1271.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_1314.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_1357.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_1400.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_1443.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_1486.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_1529.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_1571.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_1614.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_1657.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_1700.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_1743.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_1786.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_1829.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_1871.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_1914.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_1957.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_2000.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_2043.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_2086.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_2129.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_2171.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_2214.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_2257.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_2300.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_2343.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_2386.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_2429.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_2471.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_2514.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_2557.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_2600.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_2643.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_2686.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_2729.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_2771.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_2814.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_2857.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_2900.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_2943.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_2986.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_3029.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_3071.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_3114.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_3157.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_3200.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_500.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_543.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_586.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_629.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_671.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_714.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_757.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_800.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_843.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_886.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_929.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/log_971.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v2/results.csv
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_1014.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_1057.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_1100.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_1143.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_1186.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_1229.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_1271.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_1314.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_1357.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_1400.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_1443.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_1486.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_1529.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_1571.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_1614.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_1657.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_1700.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_1743.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_1786.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_1829.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_1871.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_1914.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_1957.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_2000.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_2043.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_2086.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_2129.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_2171.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_2214.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_2257.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_2300.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_2343.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_2386.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_2429.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_2471.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_2514.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_2557.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_2600.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_2643.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_2686.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_2729.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_2771.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_2814.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_2857.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_2900.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_2943.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_2986.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_3029.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_3071.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_3114.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_3157.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_3200.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_500.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_543.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_586.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_629.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_671.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_714.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_757.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_800.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_843.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_886.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_929.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/elo_971.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/levels.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_1014.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_1057.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_1100.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_1143.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_1186.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_1229.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_1271.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_1314.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_1357.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_1400.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_1443.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_1486.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_1529.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_1571.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_1614.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_1657.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_1700.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_1743.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_1786.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_1829.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_1871.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_1914.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_1957.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_2000.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_2043.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_2086.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_2129.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_2171.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_2214.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_2257.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_2300.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_2343.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_2386.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_2429.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_2471.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_2514.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_2557.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_2600.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_2643.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_2686.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_2729.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_2771.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_2814.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_2857.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_2900.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_2943.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_2986.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_3029.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_3071.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_3114.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_3157.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_3200.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_500.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_543.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_586.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_629.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_671.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_714.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_757.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_800.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_843.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_886.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_929.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/log_971.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_ladder_v3/results.csv
+wsl-workspace/results/adapter/archive_early_exploration/elo_outcomes/elo_1200.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_outcomes/elo_1800.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_outcomes/elo_2400.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_outcomes/elo_3000.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_outcomes/elo_500.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_outcomes/log_1200.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_outcomes/log_1800.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_outcomes/log_2400.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_outcomes/log_3000.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_outcomes/log_500.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_points/elo_500.pgn
+wsl-workspace/results/adapter/archive_early_exploration/elo_points/log_1200.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_points/log_1800.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_points/log_2400.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_points/log_3000.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_points/log_500.txt
+wsl-workspace/results/adapter/archive_early_exploration/elo_points/per_move_results.csv
+wsl-workspace/results/adapter/archive_early_exploration/feature_matrix/log_s1.txt
+wsl-workspace/results/adapter/archive_early_exploration/feature_matrix/log_s1_retry.txt
+wsl-workspace/results/adapter/archive_early_exploration/feature_matrix/log_s2.txt
+wsl-workspace/results/adapter/archive_early_exploration/feature_matrix/log_s3.txt
+wsl-workspace/results/adapter/archive_early_exploration/feature_matrix/log_s4.txt
+wsl-workspace/results/adapter/archive_early_exploration/feature_matrix/log_s5.txt
+wsl-workspace/results/adapter/archive_early_exploration/feature_matrix/log_s6.txt
+wsl-workspace/results/adapter/archive_early_exploration/feature_matrix/s1_adaptive_vs_weak.pgn
+wsl-workspace/results/adapter/archive_early_exploration/feature_matrix/s1_retry.pgn
+wsl-workspace/results/adapter/archive_early_exploration/feature_matrix/s2_adaptive_vs_strong.pgn
+wsl-workspace/results/adapter/archive_early_exploration/feature_matrix/s3_adaptive_vs_full.pgn
+wsl-workspace/results/adapter/archive_early_exploration/feature_matrix/s4_troll_on.pgn
+wsl-workspace/results/adapter/archive_early_exploration/feature_matrix/s5_capped_adaptive.pgn
+wsl-workspace/results/adapter/archive_early_exploration/feature_matrix/s6_high_contempt.pgn
+wsl-workspace/results/adapter/archive_early_exploration/spsa_conthist_temp/checkpoint.json
+wsl-workspace/results/adapter/archive_early_exploration/spsa_conthist_temp/final_theta.json
+wsl-workspace/results/adapter/archive_early_exploration/spsa_conthist_temp/iter.log
+wsl-workspace/results/adapter/archive_early_exploration/spsa_conthist_temp/iter.pgn
+wsl-workspace/results/adapter/archive_early_exploration/spsa_conthist_temp/run.log
+wsl-workspace/results/adapter/archive_early_exploration/spsa_pp/checkpoint.json
+wsl-workspace/results/adapter/archive_early_exploration/spsa_pp/checkpoint_test.json
+wsl-workspace/results/adapter/archive_early_exploration/spsa_pp/iter.log
+wsl-workspace/results/adapter/archive_early_exploration/spsa_pp/iter.pgn
+wsl-workspace/results/adapter/calibration/calibrate_rubi_v2_run.log
+wsl-workspace/results/adapter/calibration/elo_scaling/elo_1000.pgn
+wsl-workspace/results/adapter/calibration/elo_scaling/elo_1500.pgn
+wsl-workspace/results/adapter/calibration/elo_scaling/elo_2000.pgn
+wsl-workspace/results/adapter/calibration/elo_scaling/elo_2500.pgn
+wsl-workspace/results/adapter/calibration/elo_scaling/elo_3000.pgn
+wsl-workspace/results/adapter/calibration/elo_scaling/elo_500.pgn
+wsl-workspace/results/adapter/calibration/elo_scaling/elo_500_retry.pgn
+wsl-workspace/results/adapter/calibration/elo_scaling/elo_500_retry3.pgn
+wsl-workspace/results/adapter/calibration/elo_scaling/log_1000.txt
+wsl-workspace/results/adapter/calibration/elo_scaling/log_1500.txt
+wsl-workspace/results/adapter/calibration/elo_scaling/log_2000.txt
+wsl-workspace/results/adapter/calibration/elo_scaling/log_2500.txt
+wsl-workspace/results/adapter/calibration/elo_scaling/log_3000.txt
+wsl-workspace/results/adapter/calibration/elo_scaling/log_500.txt
+wsl-workspace/results/adapter/calibration/elo_scaling/log_500_retry.txt
+wsl-workspace/results/adapter/calibration/elo_scaling/log_500_retry3.txt
+wsl-workspace/results/adapter/calibration/elo_scaling_rubi/elo_1000.pgn
+wsl-workspace/results/adapter/calibration/elo_scaling_rubi/elo_1500.pgn
+wsl-workspace/results/adapter/calibration/elo_scaling_rubi/elo_2000.pgn
+wsl-workspace/results/adapter/calibration/elo_scaling_rubi/elo_2500.pgn
+wsl-workspace/results/adapter/calibration/elo_scaling_rubi/elo_3000.pgn
+wsl-workspace/results/adapter/calibration/elo_scaling_rubi/elo_500.pgn
+wsl-workspace/results/adapter/calibration/elo_scaling_rubi/log_1000.txt
+wsl-workspace/results/adapter/calibration/elo_scaling_rubi/log_1500.txt
+wsl-workspace/results/adapter/calibration/elo_scaling_rubi/log_2000.txt
+wsl-workspace/results/adapter/calibration/elo_scaling_rubi/log_2500.txt
+wsl-workspace/results/adapter/calibration/elo_scaling_rubi/log_3000.txt
+wsl-workspace/results/adapter/calibration/elo_scaling_rubi/log_500.txt
+wsl-workspace/results/adapter/calibration/elo_scaling_rubi_v2/log_1000.txt
+wsl-workspace/results/adapter/calibration/elo_scaling_rubi_v2/log_16000.txt
+wsl-workspace/results/adapter/calibration/elo_scaling_rubi_v2/log_2000.txt
+wsl-workspace/results/adapter/calibration/elo_scaling_rubi_v2/log_32000.txt
+wsl-workspace/results/adapter/calibration/elo_scaling_rubi_v2/log_4000.txt
+wsl-workspace/results/adapter/calibration/elo_scaling_rubi_v2/log_500.txt
+wsl-workspace/results/adapter/calibration/elo_scaling_rubi_v2/log_8000.txt
+wsl-workspace/results/adapter/calibration/elo_scaling_rubi_v2/nps_1000.pgn
+wsl-workspace/results/adapter/calibration/elo_scaling_rubi_v2/nps_16000.pgn
+wsl-workspace/results/adapter/calibration/elo_scaling_rubi_v2/nps_2000.pgn
+wsl-workspace/results/adapter/calibration/elo_scaling_rubi_v2/nps_32000.pgn
+wsl-workspace/results/adapter/calibration/elo_scaling_rubi_v2/nps_4000.pgn
+wsl-workspace/results/adapter/calibration/elo_scaling_rubi_v2/nps_500.pgn
+wsl-workspace/results/adapter/calibration/elo_scaling_rubi_v2/nps_8000.pgn
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game1/adapter_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game1/final_moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game1/game.pgn
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game1/moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game1/rubichess_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game10/adapter_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game10/final_moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game10/game.pgn
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game10/moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game10/rubichess_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game2/adapter_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game2/final_moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game2/game.pgn
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game2/moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game2/rubichess_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game3/adapter_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game3/final_moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game3/game.pgn
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game3/moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game3/rubichess_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game4/adapter_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game4/final_moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game4/game.pgn
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game4/moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game4/rubichess_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game5/adapter_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game5/final_moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game5/game.pgn
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game5/moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game5/rubichess_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game6/adapter_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game6/final_moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game6/game.pgn
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game6/moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game6/rubichess_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game7/adapter_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game7/final_moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game7/game.pgn
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game7/moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game7/rubichess_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game8/adapter_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game8/final_moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game8/game.pgn
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game8/moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game8/rubichess_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game9/adapter_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game9/final_moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game9/game.pgn
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game9/moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_3min_series/game9/rubichess_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_conthist_series/game1/adapter_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_conthist_series/game1/final_moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_conthist_series/game1/game.pgn
+wsl-workspace/results/adapter/exhibitions/tenmin_conthist_series/game1/moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_conthist_series/game1/rubichess_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_conthist_series/game2/adapter_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_conthist_series/game2/final_moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_conthist_series/game2/game.pgn
+wsl-workspace/results/adapter/exhibitions/tenmin_conthist_series/game2/moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_conthist_series/game2/rubichess_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_conthist_series/game3/adapter_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_conthist_series/game3/final_moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_conthist_series/game3/game.pgn
+wsl-workspace/results/adapter/exhibitions/tenmin_conthist_series/game3/moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_conthist_series/game3/rubichess_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_game/full_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_game/game.pgn
+wsl-workspace/results/adapter/exhibitions/tenmin_game_logged/adapter_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_game_logged/final_moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_game_logged/game.pgn
+wsl-workspace/results/adapter/exhibitions/tenmin_game_logged/moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_game_logged/rubichess_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_game_logged_full/adapter_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_game_logged_full/final_moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_game_logged_full/game.pgn
+wsl-workspace/results/adapter/exhibitions/tenmin_game_logged_full/moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_game_logged_full/rubichess_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_matched_level_series/game1/adapter_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_matched_level_series/game1/final_moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_matched_level_series/game1/game.pgn
+wsl-workspace/results/adapter/exhibitions/tenmin_matched_level_series/game1/moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_matched_level_series/game1/rubichess_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_matched_level_series/game1_run.log
+wsl-workspace/results/adapter/exhibitions/tenmin_matched_level_series/game2/adapter_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_matched_level_series/game2/final_moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_matched_level_series/game2/game.pgn
+wsl-workspace/results/adapter/exhibitions/tenmin_matched_level_series/game2/moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_matched_level_series/game2/rubichess_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_matched_level_series/game2_run.log
+wsl-workspace/results/adapter/exhibitions/tenmin_matched_level_series/game3/adapter_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_matched_level_series/game3/final_moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_matched_level_series/game3/game.pgn
+wsl-workspace/results/adapter/exhibitions/tenmin_matched_level_series/game3/moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_matched_level_series/game3/rubichess_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_matched_level_series/game3_run.log
+wsl-workspace/results/adapter/exhibitions/tenmin_rookext_series/game1/adapter_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_rookext_series/game1/final_moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_rookext_series/game1/game.pgn
+wsl-workspace/results/adapter/exhibitions/tenmin_rookext_series/game1/moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_rookext_series/game1/rubichess_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_rookext_series/game1_run.log
+wsl-workspace/results/adapter/exhibitions/tenmin_tier1fix_series/game1/adapter_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_tier1fix_series/game1/final_moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_tier1fix_series/game1/game.pgn
+wsl-workspace/results/adapter/exhibitions/tenmin_tier1fix_series/game1/moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_tier1fix_series/game1/rubichess_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_tier1fix_series/game1_run.log
+wsl-workspace/results/adapter/exhibitions/tenmin_tier1fix_series/game2/adapter_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_tier1fix_series/game2/final_moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_tier1fix_series/game2/game.pgn
+wsl-workspace/results/adapter/exhibitions/tenmin_tier1fix_series/game2/moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_tier1fix_series/game2/rubichess_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_tier1fix_series/game2_run.log
+wsl-workspace/results/adapter/exhibitions/tenmin_tier1fix_series/game3/adapter_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_tier1fix_series/game3/final_moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_tier1fix_series/game3/game.pgn
+wsl-workspace/results/adapter/exhibitions/tenmin_tier1fix_series/game3/moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_tier1fix_series/game3/rubichess_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_tier1fix_series/game3_run.log
+wsl-workspace/results/adapter/exhibitions/tenmin_tier2_series/game1/adapter_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_tier2_series/game1/final_moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_tier2_series/game1/game.pgn
+wsl-workspace/results/adapter/exhibitions/tenmin_tier2_series/game1/moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_tier2_series/game1/rubichess_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_tier2_series/game1_run.log
+wsl-workspace/results/adapter/exhibitions/tenmin_tier2_series/game2/adapter_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_tier2_series/game2/final_moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_tier2_series/game2/game.pgn
+wsl-workspace/results/adapter/exhibitions/tenmin_tier2_series/game2/moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_tier2_series/game2/rubichess_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_tier2_series/game2_run.log
+wsl-workspace/results/adapter/exhibitions/tenmin_tier2_series/game3/adapter_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_tier2_series/game3/final_moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_tier2_series/game3/game.pgn
+wsl-workspace/results/adapter/exhibitions/tenmin_tier2_series/game3/moves.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_tier2_series/game3/rubichess_log.txt
+wsl-workspace/results/adapter/exhibitions/tenmin_tier2_series/game3_run.log
+wsl-workspace/results/adapter/sprt_gates/sprt_conthist_v2.log
+wsl-workspace/results/adapter/sprt_gates/sprt_conthist_v2.pgn
+wsl-workspace/results/adapter/sprt_gates/sprt_corrhist_vs_seefutility.log
+wsl-workspace/results/adapter/sprt_gates/sprt_corrhist_vs_seefutility.pgn
+wsl-workspace/results/adapter/sprt_gates/sprt_kingsafety_v2_vs_rook.log
+wsl-workspace/results/adapter/sprt_gates/sprt_kingsafety_v2_vs_rook.pgn
+wsl-workspace/results/adapter/sprt_gates/sprt_kingsafety_vs_passedpawn.log
+wsl-workspace/results/adapter/sprt_gates/sprt_kingsafety_vs_passedpawn.pgn
+wsl-workspace/results/adapter/sprt_gates/sprt_knight_outpost.log
+wsl-workspace/results/adapter/sprt_gates/sprt_knight_outpost.pgn
+wsl-workspace/results/adapter/sprt_gates/sprt_knight_outpost_extended.log
+wsl-workspace/results/adapter/sprt_gates/sprt_knight_outpost_extended.pgn
+wsl-workspace/results/adapter/sprt_gates/sprt_magic_vs_seefutility.log
+wsl-workspace/results/adapter/sprt_gates/sprt_magic_vs_seefutility.pgn
+wsl-workspace/results/adapter/sprt_gates/sprt_mdp_vs_magic.log
+wsl-workspace/results/adapter/sprt_gates/sprt_mdp_vs_magic.pgn
+wsl-workspace/results/adapter/sprt_gates/sprt_mobility_vs_passedpawn.log
+wsl-workspace/results/adapter/sprt_gates/sprt_mobility_vs_passedpawn.pgn
+wsl-workspace/results/adapter/sprt_gates/sprt_passedpawn_v2_vs_magic.log
+wsl-workspace/results/adapter/sprt_gates/sprt_passedpawn_v2_vs_magic.pgn
+wsl-workspace/results/adapter/sprt_gates/sprt_passedpawn_vs_magic.log
+wsl-workspace/results/adapter/sprt_gates/sprt_passedpawn_vs_magic.pgn
+wsl-workspace/results/adapter/sprt_gates/sprt_punish_latch.log
+wsl-workspace/results/adapter/sprt_gates/sprt_punish_latch.pgn
+wsl-workspace/results/adapter/sprt_gates/sprt_rook_vs_mobility.log
+wsl-workspace/results/adapter/sprt_gates/sprt_rook_vs_mobility.pgn
+wsl-workspace/results/adapter/sprt_gates/sprt_rookext.log
+wsl-workspace/results/adapter/sprt_gates/sprt_rookext.pgn
+wsl-workspace/results/adapter/sprt_gates/sprt_shelter.log
+wsl-workspace/results/adapter/sprt_gates/sprt_shelter.pgn
+wsl-workspace/results/adapter/sprt_gates/sprt_singularv2_vs_seefutility.log
+wsl-workspace/results/adapter/sprt_gates/sprt_singularv2_vs_seefutility.pgn
+wsl-workspace/results/adapter/sprt_gates/sprt_tier1fix.log
+wsl-workspace/results/adapter/sprt_gates/sprt_tier1fix.pgn
+wsl-workspace/results/adapter/sprt_gates/sprt_tier2.log
+wsl-workspace/results/adapter/sprt_gates/sprt_tier2.pgn
+wsl-workspace/scripts/adapt_smoke.sh
+wsl-workspace/scripts/analyze_elo_ladder.py
+wsl-workspace/scripts/analyze_elo_ladder_v2.py
+wsl-workspace/scripts/analyze_elo_ladder_v3.py
+wsl-workspace/scripts/analyze_elo_points.py
+wsl-workspace/scripts/analyze_s2_s3.py
+wsl-workspace/scripts/calibrate_rubi_vs_adapter2400.sh
+wsl-workspace/scripts/check_elo_scaling.sh
+wsl-workspace/scripts/check_elo_scaling_rubi.sh
+wsl-workspace/scripts/check_scenarios.sh
+wsl-workspace/scripts/play_10min_conthist.py
+wsl-workspace/scripts/play_10min_matched_level.py
+wsl-workspace/scripts/play_3min_game.py
+wsl-workspace/scripts/play_logged_game.py
+wsl-workspace/scripts/play_logged_game_full.py
+wsl-workspace/scripts/rerun_elo500.sh
+wsl-workspace/scripts/rerun_elo500_scaling.sh
+wsl-workspace/scripts/rerun_elo500_v3.sh
+wsl-workspace/scripts/rerun_s1.sh
+wsl-workspace/scripts/revert_mdp_in_baseline.py
+wsl-workspace/scripts/revert_singular_v2.py
+wsl-workspace/scripts/run_10min_vs_rubi.sh
+wsl-workspace/scripts/run_elo_ladder.sh
+wsl-workspace/scripts/run_elo_ladder_v2.sh
+wsl-workspace/scripts/run_elo_ladder_v3.sh
+wsl-workspace/scripts/run_elo_outcomes.sh
+wsl-workspace/scripts/run_elo_points.sh
+wsl-workspace/scripts/run_elo_scaling.sh
+wsl-workspace/scripts/run_elo_scaling_rubi.sh
+wsl-workspace/scripts/run_feature_matrix.sh
+wsl-workspace/scripts/run_internal_ladder.sh
+wsl-workspace/scripts/run_internal_ladder_v2.sh
+wsl-workspace/scripts/run_internal_ladder_v3.sh
+wsl-workspace/scripts/smoke.sh
+wsl-workspace/scripts/smoke_conthist.sh
+wsl-workspace/scripts/smoke_corrhist.sh
+wsl-workspace/scripts/smoke_elofix.sh
+wsl-workspace/scripts/smoke_kingsafety.sh
+wsl-workspace/scripts/smoke_kingsafety_v2.sh
+wsl-workspace/scripts/smoke_magic.sh
+wsl-workspace/scripts/smoke_mdp.sh
+wsl-workspace/scripts/smoke_mobility.sh
+wsl-workspace/scripts/smoke_passedpawn.sh
+wsl-workspace/scripts/smoke_passedpawn_v2.sh
+wsl-workspace/scripts/smoke_rook.sh
+wsl-workspace/scripts/smoke_rubi.sh
+wsl-workspace/scripts/smoke_shelter.sh
+wsl-workspace/scripts/sprt_conthist.sh
+wsl-workspace/scripts/sprt_corrhist.sh
+wsl-workspace/scripts/sprt_kingsafety.sh
+wsl-workspace/scripts/sprt_kingsafety_v2.sh
+wsl-workspace/scripts/sprt_magic.sh
+wsl-workspace/scripts/sprt_mdp.sh
+wsl-workspace/scripts/sprt_mobility.sh
+wsl-workspace/scripts/sprt_passedpawn.sh
+wsl-workspace/scripts/sprt_passedpawn_v2.sh
+wsl-workspace/scripts/sprt_rook.sh
+wsl-workspace/scripts/sprt_rookext.sh
+wsl-workspace/scripts/sprt_shelter.sh
+wsl-workspace/scripts/sprt_singular_v2.sh
+wsl-workspace/scripts/sprt_tier1fix.sh
+wsl-workspace/scripts/sprt_tier2.sh
+wsl-workspace/scripts/spsa_conthist_temp.py
+wsl-workspace/scripts/spsa_passedpawn.py
+wsl-workspace/scripts/spsa_passedpawn_test.py
+wsl-workspace/scripts/start_uci_session.sh
+wsl-workspace/scripts/test_debug_flag.sh
+wsl-workspace/scripts/time_single_move.py
+wsl-workspace/scripts/uci_send.sh
+wsl-workspace/scripts/watch_blunders.py
+wsl-workspace/scripts/watch_vs_strong.py
+=== top-level ===
+./.gitattributes	4 KB
+./.gitignore	4 KB
+./Cargo.lock	4 KB
+./Cargo.toml	4 KB
+./README.md	24 KB
+./artifacts/elo-detector-misfire.json	4 KB
+./artifacts/inspect-report.json	28 KB
+./artifacts/low-cp-val-mae-persona-experiments.json	8 KB
+./artifacts/persona-stability-sprt.json	4 KB
+./artifacts/unarchitectured-v1-calibration-corpus-replication.jsonl	80 KB
+./artifacts/unarchitectured-v1-calibration-corpus.jsonl	164 KB
+./artifacts/unarchitectured-v1-calibration-labels-replication.json	152 KB
+./artifacts/unarchitectured-v1-calibration-labels.json	304 KB
+./artifacts/unarchitectured-v1-calibration-report-replication.json	8 KB
+./artifacts/unarchitectured-v1-calibration-report.json	8 KB
+./artifacts/unarchitectured-v1-final.unarchv1	4180 KB
+./artifacts/xt-nnue-v1-full.pt.best	4 KB
+./benchmarks/matetrack.epd	4 KB
+./config/a100_hybrid_training.json	4 KB
+./config/a100_hybrid_training_v1_short_run.json	4 KB
+./config/pretrain_v1_training.json	4 KB
+./config/unarchitectured_v1.json	8 KB
+./config/unarchitectured_v1_runtime_capabilities.json	4 KB
+./config/unarchitectured_v1_safety.json	4 KB
+./config/unarchitectured_v1_student.json	4 KB
+./config/unarchitectured_v1_training.json	4 KB
+./docs/dev-environment.md	12 KB
+./docs/elo-detector-high-level-integration.md	4 KB
+./docs/engine-commit-feed-review.md	8 KB
+./docs/fishtest-and-quantization-notes.md	8 KB
+./docs/full-scale-bug-audit-2026-08-21.md	12 KB
+./docs/gab-capacity-finding.md	8 KB
+./docs/history-answers-reconciliation.md	8 KB
+./docs/ieee-cloud-nnue-speed-quality.pdf	8 KB
+./docs/ieee-cloud-nnue-speed-quality.tex	8 KB
+./docs/ieee-low-cp-val-mae-and-persona.md	20 KB
+./docs/int8-activation-calibration-finding.md	8 KB
+./docs/llm-uci-matrix-assessment.md	8 KB
+./docs/memory-hierarchy-notes-285h.md	8 KB
+./docs/move-prediction-pretrain-plan.md	8 KB
+./docs/nnue-architecture-audit.md	8 KB
+./docs/nnue-coverage-capacity-matrix-178m.md	8 KB
+./docs/nnue-coverage-capacity-matrix-small.md	8 KB
+./docs/nnue-dataset-quiet-filters.md	8 KB
+./docs/nnue-label-noise-real-measurement.md	8 KB
+./docs/nnue-round-12-results.md	12 KB
+./docs/nnue-round-13-results.md	4 KB
+./docs/nnue-soft-reweighting-result.md	8 KB
+./docs/nnue-stronger-labels-existing-corpus.md	4 KB
+./docs/nnue-v4-108m-recipe-result.md	8 KB
+./docs/nnue-v4-retrain-data-scaling-finding.md	8 KB
+./docs/nnue-v4-training-recipe.md	8 KB
+./docs/npu-viability-285h.md	12 KB
+./docs/parameter-calibration-audit.md	16 KB
+./docs/performance-ceiling-and-gpu-viability.md	12 KB
+./docs/performance-round-1-implementation.md	8 KB
+./docs/performance-survey-2026-08-24.md	12 KB
+./docs/persona-engine-detect-uci-gate.md	4 KB
+./docs/persona-smooth-detect-sprt-result.md	8 KB
+./docs/persona-sprt-gate.md	4 KB
+./docs/persona-stability-and-sprt-correlation.md	4 KB
+./docs/policy-prior-calibration.md	8 KB
+./docs/rating-conditioning-finding.md	12 KB
+./docs/research-notes-diffusionblocks-2506.14202.md	12 KB
+./docs/research-notes-maia-levels-reverse-engineering.md	12 KB
+./docs/research-notes-moe-2507.11181.md	8 KB
+./docs/research-notes-moe-mcts-2401.16852.md	8 KB
+./docs/research-notes-vrzina-engine-thesis.md	8 KB
+./docs/research-survey-arxiv-2026-08-24.md	16 KB
+./docs/round-16-uci-gates.md	4 KB
+./docs/setup-rust-toolchain-sandbox-blocker.md	4 KB
+./docs/stockfish-empirical-data-notes.md	8 KB
+./docs/tuning-core-ultra-9-285h-and-low-end.md	8 KB
+./docs/unarchitectured-v1-calibration.md	12 KB
+./docs/unarchitectured-v1-integration-trial.md	8 KB
+./docs/unarchitectured-v1-runtime-optimization.md	20 KB
+./docs/unarchitectured-v1-runtime-scratch-and-gemm.md	4 KB
+./docs/unarchitectured-v1-theme-breakdown.md	8 KB
+./docs/unarchitectured-v1-why-the-hint-costs-elo.md	8 KB
+./docs/unarchitectured-v1.md	12 KB
+./docs/workspace-reset-recovery.md	4 KB
+./nnue-shards-safe/unchessed-nnue-v4-overtrained.bin	22532 KB
+./nnue-shards-safe/v3_research_brief.md	12 KB
+./research/repository_inventory.txt	88 KB
+./rust-toolchain.toml	4 KB
+./scripts/build-and-test.sh	4 KB
+./scripts/setup-rust-toolchain.sh	8 KB
+./tools/a100_common.py	8 KB
+./tools/analyse_adapter_telemetry.py	20 KB
+./tools/analyse_gab_contribution.py	12 KB
+./tools/analyse_int8_activation_calibration.py	28 KB
+./tools/analyse_oracle_rating_conditioning.py	20 KB
+./tools/analyse_policy_prior_calibration.py	12 KB
+./tools/analyse_rating_conditioning.py	12 KB
+./tools/analyse_unarchitectured_v1_ordering_risk.py	16 KB
+./tools/archive_blocks.py	16 KB
+./tools/archive_layout.json	36 KB
+./tools/build_elo_bands.py	8 KB
+./tools/build_level_conditioned_moves.py	16 KB
+./tools/build_matetrack_suite.py	8 KB
+./tools/build_unarchitectured_v1_calibration_corpus.py	12 KB
+./tools/calibrate_unarchitectured_v1_policy.py	24 KB
+./tools/calibrate_unarchitectured_v1_throughput.py	8 KB
+./tools/calibrate_xt_nnue_throughput.py	4 KB
+./tools/check_nnue_data.py	4 KB
+./tools/check_search_param_consistency.py	12 KB
+./tools/classics.pgn	8 KB
+./tools/elo_detector.py	4 KB
+./tools/experiment_low_cp_val_mae.py	16 KB
+./tools/export_unarchitectured_v1.py	8 KB
+./tools/find_unarchitectured_v1_hint_disagreements.py	12 KB
+./tools/inspect_unarchitectured_v1.py	4 KB
+./tools/measure_game_phase_definitions.py	16 KB
+./tools/nnue_cloud_runtime.py	8 KB
+./tools/nnue_relabel_existing.py	32 KB
+./tools/nnue_train_control.py	4 KB
+./tools/npu_dispatch_benchmark.py	8 KB
+./tools/pentanomial_sprt.py	12 KB
+./tools/persona_stability_sprt.py	12 KB
+./tools/pretrain_move_dataset.py	16 KB
+./tools/pretrain_move_predictor.py	16 KB
+./tools/pretrain_v1_a100.py	36 KB
+./tools/pretrain_v5_data.py	36 KB
+./tools/reference_forward_unarchitectured_v1.py	12 KB
+./tools/render_ieee_pdf.py	12 KB
+./tools/requirements-dev.txt	4 KB
+./tools/rl_calibration.py	8 KB
+./tools/rust_bracket_check.py	8 KB
+./tools/selfplay.py	4 KB
+./tools/selfplay_elo_mixer.py	16 KB
+./tools/simulate_time_budget.py	8 KB
+./tools/smoke_unarchitectured_v1_uci.py	4 KB
+./tools/tag_calibration_themes.py	12 KB
+./tools/test_a100_common.py	4 KB
+./tools/test_analyse_adapter_telemetry.py	8 KB
+./tools/test_analyse_oracle_rating_conditioning.py	8 KB
+./tools/test_archive_blocks.py	8 KB
+./tools/test_build_elo_bands.py	8 KB
+./tools/test_build_level_conditioned_moves.py	8 KB
+./tools/test_elo_detector.py	4 KB
+./tools/test_experiment_low_cp_val_mae.py	4 KB
+./tools/test_gab_ablation.py	8 KB
+./tools/test_game_phase_definitions.py	16 KB
+./tools/test_hashfull_reporting.py	4 KB
+./tools/test_hint_disagreements.py	8 KB
+./tools/test_int8_activation_calibration.py	12 KB
+./tools/test_king_buckets.py	4 KB
+./tools/test_maia3_cloud_selfplay.py	16 KB
+./tools/test_matetrack_suite.py	8 KB
+./tools/test_nnue_cloud_runtime.py	4 KB
+./tools/test_nnue_relabel_existing.py	16 KB
+./tools/test_nnue_train_control.py	8 KB
+./tools/test_ordering_risk.py	8 KB
+./tools/test_pentanomial_sprt.py	12 KB
+./tools/test_persona_stability_sprt.py	4 KB
+./tools/test_policy_prior_calibration.py	8 KB
+./tools/test_pretrain_move.py	12 KB
+./tools/test_pretrain_v5.py	20 KB
+./tools/test_rating_conditioning.py	8 KB
+./tools/test_rl_calibration.py	4 KB
+./tools/test_rust_bracket_check.py	8 KB
+./tools/test_search_param_consistency.py	8 KB
+./tools/test_selfplay_elo_mixer.py	8 KB
+./tools/test_simulate_time_budget.py	8 KB
+./tools/test_sprt_persona_smooth_detect.py	4 KB
+./tools/test_theme_breakdown.py	8 KB
+./tools/test_train_nnue.py	4 KB
+./tools/test_train_nnue_xt_a100.py	4 KB
+./tools/test_training_blocks.py	12 KB
+./tools/test_unarchitectured_v1_architecture_audit.py	4 KB
+./tools/test_unarchitectured_v1_calibration.py	12 KB
+./tools/test_unarchitectured_v1_runtime.py	4 KB
+./tools/test_unarchitectured_v1_runtime_readiness.py	8 KB
+./tools/test_unarchitectured_v1_safety.py	4 KB
+./tools/test_unarchitectured_v1_scripts.py	8 KB
+./tools/test_unarchitectured_v1_watchdog.py	4 KB
+./tools/train_nnue.py	36 KB
+./tools/train_nnue_xt_a100.py	24 KB
+./tools/train_policy.py	8 KB
+./tools/train_unarchitectured_v1_a100.py	76 KB
+./tools/train_unarchitectured_v1_student_a100.py	40 KB
+./tools/training_blocks.py	20 KB
+./tools/uci_smoke.py	8 KB
+./tools/unarchitectured_v1_architecture_audit.py	8 KB
+./tools/unarchitectured_v1_base_data.py	16 KB
+./tools/unarchitectured_v1_data.py	16 KB
+./tools/unarchitectured_v1_dataset_gate.py	8 KB
+./tools/unarchitectured_v1_depth_time_calibration.py	8 KB
+./tools/unarchitectured_v1_package.py	8 KB
+./tools/unarchitectured_v1_position_encoding.py	8 KB
+./tools/unarchitectured_v1_runtime_readiness.py	4 KB
+./tools/unarchitectured_v1_safety.py	8 KB
+./tools/unarchitectured_v1_uci_teacher_worker.py	16 KB
+./tools/unarchitectured_v1_watchdog.py	8 KB
+./unchessed-adapter/Cargo.toml	4 KB
+./unchessed-core/Cargo.toml	4 KB
+./unchessed-datagen/Cargo.toml	4 KB
+./unchessed-nnue.bin	22532 KB
+./unchessed-reviewer/Cargo.toml	4 KB
+./wsl-workspace/README.md	4 KB
+=== manifests/build/test markers ===
+./Cargo.toml
+./README.md
+./artifacts/inspect-report.json
+./benchmarks/unarchitectured-v1/README.md
+./data/archive/README.md
+./data/selfplay/README.md
+./data/training/README.md
+./docs/fishtest-and-quantization-notes.md
+./scripts/build-and-test.sh
+./scripts/exhibition/check_series.sh
+./scripts/nnue-pipeline/README.md
+./scripts/nnue-pipeline/cloud_startup.sh
+./scripts/nnue-pipeline/cloud_startup_cpu_only.sh
+./scripts/nnue-pipeline/cloud_train_v4.sh
+./scripts/nnue-pipeline/full_pipeline.sh
+./scripts/nnue-pipeline/full_pipeline_cloud.sh
+./scripts/nnue-pipeline/label_only_cpu.sh
+./scripts/nnue-pipeline/local_regen.sh
+./scripts/nnue-pipeline/relabel_existing.sh
+./scripts/nnue-pipeline/smoke_test_nnue.sh
+./scripts/nnue-pipeline/train_recipe.sh
+./scripts/nnue-pipeline/watch_and_handoff.sh
+./scripts/nnue-pipeline/worker_bench.sh
+./scripts/pretrain-pipeline/README.md
+./scripts/pretrain-pipeline/cpu_stage.sh
+./scripts/pretrain-pipeline/gpu_stage.sh
+./scripts/research/coverage_capacity_gen.sh
+./scripts/research/wsl_sprt_nnue_108m.sh
+./scripts/research/wsl_sprt_nnue_27m_recipe.sh
+./scripts/research/wsl_sprt_nnue_real27m.sh
+./scripts/research/wsl_sprt_nnue_real9m.sh
+./scripts/research/wsl_sprt_nnue_v4.sh
+./scripts/research/wsl_sprt_persona_run.sh
+./scripts/setup-rust-toolchain.sh
+./scripts/sprt-history/smoke_conthist.sh
+./scripts/sprt-history/smoke_kingsafety.sh
+./scripts/sprt-history/smoke_kingsafety_v2.sh
+./scripts/sprt-history/smoke_mobility.sh
+./scripts/sprt-history/smoke_persona_smooth_detect.sh
+./scripts/sprt-history/smoke_rook.sh
+./scripts/sprt-history/smoke_shelter.sh
+./scripts/sprt-history/sprt_conthist.sh
+./scripts/sprt-history/sprt_hanging.sh
+./scripts/sprt-history/sprt_incremental_nnue.sh
+./scripts/sprt-history/sprt_kingsafety.sh
+./scripts/sprt-history/sprt_kingsafety_v2.sh
+./scripts/sprt-history/sprt_knight_outpost.sh
+./scripts/sprt-history/sprt_mobility.sh
+./scripts/sprt-history/sprt_nnue_v1.sh
+./scripts/sprt-history/sprt_persona_smooth_detect.sh
+./scripts/sprt-history/sprt_punish_latch.sh
+./scripts/sprt-history/sprt_rook.sh
+./scripts/sprt-history/sprt_shelter.sh
+./scripts/sprt-history/sprt_unarchitectured_v1_hint.sh
+./tools/inspect_unarchitectured_v1.py
+./tools/maia3_cloud_selfplay/README.md
+./tools/maia3_cloud_selfplay/requirements.txt
+./tools/maia3_cloud_selfplay/test_generate.py
+./tools/requirements-dev.txt
+./tools/test_a100_common.py
+./tools/test_analyse_adapter_telemetry.py
+./tools/test_analyse_oracle_rating_conditioning.py
+./tools/test_archive_blocks.py
+./tools/test_build_elo_bands.py
+./tools/test_build_level_conditioned_moves.py
+./tools/test_elo_detector.py
+./tools/test_experiment_low_cp_val_mae.py
+./tools/test_gab_ablation.py
+./tools/test_game_phase_definitions.py
+./tools/test_hashfull_reporting.py
+./tools/test_hint_disagreements.py
+./tools/test_int8_activation_calibration.py
+./tools/test_king_buckets.py
+./tools/test_maia3_cloud_selfplay.py
+./tools/test_matetrack_suite.py
+./tools/test_nnue_cloud_runtime.py
+./tools/test_nnue_relabel_existing.py
+./tools/test_nnue_train_control.py
+./tools/test_ordering_risk.py
+./tools/test_pentanomial_sprt.py
+./tools/test_persona_stability_sprt.py
+./tools/test_policy_prior_calibration.py
+./tools/test_pretrain_move.py
+./tools/test_pretrain_v5.py
+./tools/test_rating_conditioning.py
+./tools/test_rl_calibration.py
+./tools/test_rust_bracket_check.py
+./tools/test_search_param_consistency.py
+./tools/test_selfplay_elo_mixer.py
+./tools/test_simulate_time_budget.py
+./tools/test_sprt_persona_smooth_detect.py
+./tools/test_theme_breakdown.py
+./tools/test_train_nnue.py
+./tools/test_train_nnue_xt_a100.py
+./tools/test_training_blocks.py
+./tools/test_unarchitectured_v1_architecture_audit.py
+./tools/test_unarchitectured_v1_calibration.py
+./tools/test_unarchitectured_v1_runtime.py
+./tools/test_unarchitectured_v1_runtime_readiness.py
+./tools/test_unarchitectured_v1_safety.py
+./tools/test_unarchitectured_v1_scripts.py
+./tools/test_unarchitectured_v1_watchdog.py
+./unchessed-adapter/Cargo.toml
+./unchessed-core/Cargo.toml
+./unchessed-datagen/Cargo.toml
+./unchessed-reviewer/Cargo.toml
+./wsl-workspace/README.md
+./wsl-workspace/results/README.md
+./wsl-workspace/results/adapter/archive_early_exploration/spsa_pp/checkpoint_test.json
+./wsl-workspace/scripts/adapt_smoke.sh
+./wsl-workspace/scripts/calibrate_rubi_vs_adapter2400.sh
+./wsl-workspace/scripts/check_elo_scaling.sh
+./wsl-workspace/scripts/check_elo_scaling_rubi.sh
+./wsl-workspace/scripts/check_scenarios.sh
+./wsl-workspace/scripts/rerun_elo500.sh
+./wsl-workspace/scripts/rerun_elo500_scaling.sh
+./wsl-workspace/scripts/rerun_elo500_v3.sh
+./wsl-workspace/scripts/rerun_s1.sh
+./wsl-workspace/scripts/run_10min_vs_rubi.sh
+./wsl-workspace/scripts/run_elo_ladder.sh
+./wsl-workspace/scripts/run_elo_ladder_v2.sh
+./wsl-workspace/scripts/run_elo_ladder_v3.sh
+./wsl-workspace/scripts/run_elo_outcomes.sh
+./wsl-workspace/scripts/run_elo_points.sh
+./wsl-workspace/scripts/run_elo_scaling.sh
+./wsl-workspace/scripts/run_elo_scaling_rubi.sh
+./wsl-workspace/scripts/run_feature_matrix.sh
+./wsl-workspace/scripts/run_internal_ladder.sh
+./wsl-workspace/scripts/run_internal_ladder_v2.sh
+./wsl-workspace/scripts/run_internal_ladder_v3.sh
+./wsl-workspace/scripts/smoke.sh
+./wsl-workspace/scripts/smoke_conthist.sh
+./wsl-workspace/scripts/smoke_corrhist.sh
+./wsl-workspace/scripts/smoke_elofix.sh
+./wsl-workspace/scripts/smoke_kingsafety.sh
+./wsl-workspace/scripts/smoke_kingsafety_v2.sh
+./wsl-workspace/scripts/smoke_magic.sh
+./wsl-workspace/scripts/smoke_mdp.sh
+./wsl-workspace/scripts/smoke_mobility.sh
+./wsl-workspace/scripts/smoke_passedpawn.sh
+./wsl-workspace/scripts/smoke_passedpawn_v2.sh
+./wsl-workspace/scripts/smoke_rook.sh
+./wsl-workspace/scripts/smoke_rubi.sh
+./wsl-workspace/scripts/smoke_shelter.sh
+./wsl-workspace/scripts/sprt_conthist.sh
+./wsl-workspace/scripts/sprt_corrhist.sh
+./wsl-workspace/scripts/sprt_kingsafety.sh
+./wsl-workspace/scripts/sprt_kingsafety_v2.sh
+./wsl-workspace/scripts/sprt_magic.sh
+./wsl-workspace/scripts/sprt_mdp.sh
+./wsl-workspace/scripts/sprt_mobility.sh
+./wsl-workspace/scripts/sprt_passedpawn.sh
+./wsl-workspace/scripts/sprt_passedpawn_v2.sh
+./wsl-workspace/scripts/sprt_rook.sh
+./wsl-workspace/scripts/sprt_rookext.sh
+./wsl-workspace/scripts/sprt_shelter.sh
+./wsl-workspace/scripts/sprt_singular_v2.sh
+./wsl-workspace/scripts/sprt_tier1fix.sh
+./wsl-workspace/scripts/sprt_tier2.sh
+./wsl-workspace/scripts/spsa_passedpawn_test.py
+./wsl-workspace/scripts/start_uci_session.sh
+./wsl-workspace/scripts/test_debug_flag.sh
+./wsl-workspace/scripts/uci_send.sh

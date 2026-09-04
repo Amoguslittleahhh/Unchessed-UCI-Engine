@@ -1,0 +1,523 @@
+    12 unchessed-adapter/src/main.rs
+    12 unchessed-reviewer/src/main.rs
+    22 unchessed-core/src/lib.rs
+   111 unchessed-core/src/perft.rs
+   202 unchessed-core/src/polyglot_keys.rs
+   213 unchessed-core/src/san.rs
+   246 unchessed-core/src/fen.rs
+   285 unchessed-core/src/tt.rs
+   291 unchessed-core/src/policy.rs
+   318 unchessed-core/src/see.rs
+   322 unchessed-core/src/unarchitectured_v1.rs
+   402 unchessed-core/src/book.rs
+   435 unchessed-core/src/board.rs
+   797 unchessed-core/src/movegen.rs
+   946 unchessed-core/src/eval.rs
+  1182 unchessed-datagen/src/main.rs
+  1359 unchessed-core/src/nnue.rs
+  1483 unchessed-core/src/adapt.rs
+  2126 unchessed-core/src/search.rs
+  2344 unchessed-core/src/uci.rs
+  3611 unchessed-core/src/aegis_v4_runtime.rs
+ 16719 total
+=== rule symbols ===
+unchessed-adapter/src/main.rs:3:use unchessed_core::uci::{run, EngineIdent};
+unchessed-core/src/adapt.rs:6:use crate::movegen::{in_check, legal, KING_ATT};
+unchessed-core/src/adapt.rs:69:    /// running Elo estimate
+unchessed-core/src/adapt.rs:133:    pub estimate_elo: i32,
+unchessed-core/src/adapt.rs:172:    pub fn seed_from_uci_opponent(&mut self, value: &str) -> String {
+unchessed-core/src/adapt.rs:214:                "opponent: {} (human) — rating will be estimated live from move quality",
+unchessed-core/src/adapt.rs:272:    ///    measure above ~2700, so an estimate *pinned* near that ceiling with
+unchessed-core/src/adapt.rs:343:            estimate_elo: self.estimate(),
+unchessed-core/src/adapt.rs:363:        // theory carries little signal, but deep prep nudges the estimate up
+unchessed-core/src/adapt.rs:369:    pub fn estimate(&self) -> i32 {
+unchessed-core/src/adapt.rs:422:    Defend,
+unchessed-core/src/adapt.rs:432:            Mode::Defend => "DEFEND",
+unchessed-core/src/adapt.rs:470:///   CLINCH enters in drawish late middlegames (contempt > 0), and holds
+unchessed-core/src/adapt.rs:493:    Defend,
+unchessed-core/src/adapt.rs:502:            PersonaEmergency::Defend => "defend",
+unchessed-core/src/adapt.rs:608:        let emergency_defend =
+unchessed-core/src/adapt.rs:613:        if emergency_full || emergency_defend || emergency_punish {
+unchessed-core/src/adapt.rs:616:            } else if emergency_defend {
+unchessed-core/src/adapt.rs:617:                (Mode::Defend, PersonaEmergency::Defend)
+unchessed-core/src/adapt.rs:647:        // Introducing a candidate does not count as an agreeing ply.
+unchessed-core/src/adapt.rs:702:    if our_eval_cp < -180 || (prev == Mode::Defend && our_eval_cp < -80) {
+unchessed-core/src/adapt.rs:703:        return Mode::Defend;
+unchessed-core/src/adapt.rs:735:    // aim a touch above the estimate: competitive but beatable
+unchessed-core/src/adapt.rs:736:    let t = model.estimate() + 60;
+unchessed-core/src/adapt.rs:741:/// draw is mildly bad for us; when we are defending, a draw is a rescue and
+unchessed-core/src/adapt.rs:743:pub fn draw_score_for(cfg: &AdaptConfig, prev: Mode) -> i32 {
+unchessed-core/src/adapt.rs:744:    if !cfg.adaptive || prev == Mode::Defend {
+unchessed-core/src/adapt.rs:816:        let gives_check = in_check(&next);
+unchessed-core/src/adapt.rs:821:        if gives_check {
+unchessed-core/src/adapt.rs:822:            w *= 1.25; // ...and checks
+unchessed-core/src/adapt.rs:846:        // pawn moves in front of our castled king feel scary to humans
+unchessed-core/src/adapt.rs:866:        // Voluntarily forfeiting castling rights is a near-universal red
+unchessed-core/src/adapt.rs:867:        // flag that doesn't fade with (estimated) opponent strength the
+unchessed-core/src/adapt.rs:877:        // 3.Kd2 get sampled as a "human blunder", forfeiting all castling
+unchessed-core/src/adapt.rs:880:            let own_castle = if let Color::White = us {
+unchessed-core/src/adapt.rs:885:            if (pos.castling & own_castle) != 0 && (next.castling & own_castle) == 0 {
+unchessed-core/src/adapt.rs:930:        Mode::Defend => Selection {
+unchessed-core/src/adapt.rs:935:            // a found mate is played, period
+unchessed-core/src/adapt.rs:936:            if crate::search::is_mate_score(best.score) && best.score > 0 {
+unchessed-core/src/adapt.rs:939:                    reason: "punishing (mate found)".to_string(),
+unchessed-core/src/adapt.rs:943:            // prefer simplifying captures over checks (convert, don't stunt)
+unchessed-core/src/adapt.rs:953:                let gives_check = in_check(&pos.make(l.mv));
+unchessed-core/src/adapt.rs:957:                    is_cap || gives_check
+unchessed-core/src/adapt.rs:964:                        "forcing check"
+unchessed-core/src/adapt.rs:997:                // keep both queens alive in a drawish position
+unchessed-core/src/adapt.rs:1025:            // where nothing downstream uses it), score every other legal
+unchessed-core/src/adapt.rs:1028:            // move hangs a piece, since the material loss only shows up
+unchessed-core/src/adapt.rs:1037:                let ml = legal(pos);
+unchessed-core/src/adapt.rs:1053:            // Never blend into a move that walks into mate, and never
+unchessed-core/src/adapt.rs:1054:            // decline a mate we have found -- filter once, up front, so
+unchessed-core/src/adapt.rs:1060:                    let walks_into_mate =
+unchessed-core/src/adapt.rs:1061:                        crate::search::is_mate_score(score) && score < 0 && best.score > score;
+unchessed-core/src/adapt.rs:1062:                    !walks_into_mate
+unchessed-core/src/adapt.rs:1063:                        && !((best.score - score) > 0 && crate::search::is_mate_score(best.score))
+unchessed-core/src/adapt.rs:1079:            // reproduce that: the many "slightly worse" legal moves dilute
+unchessed-core/src/adapt.rs:1119:                // legal option is close in value) -- fall through to normal
+unchessed-core/src/adapt.rs:1160:pub fn difficulty_weight(pre_lines: &[Line], legal_count: usize, was_book: bool) -> f64 {
+unchessed-core/src/adapt.rs:1164:    if legal_count <= 2 {
+unchessed-core/src/adapt.rs:1191:        assert!(m.estimate() < 1000, "estimate {}", m.estimate());
+unchessed-core/src/adapt.rs:1202:        assert!(m.estimate() > 2300, "estimate {}", m.estimate());
+unchessed-core/src/adapt.rs:1206:    fn engine_seed_from_uci_opponent() {
+unchessed-core/src/adapt.rs:1208:        let log = m.seed_from_uci_opponent("GM 3644 computer Stockfish 16.1");
+unchessed-core/src/adapt.rs:1210:        assert_eq!(m.estimate(), 3644);
+unchessed-core/src/adapt.rs:1217:        m.seed_from_uci_opponent("- 2800 human MagnusFan");
+unchessed-core/src/adapt.rs:1218:        assert!(m.estimate() < 2300, "human declared elo must not dominate");
+unchessed-core/src/adapt.rs:1225:        // -120 cp: not bad enough to ENTER defend...
+unchessed-core/src/adapt.rs:1226:        assert_ne!(decide_mode(&cfg, &m, -120, 20, Mode::Match), Mode::Defend);
+unchessed-core/src/adapt.rs:1227:        // ...but bad enough to STAY in defend once there
+unchessed-core/src/adapt.rs:1228:        assert_eq!(decide_mode(&cfg, &m, -120, 20, Mode::Defend), Mode::Defend);
+unchessed-core/src/adapt.rs:1229:        // recovered: defend releases
+unchessed-core/src/adapt.rs:1230:        assert_ne!(decide_mode(&cfg, &m, -20, 20, Mode::Defend), Mode::Defend);
+unchessed-core/src/adapt.rs:1245:        assert!(m.estimate() >= 2500, "estimate {}", m.estimate());
+unchessed-core/src/adapt.rs:1255:            "10 clean moves must not ceiling-flag, estimate {}",
+unchessed-core/src/adapt.rs:1256:            short.estimate()
+unchessed-core/src/adapt.rs:1264:        assert!(!h.engine_suspect(), "estimate {}", h.estimate());
+unchessed-core/src/adapt.rs:1291:    fn default_engine_detect_is_legacy_until_uci_opt_in() {
+unchessed-core/src/adapt.rs:1294:        m.seed_from_uci_opponent("- 1600 computer Maia 2");
+unchessed-core/src/adapt.rs:1304:        m.seed_from_uci_opponent("- 1600 computer Maia 2");
+unchessed-core/src/adapt.rs:1308:            "Maia is the MATCH target, estimate {}",
+unchessed-core/src/adapt.rs:1309:            m.estimate()
+unchessed-core/src/adapt.rs:1318:        m.seed_from_uci_opponent("GM 3644 computer Stockfish 16.1");
+unchessed-core/src/adapt.rs:1328:        m.seed_from_uci_opponent("- 2500 human IM_Player");
+unchessed-core/src/adapt.rs:1334:            "a labelled 2500 human playing well is MATCH, not FULL, estimate {}",
+unchessed-core/src/adapt.rs:1335:            m.estimate()
+unchessed-core/src/adapt.rs:1340:    fn limit_strength_plays_at_uci_elo() {
+unchessed-core/src/adapt.rs:1354:    fn draw_score_respects_defend() {
+unchessed-core/src/adapt.rs:1356:        assert!(draw_score_for(&cfg, Mode::Clinch) < 0);
+unchessed-core/src/adapt.rs:1357:        assert!(draw_score_for(&cfg, Mode::Match) < 0);
+unchessed-core/src/adapt.rs:1358:        assert_eq!(draw_score_for(&cfg, Mode::Defend), 0);
+unchessed-core/src/adapt.rs:1362:    fn match_never_samples_into_mate() {
+unchessed-core/src/adapt.rs:1363:        use crate::fen;
+unchessed-core/src/adapt.rs:1365:        let pos = fen::startpos();
+unchessed-core/src/adapt.rs:1366:        let ml = crate::movegen::legal(&pos);
+unchessed-core/src/adapt.rs:1368:        // candidate 1 is "getting mated" — must never be picked
+unchessed-core/src/adapt.rs:1401:            assert_eq!(sel.mv, mvs[0], "sampled a move that walks into mate");
+unchessed-core/src/adapt.rs:1406:    fn king_move_that_forfeits_castling_scores_far_below_a_normal_king_walk() {
+unchessed-core/src/adapt.rs:1409:        // castling rights on move 3) because the old flat 0.45 king-walk
+unchessed-core/src/adapt.rs:1411:        // developing move. White has both castling rights here; Ke1d2
+unchessed-core/src/adapt.rs:1413:        use crate::fen;
+unchessed-core/src/adapt.rs:1414:        let pos = fen::parse("4k3/8/8/8/8/8/8/RN2K2R w KQ - 0 1").unwrap();
+unchessed-core/src/adapt.rs:1415:        let king_walk = crate::movegen::legal(&pos)
+unchessed-core/src/adapt.rs:1420:            .expect("Ke1-d2 should be legal here");
+unchessed-core/src/adapt.rs:1421:        let knight_dev = crate::movegen::legal(&pos)
+unchessed-core/src/adapt.rs:1426:            .expect("Nb1-c3 should be legal here");
+unchessed-core/src/adapt.rs:1433:            "castling-forfeiting king walk (weight {}) should score well below an ordinary \
+unchessed-core/src/adapt.rs:1469:    fn persona_state_ema_rejects_single_eval_spike_across_defend() {
+unchessed-core/src/adapt.rs:1477:        assert_ne!(mode, Mode::Defend, "one-ply −190 must not enter DEFEND");
+unchessed-core/src/adapt.rs:1481:        assert_eq!(hard.update(&cfg, &m, -400, 15), Mode::Defend);
+unchessed-core/src/aegis_v4_runtime.rs:9://! `UnarchitecturedV1Student.forward_path` / `history_context`, and cross-checked
+unchessed-core/src/aegis_v4_runtime.rs:684:            ("castling_embedding.weight", 16 * D_MODEL),
+unchessed-core/src/aegis_v4_runtime.rs:686:            ("halfmove_embedding.weight", 16 * D_MODEL),
+unchessed-core/src/aegis_v4_runtime.rs:703:            ("promotion_bias.weight", 5),
+unchessed-core/src/aegis_v4_runtime.rs:706:            ("regret_promotion.weight", 5 * REGRET_WIDTH),
+unchessed-core/src/aegis_v4_runtime.rs:745:            panic!("UNARCHV1 package missing tensor {name:?} (checked in from_package)")
+unchessed-core/src/aegis_v4_runtime.rs:753:/// `write_sample`), plus its legal move list encoded the same way as
+unchessed-core/src/aegis_v4_runtime.rs:754:/// `unarchitectured_v1_data.encode_action` (source | target<<6 | promotion<<12, with
+unchessed-core/src/aegis_v4_runtime.rs:755:/// promotion in 0..=4 for none/N/B/R/Q).
+unchessed-core/src/aegis_v4_runtime.rs:762:    pub castling: u8,
+unchessed-core/src/aegis_v4_runtime.rs:763:    /// 0..7 file, or 8 if no en-passant square.
+unchessed-core/src/aegis_v4_runtime.rs:765:    pub halfmove_clock: u8,
+unchessed-core/src/aegis_v4_runtime.rs:769:    /// Encoded legal actions, in the same coordinate frame as `pieces`.
+unchessed-core/src/aegis_v4_runtime.rs:770:    pub legal_actions: Vec<u16>,
+unchessed-core/src/aegis_v4_runtime.rs:819:    /// One logit per entry in `PositionInput::legal_actions`.
+unchessed-core/src/aegis_v4_runtime.rs:821:    /// One predicted regret (in `regret_target` units, i.e. centipawns/400) per legal action.
+unchessed-core/src/aegis_v4_runtime.rs:824:    /// Evidential Dirichlet WDL parameters (win, draw, loss), each >= 0; add 1 and
+unchessed-core/src/aegis_v4_runtime.rs:825:    /// normalize to get win/draw/loss probabilities.
+unchessed-core/src/aegis_v4_runtime.rs:832:/// position, promotion set, persona, rating, time class, or elastic exit.
+unchessed-core/src/aegis_v4_runtime.rs:840:    pub legal_actions: Vec<u16>,
+unchessed-core/src/aegis_v4_runtime.rs:851:            legal_actions: input.legal_actions.clone(),
+unchessed-core/src/aegis_v4_runtime.rs:873:/// UCI/search path constructs this worker yet; promotion still requires the
+unchessed-core/src/aegis_v4_runtime.rs:1642:/// setup and tail check, and each query's value combination keeps its
+unchessed-core/src/aegis_v4_runtime.rs:2165:    if input.castling >= 16 || input.ep_file > 8 || input.time_class >= 5 {
+unchessed-core/src/aegis_v4_runtime.rs:2171:    if input.legal_actions.is_empty() || input.legal_actions.len() > MAX_LEGAL_ACTIONS {
+unchessed-core/src/aegis_v4_runtime.rs:2172:        return Err("Chessformer legal action count outside 1..=218".into());
+unchessed-core/src/aegis_v4_runtime.rs:2175:        .legal_actions
+unchessed-core/src/aegis_v4_runtime.rs:2211:        weights.t("castling_embedding.weight"),
+unchessed-core/src/aegis_v4_runtime.rs:2212:        input.castling as usize,
+unchessed-core/src/aegis_v4_runtime.rs:2222:    let halfmove_bucket = ((input.halfmove_clock / 8) as usize).min(15);
+unchessed-core/src/aegis_v4_runtime.rs:2224:        weights.t("halfmove_embedding.weight"),
+unchessed-core/src/aegis_v4_runtime.rs:2225:        halfmove_bucket,
+unchessed-core/src/aegis_v4_runtime.rs:2404:    let legal_count = input.legal_actions.len();
+unchessed-core/src/aegis_v4_runtime.rs:2405:    let mut logits = vec![0f32; legal_count];
+unchessed-core/src/aegis_v4_runtime.rs:2406:    let promotion_bias = weights.t("promotion_bias.weight"); // (5, 1)
+unchessed-core/src/aegis_v4_runtime.rs:2408:    for (idx, &action) in input.legal_actions.iter().enumerate() {
+unchessed-core/src/aegis_v4_runtime.rs:2411:        let promotion = ((action >> 12) as usize).min(4);
+unchessed-core/src/aegis_v4_runtime.rs:2414:        logits[idx] = dot_kernel(source, target) * scale + promotion_bias.get(promotion);
+unchessed-core/src/aegis_v4_runtime.rs:2420:    let regret_promotion = weights.t("regret_promotion.weight"); // (5, REGRET_WIDTH)
+unchessed-core/src/aegis_v4_runtime.rs:2450:    let mut regret_mean = vec![0f32; legal_count];
+unchessed-core/src/aegis_v4_runtime.rs:2451:    let mut regret_log_scale = vec![0f32; legal_count];
+unchessed-core/src/aegis_v4_runtime.rs:2452:    for (idx, &action) in input.legal_actions.iter().enumerate() {
+unchessed-core/src/aegis_v4_runtime.rs:2455:        let promotion = ((action >> 12) as usize).min(4);
+unchessed-core/src/aegis_v4_runtime.rs:2460:                + regret_promotion.get(promotion * REGRET_WIDTH + i))
+unchessed-core/src/aegis_v4_runtime.rs:2543:/// Convert a live position + its legal moves into the mover-perspective
+unchessed-core/src/aegis_v4_runtime.rs:2547:/// `legal_actions[i]` corresponds to `legal_moves[i]` -- callers use that
+unchessed-core/src/aegis_v4_runtime.rs:2551:    legal_moves: &[Move],
+unchessed-core/src/aegis_v4_runtime.rs:2591:    let mut castling = 0u8;
+unchessed-core/src/aegis_v4_runtime.rs:2592:    if pos.castling & mk != 0 {
+unchessed-core/src/aegis_v4_runtime.rs:2593:        castling |= 1;
+unchessed-core/src/aegis_v4_runtime.rs:2595:    if pos.castling & mq != 0 {
+unchessed-core/src/aegis_v4_runtime.rs:2596:        castling |= 2;
+unchessed-core/src/aegis_v4_runtime.rs:2598:    if pos.castling & ok != 0 {
+unchessed-core/src/aegis_v4_runtime.rs:2599:        castling |= 4;
+unchessed-core/src/aegis_v4_runtime.rs:2601:    if pos.castling & oq != 0 {
+unchessed-core/src/aegis_v4_runtime.rs:2602:        castling |= 8;
+unchessed-core/src/aegis_v4_runtime.rs:2606:    let halfmove_clock = pos.halfmove.min(255) as u8;
+unchessed-core/src/aegis_v4_runtime.rs:2608:    let legal_actions: Vec<u16> = legal_moves
+unchessed-core/src/aegis_v4_runtime.rs:2616:            let promotion: u16 = if m.is_promo() {
+unchessed-core/src/aegis_v4_runtime.rs:2627:            from as u16 | (to as u16) << 6 | (promotion << 12)
+unchessed-core/src/aegis_v4_runtime.rs:2633:        castling,
+unchessed-core/src/aegis_v4_runtime.rs:2635:        halfmove_clock,
+unchessed-core/src/aegis_v4_runtime.rs:2639:        legal_actions,
+unchessed-core/src/aegis_v4_runtime.rs:2657:    // exercise opening, castled middlegame, tactical, endgame, and promotion-
+unchessed-core/src/aegis_v4_runtime.rs:2701:            castling: 15,
+unchessed-core/src/aegis_v4_runtime.rs:2703:            halfmove_clock: 0,
+unchessed-core/src/aegis_v4_runtime.rs:2707:            legal_actions: actions,
+unchessed-core/src/aegis_v4_runtime.rs:2721:    /// Cross-checked against tools/reference_forward_unarchitectured_v1.py run on the
+unchessed-core/src/aegis_v4_runtime.rs:2722:    /// same real exported checkpoint (artifacts/unarchitectured-v1-final.unarchv1):
+unchessed-core/src/aegis_v4_runtime.rs:2723:    ///   legal_count 20
+unchessed-core/src/aegis_v4_runtime.rs:2802:        assert_eq!(hint.output.logits.len(), key.legal_actions.len());
+unchessed-core/src/aegis_v4_runtime.rs:2816:        input.legal_actions.clear();
+unchessed-core/src/aegis_v4_runtime.rs:2832:        assert_eq!(input.legal_actions.len(), 20);
+unchessed-core/src/aegis_v4_runtime.rs:2880:        let best = (0..input.legal_actions.len())
+unchessed-core/src/aegis_v4_runtime.rs:2884:        assert_eq!(input.legal_actions[best], 1350, "best action encoding");
+unchessed-core/src/aegis_v4_runtime.rs:2888:    /// move) cross-checked against the same Python reference, to rule out
+unchessed-core/src/aegis_v4_runtime.rs:2916:            castling: 15,
+unchessed-core/src/aegis_v4_runtime.rs:2918:            halfmove_clock: 0,
+unchessed-core/src/aegis_v4_runtime.rs:2922:            legal_actions: actions,
+unchessed-core/src/aegis_v4_runtime.rs:2953:        let best = (0..input.legal_actions.len())
+unchessed-core/src/aegis_v4_runtime.rs:2957:        assert_eq!(input.legal_actions[best], 1350, "best action encoding");
+unchessed-core/src/aegis_v4_runtime.rs:2970:            assert_eq!(output.logits.len(), input.legal_actions.len());
+unchessed-core/src/aegis_v4_runtime.rs:3034:    /// Cross-checked against `tools/reference_forward_unarchitectured_v1.py
+unchessed-core/src/aegis_v4_runtime.rs:3036:    /// real checkpoint. `elastic_exit_shapes_and_finiteness` above only
+unchessed-core/src/aegis_v4_runtime.rs:3037:    /// checked shape/finiteness and would not have caught the real bug this
+unchessed-core/src/aegis_v4_runtime.rs:3109:        // orders can legitimately disagree by a bit more in the last couple
+unchessed-core/src/aegis_v4_runtime.rs:3120:        let best_128 = (0..input.legal_actions.len())
+unchessed-core/src/aegis_v4_runtime.rs:3129:            input.legal_actions[best_128], 1350,
+unchessed-core/src/aegis_v4_runtime.rs:3195:        let best_192 = (0..input.legal_actions.len())
+unchessed-core/src/aegis_v4_runtime.rs:3204:            input.legal_actions[best_192], 1227,
+unchessed-core/src/aegis_v4_runtime.rs:3365:        for fen_text in TRIAL_FENS {
+unchessed-core/src/aegis_v4_runtime.rs:3366:            let pos = crate::fen::parse(fen_text).expect("valid trial FEN");
+unchessed-core/src/aegis_v4_runtime.rs:3367:            let legal_moves = crate::movegen::legal(&pos);
+unchessed-core/src/aegis_v4_runtime.rs:3368:            let input = position_to_input(&pos, legal_moves.as_slice(), 2700, 2, POLICY_GUIDE);
+unchessed-core/src/aegis_v4_runtime.rs:3375:                legal_moves.len,
+unchessed-core/src/aegis_v4_runtime.rs:3386:                legal_moves.len,
+unchessed-core/src/aegis_v4_runtime.rs:3387:                "teacher must label every legal root move"
+unchessed-core/src/aegis_v4_runtime.rs:3401:                let teacher_index = legal_moves
+unchessed-core/src/aegis_v4_runtime.rs:3405:                    .expect("teacher move in legal list");
+unchessed-core/src/aegis_v4_runtime.rs:3416:                for (move_index, &mv) in legal_moves.as_slice().iter().enumerate() {
+unchessed-core/src/aegis_v4_runtime.rs:3420:                    if search::is_mate_score(score) || search::is_mate_score(teacher_best_score) {
+unchessed-core/src/aegis_v4_runtime.rs:3483:        for (position_index, fen_text) in TRIAL_FENS.iter().enumerate() {
+unchessed-core/src/aegis_v4_runtime.rs:3484:            let pos = crate::fen::parse(fen_text).expect("valid trial FEN");
+unchessed-core/src/aegis_v4_runtime.rs:3508:                let legal_moves = crate::movegen::legal(&pos);
+unchessed-core/src/aegis_v4_runtime.rs:3509:                let input = position_to_input(&pos, legal_moves.as_slice(), 2700, 2, POLICY_GUIDE);
+unchessed-core/src/aegis_v4_runtime.rs:3512:                let hints = legal_moves
+unchessed-core/src/aegis_v4_runtime.rs:3583:        let pos = crate::fen::startpos();
+unchessed-core/src/aegis_v4_runtime.rs:3584:        let moves = crate::movegen::legal(&pos);
+unchessed-core/src/aegis_v4_runtime.rs:3589:        assert_eq!(live_input.castling, fixture_input.castling, "castling");
+unchessed-core/src/aegis_v4_runtime.rs:3591:        let mut live_actions = live_input.legal_actions.clone();
+unchessed-core/src/aegis_v4_runtime.rs:3592:        let mut fixture_actions = fixture_input.legal_actions.clone();
+unchessed-core/src/aegis_v4_runtime.rs:3595:        assert_eq!(live_actions, fixture_actions, "legal_actions (as a set)");
+unchessed-core/src/aegis_v4_runtime.rs:3599:        let best = (0..live_input.legal_actions.len())
+unchessed-core/src/aegis_v4_runtime.rs:3607:            live_input.legal_actions[best], 1350,
+unchessed-core/src/board.rs:127:    pub fn uci(self) -> String {
+unchessed-core/src/board.rs:151:    pub castle: [u64; 16],
+unchessed-core/src/board.rs:183:    let mut castle = [0u64; 16];
+unchessed-core/src/board.rs:188:        castle[i] = v;
+unchessed-core/src/board.rs:191:    // castle[0] = 0 so "no rights" contributes nothing; keeps hashes tidy.
+unchessed-core/src/board.rs:192:    castle[0] = 0;
+unchessed-core/src/board.rs:204:        castle,
+unchessed-core/src/board.rs:211:/// castling &= CASTLE_MASK[from] & CASTLE_MASK[to]
+unchessed-core/src/board.rs:212:const fn build_castle_mask() -> [u8; 64] {
+unchessed-core/src/board.rs:223:pub static CASTLE_MASK: [u8; 64] = build_castle_mask();
+unchessed-core/src/board.rs:237:    pub castling: u8,
+unchessed-core/src/board.rs:239:    pub halfmove: u16,
+unchessed-core/src/board.rs:252:            castling: 0,
+unchessed-core/src/board.rs:254:            halfmove: 0,
+unchessed-core/src/board.rs:315:        h ^= ZOBRIST.castle[self.castling as usize];
+unchessed-core/src/board.rs:325:    /// Copy-make: returns the position after the move (assumed pseudo-legal).
+unchessed-core/src/board.rs:334:        // clear old en passant
+unchessed-core/src/board.rs:382:        // castling rights
+unchessed-core/src/board.rs:383:        let old = p.castling;
+unchessed-core/src/board.rs:384:        p.castling &= CASTLE_MASK[from as usize] & CASTLE_MASK[to as usize];
+unchessed-core/src/board.rs:385:        if p.castling != old {
+unchessed-core/src/board.rs:386:            p.hash ^= ZOBRIST.castle[old as usize] ^ ZOBRIST.castle[p.castling as usize];
+unchessed-core/src/board.rs:390:            p.halfmove = 0;
+unchessed-core/src/board.rs:392:            p.halfmove += 1;
+unchessed-core/src/board.rs:409:        p.halfmove += 1;
+unchessed-core/src/book.rs:8:use crate::fen;
+unchessed-core/src/book.rs:9:use crate::movegen::{legal, parse_uci_move, PAWN_ATT};
+unchessed-core/src/book.rs:28:/// Embedded repertoire. Format per line: `tag;weight;eco;name;uci moves...`
+unchessed-core/src/book.rs:35:    "main;70;C67;Ruy Lopez, Berlin Defence;e2e4 e7e5 g1f3 b8c6 f1b5 g8f6 e1g1 f6e4 d2d4 e4d6 b5c6 d7c6 d4e5 d6f5 d1d8 e8d8",
+unchessed-core/src/book.rs:101:    /// Build the embedded book, validating every line replays legally.
+unchessed-core/src/book.rs:122:            let mut pos = fen::startpos();
+unchessed-core/src/book.rs:124:                let mv = parse_uci_move(&pos, tok).ok_or_else(|| {
+unchessed-core/src/book.rs:125:                    format!("illegal book move '{}' in line '{}'", tok, name)
+unchessed-core/src/book.rs:225:    /// Book moves for this position, decoded against its legal moves.
+unchessed-core/src/book.rs:229:        let legal_moves = legal(pos);
+unchessed-core/src/book.rs:235:            if let Some(mv) = decode_poly_move(pos, raw, &legal_moves) {
+unchessed-core/src/book.rs:246:    legal_moves: &crate::movegen::MoveList,
+unchessed-core/src/book.rs:256:    // Polyglot encodes castling as king-takes-rook (e1h1, e1a1, e8h8, e8a8).
+unchessed-core/src/book.rs:258:        let is_castle_encoding = match c {
+unchessed-core/src/book.rs:262:        if is_castle_encoding {
+unchessed-core/src/book.rs:264:            return legal_moves
+unchessed-core/src/book.rs:280:        return legal_moves
+unchessed-core/src/book.rs:287:    legal_moves
+unchessed-core/src/book.rs:304:    if pos.castling & WK != 0 {
+unchessed-core/src/book.rs:307:    if pos.castling & WQ != 0 {
+unchessed-core/src/book.rs:310:    if pos.castling & BK != 0 {
+unchessed-core/src/book.rs:313:    if pos.castling & BQ != 0 {
+unchessed-core/src/book.rs:333:    use crate::fen;
+unchessed-core/src/book.rs:334:    use crate::movegen::parse_uci_move;
+unchessed-core/src/book.rs:338:        let book = Book::new().expect("embedded book must be fully legal");
+unchessed-core/src/book.rs:339:        let start = fen::startpos();
+unchessed-core/src/book.rs:344:            let e = entries.iter().find(|e| e.mv.uci() == m).unwrap();
+unchessed-core/src/book.rs:352:        let mut pos = fen::startpos();
+unchessed-core/src/book.rs:354:            pos = pos.make(parse_uci_move(&pos, m).unwrap());
+unchessed-core/src/book.rs:357:        let ke2 = entries.iter().find(|e| e.mv.uci() == "e1e2").expect("Bongcloud in book");
+unchessed-core/src/book.rs:361:        let nf3 = entries.iter().find(|e| e.mv.uci() == "g1f3").unwrap();
+unchessed-core/src/book.rs:389:            let mut pos = fen::startpos();
+unchessed-core/src/book.rs:391:                let mv = parse_uci_move(&pos, m).unwrap_or_else(|| panic!("illegal {}", m));
+unchessed-core/src/eval.rs:1://! Hand-crafted evaluation: tapered material + piece-square tables.
+unchessed-core/src/eval.rs:77:/// 0 = feature off, reproducing the exact pre-passed-pawn eval.
+unchessed-core/src/eval.rs:182:/// deliberately NOT x-rayed, matching every reference engine checked.
+unchessed-core/src/eval.rs:250:/// vs RubiChess's real formula: no castling-rights-based penalty for a
+unchessed-core/src/eval.rs:251:/// rook stuck behind pawns -- would need castling-rights-history
+unchessed-core/src/eval.rs:311:/// single flat value rather than Stockfish's full wing/center/defended
+unchessed-core/src/eval.rs:321:/// relative rank 4-6, is defended by one of its own pawns, and no enemy
+unchessed-core/src/eval.rs:324:/// definition every reference engine checked uses). The adjacent-file/
+unchessed-core/src/eval.rs:343:        let defended = PAWN_ATT[opp.idx()][s] & pos.bb[color.idx()][PAWN] != 0;
+unchessed-core/src/eval.rs:344:        if !defended {
+unchessed-core/src/eval.rs:407:/// Same-file-only mask of squares strictly ahead of `s` (toward promotion
+unchessed-core/src/eval.rs:671:    // pawn is currently blockaded or its advance square is defended --
+unchessed-core/src/eval.rs:701:                // missing term across every reference engine checked.
+unchessed-core/src/eval.rs:774:    use crate::fen;
+unchessed-core/src/eval.rs:778:        let pos = fen::startpos();
+unchessed-core/src/eval.rs:784:    fn material_up_is_positive() {
+unchessed-core/src/eval.rs:786:        let pos = fen::parse("rnb1kbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap();
+unchessed-core/src/eval.rs:789:        let pos = fen::parse("rnb1kbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1").unwrap();
+unchessed-core/src/eval.rs:798:        let pos = fen::parse("4k3/P7/8/8/8/8/8/4K3 w - - 0 1").unwrap();
+unchessed-core/src/eval.rs:814:        // the black king sits directly on a7 (occupied, and self-defended
+unchessed-core/src/eval.rs:820:        let blocked = fen::parse("8/k7/P7/8/8/8/8/4K3 w - - 0 1").unwrap();
+unchessed-core/src/eval.rs:821:        let free = fen::parse("7k/8/P7/8/8/8/8/4K3 w - - 0 1").unwrap();
+unchessed-core/src/eval.rs:834:        let pos = fen::parse("4k3/8/8/8/4N3/8/8/4K3 w - - 0 1").unwrap();
+unchessed-core/src/eval.rs:846:        // Same material, same side to move -- only difference is whether
+unchessed-core/src/eval.rs:850:        let cornered = fen::parse("4k3/8/8/8/8/8/8/N3K3 w - - 0 1").unwrap();
+unchessed-core/src/eval.rs:851:        let mobile = fen::parse("4k3/8/8/8/4N3/8/8/4K3 w - - 0 1").unwrap();
+unchessed-core/src/eval.rs:864:        let pos = fen::parse("4k3/8/8/8/8/8/8/R3K3 w - - 0 1").unwrap();
+unchessed-core/src/eval.rs:878:        // Same material (one pawn each) and same rook -- only difference
+unchessed-core/src/eval.rs:882:        let blocked = fen::parse("4k3/8/8/8/8/8/P7/R3K3 w - - 0 1").unwrap();
+unchessed-core/src/eval.rs:883:        let open = fen::parse("4k3/8/8/8/8/8/1P6/R3K3 w - - 0 1").unwrap();
+unchessed-core/src/eval.rs:898:        let pressing = fen::parse("6k1/4R3/8/8/8/8/8/4K3 w - - 0 1").unwrap();
+unchessed-core/src/eval.rs:899:        let off_7th = fen::parse("6k1/8/4R3/8/8/8/8/4K3 w - - 0 1").unwrap();
+unchessed-core/src/eval.rs:910:        // White knight on d5, defended by the c4 pawn, no black pawn able
+unchessed-core/src/eval.rs:913:        let pos = fen::parse("4k3/7p/8/3N4/2P5/8/8/4K3 w - - 0 1").unwrap();
+unchessed-core/src/eval.rs:929:        // Same knight on d5, defended by the same c4 pawn -- only
+unchessed-core/src/eval.rs:937:        let qualifying = fen::parse("4k3/7p/8/3N4/2P5/8/8/4K3 w - - 0 1").unwrap();
+unchessed-core/src/eval.rs:938:        let contested = fen::parse("4k3/4p3/8/3N4/2P5/8/8/4K3 w - - 0 1").unwrap();
+unchessed-core/src/fen.rs:12:pub fn parse(fen: &str) -> Result<Position, String> {
+unchessed-core/src/fen.rs:14:    let mut parts = fen.split_whitespace();
+unchessed-core/src/fen.rs:78:    pos.castling = 0;
+unchessed-core/src/fen.rs:82:                pos.castling |= match ch {
+unchessed-core/src/fen.rs:87:                    _ => return Err(format!("bad castling '{}'", ch)),
+unchessed-core/src/fen.rs:92:    // A castling right is meaningless (and downstream code assumes it's
+unchessed-core/src/fen.rs:94:    // builds the castling move purely from the rights bit plus path/attack
+unchessed-core/src/fen.rs:95:    // checks, and make_move() unconditionally relocates "the" king and rook
+unchessed-core/src/fen.rs:97:    // rather than letting a later synthetic castling move panic trying to
+unchessed-core/src/fen.rs:102:    if pos.castling & WK != 0 && !king_rook_ok(sq(4, 0), sq(7, 0), Color::White) {
+unchessed-core/src/fen.rs:103:        return Err("castling right K without king/rook on e1/h1".into());
+unchessed-core/src/fen.rs:105:    if pos.castling & WQ != 0 && !king_rook_ok(sq(4, 0), sq(0, 0), Color::White) {
+unchessed-core/src/fen.rs:106:        return Err("castling right Q without king/rook on e1/a1".into());
+unchessed-core/src/fen.rs:108:    if pos.castling & BK != 0 && !king_rook_ok(sq(4, 7), sq(7, 7), Color::Black) {
+unchessed-core/src/fen.rs:109:        return Err("castling right k without king/rook on e8/h8".into());
+unchessed-core/src/fen.rs:111:    if pos.castling & BQ != 0 && !king_rook_ok(sq(4, 7), sq(0, 7), Color::Black) {
+unchessed-core/src/fen.rs:112:        return Err("castling right q without king/rook on e8/a8".into());
+unchessed-core/src/fen.rs:123:            // "en passant" capture with no real pawn behind it, which
+unchessed-core/src/fen.rs:144:    pos.halfmove = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+unchessed-core/src/fen.rs:151:    // The side NOT to move must not be in check -- otherwise the side to move
+unchessed-core/src/fen.rs:153:    // opponent would have had to already be in check on their own turn and
+unchessed-core/src/fen.rs:156:    // Without this check, downstream code that assumes every king square is
+unchessed-core/src/fen.rs:163:        return Err("illegal position: side not to move is in check".into());
+unchessed-core/src/fen.rs:202:    if pos.castling == 0 {
+unchessed-core/src/fen.rs:205:        if pos.castling & WK != 0 {
+unchessed-core/src/fen.rs:208:        if pos.castling & WQ != 0 {
+unchessed-core/src/fen.rs:211:        if pos.castling & BK != 0 {
+unchessed-core/src/fen.rs:214:        if pos.castling & BQ != 0 {
+unchessed-core/src/fen.rs:224:    out.push_str(&format!(" {} {}", pos.halfmove, pos.fullmove));
+unchessed-core/src/fen.rs:234:        let fens = [
+unchessed-core/src/fen.rs:240:        for f in fens {
+unchessed-core/src/lib.rs:9:pub mod fen;
+unchessed-core/src/lib.rs:10:pub mod perft;
+unchessed-core/src/lib.rs:22:pub mod uci;
+unchessed-core/src/movegen.rs:2://! pseudo-legal generation + legality filtering.
+unchessed-core/src/movegen.rs:182:// occupancy subset -- this makes the search self-checking: it is
+unchessed-core/src/movegen.rs:229:/// AND of three random draws biases toward sparse bit patterns, which tend
+unchessed-core/src/movegen.rs:366:    // a defender pawn of the other color would attack from `s`.
+unchessed-core/src/movegen.rs:387:/// Is the side to move in check?
+unchessed-core/src/movegen.rs:389:pub fn in_check(pos: &Position) -> bool {
+unchessed-core/src/movegen.rs:393:/// After `make`, was the move legal for the side that just moved?
+unchessed-core/src/movegen.rs:440:/// expose the king to a slider check (`blockers`), and the enemy sliders
+unchessed-core/src/movegen.rs:515:/// Pseudo-legal move generation. `caps_only` = captures + promotions (for qsearch).
+unchessed-core/src/movegen.rs:627:    // en passant (counts as a capture)
+unchessed-core/src/movegen.rs:694:    // --- castling ---
+unchessed-core/src/movegen.rs:697:            if pos.castling & WK != 0
+unchessed-core/src/movegen.rs:705:            if pos.castling & WQ != 0
+unchessed-core/src/movegen.rs:714:            if pos.castling & BK != 0
+unchessed-core/src/movegen.rs:722:            if pos.castling & BQ != 0
+unchessed-core/src/movegen.rs:734:/// Fully legal moves.
+unchessed-core/src/movegen.rs:735:pub fn legal(pos: &Position) -> MoveList {
+unchessed-core/src/movegen.rs:749:/// Parse a UCI move string against the legal moves of `pos`.
+unchessed-core/src/movegen.rs:750:pub fn parse_uci_move(pos: &Position, s: &str) -> Option<Move> {
+unchessed-core/src/movegen.rs:751:    let ml = legal(pos);
+unchessed-core/src/movegen.rs:752:    ml.as_slice().iter().copied().find(|m| m.uci() == s)
+unchessed-core/src/movegen.rs:788:        // sanity check the table isn't wildly oversized/undersized -- rook
+unchessed-core/src/nnue.rs:124:/// Stockfish's half-ka output-bucket selection; a legal position has 2..=32
+unchessed-core/src/nnue.rs:252:        // SAFETY: guarded by a runtime AVX2+FMA check; the kernel only
+unchessed-core/src/nnue.rs:345:        // SAFETY: guarded by a runtime AVX2+FMA check.
+unchessed-core/src/nnue.rs:360:        // SAFETY: guarded by a runtime AVX2+FMA check.
+unchessed-core/src/nnue.rs:570:    /// en passant, castling, and promotion all fall out correctly for
+unchessed-core/src/nnue.rs:697:    use crate::fen;
+unchessed-core/src/nnue.rs:730:        // Sanity-check the reference itself before trusting it: Stockfish's
+unchessed-core/src/nnue.rs:958:        // (fen, expected piece count, expected bucket)
+unchessed-core/src/nnue.rs:975:            (fen::START_FEN, 32, 7),
+unchessed-core/src/nnue.rs:977:        for (fen_text, pieces, bucket) in cases {
+unchessed-core/src/nnue.rs:978:            let pos = fen::parse(fen_text)
+unchessed-core/src/nnue.rs:979:                .unwrap_or_else(|e| panic!("probe fen must parse ({}): {}", fen_text, e));
+unchessed-core/src/nnue.rs:984:                fen_text
+unchessed-core/src/nnue.rs:991:                fen_text,
+unchessed-core/src/nnue.rs:1000:                fen_text
+unchessed-core/src/nnue.rs:1009:        let start = fen::parse(fen::START_FEN).unwrap();
+unchessed-core/src/nnue.rs:1014:        check_incremental_step(&net, fen::START_FEN, "e2e4", "v4 quiet");
+unchessed-core/src/nnue.rs:1015:        check_incremental_step(
+unchessed-core/src/nnue.rs:1030:        let before = fen::parse("3rkbnr/ppp1pppp/8/1p6/PP6/8/1PPPPPPP/RNBQKB1R b - - 0 1")
+unchessed-core/src/nnue.rs:1031:            .expect("capture probe fen");
+unchessed-core/src/nnue.rs:1034:        let mv = crate::movegen::parse_uci_move(&before, "b5a4").expect("b5a4");
+unchessed-core/src/nnue.rs:1044:    /// End-to-end ABI cross-check against the Python trainer: loads a
+unchessed-core/src/nnue.rs:1048:    fn v4_crosscheck_exported_net() {
+unchessed-core/src/nnue.rs:1053:        let pos = fen::parse(fen::START_FEN).expect("startpos");
+unchessed-core/src/nnue.rs:1085:    /// (square ^56), side flipped, castling rights swapped, ep mirrored.
+unchessed-core/src/nnue.rs:1086:    fn color_mirror_fen(f: &str) -> String {
+unchessed-core/src/nnue.rs:1103:        let castling = if parts[2] == "-" {
+unchessed-core/src/nnue.rs:1126:            castling,
+unchessed-core/src/nnue.rs:1135:        fen::START_FEN,
+unchessed-core/src/nnue.rs:1136:        // asymmetric middlegame, black castled short, white king in the center
+unchessed-core/src/nnue.rs:1138:        // both castled, opposite sides (white short, black long)
+unchessed-core/src/nnue.rs:1140:        // en-passant square set, black to move next after mirror
+unchessed-core/src/nnue.rs:1142:        // lopsided material, black to move
+unchessed-core/src/nnue.rs:1146:    /// CRITICAL correctness property, checked for ALL weight-file versions.
+unchessed-core/src/nnue.rs:1152:    /// `eval(pos) == eval(colorflip(pos))` NNUE feature-index sanity check;
+unchessed-core/src/nnue.rs:1158:            let pos = fen::parse(f).unwrap();
+unchessed-core/src/nnue.rs:1159:            let mir = fen::parse(&color_mirror_fen(f)).unwrap();
+unchessed-core/src/nnue.rs:1170:            let pos = fen::parse(f).unwrap();
+unchessed-core/src/nnue.rs:1171:            let mir = fen::parse(&color_mirror_fen(f)).unwrap();
+unchessed-core/src/nnue.rs:1182:            let pos = fen::parse(f).unwrap();
+unchessed-core/src/nnue.rs:1183:            let mir = fen::parse(&color_mirror_fen(f)).unwrap();
+unchessed-core/src/nnue.rs:1199:                &fen::parse("r2q1rk1/pp2ppbp/2np1np1/8/3NP3/2N1B3/PPPQ1PPP/R3KB1R w KQ - 5 9")
+unchessed-core/src/nnue.rs:1202:            let b = net.eval(&fen::startpos());
+unchessed-core/src/nnue.rs:1256:    /// One (fen, uci move) pair, applied via update_state and compared
+unchessed-core/src/nnue.rs:1258:    fn check_incremental_step(net: &Nnue, fen: &str, uci: &str, ctx: &str) {
+unchessed-core/src/nnue.rs:1259:        let before = fen::parse(fen).unwrap();
+unchessed-core/src/nnue.rs:1260:        let mv = crate::movegen::parse_uci_move(&before, uci)
+unchessed-core/src/nnue.rs:1261:            .unwrap_or_else(|| panic!("{}: '{}' illegal in '{}'", ctx, uci, fen));
+unchessed-core/src/nnue.rs:1273:    /// row nowhere near the mover's destination, en passant removes a row
+unchessed-core/src/nnue.rs:1274:    /// at neither the origin nor the destination, promotion changes which
+unchessed-core/src/nnue.rs:1275:    /// piece-type row gets added, and castling moves two pieces at once
+unchessed-core/src/nnue.rs:1281:            ("quiet move", fen::START_FEN, "e2e4"),
+unchessed-core/src/nnue.rs:1288:                "en passant",
+unchessed-core/src/nnue.rs:1293:                "kingside castling",
+unchessed-core/src/nnue.rs:1298:                "queenside castling",
+unchessed-core/src/nnue.rs:1302:            ("promotion (quiet)", "8/4P1k1/8/8/8/8/6K1/8 w - - 0 1", "e7e8q"),
+unchessed-core/src/nnue.rs:1304:                "promotion + capture",
+unchessed-core/src/nnue.rs:1309:                "king move (non-castling)",
+unchessed-core/src/nnue.rs:1319:            for &(name, fen_str, uci) in cases {
+unchessed-core/src/nnue.rs:1320:                check_incremental_step(&net, fen_str, uci, &format!("[{}] {}", tag, name));
+unchessed-core/src/nnue.rs:1326:    /// (opening theory including a capture and castling both sides), state
+unchessed-core/src/nnue.rs:1341:            let mut pos = fen::startpos();
+unchessed-core/src/nnue.rs:1343:            for (i, uci) in moves.iter().enumerate() {
+unchessed-core/src/nnue.rs:1344:                let mv = crate::movegen::parse_uci_move(&pos, uci)
+unchessed-core/src/nnue.rs:1345:                    .unwrap_or_else(|| panic!("[{}] ply {}: '{}' illegal", tag, i, uci));
+unchessed-core/src/nnue.rs:1353:                    &format!("[{}] after ply {} ({})", tag, i + 1, uci),
+unchessed-core/src/perft.rs:4:use crate::movegen::legal;
+unchessed-core/src/perft.rs:6:pub fn perft(pos: &Position, depth: u32) -> u64 {
+unchessed-core/src/perft.rs:10:    let ml = legal(pos);
+unchessed-core/src/perft.rs:16:        nodes += perft(&pos.make(m), depth - 1);
+unchessed-core/src/perft.rs:22:pub fn perft_divide(pos: &Position, depth: u32) -> Vec<(String, u64)> {
+unchessed-core/src/perft.rs:23:    let ml = legal(pos);
+unchessed-core/src/perft.rs:29:            perft(&pos.make(m), depth - 1)
+unchessed-core/src/perft.rs:31:        out.push((m.uci(), n));
+unchessed-core/src/perft.rs:39:    use crate::fen;
+unchessed-core/src/perft.rs:41:    fn check(fen: &str, depth: u32, expected: u64) {
+unchessed-core/src/perft.rs:42:        let pos = fen::parse(fen).unwrap();
+unchessed-core/src/perft.rs:43:        assert_eq!(perft(&pos, depth), expected, "perft({}) of {}", depth, fen);
+unchessed-core/src/perft.rs:48:        check(fen::START_FEN, 1, 20);
+unchessed-core/src/perft.rs:49:        check(fen::START_FEN, 2, 400);
+unchessed-core/src/perft.rs:50:        check(fen::START_FEN, 3, 8_902);
+unchessed-core/src/perft.rs:51:        check(fen::START_FEN, 4, 197_281);
+unchessed-core/src/perft.rs:52:        check(fen::START_FEN, 5, 4_865_609);
+unchessed-core/src/perft.rs:58:        check(f, 1, 48);
+unchessed-core/src/perft.rs:59:        check(f, 2, 2_039);
+unchessed-core/src/perft.rs:60:        check(f, 3, 97_862);
+unchessed-core/src/perft.rs:61:        check(f, 4, 4_085_603);
+unchessed-core/src/perft.rs:67:        check(f, 1, 14);
+unchessed-core/src/perft.rs:68:        check(f, 2, 191);
+unchessed-core/src/perft.rs:69:        check(f, 3, 2_812);
+unchessed-core/src/perft.rs:70:        check(f, 4, 43_238);
+unchessed-core/src/perft.rs:71:        check(f, 5, 674_624);
+unchessed-core/src/perft.rs:77:        check(f, 1, 6);
+unchessed-core/src/perft.rs:78:        check(f, 2, 264);
+unchessed-core/src/perft.rs:79:        check(f, 3, 9_467);
+unchessed-core/src/perft.rs:80:        check(f, 4, 422_333);
+unchessed-core/src/perft.rs:86:        check(f, 1, 44);
+unchessed-core/src/perft.rs:87:        check(f, 2, 1_486);
+unchessed-core/src/perft.rs:88:        check(f, 3, 62_379);
+unchessed-core/src/perft.rs:89:        check(f, 4, 2_103_487);
+unchessed-core/src/perft.rs:95:        check(f, 1, 46);
+unchessed-core/src/perft.rs:96:        check(f, 2, 2_079);
+unchessed-core/src/perft.rs:97:        check(f, 3, 89_890);
+unchessed-core/src/perft.rs:98:        check(f, 4, 3_894_594);
+unchessed-core/src/perft.rs:104:        check(fen::START_FEN, 6, 119_060_324);
+unchessed-core/src/perft.rs:105:        check(
+unchessed-core/src/policy.rs:18://! v1 nets use 768 inputs (piece planes only). v2 nets add 4 castling-rights
+unchessed-core/src/policy.rs:19://! bits (mover K/Q, opponent K/Q) and 8 en-passant-file one-hots (780 total)
+unchessed-core/src/policy.rs:137:                ", v2 (castle/ep aware)"
+unchessed-core/src/policy.rs:145:    /// indices (castling rights / ep file, v2 nets only), and the flip flag.
+unchessed-core/src/policy.rs:166:            if pos.castling & mk != 0 {
+unchessed-core/src/policy.rs:169:            if pos.castling & mq != 0 {
+unchessed-core/src/policy.rs:172:            if pos.castling & ok != 0 {
+unchessed-core/src/policy.rs:175:            if pos.castling & oq != 0 {
+unchessed-core/src/policy.rs:238:            // the net's from-to output cannot see promotion piece choice:
+unchessed-core/src/policy.rs:239:            // underpromotions are rare in human play
+unchessed-core/src/san.rs:2://! legal moves of a position. Shared by the datagen tool and the future
+unchessed-core/src/san.rs:6:use crate::movegen::legal;
+unchessed-core/src/san.rs:18:    let ml = legal(pos);
+unchessed-core/src/san.rs:20:    // castling
+unchessed-core/src/san.rs:64:    // promotion suffix "=X" (or a bare trailing piece letter, e.g. "e8Q")
+unchessed-core/src/san.rs:153:    use crate::fen;
+unchessed-core/src/san.rs:156:        let mut pos = fen::startpos();
+unchessed-core/src/san.rs:170:            fen::serialize(&pos).split(' ').next().unwrap(),
+unchessed-core/src/san.rs:178:        let pos = fen::parse("rnbqkbnr/ppp2ppp/8/3pp3/3P4/5N2/PPP1PPPP/RNBQKB1R w KQkq - 0 3")
+unchessed-core/src/san.rs:181:        assert_eq!(m.uci(), "b1d2");
+unchessed-core/src/san.rs:183:        assert_eq!(m.uci(), "f3d2");

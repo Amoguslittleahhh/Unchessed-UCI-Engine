@@ -1,0 +1,5 @@
+[1m[92m   Compiling[0m unchessed-core v0.2.3 (/home/ubuntu/unchessed_audit/repo/unchessed-core)
+[1m[92m   Compiling[0m unchessed-datagen v0.1.0 (/home/ubuntu/unchessed_audit/repo/unchessed-datagen)
+[1m[92m   Compiling[0m unchessed-reviewer v0.2.3 (/home/ubuntu/unchessed_audit/repo/unchessed-reviewer)
+[1m[92m   Compiling[0m unchessed-adapter v0.2.3 (/home/ubuntu/unchessed_audit/repo/unchessed-adapter)
+[1m[92m    Finished[0m `release` profile [optimized] target(s) in 17.44s

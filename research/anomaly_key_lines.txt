@@ -1,0 +1,57 @@
+unchessed-core/src/uci.rs:382:                if let Some(g) = parse_position(&line, &game) {
+unchessed-core/src/uci.rs:385:                    println!("info string [Unchessed] could not parse: {}", line);
+unchessed-core/src/uci.rs:895:fn parse_position(line: &str, old: &Game) -> Option<Game> {
+unchessed-core/src/uci.rs:1626:    let draw_score = if adaptive_now {
+unchessed-core/src/uci.rs:1627:        crate::adapt::draw_score_for(&cfg, prev_mode)
+unchessed-core/src/uci.rs:1679:                        draw_score,
+unchessed-core/src/uci.rs:1695:                        draw_score,
+unchessed-core/src/uci.rs:1712:                draw_score,
+unchessed-core/src/uci.rs:1728:                draw_score,
+unchessed-core/src/uci.rs:2024:        let resent = parse_position("position startpos moves e2e4", &game).expect("position");
+unchessed-core/src/uci.rs:2043:    // move. parse_position() used to ignore the previous Game entirely and
+unchessed-core/src/uci.rs:2053:        let mut g1 = parse_position("position startpos moves e2e4", &g0).unwrap();
+unchessed-core/src/uci.rs:2062:        let mut g2 = parse_position("position startpos moves e2e4 e7e5", &g1).unwrap();
+unchessed-core/src/uci.rs:2333:        let mut g1 = parse_position("position startpos moves e2e4", &g0).unwrap();
+unchessed-core/src/uci.rs:2337:        let g2 = parse_position("position startpos moves d2d4", &g1).unwrap();
+unchessed-core/src/search.rs:252:    /// score of a drawn line from the ROOT side's perspective (contempt)
+unchessed-core/src/search.rs:253:    root_draw: i32,
+unchessed-core/src/search.rs:304:    /// Only the most recent `halfmove` entries can possibly match: the
+unchessed-core/src/search.rs:305:    /// halfmove clock resets to zero on every capture and pawn push, and
+unchessed-core/src/search.rs:316:    /// Note the bound uses `halfmove` from the node being tested, and
+unchessed-core/src/search.rs:317:    /// `make_null` increments `halfmove` without clearing the path, so the
+unchessed-core/src/search.rs:320:    fn is_repetition(&self, hash: u64, halfmove: u16) -> bool {
+unchessed-core/src/search.rs:321:        let window = (halfmove as usize).min(self.path.len());
+unchessed-core/src/search.rs:330:    fn draw(&self, ply: usize) -> i32 {
+unchessed-core/src/search.rs:332:            self.root_draw
+unchessed-core/src/search.rs:334:            -self.root_draw
+unchessed-core/src/search.rs:519:        // draws
+unchessed-core/src/search.rs:522:        // reached at halfmove 100 with the side to move in check and no
+unchessed-core/src/search.rs:523:        // legal reply is a completed game (checkmate), not a draw --
+unchessed-core/src/search.rs:524:        // mirrors Stockfish's own is_draw() guard for this exact edge
+unchessed-core/src/search.rs:526:        // rare in-check-at-halfmove-100 case, not on the hot path; the
+unchessed-core/src/search.rs:529:        if pos.halfmove >= 100 && (!in_chk || legal(pos).len != 0) {
+unchessed-core/src/search.rs:530:            return self.draw(ply);
+unchessed-core/src/search.rs:532:        if self.is_repetition(pos.hash, pos.halfmove) {
+unchessed-core/src/search.rs:533:            return self.draw(ply);
+unchessed-core/src/search.rs:842:                self.draw(ply)
+unchessed-core/src/search.rs:854:/// detection). `draw_score` is the value of a drawn line from the root side's
+unchessed-core/src/search.rs:855:/// perspective (0 = neutral; negative = contempt, we want to avoid draws).
+unchessed-core/src/search.rs:872:    draw_score: i32,
+unchessed-core/src/search.rs:885:        draw_score,
+unchessed-core/src/search.rs:922:        root_draw: 0,
+unchessed-core/src/search.rs:943:    draw_score: i32,
+unchessed-core/src/search.rs:1008:        root_draw: draw_score.clamp(-100, 100),
+unchessed-core/src/search.rs:1213:    /// The halfmove-bounded repetition scan must agree with a full scan for
+unchessed-core/src/search.rs:1216:    /// The bound is a strict narrowing: entries older than the halfmove
+unchessed-core/src/search.rs:1239:            let halfmove = (next() % 60) as u16;
+unchessed-core/src/search.rs:1254:                root_draw: 0,
+unchessed-core/src/search.rs:1263:            let bounded = searcher.is_repetition(probe, halfmove);
+unchessed-core/src/search.rs:1264:            let window = (halfmove as usize).min(path.len());
+unchessed-core/src/search.rs:1269:                "bounded scan must exactly cover the halfmove window"
+unchessed-core/src/search.rs:1321:            root_draw: 0,
+unchessed-core/src/search.rs:1595:    fn stalemate_position_ignores_root_hints() {
+unchessed-core/src/board.rs:239:    pub halfmove: u16,
+unchessed-core/src/board.rs:254:            halfmove: 0,
+unchessed-core/src/board.rs:390:            p.halfmove = 0;
+unchessed-core/src/board.rs:392:            p.halfmove += 1;
+unchessed-core/src/board.rs:409:        p.halfmove += 1;

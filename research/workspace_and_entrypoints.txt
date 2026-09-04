@@ -1,0 +1,331 @@
+=== root files ===
+.gitattributes
+.gitignore
+Cargo.lock
+Cargo.toml
+README.md
+rust-toolchain.toml
+unchessed-nnue.bin
+=== workspace manifest ===
+[workspace]
+resolver = "2"
+members = ["unchessed-core", "unchessed-adapter", "unchessed-reviewer", "unchessed-datagen"]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+
+[profile.test]
+opt-level = 2
+=== bin/lib declarations ===
+unchessed-adapter/Cargo.toml:9:[[bin]]
+unchessed-adapter/src/main.rs:3:use unchessed_core::uci::{run, EngineIdent};
+unchessed-adapter/src/main.rs:5:fn main() {
+unchessed-core/src/adapt.rs:5:use crate::board::*;
+unchessed-core/src/adapt.rs:6:use crate::movegen::{in_check, legal, KING_ATT};
+unchessed-core/src/adapt.rs:7:use crate::search::Line;
+unchessed-core/src/adapt.rs:13:pub struct Rng(u64);
+unchessed-core/src/adapt.rs:15:impl Rng {
+unchessed-core/src/adapt.rs:68:pub struct OpponentModel {
+unchessed-core/src/adapt.rs:100:pub enum SuspectReason {
+unchessed-core/src/adapt.rs:111:impl SuspectReason {
+unchessed-core/src/adapt.rs:132:pub struct OpponentTelemetrySnapshot {
+unchessed-core/src/adapt.rs:145:impl Default for OpponentModel {
+unchessed-core/src/adapt.rs:151:impl OpponentModel {
+unchessed-core/src/adapt.rs:412:pub enum Mode {
+unchessed-core/src/adapt.rs:425:impl Mode {
+unchessed-core/src/adapt.rs:438:pub struct AdaptConfig {
+unchessed-core/src/adapt.rs:446:impl Default for AdaptConfig {
+unchessed-core/src/adapt.rs:480:pub struct PersonaState {
+unchessed-core/src/adapt.rs:490:pub enum PersonaEmergency {
+unchessed-core/src/adapt.rs:497:impl PersonaEmergency {
+unchessed-core/src/adapt.rs:510:pub struct PersonaUpdate {
+unchessed-core/src/adapt.rs:518:pub struct PersonaTelemetrySnapshot {
+unchessed-core/src/adapt.rs:525:impl Default for PersonaState {
+unchessed-core/src/adapt.rs:537:impl PersonaState {
+unchessed-core/src/adapt.rs:766:pub struct HeuristicPrior;
+unchessed-core/src/adapt.rs:768:impl MovePrior for HeuristicPrior {
+unchessed-core/src/adapt.rs:782:pub struct MaiaPrior(pub std::sync::Arc<crate::policy::PolicyNet>);
+unchessed-core/src/adapt.rs:784:impl MovePrior for MaiaPrior {
+unchessed-core/src/adapt.rs:799:impl HeuristicPrior {
+unchessed-core/src/adapt.rs:897:pub struct Selection {
+unchessed-core/src/adapt.rs:1182:mod tests {
+unchessed-core/src/adapt.rs:1183:    use super::*;
+unchessed-core/src/adapt.rs:1363:        use crate::fen;
+unchessed-core/src/adapt.rs:1364:        use crate::search::{Line, MATE};
+unchessed-core/src/adapt.rs:1413:        use crate::fen;
+unchessed-core/src/aegis_v4_runtime.rs:18:use crate::board::{file_of, Move, Position, BISHOP, BK, BQ, KNIGHT, NO_EP, QUEEN, ROOK, WK, WQ};
+unchessed-core/src/aegis_v4_runtime.rs:19:use crate::unarchitectured_v1::TensorPackage;
+unchessed-core/src/aegis_v4_runtime.rs:20:use std::cell::RefCell;
+unchessed-core/src/aegis_v4_runtime.rs:21:use std::collections::HashMap;
+unchessed-core/src/aegis_v4_runtime.rs:22:use std::sync::atomic::{AtomicBool, AtomicU64, Ordering as AtomicOrdering};
+unchessed-core/src/aegis_v4_runtime.rs:23:use std::sync::mpsc::{sync_channel, SyncSender, TrySendError};
+unchessed-core/src/aegis_v4_runtime.rs:24:use std::sync::{Arc, Mutex, OnceLock};
+unchessed-core/src/aegis_v4_runtime.rs:286:    use std::arch::x86_64::*;
+unchessed-core/src/aegis_v4_runtime.rs:298:    use std::arch::x86::*;
+unchessed-core/src/aegis_v4_runtime.rs:317:    use std::arch::x86::*;
+unchessed-core/src/aegis_v4_runtime.rs:319:    use std::arch::x86_64::*;
+unchessed-core/src/aegis_v4_runtime.rs:370:    use std::arch::x86::*;
+unchessed-core/src/aegis_v4_runtime.rs:372:    use std::arch::x86_64::*;
+unchessed-core/src/aegis_v4_runtime.rs:414:    use std::arch::x86::*;
+unchessed-core/src/aegis_v4_runtime.rs:416:    use std::arch::x86_64::*;
+unchessed-core/src/aegis_v4_runtime.rs:461:    use std::arch::x86_64::*;
+unchessed-core/src/aegis_v4_runtime.rs:473:    use std::arch::x86::*;
+unchessed-core/src/aegis_v4_runtime.rs:486:    use std::arch::x86::*;
+unchessed-core/src/aegis_v4_runtime.rs:488:    use std::arch::x86_64::*;
+unchessed-core/src/aegis_v4_runtime.rs:516:    use std::arch::x86::*;
+unchessed-core/src/aegis_v4_runtime.rs:518:    use std::arch::x86_64::*;
+unchessed-core/src/aegis_v4_runtime.rs:541:    use std::arch::x86::*;
+unchessed-core/src/aegis_v4_runtime.rs:543:    use std::arch::x86_64::*;
+unchessed-core/src/aegis_v4_runtime.rs:567:struct QuantizedTensor {
+unchessed-core/src/aegis_v4_runtime.rs:577:struct Tensor {
+unchessed-core/src/aegis_v4_runtime.rs:582:impl Tensor {
+unchessed-core/src/aegis_v4_runtime.rs:588:struct QuantizedActivations {
+unchessed-core/src/aegis_v4_runtime.rs:608:pub struct ChessformerWeights {
+unchessed-core/src/aegis_v4_runtime.rs:628:impl ChessformerWeights {
+unchessed-core/src/aegis_v4_runtime.rs:757:pub struct PositionInput {
+unchessed-core/src/aegis_v4_runtime.rs:774:pub enum InferenceExit {
+unchessed-core/src/aegis_v4_runtime.rs:780:impl InferenceExit {
+unchessed-core/src/aegis_v4_runtime.rs:818:pub struct ForwardOutput {
+unchessed-core/src/aegis_v4_runtime.rs:834:pub struct HintKey {
+unchessed-core/src/aegis_v4_runtime.rs:843:impl HintKey {
+unchessed-core/src/aegis_v4_runtime.rs:857:pub struct AsyncHint {
+unchessed-core/src/aegis_v4_runtime.rs:863:struct HintRequest {
+unchessed-core/src/aegis_v4_runtime.rs:875:pub struct UnarchitecturedHintWorker {
+unchessed-core/src/aegis_v4_runtime.rs:882:impl UnarchitecturedHintWorker {
+unchessed-core/src/aegis_v4_runtime.rs:962:impl Drop for UnarchitecturedHintWorker {
+unchessed-core/src/aegis_v4_runtime.rs:1504:    use std::arch::x86::*;
+unchessed-core/src/aegis_v4_runtime.rs:1506:    use std::arch::x86_64::*;
+unchessed-core/src/aegis_v4_runtime.rs:1658:    use std::arch::x86_64::*;
+unchessed-core/src/aegis_v4_runtime.rs:1756:struct LayerTensorNames {
+unchessed-core/src/aegis_v4_runtime.rs:1868:struct ElasticBlockWeights<'a> {
+unchessed-core/src/aegis_v4_runtime.rs:1884:struct BlockScratch {
+unchessed-core/src/aegis_v4_runtime.rs:1895:impl BlockScratch {
+unchessed-core/src/aegis_v4_runtime.rs:2644:mod tests {
+unchessed-core/src/aegis_v4_runtime.rs:2645:    use super::*;
+unchessed-core/src/aegis_v4_runtime.rs:2646:    use crate::eval::Hce;
+unchessed-core/src/aegis_v4_runtime.rs:2647:    use crate::search::{self, Limits, RootHint, SearchParams};
+unchessed-core/src/aegis_v4_runtime.rs:2648:    use crate::tt::TT;
+unchessed-core/src/aegis_v4_runtime.rs:2649:    use crate::unarchitectured_v1::TensorPackage;
+unchessed-core/src/aegis_v4_runtime.rs:2650:    use std::collections::HashMap;
+unchessed-core/src/aegis_v4_runtime.rs:2651:    use std::sync::atomic::AtomicBool;
+unchessed-core/src/aegis_v4_runtime.rs:2652:    use std::sync::Mutex;
+unchessed-core/src/aegis_v4_runtime.rs:3354:        struct Metrics {
+unchessed-core/src/aegis_v4_runtime.rs:3473:        struct Metrics {
+unchessed-core/src/board.rs:8:pub enum Color {
+unchessed-core/src/board.rs:13:impl Color {
+unchessed-core/src/board.rs:90:pub struct Move(pub u16);
+unchessed-core/src/board.rs:92:impl Move {
+unchessed-core/src/board.rs:148:pub struct Zobrist {
+unchessed-core/src/board.rs:230:pub struct Position {
+unchessed-core/src/board.rs:244:impl Position {
+unchessed-core/src/book.rs:4:use std::collections::HashMap;
+unchessed-core/src/book.rs:5:use std::io::Read;
+unchessed-core/src/book.rs:7:use crate::board::*;
+unchessed-core/src/book.rs:8:use crate::fen;
+unchessed-core/src/book.rs:9:use crate::movegen::{legal, parse_uci_move, PAWN_ATT};
+unchessed-core/src/book.rs:10:use crate::polyglot_keys::POLYGLOT_RANDOM;
+unchessed-core/src/book.rs:14:pub enum Tier {
+unchessed-core/src/book.rs:20:pub struct BookEntry {
+unchessed-core/src/book.rs:95:pub struct Book {
+unchessed-core/src/book.rs:100:impl Book {
+unchessed-core/src/book.rs:201:pub struct PolyglotBook {
+unchessed-core/src/book.rs:206:impl PolyglotBook {
+unchessed-core/src/book.rs:331:mod tests {
+unchessed-core/src/book.rs:332:    use super::*;
+unchessed-core/src/book.rs:333:    use crate::fen;
+unchessed-core/src/book.rs:334:    use crate::movegen::parse_uci_move;
+unchessed-core/src/eval.rs:7:use crate::board::*;
+unchessed-core/src/eval.rs:8:use crate::movegen::{
+unchessed-core/src/eval.rs:17:pub struct NnueEvalState {
+unchessed-core/src/eval.rs:26:pub struct EvalState {
+unchessed-core/src/eval.rs:30:impl EvalState {
+unchessed-core/src/eval.rs:79:pub struct EvalParams {
+unchessed-core/src/eval.rs:92:impl Default for EvalParams {
+unchessed-core/src/eval.rs:451:pub struct Hce {
+unchessed-core/src/eval.rs:455:impl Hce {
+unchessed-core/src/eval.rs:461:impl Default for Hce {
+unchessed-core/src/eval.rs:467:impl Eval for Hce {
+unchessed-core/src/eval.rs:772:mod tests {
+unchessed-core/src/eval.rs:773:    use super::*;
+unchessed-core/src/eval.rs:774:    use crate::fen;
+unchessed-core/src/fen.rs:3:use crate::board::*;
+unchessed-core/src/fen.rs:4:use crate::movegen::attacked;
+unchessed-core/src/fen.rs:229:mod tests {
+unchessed-core/src/fen.rs:230:    use super::*;
+unchessed-core/src/lib.rs:6:pub mod board;
+unchessed-core/src/lib.rs:7:pub mod movegen;
+unchessed-core/src/lib.rs:8:pub mod see;
+unchessed-core/src/lib.rs:9:pub mod fen;
+unchessed-core/src/lib.rs:10:pub mod perft;
+unchessed-core/src/lib.rs:11:pub mod san;
+unchessed-core/src/lib.rs:12:pub mod eval;
+unchessed-core/src/lib.rs:13:pub mod nnue;
+unchessed-core/src/lib.rs:14:pub mod tt;
+unchessed-core/src/lib.rs:15:pub mod search;
+unchessed-core/src/lib.rs:16:pub mod book;
+unchessed-core/src/lib.rs:17:pub mod policy;
+unchessed-core/src/lib.rs:18:pub mod unarchitectured_v1;
+unchessed-core/src/lib.rs:19:pub mod aegis_v4_runtime;
+unchessed-core/src/lib.rs:20:mod polyglot_keys;
+unchessed-core/src/lib.rs:21:pub mod adapt;
+unchessed-core/src/lib.rs:22:pub mod uci;
+unchessed-core/src/movegen.rs:4:use crate::board::*;
+unchessed-core/src/movegen.rs:5:use std::sync::OnceLock;
+unchessed-core/src/movegen.rs:252:struct MagicEntry {
+unchessed-core/src/movegen.rs:259:struct MagicTables {
+unchessed-core/src/movegen.rs:473:pub struct MoveList {
+unchessed-core/src/movegen.rs:478:impl MoveList {
+unchessed-core/src/movegen.rs:497:impl Default for MoveList {
+unchessed-core/src/movegen.rs:756:mod tests {
+unchessed-core/src/movegen.rs:757:    use super::*;
+unchessed-core/src/nnue.rs:65:use crate::board::*;
+unchessed-core/src/nnue.rs:66:use crate::eval::{Eval, EvalState, NnueEvalState};
+unchessed-core/src/nnue.rs:98:enum Scheme {
+unchessed-core/src/nnue.rs:104:pub struct Nnue {
+unchessed-core/src/nnue.rs:182:    use std::sync::OnceLock;
+unchessed-core/src/nnue.rs:212:    use std::arch::x86_64::*;
+unchessed-core/src/nnue.rs:231:    use std::arch::x86_64::*;
+unchessed-core/src/nnue.rs:280:    use std::arch::x86_64::*;
+unchessed-core/src/nnue.rs:293:    use std::arch::x86_64::*;
+unchessed-core/src/nnue.rs:319:    use std::arch::x86_64::*;
+unchessed-core/src/nnue.rs:378:struct KingFrame {
+unchessed-core/src/nnue.rs:383:impl Nnue {
+unchessed-core/src/nnue.rs:634:impl Eval for Nnue {
+unchessed-core/src/nnue.rs:695:mod tests {
+unchessed-core/src/nnue.rs:696:    use super::*;
+unchessed-core/src/nnue.rs:697:    use crate::fen;
+unchessed-core/src/perft.rs:3:use crate::board::Position;
+unchessed-core/src/perft.rs:4:use crate::movegen::legal;
+unchessed-core/src/perft.rs:37:mod tests {
+unchessed-core/src/perft.rs:38:    use super::*;
+unchessed-core/src/perft.rs:39:    use crate::fen;
+unchessed-core/src/policy.rs:22:use crate::board::*;
+unchessed-core/src/policy.rs:28:struct Bucket {
+unchessed-core/src/policy.rs:39:impl Bucket {
+unchessed-core/src/policy.rs:45:pub struct PolicyNet {
+unchessed-core/src/policy.rs:73:impl PolicyNet {
+unchessed-core/src/san.rs:5:use crate::board::*;
+unchessed-core/src/san.rs:6:use crate::movegen::legal;
+unchessed-core/src/san.rs:151:mod tests {
+unchessed-core/src/san.rs:152:    use super::*;
+unchessed-core/src/san.rs:153:    use crate::fen;
+unchessed-core/src/search.rs:4:use std::sync::atomic::{AtomicBool, Ordering};
+unchessed-core/src/search.rs:5:use std::time::Instant;
+unchessed-core/src/search.rs:7:use crate::board::*;
+unchessed-core/src/search.rs:8:use crate::eval::{Eval, EvalState, MG_VALUE};
+unchessed-core/src/search.rs:9:use crate::movegen::{generate, in_check, king_safe_after, legal, MoveList};
+unchessed-core/src/search.rs:10:use crate::see::{see_with_pins, LazyPins};
+unchessed-core/src/search.rs:11:use crate::tt::{BOUND_EXACT, BOUND_LOWER, BOUND_UPPER, TT};
+unchessed-core/src/search.rs:22:pub struct SearchParams {
+unchessed-core/src/search.rs:64:impl Default for SearchParams {
+unchessed-core/src/search.rs:86:pub struct Limits {
+unchessed-core/src/search.rs:98:impl Limits {
+unchessed-core/src/search.rs:179:pub struct Line {
+unchessed-core/src/search.rs:190:pub struct RootHint {
+unchessed-core/src/search.rs:195:pub struct InfoEvent<'a> {
+unchessed-core/src/search.rs:242:struct Searcher<'a> {
+unchessed-core/src/search.rs:975:    struct RootMove {
+unchessed-core/src/search.rs:1207:mod tests {
+unchessed-core/src/search.rs:1208:    use super::*;
+unchessed-core/src/search.rs:1209:    use crate::eval::Hce;
+unchessed-core/src/search.rs:1210:    use crate::fen;
+unchessed-core/src/search.rs:1211:    use std::sync::atomic::AtomicBool;
+unchessed-core/src/see.rs:9:use crate::board::*;
+unchessed-core/src/see.rs:10:use crate::eval::MG_VALUE;
+unchessed-core/src/see.rs:11:use crate::movegen::{bishop_att, pinned_blockers, rook_att, KING_ATT, KNIGHT_ATT, PAWN_ATT};
+unchessed-core/src/see.rs:53:pub struct Pins {
+unchessed-core/src/see.rs:66:pub struct LazyPins<'a> {
+unchessed-core/src/see.rs:86:impl Pins {
+unchessed-core/src/see.rs:220:mod tests {
+unchessed-core/src/see.rs:221:    use super::*;
+unchessed-core/src/see.rs:222:    use crate::board::Move;
+unchessed-core/src/see.rs:223:    use crate::fen;
+unchessed-core/src/tt.rs:12:use std::sync::atomic::{AtomicU64, Ordering};
+unchessed-core/src/tt.rs:14:use crate::board::Move;
+unchessed-core/src/tt.rs:21:pub struct Entry {
+unchessed-core/src/tt.rs:48:struct Slot {
+unchessed-core/src/tt.rs:53:pub struct TT {
+unchessed-core/src/tt.rs:58:impl TT {
+unchessed-core/src/tt.rs:101:            use std::arch::x86_64::{_mm_prefetch, _MM_HINT_T0};
+unchessed-core/src/tt.rs:197:mod tests {
+unchessed-core/src/tt.rs:198:    use super::*;
+unchessed-core/src/uci.rs:5:use std::io::BufRead;
+unchessed-core/src/uci.rs:6:use std::sync::atomic::{AtomicBool, Ordering};
+unchessed-core/src/uci.rs:7:use std::sync::{Arc, Mutex};
+unchessed-core/src/uci.rs:8:use std::thread::JoinHandle;
+unchessed-core/src/uci.rs:10:use crate::adapt::{
+unchessed-core/src/uci.rs:14:use crate::aegis_v4_runtime::{
+unchessed-core/src/uci.rs:18:use crate::board::*;
+unchessed-core/src/uci.rs:19:use crate::book::{Book, BookEntry, Tier};
+unchessed-core/src/uci.rs:20:use crate::eval::{Eval, EvalParams, Hce};
+unchessed-core/src/uci.rs:21:use crate::fen;
+unchessed-core/src/uci.rs:22:use crate::movegen::{legal, parse_uci_move};
+unchessed-core/src/uci.rs:23:use crate::nnue::Nnue;
+unchessed-core/src/uci.rs:24:use crate::policy::PolicyNet;
+unchessed-core/src/uci.rs:25:use crate::search::{self, InfoEvent, Limits, Line, SearchParams};
+unchessed-core/src/uci.rs:26:use crate::tt::TT;
+unchessed-core/src/uci.rs:27:use crate::unarchitectured_v1::TensorPackage;
+unchessed-core/src/uci.rs:29:pub struct EngineIdent {
+unchessed-core/src/uci.rs:38:pub enum TrollMode {
+unchessed-core/src/uci.rs:45:struct Options {
+unchessed-core/src/uci.rs:98:impl Default for Options {
+unchessed-core/src/uci.rs:124:impl Options {
+unchessed-core/src/uci.rs:136:struct UnarchitecturedCandidate {
+unchessed-core/src/uci.rs:140:impl UnarchitecturedCandidate {
+unchessed-core/src/uci.rs:168:struct PendingObs {
+unchessed-core/src/uci.rs:175:struct Game {
+unchessed-core/src/uci.rs:189:impl Game {
+unchessed-core/src/uci.rs:1059:struct PreparedRootHints {
+unchessed-core/src/uci.rs:1156:struct GoJob {
+unchessed-core/src/uci.rs:1922:mod tests {
+unchessed-core/src/uci.rs:1923:    use super::*;
+unchessed-core/src/uci.rs:2201:        use crate::aegis_v4_runtime::InferenceExit;
+unchessed-core/src/unarchitectured_v1.rs:8:use std::path::Path;
+unchessed-core/src/unarchitectured_v1.rs:24:pub struct TensorSection<'a> {
+unchessed-core/src/unarchitectured_v1.rs:35:impl TensorSection<'_> {
+unchessed-core/src/unarchitectured_v1.rs:46:pub struct TensorPackage<'a> {
+unchessed-core/src/unarchitectured_v1.rs:223:mod tests {
+unchessed-core/src/unarchitectured_v1.rs:224:    use super::*;
+unchessed-datagen/Cargo.toml:9:[[bin]]
+unchessed-datagen/src/main.rs:31:use std::fs::File;
+unchessed-datagen/src/main.rs:32:use std::io::{BufRead, BufReader, BufWriter, Write};
+unchessed-datagen/src/main.rs:33:use std::sync::atomic::AtomicBool;
+unchessed-datagen/src/main.rs:34:use std::time::Instant;
+unchessed-datagen/src/main.rs:36:use unchessed_core::board::*;
+unchessed-datagen/src/main.rs:37:use unchessed_core::eval::Hce;
+unchessed-datagen/src/main.rs:38:use unchessed_core::fen;
+unchessed-datagen/src/main.rs:39:use unchessed_core::movegen::in_check;
+unchessed-datagen/src/main.rs:40:use unchessed_core::san::parse_san;
+unchessed-datagen/src/main.rs:41:use unchessed_core::search::{self, Limits};
+unchessed-datagen/src/main.rs:42:use unchessed_core::tt::TT;
+unchessed-datagen/src/main.rs:55:struct Rng(u64);
+unchessed-datagen/src/main.rs:56:impl Rng {
+unchessed-datagen/src/main.rs:137:struct Headers {
+unchessed-datagen/src/main.rs:158:fn main() {
+unchessed-datagen/src/main.rs:722:struct QuietHistogram {
+unchessed-datagen/src/main.rs:732:impl QuietHistogram {
+unchessed-reviewer/Cargo.toml:9:[[bin]]
+unchessed-reviewer/src/main.rs:3:use unchessed_core::uci::{run, EngineIdent};
+unchessed-reviewer/src/main.rs:5:fn main() {
+=== core source list ===
+unchessed-adapter/src/main.rs
+unchessed-core/src/adapt.rs
+unchessed-core/src/aegis_v4_runtime.rs
+unchessed-core/src/board.rs
+unchessed-core/src/book.rs
+unchessed-core/src/eval.rs
+unchessed-core/src/fen.rs
+unchessed-core/src/lib.rs
+unchessed-core/src/movegen.rs
+unchessed-core/src/nnue.rs
+unchessed-core/src/perft.rs
+unchessed-core/src/policy.rs
+unchessed-core/src/polyglot_keys.rs
+unchessed-core/src/san.rs
+unchessed-core/src/search.rs
+unchessed-core/src/see.rs
+unchessed-core/src/tt.rs
+unchessed-core/src/uci.rs
+unchessed-core/src/unarchitectured_v1.rs

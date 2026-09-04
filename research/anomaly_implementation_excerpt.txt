@@ -1,0 +1,168 @@
+   500	        allow_null: bool,
+   501	    ) -> i32 {
+   502	        if self.abort || self.node_limit_reached() {
+   503	            return 0;
+   504	        }
+   505	        if ply < MAX_PLY {
+   506	            self.pv_len[ply] = 0;
+   507	        }
+   508	        self.nodes += 1;
+   509	        self.check_limits();
+   510	        if self.abort {
+   511	            return 0;
+   512	        }
+   513	        if ply >= MAX_PLY {
+   514	            return self.eval.eval_with_state(pos, &self.eval_states[ply]);
+   515	        }
+   516	
+   517	        let in_chk = in_check(pos);
+   518	
+   519	        // draws
+   520	        //
+   521	        // Checkmate takes precedence over the 50-move rule: a position
+   522	        // reached at halfmove 100 with the side to move in check and no
+   523	        // legal reply is a completed game (checkmate), not a draw --
+   524	        // mirrors Stockfish's own is_draw() guard for this exact edge
+   525	        // case. Generating the legal move list here is only paid in that
+   526	        // rare in-check-at-halfmove-100 case, not on the hot path; the
+   527	        // ordinary (not-in-check, or in-check-with-a-reply) cases below
+   528	        // still return immediately without it.
+   529	        if pos.halfmove >= 100 && (!in_chk || legal(pos).len != 0) {
+   530	            return self.draw(ply);
+   531	        }
+   532	        if self.is_repetition(pos.hash, pos.halfmove) {
+   533	            return self.draw(ply);
+   534	        }
+   535	
+   536	        let depth = if in_chk { depth.max(1) } else { depth };
+   537	        if depth <= 0 {
+   538	            self.nodes -= 1; // qsearch counts it
+   539	            return self.qsearch(pos, alpha, beta, ply);
+   540	        }
+   541	
+   542	        // TT probe
+   543	        let mut tt_mv = Move::NONE;
+   544	        if let Some(e) = self.tt.probe(pos.hash) {
+   545	            tt_mv = Move(e.mv);
+   895	fn parse_position(line: &str, old: &Game) -> Option<Game> {
+   896	    let mut toks = line.split_whitespace().peekable();
+   897	    toks.next(); // "position"
+   898	    let start = match toks.next()? {
+   899	        "startpos" => fen::startpos(),
+   900	        "fen" => {
+   901	            let mut fen_str = String::new();
+   902	            for t in toks.by_ref() {
+   903	                if t == "moves" {
+   904	                    // rebuild iterator state: handled below via flag
+   905	                    fen_str.push_str("moves ");
+   906	                    break;
+   907	                }
+   908	                fen_str.push_str(t);
+   909	                fen_str.push(' ');
+   910	            }
+   911	            let (fen_part, saw_moves) = match fen_str.strip_suffix("moves ") {
+   912	                Some(f) => (f.trim().to_string(), true),
+   913	                None => (fen_str.trim().to_string(), false),
+   914	            };
+   915	            let pos = fen::parse(&fen_part).ok()?;
+   916	            let mut game = Game {
+   917	                positions: vec![pos],
+   918	                current: pos,
+   919	                observed_plies: 0,
+   920	                out_of_book_logged: false,
+   921	                game_id: old.game_id,
+   922	                decision_index: old.decision_index,
+   923	                observation_index: old.observation_index,
+   924	            };
+   925	            if saw_moves {
+   926	                for t in toks {
+   927	                    let mv = parse_uci_move(&game.current, t)?;
+   928	                    game.current = game.current.make(mv);
+   929	                    game.positions.push(game.current);
+   930	                }
+   931	            }
+   932	            game.observed_plies = carry_observed_plies(old, &game.positions);
+   933	            return Some(game);
+   934	        }
+   935	        _ => return None,
+   936	    };
+   937	    let mut game = Game {
+   938	        positions: vec![start],
+   939	        current: start,
+   940	        observed_plies: 0,
+   941	        out_of_book_logged: false,
+   942	        game_id: old.game_id,
+   943	        decision_index: old.decision_index,
+   944	        observation_index: old.observation_index,
+   945	    };
+   946	    if toks.peek() == Some(&"moves") {
+   947	        toks.next();
+   948	        for t in toks {
+   949	            let mv = parse_uci_move(&game.current, t)?;
+   950	            game.current = game.current.make(mv);
+   951	            game.positions.push(game.current);
+   952	        }
+   953	    }
+   954	    game.observed_plies = carry_observed_plies(old, &game.positions);
+   955	    Some(game)
+   360	            }
+   361	            _ => {
+   362	                if let Some((cc, cp)) = p.piece_on(to) {
+   363	                    debug_assert!(cc == them);
+   364	                    p.take(cc, cp, to);
+   365	                    capture = true;
+   366	                }
+   367	                p.take(us, pt, from);
+   368	                if mv.is_promo() {
+   369	                    p.put(us, mv.promo_piece(), to);
+   370	                } else {
+   371	                    p.put(us, pt, to);
+   372	                }
+   373	                // double pawn push sets ep square
+   374	                if pt == PAWN && (from as i16 - to as i16).abs() == 16 {
+   375	                    let ep_sq = ((from as u16 + to as u16) / 2) as u8;
+   376	                    p.ep = ep_sq;
+   377	                    p.hash ^= ZOBRIST.ep_file[file_of(ep_sq) as usize];
+   378	                }
+   379	            }
+   380	        }
+   381	
+   382	        // castling rights
+   383	        let old = p.castling;
+   384	        p.castling &= CASTLE_MASK[from as usize] & CASTLE_MASK[to as usize];
+   385	        if p.castling != old {
+   386	            p.hash ^= ZOBRIST.castle[old as usize] ^ ZOBRIST.castle[p.castling as usize];
+   387	        }
+   388	
+   389	        if pt == PAWN || capture {
+   390	            p.halfmove = 0;
+   391	        } else {
+   392	            p.halfmove += 1;
+   393	        }
+   394	        if let Color::Black = us {
+   395	            p.fullmove += 1;
+   396	        }
+   397	        p.side = them;
+   398	        p.hash ^= ZOBRIST.side;
+   399	        p
+   400	    }
+   401	
+   402	    /// Null move: pass the turn (for null-move pruning).
+   403	    pub fn make_null(&self) -> Position {
+   404	        let mut p = *self;
+   405	        if p.ep != NO_EP {
+   406	            p.hash ^= ZOBRIST.ep_file[file_of(p.ep) as usize];
+   407	            p.ep = NO_EP;
+   408	        }
+   409	        p.halfmove += 1;
+   410	        p.side = p.side.flip();
+   411	        p.hash ^= ZOBRIST.side;
+   412	        p
+   413	    }
+   414	
+   415	    /// ASCII board for debugging.
+   416	    pub fn pretty(&self) -> String {
+   417	        let chars = ['P', 'N', 'B', 'R', 'Q', 'K'];
+   418	        let mut out = String::new();
+   419	        for r in (0..8).rev() {
+   420	            out.push_str(&format!("{} ", r + 1));

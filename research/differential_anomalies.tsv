@@ -1,0 +1,10 @@
+stalemate	7k/5Q2/6K1/8/8/8/8/8 b - - 0 1	0000	true	1/2-1/2	0
+dead_king_vs_king	7k/8/8/8/8/8/8/K7 w - - 0 1	a1b2	true	1/2-1/2	0
+bishop_only	7k/8/8/8/8/8/2B5/K7 w - - 0 1	a1b2	true	1/2-1/2	0
+knight_only	7k/8/8/8/8/8/2N5/K7 w - - 0 1	a1b2	true	1/2-1/2	0
+missing_white_king	7k/8/8/8/8/8/8/8 w - - 0 1	d2d4	false		0
+missing_black_king	K7/8/8/8/8/8/8/8 w - - 0 1	d2d4	false		0
+two_white_kings	4k3/8/8/8/8/8/8/KK6 w - - 0 1	d2d4	false		0
+pawn_on_back_rank	4k3/P7/8/8/8/8/8/4K3 w - - 0 1	a7a8q	false		0
+bad_castling_right	4k3/8/8/8/8/8/8/4K3 w K - 0 1	a7a8q	false		0
+occupied_ep_square	4k3/8/8/3pP3/8/8/8/4K3 w - e4 0 1	a7a8q	false		0

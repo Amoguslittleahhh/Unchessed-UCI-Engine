@@ -1,0 +1,1437 @@
+=== Cargo manifests ===
+---unchessed-adapter/Cargo.toml
+[package]
+name = "unchessed-adapter"
+version = "0.2.3"
+edition = "2021"
+
+[dependencies]
+unchessed-core = { path = "../unchessed-core" }
+
+[[bin]]
+name = "unchessed-adapter"
+path = "src/main.rs"
+---unchessed-core/Cargo.toml
+[package]
+name = "unchessed-core"
+version = "0.2.3"
+edition = "2021"
+
+[dependencies]
+---unchessed-datagen/Cargo.toml
+[package]
+name = "unchessed-datagen"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+unchessed-core = { path = "../unchessed-core" }
+
+[[bin]]
+name = "unchessed-datagen"
+path = "src/main.rs"
+---unchessed-reviewer/Cargo.toml
+[package]
+name = "unchessed-reviewer"
+version = "0.2.3"
+edition = "2021"
+
+[dependencies]
+unchessed-core = { path = "../unchessed-core" }
+
+[[bin]]
+name = "unchessed-reviewer"
+path = "src/main.rs"
+=== README files ===
+./README.md
+# Unchessed AI
+
+A UCI chess engine family built from scratch in Rust: full-strength
+eval/search plus the **Unarchitectured v1** human-like policy layer, and a
+growing, fully-validated training-data foundation for *level-conditioned*
+human play (real humans across every rating band plus real Maia-3
+self-play at random UCI elo limits).
+
+- **Unchessed Game Adapter** (`unchessed-adapter`) — an adaptive engine
+  that estimates its opponent's strength *live from their moves* (fully
+  offline, no rating lookups) and shapes its play to match, punish, or
+  clinch.
+- **Unchessed Game Reviewer** (`unchessed-reviewer`) — a full-strength
+  analysis engine: same `unchessed-core` eval/search as the adapter, but
+  no persona/opponent-modeling layer — always plays at its raw strength.
+
+Both binaries share the same `unchessed-core` crate (eval, search,
+movegen, UCI protocol) and are always rebuilt/redeployed together after
+any change; they differ only in the UCI options and default behavior
+their own `main.rs` exposes. `unchessed-datagen` generates training
+data for the neural components.
+
+## Status: current milestone
+
+| Component | State |
+|---|---|
+| Bitboard movegen | ✅ perft-verified (startpos d6 = 119,060,324; Kiwipete d5 = 193,690,690, exact) |
+| Search | ✅ iterative deepening alpha-beta, quiescence, TT, null-move, LMR, killers/history, MultiPV, clock-aware time management; flag-free verified in 10s+0.1s blitz |
+| NNUE evaluator | ✅ `unchessed-nnue.bin` (UNCHNNUE), SPRT-validated over the hand-crafted HCE fallback (which stays for missing-file use); incremental accumulator updates SPRT-validated +68.6 ± 21.0 Elo at real time controls |
+| **Unarchitectured v1** (policy prior) | ✅ shipped, Python-parity-validated, int8-weights/int16-activations AVX2 backend, frozen parity gates (`benchmarks/unarchitectured-v1/`). **Default-off as a UCI hint** — measured findings, not a timeout: rating input inert (0/200 moves change, 600→3200), GAB provisioned at a quarter of the paper's smallest config, and the hint currently costs more than it adds |
+| Adaptive adapter | ✅ live opponent-Elo model, MATCH/PUNISH/CLINCH/DEFEND personas, engine-tell detection, human-plausible move selection |
+| Opening book | ✅ ~45 embedded main lines with ECO names + troll tier + external Polyglot `.bin` support |
+| Training data | ✅ four committed, move-legality-validated corpora: `data/training/` (71,961 games, rating-banded), `data/training-elo/` (35,812 games, every 100-elo band 100-3200), `data/selfplay/` (real Maia-3 at random UCI elo), `data/archive/` (123,385 games, 1834-2022, era/theme curated) |
+| Toolchain | ✅ zero external Rust deps; Python tooling from `tools/requirements-dev.txt`; sandbox build recipe in `docs/dev-environment.md` |
+
+**Honest goals note:** beating full-strength Stockfish is not a realistic
+outcome for any hand-built engine — Stockfish is 15+ years of distributed
+testing. The achievable target this architecture is built for: play
+convincingly at *any* human level from ~600 Elo to master+ and adapt
+between them automatically. The eval/search ceiling keeps rising with
+NNUE work; the human-play side is a level-conditioned retrain away — the
+data and the design spec are in place (below), and the retrained net
+still has to pass a paired-game SPRT before `UnarchitecturedHint` ever
+turns on.
+
+## Building
+
+```sh
+cargo build --release     # standalone binaries, no runtime dependencies
+cargo test                # perft, search, book, model, parity gates
+```
+
+`scripts/build-and-test.sh` runs the full gate set (build + tests + UCI
+smoke + matetrack). This repo has **zero external Rust dependencies**;
+the environment recipe (including the sandbox's PyPI-distributed Rust
+toolchain) is in [`docs/dev-environment.md`](docs/dev-environment.md).
+The Python suite: `python -m pytest tools/ -q`.
+
+## Repository layout
+
+- `unchessed-core/` — shared eval, search, movegen, UCI protocol, and the
+  Unarchitectured v1 runtime (loader, SIMD forward, hint integration).
+- `unchessed-adapter/`, `unchessed-reviewer/` — the two binary crates
+  (thin `main.rs` wrappers around `unchessed-core`).
+- `unchessed-datagen/` — training-data generation for the neural
+  components.
+- `unchessed-nnue.bin` — the search evaluator (UNCHNNUE format,
+  auto-loaded next to the exe; `EvalFile` to point elsewhere).
+- `artifacts/unarchitectured-v1-final.unarchv1` — the Unarchitectured v1
+  package (UNARCHV1 format, auto-located; `UnarchitecturedFile` to
+  override).
+- `config/` — v1 architecture spec, student/oracle configs, the
+  pretrain config (`pretrain_v1_training.json`: dual-elo oracle,
+  widened GAB, pinned 58,486,415 parameters), and the runtime
+  capability manifest
+  (`unarchitectured_v1_runtime_capabilities.json`).
+- `data/` — the four committed training corpora (below).
+- `tools/` — the entire Python pipeline: data curation/validation,
+  labeling, calibration, analysis, training, SPRT, and the cloud
+  self-play generator (`tools/maia3_cloud_selfplay/`).
+- `benchmarks/unarchitectured-v1/` — host-specific instrumentation JSONs
+  (runtime forward, calibration, integration trial, rating
+  conditioning, theme breakdown) with a
+  [`README`](benchmarks/unarchitectured-v1/README.md).
+- `scripts/` — `build-and-test.sh`, `exhibition/` (game runners),
+  `nnue-pipeline/` (cloud NNUE training scripts), `pretrain-pipeline/`
+  (CPU/GPU split for the move-prediction retrain), `sprt-history/`
+  (committed SPRT launchers — a record of specific past experiments,
+  mix of passed and reverted), `research/` (research prompts/notes).
+- `docs/` — findings and research notes (indexed at the bottom).
+- `nnue-shards-safe/` — reference NNUE shards + research brief.
+
+SPRT gate logs/PGNs and exhibition-series results themselves are not
+committed (large, regenerated per-run).
+
+## Training data & the level-conditioning pipeline
+
+Four committed corpora, all with pinned source provenance (manifest
+sha256s per file) and full per-game move-legality validation (the
+python-chess 1.11 dropped-token rule — a game that logs even one
+warning is dropped, never silently kept):
+
+| Set | Size | What it is |
+|---|---|---|
+| [`data/training/`](data/training/README.md) | 71,961 games | rating-banded blocks: lichess 2022 mega-clean (6 mean-elo bands), TWIC issues 400/1000/1649, WCC 1990/1993, Carlsen & Nakamura archives, Bundesliga/British championship |
+| [`data/training-elo/`](data/training-elo/) | 35,812 games | **every 100-elo band 100-3200** (+3300 overflow) from a full scan of 3,267,641 rated lichess games; first 2,000 per band verbatim. The honest shape: real rated games below mean ~1000 essentially don't exist (28 in 3.9 GB) and above mean ~2900 are equally rare (81) |
+| [`data/selfplay/`](data/selfplay/README.md) | 200 games, 13,076 labeled moves | **real Maia-3** (the official platform's ONNX, pinned mirror) vs itself, each side a uniform random UCI elo 100-3200 (1-elo accuracy); the measured conditioning gradient: top-1 confidence 0.323 at elo 100-199 rising to ~0.52-0.62 at 1900-3200 |
+| [`data/archive/`](data/archive/README.md) | 123,385 games | era/theme breadth 1834-2022: world championships in all eras, national championships, women's chess, ICCF correspondence, GM-annotated classics |
+
+The pipeline around them (`tools/`):
+
+- `training_blocks.py` / `archive_blocks.py` / `build_elo_bands.py` —
+  fetch (pinned), split, validate, clean, verify; all reproducible from
+  a fresh clone.
+- `selfplay_elo_mixer.py` — the Maia-3 random-elo generator (the
+  committed 200-game set); `maia3_cloud_selfplay/` — its many-core cloud
+  scale-out, default **5,000,000 games** from a four-engine pool
+  (Maia-3 + Stockfish 18 + LC0 v0.32.1 + RubiChess, each with the
+  strength mechanism it actually supports — native UCI_Elo for
+  Maia-3/Stockfish, thinking-budget and NPS-cap ladders for LC0/Rubi,
+  the latter two labelled `EloQuality: approximate`), per-game
+  deterministic substreams, resident per-worker engine pools, fsync'd
+  resume, built-in full validation + conditioning calibration, and a
+  Verda-AI-targeted README with measured cost (5M mixed ≈ 95-110 h /
+  ≈$205-240 on a 180-vCPU node; pilot command gives the real rate).
+- `build_level_conditioned_moves.py` — turns any of these sets into
+  per-move `(FEN, level-window, move, elo_self, elo_oppo)` labels
+  (Maia-style both-players windows; 800,971 rows from `data/training/`
+  committed as profile + deterministic sample in
+  `benchmarks/unarchitectured-v1/`).
+
+**Why this exists** — `docs/research-notes-maia-levels-reverse-engineering.md`
+reverse-engineered all three Maia generations from source: the strength
+ladder is one unified model conditioned on **two discrete/continuous
+skill inputs (self + opponent)**, not a scalar rating. That is the
+design spec for retraining our policy net (our scalar rating input was
+measured inert — below), and the dual-elo labels above are exactly what
+that retrain trains on.
+
+## Unarchitectured v1
+
+The canonical current architecture: a human-like **policy prior** —
+64 board tokens, d512 transformer with GAB (Generalized Attention
+Bases), a legal-move decoder, and policy/value/regret/concept heads —
+shipped as the `UNARCHV1` package in
+[`artifacts/unarchitectured-v1-final.unarchv1`](artifacts/unarchitectured-v1-final.unarchv1),
+auto-loaded by the engine. int8 package weights with dynamic int16
+activations (i32 accumulation), AVX2/FMA SIMD backend; the full
+8-layer/256-wide forward was optimized from 208.61 ms to 15.45 ms
+(alternating-round measurement) on the two-visible-CPU sandbox (`docs/unarchitectured-v1-runtime-optimization.md`,
+`benchmarks/unarchitectured-v1/runtime-forward-*.json`). Python
+cross-check parity gates and drift gates are frozen and pass in `cargo
+test`.
+
+**What it is, honestly:** the net is structurally sound, validated, and
+loadable — but as a *hint* it is **default-off** (`UnarchitecturedHint`
+= false) for three measured reasons:
+
+- [`docs/rating-conditioning-finding.md`](docs/rating-conditioning-finding.md)
+  — the rating input does nothing: **0/200 moves change from 600 to
+  3200** (max logit perturbation 0.004), with a suspiciously linear
+  response = one scalar diluted through a 32-wide projection. `POLICY_HUMAN`
+  vs `POLICY_GUIDE` moves 4/200.
+- [`docs/gab-capacity-finding.md`](docs/gab-capacity-finding.md) — the
+  GAB component is provisioned at a quarter of the paper's smallest
+  configuration.
+- [`docs/unarchitectured-v1-why-the-hint-costs-elo.md`](docs/unarchitectured-v1-why-the-hint-costs-elo.md)
+  — full-exit top-1 0.255 vs a 0.157 free MVV-LVA heuristic, p90
+  centipawn loss 422: the hint currently costs more than it adds.
+
+The capability manifest
+(`config/unarchitectured_v1_runtime_capabilities.json`) keeps
+`runtime_safety_suite: false` until the blockers list (provenance-disjoint
+deployment calibration, deployment-CPU measurements, broad integrated
+depth/NPS + tactical safety, isolated paired-game SPRT) is proven. See
+also `docs/policy-prior-calibration.md`,
+`docs/unarchitectured-v1-theme-breakdown.md`,
+`docs/unarchitectured-v1-calibration.md`, and
+`docs/unarchitectured-v1-integration-trial.md`.
+
+**The unblock path** (all retrain-only; a retrained net still needs its
+own SPRT): (1) level-conditioned retrain with the dual-elo data above —
+conditioning design per the Maia reverse-engineering note; (2) widen GAB
+to at least the paper's 5M configuration; (3) theme-balanced sampling;
+(4) weight clipping so the result is quantizable. Verification gate:
+`tools/analyse_rating_conditioning.py` — the 0/200 sweep must *invert*
+before the hint is trusted.
+
+## UCI options
+
+| Option | Default | Meaning |
+|---|---|---|
+| `Hash` | 128 | transposition table MB |
+| `Threads` | (autodetect) | search threads (1-64) |
+| `MultiPV` | 1 | analysis lines shown |
+| `Adaptive` | true | the whole adapter brain; off = always best move |
+| `UCI_LimitStrength` / `UCI_Elo` | false / 2400 | hard cap on playing strength (500-3200) |
+| `Contempt` | 25 | drive to win drawish games (fuels CLINCH mode) |
+| `Troll` | Auto | `Off` / `Auto` (model-gated) / `On` (forced clowning) |
+| `OwnBook` | true | use the opening book in games |
+| `BookFile` | — | path to any Polyglot `.bin` book |
+| `BookDepth` | 16 | max plies to stay in book |
+| `PolicyFile` | auto | legacy per-rating policy net path; weights not committed — without the file MATCH mode uses the built-in heuristic priors and says so in the log |
+| `EvalFile` | auto | path to the UNCHNNUE evaluator; default `unchessed-nnue.bin` next to the exe |
+| `UCI_Opponent` | — | standard GUI-supplied opponent info; seeds the model for engines |
+| `PersonaSmooth` | false | EMA+dwell persona filter; **off until Adaptive-on SPRT** |
+| `EngineDetectV2` | false | high-level Elo-detector retune; **off until Adaptive-on SPRT** |
+| `UnarchitecturedHint` | false | experimental root-ordering candidate; stays off until the retrain + SPRT gates above pass |
+| `UnarchitecturedFile` | — | explicit `UNARCHV1` model package (default: auto-located `artifacts/unarchitectured-v1-final.unarchv1`) |
+| `UnarchitecturedMinTime` | 30000 | minimum remaining clock (ms) before the candidate may submit and wait up to 100 ms for a shallow exact-position hint |
+| search terms | — | `Aspiration*`, `Futility*`, `LMR*`, `NullMove*`, `Probcut*`, `RFPMargin`, `RookPct`, `MobilityPct`, `KnightOutpostPct`, `PassedPawn*Pct`, `ProbcutSeeFilter` — the calibrated search-term suite (see `tools/check_search_param_consistency.py`) |
+
+## How the adapter thinks
+
+1. **Pre-game:** if the GUI sends `UCI_Opponent`, known engines
+   (Stockfish, Leela, Komodo, …) seed the model at their real strength —
+   trolling is hard-locked off against strong engines. Humans always
+   start neutral: declared ratings are never trusted as truth.
+2. **Live model:** every opponent move is compared against the engine's
+   own analysis; centipawn loss (weighted by position difficulty, book
+./benchmarks/unarchitectured-v1/README.md
+# Unarchitectured v1 runtime benchmarks
+
+Unarchitectured v1 is the sole canonical architecture name. Hydra and Apex
+names are experimental history only.
+
+- `runtime-forward-2026-08-22.{json,md}` records the retained-int8 matrix
+  backend, dequantized comparison, and all-exit parity/drift gates.
+- `runtime-forward-2026-08-23.{json,md}` records the cache/reduction round using
+  alternating measurements against the merged round-two `main` worktree.
+- `integration-trial-2026-08-23.json` records the fixture-disjoint calibration
+  smoke and precharged shallow-hint search trial.
+- `uci-candidate-2026-08-23.json` records the real default-off UCI wiring,
+  short-clock gate, exact-hint smoke, safety tests, and unrun SPRT launcher.
+- `pretrain-probe-2026-08-28.json` records the sandbox move-prediction
+  pretrain probe (13,076 committed self-play rows, 256-wide NumPy MLP):
+  the 0/200 rating-conditioning sweep inverts to 118/200 with dual-elo
+  conditioning, top-1 accuracy 0.1687 vs 0.0879 baseline
+  (`docs/move-prediction-pretrain-plan.md`).
+
+All figures are host-specific instrumentation. The candidate remains default-off
+and is not deployment calibration, Elo, or SPRT evidence.
+./data/archive/README.md
+# Chess history archive (1834 → 2022)
+
+The finest breadth of human play collectable from sources reachable from
+this sandbox (GitHub egress only; the classic chess-data hosts and
+HuggingFace are not reachable). Complements `data/training/` (which is
+banded by rating for engine training): this archive is curated for
+**era, theme and quality**, not rating.
+
+**123,385 games, 294 files, 84.8 MB**, spanning 1834 (De la Bourdonnais–
+McDonnell, Paris) to 2022 (Reykjavik open), plus two pre-1800 legend
+entries. Every game was move-legality-validated by full per-game parse
+(52 dirty games from the mirrors dropped and counted); games are
+byte-verbatim from the pinned sources.
+
+## Contents
+
+| Directory | Files | Games | What it is |
+|---|---:|---:|---|
+| `classics-1834-1899/` | 18 | 3,485 | De la Bourdonnais–McDonnell 1834, Saint-Amant 1843, London 1851 (two sources), Anderssen/Bird/Blackburne/Horwitz/Morphy/Staunton/Zukertort archives, 1800–1900 era archive, GM-annotated classics (immortals, Hayes, Schiller, great masters), early Italian championships |
+| `1900-1945/` | 15 | 20,715 | Lasker/Capablanca/Alekhine/Réti/Nimzowitsch/Tartakower archives, era archives 1901–1940, New York 1924, British championships 1946–55, Hastings 1920s–49 |
+| `1946-1970/` | 37 | 47,734 | era archives 1941–1970, WCC matches 1957–61, 1964 Moscow candidates, 1973/1976 interzonal cycles, British championships 1965–70, Hastings 1950s–70s |
+| `1971-1999/` | 74 | 28,590 | the complete Karpov–Kasparov era: every candidates cycle and interzonal 1979–1993 on file, WCC 1984/85/86, PCA years, 1998 WCC playoffs, "Kasparov vs. The World" 1999, British championships 1971–90, Hastings 1980s–90s, national championships (Ireland, Denmark, Canada, Croatia, Sweden), and a **9,078-game all-2600+ rated slice (1970–1998)** — the strength anchor |
+| `2000-plus/` | 103 | 13,499 | 2002 Sparkassen candidates, 2000/04/06 WCC, every PgnDownloads top tournament 2007–11 (Amber blindfold & rapid, FIDE Grand Prix, World Cup, World Blitz, Tata Steel, US championships, …), Tata Steel 2003–10, British championships 2004–17, Hastings 2000s/2015, Reykjavik open 2022 |
+| `womens/` | 35 | 8,976 | Polgar (all three sisters), Kosteniuk archives; women's WCC matches 1987–1996 (FIDE + PCA), women's interzonals; FIDE Women's Grand Prix & Women's World 2008–11; women's invitational 2009–17 |
+| `world-championships/` | 2 | 335 | London 1851 — the first world championship (both available versions) |
+| `correspondence/` | 10 | 51 | ICCF correspondence chess 2017–21 (see honest limits — the mirror is mostly unparseable) |
+
+The WCHAMP world-championship file (1886–1994) and the Lasker/Blackburne/
+Bird/Tartakower/Italy/Sweden archives span several eras, so they are
+**partitioned per game by Date year** into the era directories above
+(e.g. `world-championship-matches-1900-1945.pgn`) — games are copied
+verbatim, just re-bucketed.
+
+## Sources (pinned commits)
+
+| Key | Repo | Commit | Used for |
+|---|---|---|---|
+| chessdata | `rozim/ChessData` | `ed88abd2716da58ee55d42b662455c1c8ebe0776` | all of the above except the annotated classics |
+| scoutfish | `mcostalba/scoutfish` | `00cec1339f97114a32c30080dbad5e3a500634f2` | GM-annotated classic collections, New York 1924, Moscow 1964, Kramnik, Polgar |
+| annotated | `hegde10122/CHESS_ANNOTATED_GAMES` | `550bdd161514b48abd5008ee4a7daa0db7718f66` | ICCF correspondence |
+| pepper | `saikrishna-1996/deep_pepper_chess` | `b05bfe2e6defad7a85d6099ad5d69e1b46888eb5` | women's invitational 2009–17 |
+
+The file-by-file layout (source path → destination, with notes) is
+`tools/archive_layout.json`.
+
+## Tooling
+
+```sh
+python3 tools/archive_blocks.py fetch --stage /tmp/arc/src   # git egress needed
+python3 tools/archive_blocks.py build --stage /tmp/arc/src   # verbatim copy + era split + legality clean + manifest
+python3 tools/archive_blocks.py verify                       # re-check sha256 + game counts
+```
+
+The clean is the same rule as `tools/training_blocks.py clean`: a game that
+makes python-chess 1.11 drop even one SAN token is dropped whole (its board
+state is desynced from then on); parser warnings are captured and counted,
+never printed.
+
+`manifest.json` records per file: source repo/path/commit, sha256, game
+count (before/after clean), drop count, rated-game count, year span.
+
+## Honest limits
+
+- **52 games dropped** by the legality clean (0.04%): old/annotated files
+  (Lasker 1834–99 part, immortals, New York 1924, 19th-century misc) and
+  the ICCF mirror.
+- **Correspondence chess is thin by accident, not choice.** The only
+  reachable ICCF source is an amateur annotated-games mirror whose PGNs are
+  mostly unparseable by python-chess (31 of 82 games dropped; 51 kept).
+- **Two legend entries** in `classics-1834-1899/misc-19th-century.pgn`:
+  "London 1475" (Castellvi vs Vinyoles — the date is a source-side data
+  error; the pair are associated with 15th-century Madrid) and "London
+  1790" (the Philidor vs "Andrew Smith" legend). Kept as historical
+  material, flagged here.
+- **681 games appear in more than one file** (London 1851 in three files,
+  Bourdonnais in two, WCHAMP games also inside era archives, …). No dedupe
+  was applied — pipelines that need it should dedupe by a
+  players+date+moves key, as `data/training/` documents.
+- **40,950 of 123,385 games carry Elo rating tags.** Pre-1990 over-the-
+  board play is mostly unrated in these sources; that is why the
+  rating-banded training set and this archive are separate.
+- Upstream caveat from the primary mirror applies: "dups, dirty data,
+  errors". The legality clean addresses the move-text side; header noise
+  (odd event names, missing dates) remains.
+- The 2000s coverage is top-events-only (2007–11 tournament set + Tata
+  Steel + British); 2012–2021 is not represented except by the Polgar
+  archive (to 2021) and Reykjavik 2022 — the modern mass is already in
+  `data/training/` (lichess 2022 bands).
+./data/selfplay/README.md
+# Maia-3 self-play, random UCI elo limits against each other
+
+Games played by two **Maia-3** instances whose UCI elo limits are drawn
+independently and uniformly from 100-3200 and fixed per side for the
+whole game — the "mix of maia 3 with random uci elo limits against each
+other". Every move is a sample from the model's elo-conditioned policy
+(temperature 1.0, the official UCI's human-like mechanism).
+
+**200 games, 13,076 labeled moves** (`seed 42`), with WhiteElo/BlackElo
+headers set to the drawn limits, so the files feed the same
+level-conditioned pipeline as the real-human data.
+
+## The model
+
+The real Maia-3, as the official `maia-platform-frontend` ships it:
+`maia3_simplified.onnx` (45.7 MB ONNX export, GPL-3.0). Not committed
+here — fetch with:
+
+```sh
+python3 tools/selfplay_elo_mixer.py fetch-model --out /tmp/maia3-onnx
+python3 tools/selfplay_elo_mixer.py play \
+    --model /tmp/maia3-onnx/simple-maia3-inference/simple_maia3_inference/maia3_simplified.onnx \
+    --games 200 --seed 42 --pgn <out.pgn> --labels <out.jsonl> --report
+```
+
+Pinned at `mcognetta/simple-maia3-inference` @
+`05ede11a0ec43c7d1c5d55d16ec86fbe5b6a3fcc` (the mirror the official
+frontend's ONNX came from). Our driver's 4352-move indexing and
+inference were verified entry-by-entry and position-by-position against
+the reference implementation (max probability diff ~1e-8).
+
+## Conditioning works — measured
+
+Mean top-1 policy probability by the mover's elo across this set:
+**0.323 at 100-199, rising monotonically to ~0.52-0.62 at 1900-3200**.
+Low-elo play is diffuse (blunder-rich), high-elo play is concentrated —
+the strength signal is real and per-side. (Contrast:
+`docs/rating-conditioning-finding.md` shows our own net's scalar rating
+input moving the output by ~0.004 logit — this is what working
+conditioning looks like.)
+
+## Labels
+
+`maia3-100-3200-labels.jsonl` — one row per move:
+`{game, elo_white, elo_black, fen, move_uci, move_ply, side, elo_self,
+elo_oppo, top1_prob, ldw}`. `ldw` is (loss, draw, win) from the
+side-to-move's perspective. All 13,076 moves replay legal from the
+recorded FENs (test: `test_selfplay_elo_mixer.py`).
+
+## Honest limits
+
+- The "simplified" export is single-position: no multi-position history
+  input and no clock/time inputs, and move selection omits the official
+  UCI's one-ply opponent-response ranking. The elo conditioning is the
+  model's real one.
+- Maia-3 is a *human-move predictor*, not a rated player: "elo 200" here
+  means "the move distribution of a ~200-rated human", which is exactly
+  the level-conditioning training signal wanted — but the games are
+  model-generated, not human.
+- 200 games is a seed set; the generator is the deliverable — rerun with
+  `--games 2000 --seed <new>` for scale (measured ~15-25 min per
+  200 games on the sandbox's 2-core Xeon).
+
+## Where it fits
+
+- `data/training-elo/` — real humans, same bands; empty at 100-900 and
+  3000-3200, exactly where this set is dense.
+- `tools/build_level_conditioned_moves.py` — turns either set into
+  (FEN, skill-window, move) labels for the level-conditioned retrain
+  designed in `docs/research-notes-maia-levels-reverse-engineering.md`.
+./data/training/README.md
+# Training data blocks
+
+Game data spanning all player levels for the engine's training pipelines
+(NNUE, Unarchitectured v1). Selected, banded, and **fully
+move-legality-validated** on 2026-08-26 from the pinned PGN mirror
+`rozim/ChessData` @ `ed88abd` (fetched by partial git clone — the sandbox
+can reach GitHub but not lichess.org/archive.org/twic.sesse.net; see the
+egress audit in `docs/dev-environment.md`).
+
+**What "reliable" means here, precisely** (see `manifest.json` for the
+per-block record):
+
+- **Hash-pinned.** Every file has its SHA-256 in the manifest;
+  `python3 tools/training_blocks.py verify` re-checks them.
+- **Fully move-legal.** Every game in every block was parsed and replayed
+  with python-chess; illegal games dropped (160 total, all from two
+  lichess bands). Committed blocks are 100% legal — this is what the
+  upstream mirror's "dirty data" warning is a warning *against*.
+- **Rating-banded where rated.** Lichess blocks are banded by the mean of
+  `WhiteElo`/`BlackElo` (both required, both in [100, 3500], standard
+  results only). Games with unknown ratings (tag `0` or missing — ~25% of
+  the source chunks, mostly open-tournament games) are quarantined, never
+  banded.
+- **Provenance per file.** Source repo commit + in-repo path per block;
+  the upstream caveat ("dups, dirty data, errors") is recorded.
+- **Honest gaps.** World Championship files carry no rating tags (kept as
+  a separate top-tier block); 219 Carlsen–Nakamura head-to-heads appear in
+  both player archives (0.30%, documented, not deduped); ratings are as
+  tagged by the source (lichess = platform-calibrated, self-registered
+  accounts).
+- **Correction (2026-08-26).** Re-running `clean` on the round-14 Carlsen
+  block found 26 games (0.6% of that block) whose SAN text makes
+  python-chess 1.11.2 drop tokens — the manifest's
+  `illegal_games_dropped: 0` for that one block was never actually
+  measured. The block was re-cleaned in place (4,314 → 4,288 games) and
+  the manifest/counts above updated; all 14 other blocks re-verified with
+  zero dropped-token games.
+
+## Coverage (71,961 games)
+
+> Sibling datasets: `data/training-elo/` (real humans in every 100-elo
+> band 100-3200, full mega-clean scan), `data/selfplay/` (Maia-3 at
+> random UCI elo limits against each other — fills the bands where real
+> humans don't exist below ~1000 and above ~2900 mean elo),
+> `data/archive/` (era/theme breadth 1834–2022: world championships,
+> national events, women's, correspondence, annotated classics). All
+> share the same validation rules.
+
+| Level | Games | Source |
+|---|---:|---|
+| ≤1400 | 695 | lichess (merged 3 chunks) |
+| 1400–1700 | 4,887 | lichess |
+| 1700–2000 | 4,465 | lichess |
+| 2000–2300 | 16,313 | lichess |
+| 2300–2600 | 22,099 | lichess |
+| ≥2600 | 1,926 | lichess |
+| GM player archives (2687–2735 mean) | 9,867 | Carlsen, Nakamura (PgnMentor) |
+| Master leagues (2209–2647 mean) | 1,421 | Bundesliga 2006-07, British Champ 2017 |
+| TWIC weekly issues (1528–2786) | 9,666 | issues 400 / 1000 / 1649 |
+| World Championship (unrated tags, top-tier) | 622 | 1990, 1993 |
+
+The low bands are the thin part — that's a property of the source (the
+mega-clean set is mostly strong games), not of the selection: the mirror
+holds ~10M games and the full TWIC series, and `manifest.json` lists the
+exact paths to extend from (Kingbase 2017 2200+ chunks, all 1440 TWIC
+issues, the remaining 62 mega chunks, 1000 per-player GM archives).
+
+## Tooling
+
+```sh
+python3 tools/training_blocks.py verify              # re-check hashes vs manifest
+python3 tools/training_blocks.py validate F --sample 200   # fast header stats + sampled parse
+python3 tools/training_blocks.py clean F             # full parse, drop illegal games
+python3 tools/training_blocks.py split SRC --prefix OUT  # band a new source PGN (text-level, lossless)
+python3 tools/training_blocks.py fetch --out DIR     # partial-clone the pinned source (needs GitHub egress)
+```
+./scripts/nnue-pipeline/README.md
+# NNUE data pipeline scripts
+
+- `cloud_train_v4.sh` — fail-closed A100 launcher (GO_CLOUD token,
+  TF32/bf16/fused Adam, persona-on, hint-off). See
+  `docs/ieee-cloud-nnue-speed-quality.pdf`.
+- `train_recipe.sh` — the defended v4 training recipe (15-epoch cap,
+  early-stop 3, best-checkpoint, batch 65536). Wrap `train_nnue.py` for
+  the local 108M point; see `docs/nnue-v4-training-recipe.md`. Does not
+  spend cloud money.
+- `worker_bench.sh` — benchmarks `unchessed-datagen nnue` worker-count
+  throughput (used to pick 28 workers / 2 per core over both 14 and 56 on a
+  14-core WSL box; see project memory for the numbers).
+- `full_pipeline.sh` — end-to-end unattended pipeline: waits for Lichess
+  monthly PGN downloads to finish, verifies each `.zst`'s integrity (a curl
+  process exiting is not proof of a complete download -- a dropped
+  connection looks identical), decompresses one month at a time, labels it
+  with `unchessed-datagen nnue`, deletes the decompressed intermediate to
+  control disk usage, then retrains the NNUE on the combined dataset --
+  with a hard record-count safety ceiling before training starts, so an
+  unexpectedly large combined dataset can't repeat this project's earlier
+  near-OOM incident with nobody around to catch it.
+
+Both assume `unchessed-datagen`/`unchessed-adapter` are already built at
+`~/unchessed-kingsafety-src/target/release/` and the NNUE training venv is
+at `~/unchessed-ai/data/maia-venv/` -- adjust paths for a different
+environment.
+./scripts/pretrain-pipeline/README.md
+# Move-prediction pretrain pipeline (CPU stage / GPU stage)
+
+The two-stage retrain from `docs/move-prediction-pretrain-plan.md`,
+split by machine so each box does exactly what it is good at:
+
+```
+CPU.180V.720G box                      A100/H100 box
+┌─────────────────────────────┐        ┌──────────────────────────────┐
+│ 1. generate.py (this repo)  │        │ 4. gpu_stage.sh              │
+│    1M-5M mixed games        │ rsync  │    selfcheck (first!)        │
+│    (pgn/ + labels/)         │ ─────► │    stage 1 pretrain (24 ep)  │
+│ 2. cpu_stage.sh             │        │    stage 2 finetune (8 ep)   │
+│    PGN -> v5 dual-elo shards│        │    per-epoch 0/200 sweep     │
+│    (full + trusted-only)    │        │ -> ckpt-stage1/2.pt          │
+│ 3. validate (structural)    │        │                              │
+└─────────────────────────────┘        └──────────────────────────────┘
+```
+
+## What runs where (and why)
+
+| Work | Box | Notes |
+|---|---|---|
+| Game generation (`tools/maia3_cloud_selfplay/generate.py`) | CPU | auto workers (175 mixed / 350 maia-only on 360 vCPUs), ~95-110 h for 5M mixed on 180V or ~half that on 360V at the same cost (measured inputs, see its README); the pilot command nails the real rate |
+| v5 shard build + validation (`cpu_stage.sh`) | CPU | two-pass parallel: a text-only scan fixes the game-disjoint split, then one worker per PGN file replays + streams final shards; **deterministic byte-for-byte regardless of `--workers`** (tested); ~1088 B/record |
+| Stage-1/2 training (`gpu_stage.sh`) | GPU | 58.5M-param dual-elo oracle; **DDP via torchrun (1-8 GPUs, nccl; gloo smoke-tested on CPU)**; global effective batch stays 4096 at every world size, `--micro-batch 256` default, activation checkpointing off (re-enable past micro 512) |
+| Selfcheck | GPU (first command) | tiny model on CUDA — catches torch/precision/model/loader problems before hours of GPU time. Also runs on CPU (sandbox-verified) |
+
+**Handoff:** rsync both shard directories from the CPU box to the GPU
+box (the GPU stage reads them via mmap; the CPU box does not need
+torch and the GPU box does not need the generator).
+
+## Commands
+
+CPU box (after `generate.py` finished and passed its built-in
+validation):
+
+```sh
+scripts/pretrain-pipeline/cpu_stage.sh /data/mixed-5m /data/pretrain 20000
+rsync -a /data/pretrain/pretrain-v5 /data/pretrain/pretrain-v5-trusted <a100>:/data/pretrain/
+```
+
+GPU box (single GPU):
+
+```sh
+scripts/pretrain-pipeline/gpu_stage.sh /data/pretrain
+```
+
+Multi-GPU (8x A100 — the trainer is DDP-ready; nccl on CUDA, rank 0
+validates + checkpoints, one allreduce per optimizer step; from the
+repo checkout on the box, with the shards under /data/pretrain):
+
+```sh
+torchrun --nproc_per_node=8 tools/pretrain_v1_a100.py train \
+    --stage pretrain \
+    --train /data/pretrain/pretrain-v5/train/shard-*.v5 \
+    --validation /data/pretrain/pretrain-v5/val/shard-*.v5 \
+    --config config/pretrain_v1_training.json \
+    --output /data/pretrain/ckpt-stage1.pt
+```
+
+(`gpu_stage.sh` runs the single-GPU form of both stages; for
+multi-GPU, run the same two stage commands under torchrun as above.
+CPU smoke of the DDP path:
+`pytest tools/test_pretrain_v5.py::test_ddp_gloo_two_rank_smoke`.)
+
+## Data format (v5, `UNCHD5R0`)
+
+`tools/pretrain_v5_data.py` writes the frozen v4 wire record
+(1088 B) with its 48 reserved bytes redefined as
+`elo_oppo:u16 + pretrain_quality:u1 + pad:45`, a new magic/version/
+schema-SHA. The mover's own elo stays in the existing `rating` field,
+so each record carries the **dual-elo pair** the conditioning needs.
+Quality: 0 calibrated (maia3), 1 native (stockfish), 2 approximate
+(lc0/rubichess ladders — monotone but uncalibrated value), 3 human.
+`wdl` is a game-outcome proxy (stage 1 trains policy CE only and does
+not use it). Train/val split is by **game** (never by row). The
+trusted-only stage-2 set contains games where **every** row is
+calibrated/native/human — no approximate rows at all.
+
+## Throughput round (2026-08-28) — what was optimized
+
+- **CPU stage, parallel v5 build:** `pretrain_v5_data.py build` is a
+  two-pass design — pass 1 a text-only scan (no chess parsing) that
+  counts the kept games per file and fixes the game-disjoint split,
+  pass 2 one worker per PGN file replaying with full legality and
+  streaming the final `shard-<file>-<seq>.v5` files directly (no temp
+  files, so disk = dataset size). A worker that disagrees with the
+  pass-1 count hard-fails the build. Output bytes are **identical for
+  any `--workers`** (worker-invariance test in the suite).
+- **CPU stage, 360-vCPU generation:** `generate.py` auto-sizes its
+  workers (`(vCPUs-10)/2` mixed, `vCPUs-10` maia-only) and pins each
+  worker to dedicated cores with one-thread BLAS/OpenMP pools
+  (`--cpu-affinity auto`). 360-vCPU: 175 mixed / 350 maia-only
+  workers.
+- **GPU stage, DDP:** the trainer runs under `torchrun` (nccl on
+  CUDA, gloo on CPU). Global effective batch is 4096 at every world
+  size (per-rank accumulation adapts), one allreduce per optimizer
+  step (accumulation substeps under `no_sync`), rank 0 validates +
+  checkpoints + broadcasts the epoch metrics. A 2-rank gloo CPU smoke
+  is in the suite.
+- **GPU stage, memory:** `micro_batch_initial` 128 -> 256 and
+  `activation_checkpointing` off — the 58.5M model at micro 256
+  measured ~13 GB on an A100 (2x the R21 micro-128 6.7 GB), far
+  inside 80 GB; the optimizer schedule is unchanged because the
+  global batch is constant. The per-epoch conditioning sweep is
+  chunked (64 positions x 27 elos per forward,
+  `sweep_chunk_positions`) — the unchunked 5400-row forward OOM'd a
+  CPU smoke box and is needless GPU memory.
+
+## What is verified, and what is not (honest status)
+
+- **Verified in the sandbox (CPU):** the full CPU stage on the
+  committed 13k-row self-play set (build + validate + spot-checks,
+  0 errors), including the parallel build's worker-invariance
+  (workers 1 vs 3 -> byte-identical shards); the GPU trainer's
+  selfcheck; a real-data training smoke (small dual-elo oracle,
+  5 optimizer steps + conditioning sweep on v5 shards, loss finite,
+  dual-elo logits differ by elo); a **2-rank gloo DDP smoke**
+  (2 epochs, disjoint strided data, rank-0 checkpoint, exactly one
+  epoch line per epoch); 9 + 4 + 12 hermetic tests in the repo suite
+  for this pipeline.
+- **Not verified here (no CUDA in the sandbox):** the CUDA path of
+  the trainer (precision/compile/memory) and the **nccl** multi-GPU
+  path (the DDP code is the same for nccl/gloo; the smoke uses gloo
+  on CPU). That is exactly what the selfcheck exists for — run it
+  first on the box; expect it to take seconds. A bare python launch
+  (no torchrun) stays a single-process run, so the old single-GPU
+  command line is unchanged.
+- **Not yet wired (next round):** distillation to a dual-elo student
+  + UNARCHV1 packaging + the Rust runtime change for dual-elo inputs.
+  The checkpoint format marks `dual_elo: true` and the distill path
+  refuses silently-wrong checkpoints. Nothing in this pipeline
+  touches the engine binary; the hint stays default-off and the SPRT
+  gate is unchanged.
+
+## Sizes (1088 B/record)
+
+| Set | Records | Raw |
+|---|---|---|
+| 5M mixed games (~65 plies/game) | ~327M | ~356 GB (mmap'd on the GPU box; consider `--shard-records` tuning on a tight volume) |
+| 1M mixed games | ~65M | ~71 GB |
+| 200-game self-play reference | 13,076 | ~14 MB (sandbox test set) |
+./tools/maia3_cloud_selfplay/README.md
+# Mixed-engine self-play at scale (cloud / Verda AI)
+
+Generates **5,000,000 games** (default) from a pool of four engines,
+each side of every game drawn independently as (engine, elo) — engine
+uniform over the pool, elo a uniform integer inside the range that
+engine's strength mechanism supports. Ready for immediate
+level-conditioned training. This is the many-core scaling of the
+verified pipeline in `tools/selfplay_elo_mixer.py` — same `Maia3`
+inference class, same 4352-move indexing, same temperature-1 sampling
+— re-orchestrated with per-game deterministic substreams, resident
+per-worker engine pools, per-worker shards, batched fsync'd
+checkpoints (resume-safe), and a built-in full validation +
+conditioning-calibration pass.
+
+## The engine pool and what "elo" means for each
+
+Each engine gets the strength mechanism it **actually** supports
+(verified from source and, where the sandbox's egress allowed, from a
+live binary):
+
+| Engine | Version (pinned) | Strength lever | Elo range | Label quality |
+|---|---|---|---|---|
+| Maia-3 | official platform ONNX (pinned commit) | **native UCI_Elo model conditioning** — the elo input is a real, measured part of the model (0.323 → 0.52-0.62 top-1 gradient) | 100-3200 | `calibrated` |
+| Stockfish | sf_18 (cb3d4ee9) | **native UCI_Elo** (Skill mechanism; min 1320 / max 3190 verified in `sf/src/search.h` and live `uci` output) + fixed 100 ms movetime | 1320-3190 | `native` |
+| LC0 | v0.32.1 (fd71a2d9) | **thinking-budget ladder** — LC0 has *no* UCI_Elo option (verified in v0.32.1 source); movetime 2→500 ms monotone in target elo | 600-3200 | `approximate` |
+| RubiChess | master 2026-08-27 (29ddf13d) | **LimitNps ladder** — RubiChess has *no* UCI_Elo option (verified in its option list); NPS cap 100→uncapped monotone in target elo, 250 ms movetime for the cap to bind | 600-3200 | `approximate` |
+
+Games played by LC0/RubiChess carry `WhiteEloQuality`/`BlackEloQuality
+= "approximate"` in the PGN and `elo_quality: "approximate"` in the
+label rows: their elo values are **monotone in strength but
+uncalibrated in exact value** (the lever ordering is guaranteed, the
+number on the label is a documented approximation). Downstream
+level-conditioned training can filter or down-weight by `elo_quality`
+(e.g. use `calibrated`+`native` rows for the conditioning signal,
+everything for move diversity).
+
+## What you get
+
+```
+<out>/pgn/shard-NNNNN.pgn        PGN; WhiteElo/BlackElo + WhiteEngine/
+                                 BlackEngine + WhiteEloQuality/
+                                 BlackEloQuality per game
+<out>/labels/shard-NNNNN.jsonl   one row per move:
+                                 {game, elo_white, elo_black, fen,
+                                  move_uci, move_ply, side, elo_self,
+                                  elo_oppo, engine, elo_quality,
+                                  top1_prob, ldw}
+                                 (top1_prob/ldw are null on
+                                  non-Maia-3 moves)
+<out>/progress/shard-NNNNN.json  checkpoints (delete after success)
+<out>/manifest.json              seed, ranges, per-shard sha256, full
+                                 engine provenance (pinned git refs,
+                                 binary/net sha256, engine id strings)
+<out>/calibration.json           full-replay validation result,
+                                 per-engine stats, mean top1 per 100-elo
+                                 band over the Maia-3 rows
+```
+
+5,000,000 games × ~65 plies (measured on the committed 200-game
+reference) ≈ **327M label rows ≈ 85-90 GB**. Provision **≥ 150 GB** of
+storage. The Maia-3 rows keep the schema of
+`data/selfplay/maia3-100-3200-labels.jsonl`, so the level-conditioned
+pipeline (`tools/build_level_conditioned_moves.py`) consumes the PGN
+without changes.
+
+## Reproducibility contract
+
+- **Elo plan**: `rng = random.Random(seed)`; per game, per side:
+  `choice(engine)` then `randint(engine_lo, engine_hi)` — the
+  single-engine pool (`--engines maia3`) skips the choice, making its
+  stream **byte-identical to the original 2M generator's `plan_elo`**
+  (tested). Game 0 of the maia3-only stream is anchored to the
+  committed reference set `data/selfplay/` (seed 42 — tested).
+- **Move sampling**: Maia-3 moves sample from each game's own
+  substream `random.Random(sha256(f"{seed}:{g}"))` — games are
+  independent, so any subset can be regenerated or resumed exactly.
+  UCI-engine moves are the deterministic `bestmove` of a fixed
+  movetime budget (same seed ⇒ same moves, same binaries).
+- **Reproducibility across backends**: use one backend per set. CPU
+  inference is byte-deterministic across machines; CPU vs GPU can
+  flip a move only in near-tie samples (documented, not a defect).
+
+## Run on a Verda AI instance
+
+Verda gives you bare VMs with `verda` CLI / Terraform / web UI
+(docs: https://docs.verda.com). Flow:
+
+1. **Create the instance** — the picked shape is the **CPU Node,
+   180x vCPU / 720 GB RAM** (instance `CPU.180V.720G`, FIN-03,
+   **$2.160/h** = $0.012/vCPU/h): web UI → *Compute type: CPU
+   instance* → *CPU Node* → **180x**, or CLI:
+
+   ```sh
+   verda vm create --kind cpu \
+       --instance-type CPU.180V.720G \
+       --os ubuntu-24.04 \
+       --os-volume-size 150 \
+       --hostname mixed-5m
+   ```
+
+   **360-vCPU option:** `CPU.360V.1440G` at **$4.320/h** (same
+   $0.012/vCPU/h, 1440 GB RAM). The generation is linearly parallel,
+   so a 360-vCPU box does the 5M in about **half the wall-clock time
+   at the same total price** (2x cores x 2x rate x 2x hourly price).
+   Worker count and core pinning adapt automatically (see step 6).
+
+   (check `verda vm create --help` for the exact CPU flag names on
+   your CLI version; the UI path above is unambiguous)
+
+   Purchase checklist (the compute-configuration screen does not show
+   all of these):
+
+   * **Storage >= 150 GB** — the run writes ~87 GB of shards plus the
+     engine sources/nets (~5 GB) and the venv; confirm the volume on
+     the storage step.
+   * **On-demand, not spot** — the job costs ~$200-240 total; a spot
+     preemption kills the instance *and* its local disk, wiping the
+     `--resume` checkpoints.
+   * **OS: any Ubuntu** (22.04/24.04) — CPU mode needs no CUDA image
+     and no Docker.
+   * **RAM is over-provisioned** (720 GB; the mixed pool keeps ~8
+     engine processes + one ONNX session per worker, ~90 workers ≈
+     720 processes, tens to a few hundred GB depending on the LC0
+     net) — no action needed.
+
+2. **SSH in and set up** (GitHub must be reachable from the instance —
+   Verda instances have normal internet):
+
+   ```sh
+   verda ssh mixed-5m
+   git clone <your-remote>/Unchessed-UCI-Engine.git
+   cd Unchessed-UCI-Engine
+   python3 -m venv venv
+   venv/bin/pip install -r tools/maia3_cloud_selfplay/requirements.txt
+   # build toolchain for fetch-engines (LC0 needs meson+ninja):
+   venv/bin/pip install meson ninja
+   ```
+
+3. **Stage the Maia-3 model** (pinned mirror, 45.7 MB):
+
+   ```sh
+   venv/bin/python tools/selfplay_elo_mixer.py fetch-model --out /tmp/maia3-onnx
+   ```
+
+4. **Fetch the engines** (pinned git refs + build + nets + a one-move
+   self-test per engine that hard-fails the whole fetch if any engine
+   cannot move):
+
+   ```sh
+   venv/bin/python tools/maia3_cloud_selfplay/generate.py \
+       fetch-engines --engines-dir /data/engines
+   ```
+
+   Builds: Stockfish 18 (cmake/make, few minutes), RubiChess (make,
+   few minutes), LC0 (meson, the slow one — ~10-20 min on 90 cores).
+   Nets: Stockfish's NNUE from the official tests host (SF18 is
+   NNUE-only and refuses to run without it), RubiChess's NNUE from
+   `Matthies/NN` (pinned), LC0's T8 net from `sergiovieri/lc0-training`
+   (pinned, sha256-verified). Skip an engine with `--engines ...`.
+
+5. **Pilot first** (≈1-3 min, gives the real rate on this exact box —
+   the tool logs rate + ETA per shard every 30 s):
+
+   ```sh
+   venv/bin/python tools/maia3_cloud_selfplay/generate.py generate \
+       --model /tmp/maia3-onnx/simple-maia3-inference/simple_maia3_inference/maia3_simplified.onnx \
+       --engines-dir /data/engines --out /data/pilot \
+       --games 1000
+   ```
+
+6. **Generate the 5M set** (mixed pool — each worker drives two
+   engines at once, so ~2 active cores/worker; maia3-only runs use
+   one core/worker). `--workers` is optional: the default is
+   `(vCPUs-10)/2` for mixed pools and `vCPUs-10` for maia3-only
+   (180-vCPU: 85/170; **360-vCPU: 175/350**). Each worker is pinned
+   to its dedicated cores (`--cpu-affinity auto`, the default; the
+   parent keeps the last 10 cores, one-thread BLAS/OpenMP pools) —
+   on the 360-vCPU box that is 175 x 2 pinned cores for the mixed
+   pool:
+
+   ```sh
+   venv/bin/python tools/maia3_cloud_selfplay/generate.py generate \
+       --model /tmp/maia3-onnx/simple-maia3-inference/simple_maia3_inference/maia3_simplified.onnx \
+       --engines-dir /data/engines --out /data/mixed-5m \
+       --games 5000000 --seed 20260827
+   # explicit (same as the defaults on this box):
+   #   --workers 175        mixed pool on 360 vCPUs
+   #   --workers 170        maia3-only on 180 vCPUs
+   ```
+
+   The command **validates the whole set when it finishes** (every
+   move replayed legal, headers/labels/engine/quality cross-checked,
+   per-engine stats + Maia-3 conditioning gradient reported to
+   `calibration.json`) and exits non-zero on any hard failure. If the
+   instance dies mid-run, re-run with `--resume` (crash loses at most
+   `--fsync-every` games per shard, default 10).
+
+7. **Ship the data back** (rsync/scp from the instance, or point your
+   training job at the instance volume if your stack supports it).
+
+## Expected duration and cost (measured inputs, honest)
+
+Per-ply inputs, **measured** (not guessed):
+
+  * Maia-3 ONNX forward, CPU, 1 thread: **29.5 ms/ply** on this
+    repo's 2-core sandbox (Xeon, Sapphire Rapids class; the earlier
+    sandbox measured 98 ms/ply — server CPUs vary ~3x, so plan on a
+    30-100 ms range). 2 intra-op threads measured 26.8 ms (1.10x —
+    not worth the core it steals; `--maia-threads 1` stays the
+    default). ORT dynamic int8 quantization of this export produces an
+    invalid graph (measured), so there is no int8 fast path.
+  * UCI engines: 100 ms movetime (Stockfish), 250 ms + NPS cap
+    (RubiChess), LC0 ladder 2-500 ms (mean ≈ 100 ms) + a few ms of
+    UCI round-trip overhead.
+  * Average game length: **65.4 plies** (13,076 labels / 200 games in
+    the committed reference set).
+  * **Correction of the earlier estimate**: the previous README's
+    "~2-4 h / $5-9 for 2M" was wrong by ~3-10x (it under-assumed game
+    length and per-ply time). The numbers below use the measured
+    values.
+./wsl-workspace/README.md
+# WSL workspace — kept separate from the Windows source tree
+
+Everything under this directory came from the WSL build/test environment
+(`~/unchessed-ai/` there), **not** from the Windows repo. It is deliberately
+kept in its own top-level folder rather than merged into the main tree, so
+it's always clear which side of the Windows/WSL split a file came from.
+
+## What's here
+
+- `results/` — SPRT gate logs/PGNs and exhibition-series game data. See
+  `results/README.md` for the full layout and how to weigh SPRT data (real
+  statistical evidence) vs exhibition PGNs (anecdotal, N=1-3 per matchup).
+- `scripts/` — the exhibition game-runner scripts as they exist on the WSL
+  side (largely mirrors `scripts/exhibition/` in the Windows repo root).
+- `logs/` — misc run logs from the WSL side.
+
+## What's deliberately NOT here
+
+- The WSL build directory (`~/unchessed-kingsafety-src`) is a synced mirror
+  of this repo's `unchessed-core`/`unchessed-adapter`/`unchessed-reviewer`
+  source — not duplicated here since it'd just be a stale copy of what's
+  already at the repo root. Any script unique to that directory (not already
+  in `scripts/`) has been copied into `scripts/sprt-history/` instead.
+- The NNUE/Lichess training data corpora (~140GB), Python venvs (~1GB), and
+  third-party engine binaries (Stockfish, RubiChess, cutechess-cli) used on
+  the WSL side are not tracked here — too large for git and not source
+  material; they're downloaded/built locally as needed.
+./wsl-workspace/results/README.md
+# Unchessed AI results — WSL data layout
+
+All data below is from **unchessed-adapter**, tested with `Adaptive=false` in
+SPRT/exhibition contexts (which disables persona blending, making it play at
+its full raw eval/search strength — not the same as `unchessed-reviewer`).
+**unchessed-reviewer** (the dedicated full-strength analysis binary) has not
+been separately benchmarked in any of this data; its results folder is
+present but currently empty.
+
+## Layout
+
+```
+results/
+  adapter/
+    sprt_gates/            <- every SPRT gate's .log (full game-by-game
+                               transcript + final Elo/LLR verdict) and .pgn
+                               (every game played), one pair per technique
+                               tested this project. Filename indicates what
+                               was being isolated, e.g.
+                               sprt_tier2.log/.pgn = RookOnKingRing +
+                               passed-pawn king-distance + pin-aware SEE
+                               vs the pre-tier2 baseline.
+    exhibitions/            <- tenmin_*_series/ = 3-game, 10-min-per-side
+                               matches vs RubiChess (full-strength unless
+                               named "matched_level", which used a
+                               calibrated RubiChess LimitNps to play at
+                               ~50% vs a fixed-strength adapter). Each
+                               game has its own subfolder with the full
+                               UCI transcript (adapter_log.txt /
+                               rubichess_log.txt), move list, and PGN.
+    calibration/            <- ladders run to find a RubiChess LimitNps
+                               value matching a target adapter strength.
+    archive_early_exploration/
+                            <- earlier-session exploratory analysis
+                               (elo ladders/scaling/SPSA dry runs) largely
+                               superseded by the SPRT-gate discipline used
+                               for everything since — kept for reference,
+                               not actively maintained.
+  reviewer/                 <- empty; no dedicated reviewer benchmarks yet.
+
+data/maia-data/
+  l20*.pgn(.zst)            <- raw Lichess human-game corpus, source data
+                               for move-prior/opponent-modeling training
+                               AND the planned future NNUE training run.
+  nnue/                     <- ~11GB, ~100M labeled positions from the
+                               2026-07-21 labeling run — the NNUE training
+                               data, ready but training itself deliberately
+                               deferred (finish classical eval work first,
+                               per project decision).
+  sprt_book.pgn             <- the opening book used by every SPRT gate.
+  unchessed-maia*.bin       <- trained move-prior policy net(s) used by the
+                               adapter's persona/opponent-modeling system.
+```
+
+## Binaries
+
+- `~/unchessed-kingsafety-src/` — the active WSL build/test directory,
+  kept in sync with the Windows repo's `unchessed-core`/`unchessed-adapter`/
+  `unchessed-reviewer` crates. Name is historical (dates to an old king-safety
+  attempt) but this is the current, live build dir — don't be misled by the
+  name.
+- Windows repo root: `unchessed-adapter.exe` / `unchessed-reviewer.exe` —
+  the deployed binaries, always kept in sync after each SPRT-gate resolution.
+  `unchessed-adapter.exe` is the persona/adaptive engine; `unchessed-reviewer.exe`
+  is the full-strength, no-persona analysis engine. Both share the same
+  underlying `unchessed-core` eval/search — they differ only in which UCI
+  options and default behavior (Adaptive mode, opponent modeling, etc.) each
+  binary's `main.rs` exposes.
+
+## For GLM research
+
+If feeding this to an external tool for analysis: the `sprt_gates/` logs are
+the highest-signal data (each documents a controlled A/B test with a real
+statistical verdict). The `exhibitions/` PGNs are real games but are N=1-3
+per configuration — anecdotal, not statistically powered; treat them as
+qualitative color, not evidence, the same way this project's own memory
+does.
+=== build script ===
+#!/usr/bin/env bash
+# One-shot build, test, and smoke for the Unchessed Rust workspace.
+#
+# The sandbox this project develops in has no Rust toolchain and cannot
+# reach the toolchain hosts (see "When there is no Rust toolchain" in
+# docs/dev-environment.md). On any machine that has one, this script is the
+# entire job:
+#
+#   bash scripts/build-and-test.sh            # debug build + test + smoke
+#   bash scripts/build-and-test.sh --release  # additionally: release build
+#                                             # (opt-level 3 + LTO, slow)
+#
+# Toolchain: rustc >= 1.70 (the code uses std::sync::OnceLock; any recent
+# stable is fine). To use a toolchain provided at a non-default location,
+# point TOOLCHAIN_DIR at the toolchain root (the directory containing bin/):
+#
+#   TOOLCHAIN_DIR=/opt/rust-1.85.0-x86_64-unknown-linux-gnu \
+#     bash scripts/build-and-test.sh
+#
+# A standard rustup layout (~/.cargo/bin + ~/.rustup) works as-is once
+# ~/.cargo/bin is on PATH.
+
+# Disk budget (measured 2026-08-26 on a 21 GB volume with 19 GB free):
+# the workspace is small (13.6k lines of core, ZERO external crate
+# dependencies — every member is std-only plus path deps), so
+#   target/debug  ~200-400 MB,  target (test profile, opt-level 2) ~300-500 MB,
+#   target/release (opt 3 + LTO + 1 codegen unit) ~0.5-1 GB.
+# Space has never been the blocker; the toolchain is.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+# Optional provided toolchain: TOOLCHAIN_DIR is the toolchain root
+# (the directory containing bin/cargo). Plain extracted
+# rust-1.7x+-x86_64-unknown-linux-gnu trees work directly; rustup shims work
+# too if their ~/.rustup is visible from the default environment.
+if [ -n "${TOOLCHAIN_DIR:-}" ]; then
+  test -x "$TOOLCHAIN_DIR/bin/cargo" || {
+    echo "TOOLCHAIN_DIR=$TOOLCHAIN_DIR has no executable bin/cargo" >&2
+    exit 3
+  }
+  export PATH="$TOOLCHAIN_DIR/bin:$PATH"
+fi
+
+if ! command -v cargo >/dev/null 2>&1; then
+  echo "cargo not found on PATH. Nothing else in this script can proceed;" >&2
+  echo "see docs/dev-environment.md for the egress audit of why the sandbox" >&2
+  echo "cannot fetch a toolchain itself." >&2
+  exit 3
+fi
+
+# Guard against a partial checkout before spending minutes on a build.
+test -f Cargo.lock
+for m in unchessed-core unchessed-adapter unchessed-reviewer unchessed-datagen; do
+  test -d "$m/src" || { echo "missing member $m/src" >&2; exit 2; }
+done
+
+echo "== cargo build --workspace (debug) =="
+cargo build --workspace
+
+echo "== cargo test --workspace (test profile: opt-level 2) =="
+# Runs every unit test, including the perft correctness gate, the
+# SearchParams/EvalParams defaults, and budget_speeds_up_as_clock_drains.
+# The offline toolchain shipped via `arena-rust-toolchain` on PyPI has no
+# rustdoc, and this codebase has no doctests, so the doc-test phase is
+# skipped (nothing is lost) when rustdoc is absent.
+if command -v rustdoc >/dev/null 2>&1; then
+  cargo test --workspace
+else
+  echo "(rustdoc not in this toolchain; no doctests exist, running --lib --bins)"
+  cargo test --workspace --lib --bins
+fi
+
+ADAPTER=target/debug/unchessed-adapter
+test -x "$ADAPTER"
+
+echo "== UCI smoke: startpos depth 5 =="
+out=$(printf 'uci\nisready\nposition startpos\ngo depth 5\nquit\n' | "$ADAPTER")
+echo "$out" | grep -q "^bestmove" || { echo "no bestmove from startpos search" >&2; exit 1; }
+echo "$out" | grep "^bestmove" | head -1
+
+echo "== UCI smoke: matetrack back-rank mate (must find Ra8#) =="
+# First position of benchmarks/matetrack.epd; the unique mate is a1a8.
+out=$(printf 'uci\nsetoption name Adaptive value false\nposition fen 6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1\ngo depth 6\nquit\n' | "$ADAPTER")
+echo "$out" | grep "^bestmove" | head -1
+echo "$out" | grep -q "^bestmove a1a8" || { echo "expected bestmove a1a8 (Ra8#)" >&2; exit 1; }
+
+if [ "${1:-}" = "--release" ]; then
+  echo "== cargo build --workspace --release (opt 3 + LTO; slow) =="
+  cargo build --workspace --release
+fi
+
+echo "== disk =="
+df -h . | tail -1
+echo "OK: build + tests + smoke passed"
+=== Rust source files ===
+unchessed-adapter/Cargo.toml
+unchessed-adapter/src/main.rs
+unchessed-core/Cargo.toml
+unchessed-core/src/adapt.rs
+unchessed-core/src/aegis_v4_runtime.rs
+unchessed-core/src/board.rs
+unchessed-core/src/book.rs
+unchessed-core/src/eval.rs
+unchessed-core/src/fen.rs
+unchessed-core/src/lib.rs
+unchessed-core/src/movegen.rs
+unchessed-core/src/nnue.rs
+unchessed-core/src/perft.rs
+unchessed-core/src/policy.rs
+unchessed-core/src/polyglot_keys.rs
+unchessed-core/src/san.rs
+unchessed-core/src/search.rs
+unchessed-core/src/see.rs
+unchessed-core/src/tt.rs
+unchessed-core/src/uci.rs
+unchessed-core/src/unarchitectured_v1.rs
+unchessed-datagen/Cargo.toml
+unchessed-datagen/src/main.rs
+unchessed-reviewer/Cargo.toml
+unchessed-reviewer/src/main.rs
+=== test attributes/functions ===
+unchessed-core/src/adapt.rs:922:    assert!(!lines.is_empty());
+unchessed-core/src/adapt.rs:1182:mod tests {
+unchessed-core/src/adapt.rs:1185:    #[test]
+unchessed-core/src/adapt.rs:1191:        assert!(m.estimate() < 1000, "estimate {}", m.estimate());
+unchessed-core/src/adapt.rs:1192:        assert!(m.confidence() < 300);
+unchessed-core/src/adapt.rs:1193:        assert!(m.last_was_blunder());
+unchessed-core/src/adapt.rs:1196:    #[test]
+unchessed-core/src/adapt.rs:1202:        assert!(m.estimate() > 2300, "estimate {}", m.estimate());
+unchessed-core/src/adapt.rs:1205:    #[test]
+unchessed-core/src/adapt.rs:1209:        assert!(m.is_computer);
+unchessed-core/src/adapt.rs:1211:        assert!(log.contains("Stockfish"));
+unchessed-core/src/adapt.rs:1214:    #[test]
+unchessed-core/src/adapt.rs:1218:        assert!(m.estimate() < 2300, "human declared elo must not dominate");
+unchessed-core/src/adapt.rs:1221:    #[test]
+unchessed-core/src/adapt.rs:1238:    #[test]
+unchessed-core/src/adapt.rs:1245:        assert!(m.estimate() >= 2500, "estimate {}", m.estimate());
+unchessed-core/src/adapt.rs:1246:        assert!(m.engine_suspect());
+unchessed-core/src/adapt.rs:1253:        assert!(
+unchessed-core/src/adapt.rs:1264:        assert!(!h.engine_suspect(), "estimate {}", h.estimate());
+unchessed-core/src/adapt.rs:1267:    #[test]
+unchessed-core/src/adapt.rs:1276:        assert!(
+unchessed-core/src/adapt.rs:1285:        assert!(m.engine_suspect());
+unchessed-core/src/adapt.rs:1290:    #[test]
+unchessed-core/src/adapt.rs:1293:        assert!(!m.experimental_detect);
+unchessed-core/src/adapt.rs:1295:        assert!(m.engine_suspect());
+unchessed-core/src/adapt.rs:1297:        assert!(!m.engine_suspect());
+unchessed-core/src/adapt.rs:1300:    #[test]
+unchessed-core/src/adapt.rs:1305:        assert!(m.is_computer);
+unchessed-core/src/adapt.rs:1306:        assert!(
+unchessed-core/src/adapt.rs:1315:    #[test]
+unchessed-core/src/adapt.rs:1319:        assert!(m.engine_suspect());
+unchessed-core/src/adapt.rs:1324:    #[test]
+unchessed-core/src/adapt.rs:1332:        assert!(
+unchessed-core/src/adapt.rs:1339:    #[test]
+unchessed-core/src/adapt.rs:1353:    #[test]
+unchessed-core/src/adapt.rs:1356:        assert!(draw_score_for(&cfg, Mode::Clinch) < 0);
+unchessed-core/src/adapt.rs:1357:        assert!(draw_score_for(&cfg, Mode::Match) < 0);
+unchessed-core/src/adapt.rs:1361:    #[test]
+unchessed-core/src/adapt.rs:1405:    #[test]
+unchessed-core/src/adapt.rs:1431:        assert!(
+unchessed-core/src/adapt.rs:1440:    #[test]
+unchessed-core/src/adapt.rs:1455:    #[test]
+unchessed-core/src/adapt.rs:1461:        assert!(m.last_was_blunder());
+unchessed-core/src/adapt.rs:1468:    #[test]
+unchessed-core/src/aegis_v4_runtime.rs:92:    debug_assert!(rows.len() >= 3 * row_stride + weights.len());
+unchessed-core/src/aegis_v4_runtime.rs:105:    debug_assert!(rows.len() >= 3 * row_stride + weights_0.len());
+unchessed-core/src/aegis_v4_runtime.rs:122:    debug_assert!(rows.len() >= 3 * row_stride + weights_0.len());
+unchessed-core/src/aegis_v4_runtime.rs:1662:    debug_assert!(head_dim % 8 == 0, "inlined attention expects head_dim % 8 == 0");
+unchessed-core/src/aegis_v4_runtime.rs:2644:mod tests {
+unchessed-core/src/aegis_v4_runtime.rs:2732:    #[test]
+unchessed-core/src/aegis_v4_runtime.rs:2757:    #[test]
+unchessed-core/src/aegis_v4_runtime.rs:2768:            assert!(
+unchessed-core/src/aegis_v4_runtime.rs:2775:    #[test]
+unchessed-core/src/aegis_v4_runtime.rs:2784:        assert!(accepted);
+unchessed-core/src/aegis_v4_runtime.rs:2785:        assert!(
+unchessed-core/src/aegis_v4_runtime.rs:2796:            assert!(
+unchessed-core/src/aegis_v4_runtime.rs:2803:        assert!(hint.elapsed < std::time::Duration::from_secs(1));
+unchessed-core/src/aegis_v4_runtime.rs:2807:        assert!(worker.latest_exact(&wrong_key).is_none());
+unchessed-core/src/aegis_v4_runtime.rs:2810:    #[test]
+unchessed-core/src/aegis_v4_runtime.rs:2814:        assert!(validate_input(&input).is_err());
+unchessed-core/src/aegis_v4_runtime.rs:2817:        assert!(validate_input(&input).is_err());
+unchessed-core/src/aegis_v4_runtime.rs:2820:    #[test]
+unchessed-core/src/aegis_v4_runtime.rs:2825:        assert!(weights.validate_schema().is_err());
+unchessed-core/src/aegis_v4_runtime.rs:2828:    #[test]
+unchessed-core/src/aegis_v4_runtime.rs:2841:            assert!(
+unchessed-core/src/aegis_v4_runtime.rs:2853:            assert!(
+unchessed-core/src/aegis_v4_runtime.rs:2872:            assert!(
+unchessed-core/src/aegis_v4_runtime.rs:2890:    #[test]
+unchessed-core/src/aegis_v4_runtime.rs:2933:            assert!(
+unchessed-core/src/aegis_v4_runtime.rs:2945:            assert!(
+unchessed-core/src/aegis_v4_runtime.rs:2960:    #[test]
+unchessed-core/src/aegis_v4_runtime.rs:2971:            assert!(output.logits.iter().all(|value| value.is_finite()));
+unchessed-core/src/aegis_v4_runtime.rs:2972:            assert!(output.regret_mean.iter().all(|value| value.is_finite()));
+unchessed-core/src/aegis_v4_runtime.rs:2973:            assert!(output.evidence.iter().all(|value| value.is_finite()));
+unchessed-core/src/aegis_v4_runtime.rs:2974:            assert!(output.representation[..exit.width()]
+unchessed-core/src/aegis_v4_runtime.rs:2977:            assert!(output.representation[exit.width()..]
+unchessed-core/src/aegis_v4_runtime.rs:2983:    #[test]
+unchessed-core/src/aegis_v4_runtime.rs:3026:                assert!(
+unchessed-core/src/aegis_v4_runtime.rs:3042:    #[test]
+unchessed-core/src/aegis_v4_runtime.rs:3088:            assert!(
+unchessed-core/src/aegis_v4_runtime.rs:3099:            assert!(
+unchessed-core/src/aegis_v4_runtime.rs:3113:            assert!(
+unchessed-core/src/aegis_v4_runtime.rs:3174:            assert!(
+unchessed-core/src/aegis_v4_runtime.rs:3180:            assert!(
+unchessed-core/src/aegis_v4_runtime.rs:3188:            assert!(
+unchessed-core/src/aegis_v4_runtime.rs:3218:    #[test]
+unchessed-core/src/aegis_v4_runtime.rs:3228:    #[test]
+unchessed-core/src/aegis_v4_runtime.rs:3238:        assert!(
+unchessed-core/src/aegis_v4_runtime.rs:3246:    #[test]
+unchessed-core/src/aegis_v4_runtime.rs:3265:    #[test]
+unchessed-core/src/aegis_v4_runtime.rs:3309:    #[test]
+unchessed-core/src/aegis_v4_runtime.rs:3343:    #[test]
+unchessed-core/src/aegis_v4_runtime.rs:3467:    #[test]
+unchessed-core/src/aegis_v4_runtime.rs:3548:            assert!(!baseline_lines.is_empty() && !hinted_lines.is_empty());
+unchessed-core/src/aegis_v4_runtime.rs:3581:    #[test]
+unchessed-core/src/board.rs:363:                    debug_assert!(cc == them);
+unchessed-core/src/book.rs:331:mod tests {
+unchessed-core/src/book.rs:336:    #[test]
+unchessed-core/src/book.rs:341:        assert!(!entries.is_empty());
+unchessed-core/src/book.rs:349:    #[test]
+unchessed-core/src/book.rs:366:    #[test]
+unchessed-core/src/eval.rs:772:mod tests {
+unchessed-core/src/eval.rs:776:    #[test]
+unchessed-core/src/eval.rs:780:        assert!(e.abs() < 60, "startpos eval {}", e);
+unchessed-core/src/eval.rs:783:    #[test]
+unchessed-core/src/eval.rs:787:        assert!(evaluate(&pos, &EvalParams::default()) > 700);
+unchessed-core/src/eval.rs:790:        assert!(evaluate(&pos, &EvalParams::default()) < -700);
+unchessed-core/src/eval.rs:793:    #[test]
+unchessed-core/src/eval.rs:810:    #[test]
+unchessed-core/src/eval.rs:822:        assert!(
+unchessed-core/src/eval.rs:830:    #[test]
+unchessed-core/src/eval.rs:844:    #[test]
+unchessed-core/src/eval.rs:852:        assert!(
+unchessed-core/src/eval.rs:860:    #[test]
+unchessed-core/src/eval.rs:876:    #[test]
+unchessed-core/src/eval.rs:884:        assert!(
+unchessed-core/src/eval.rs:892:    #[test]
+unchessed-core/src/eval.rs:900:        assert!(
+unchessed-core/src/eval.rs:908:    #[test]
+unchessed-core/src/eval.rs:927:    #[test]
+unchessed-core/src/eval.rs:939:        assert!(
+unchessed-core/src/fen.rs:229:mod tests {
+unchessed-core/src/fen.rs:232:    #[test]
+unchessed-core/src/movegen.rs:756:mod tests {
+unchessed-core/src/movegen.rs:766:    #[test]
+unchessed-core/src/movegen.rs:786:    #[test]
+unchessed-core/src/movegen.rs:794:        assert!(rook_entries >= 90_000 && rook_entries <= 110_000, "rook table size {rook_entries} out of expected range");
+unchessed-core/src/movegen.rs:795:        assert!(bishop_entries >= 4_000 && bishop_entries <= 6_000, "bishop table size {bishop_entries} out of expected range");
+unchessed-core/src/nnue.rs:695:mod tests {
+unchessed-core/src/nnue.rs:715:    #[test]
+unchessed-core/src/nnue.rs:758:    #[test]
+unchessed-core/src/nnue.rs:768:            assert!(bucket >= 0, "file e-h square {sq} must have a bucket");
+unchessed-core/src/nnue.rs:770:            assert!(bucket < N_BUCKETS, "bucket {bucket} out of range at {sq}");
+unchessed-core/src/nnue.rs:771:            assert!(!seen[bucket], "bucket {bucket} used twice, at square {sq}");
+unchessed-core/src/nnue.rs:776:        assert!(seen.iter().all(|&b| b), "some bucket is never produced");
+unchessed-core/src/nnue.rs:785:    #[test]
+unchessed-core/src/nnue.rs:798:    #[test]
+unchessed-core/src/nnue.rs:854:        assert!(
+unchessed-core/src/nnue.rs:858:        assert!(
+unchessed-core/src/nnue.rs:955:    #[test]
+unchessed-core/src/nnue.rs:1005:    #[test]
+unchessed-core/src/nnue.rs:1011:        assert!(s0.abs() <= EVAL_CLAMP);
+unchessed-core/src/nnue.rs:1027:    #[test]
+unchessed-core/src/nnue.rs:1047:    #[test]
+unchessed-core/src/nnue.rs:1154:    #[test]
+unchessed-core/src/nnue.rs:1162:            assert!((e1 - e2).abs() <= 1, "mirror mismatch for {}: {} vs {}", f, e1, e2);
+unchessed-core/src/nnue.rs:1166:    #[test]
+unchessed-core/src/nnue.rs:1174:            assert!((e1 - e2).abs() <= 1, "mirror mismatch for {}: {} vs {}", f, e1, e2);
+unchessed-core/src/nnue.rs:1178:    #[test]
+unchessed-core/src/nnue.rs:1186:            assert!((e1 - e2).abs() <= 1, "mirror mismatch for {}: {} vs {}", f, e1, e2);
+unchessed-core/src/nnue.rs:1190:    #[test]
+unchessed-core/src/nnue.rs:1204:            assert!(a.abs() <= EVAL_CLAMP && b.abs() <= EVAL_CLAMP);
+unchessed-core/src/nnue.rs:1208:    #[test]
+unchessed-core/src/nnue.rs:1210:        assert!(Nnue::from_bytes(b"NOTANNUE").is_err());
+unchessed-core/src/nnue.rs:1211:        assert!(Nnue::from_bytes(b"UNCHNNUE").is_err()); // truncated header
+unchessed-core/src/nnue.rs:1218:        assert!(Nnue::from_bytes(&buf).is_err());
+unchessed-core/src/nnue.rs:1226:        assert!(Nnue::from_bytes(&buf).is_err());
+unchessed-core/src/nnue.rs:1233:        assert!(Nnue::from_bytes(&buf).is_err());
+unchessed-core/src/nnue.rs:1243:                assert!(
+unchessed-core/src/nnue.rs:1278:    #[test]
+unchessed-core/src/nnue.rs:1330:    #[test]
+unchessed-core/src/perft.rs:37:mod tests {
+unchessed-core/src/perft.rs:46:    #[test]
+unchessed-core/src/perft.rs:55:    #[test]
+unchessed-core/src/perft.rs:64:    #[test]
+unchessed-core/src/perft.rs:74:    #[test]
+unchessed-core/src/perft.rs:83:    #[test]
+unchessed-core/src/perft.rs:92:    #[test]
+unchessed-core/src/perft.rs:101:    #[test]
+unchessed-core/src/san.rs:151:mod tests {
+unchessed-core/src/san.rs:164:    #[test]
+unchessed-core/src/san.rs:175:    #[test]
+unchessed-core/src/san.rs:186:    #[test]
+unchessed-core/src/san.rs:197:    #[test]
+unchessed-core/src/san.rs:205:    #[test]
+unchessed-core/src/san.rs:211:        assert!(parse_san(&pos, "Ra3").is_none());
+unchessed-core/src/search.rs:1207:mod tests {
+unchessed-core/src/search.rs:1221:    #[test]
+unchessed-core/src/search.rs:1272:                assert!(
+unchessed-core/src/search.rs:1282:    #[test]
+unchessed-core/src/search.rs:1297:        assert!(
+unchessed-core/src/search.rs:1301:        assert!(q2 > s2, "winning the queen must improve the score");
+unchessed-core/src/search.rs:1333:    #[test]
+unchessed-core/src/search.rs:1346:            assert!(searcher.abort, "limit {limit} did not abort the search");
+unchessed-core/src/search.rs:1356:    #[test]
+unchessed-core/src/search.rs:1379:        assert!(
+unchessed-core/src/search.rs:1408:    #[test]
+unchessed-core/src/search.rs:1413:        assert!(is_mate_score(sc), "score {}", sc);
+unchessed-core/src/search.rs:1439:    #[test]
+unchessed-core/src/search.rs:1475:            assert!(is_mate_score(sc), "{id}: score {sc} is not a mate score");
+unchessed-core/src/search.rs:1480:    #[test]
+unchessed-core/src/search.rs:1511:        assert!(is_mate_score(lines[0].score));
+unchessed-core/src/search.rs:1514:    #[test]
+unchessed-core/src/search.rs:1544:        assert!(is_mate_score(lines[0].score));
+unchessed-core/src/search.rs:1547:    #[test]
+unchessed-core/src/search.rs:1594:    #[test]
+unchessed-core/src/search.rs:1618:        assert!(lines.is_empty());
+unchessed-core/src/search.rs:1621:    #[test]
+unchessed-core/src/search.rs:1648:        assert!(started.elapsed() < std::time::Duration::from_secs(1));
+unchessed-core/src/search.rs:1655:    #[test]
+unchessed-core/src/search.rs:1685:        assert!(started.elapsed() < std::time::Duration::from_secs(1));
+unchessed-core/src/search.rs:1691:    #[test]
+unchessed-core/src/search.rs:1721:        assert!(started.elapsed() < std::time::Duration::from_secs(1));
+unchessed-core/src/search.rs:1727:    #[test]
+unchessed-core/src/search.rs:1757:        assert!(started.elapsed() < std::time::Duration::from_secs(1));
+unchessed-core/src/search.rs:1763:    #[test]
+unchessed-core/src/search.rs:1793:        assert!(is_mate_score(lines[0].score));
+unchessed-core/src/search.rs:1834:    #[test]
+unchessed-core/src/search.rs:1888:        assert!(is_mate_score(lines[0].score));
+unchessed-core/src/search.rs:1905:    #[test]
+unchessed-core/src/search.rs:1971:        assert!(
+unchessed-core/src/search.rs:1977:        assert!(!is_mate_score(lines[0].score));
+unchessed-core/src/search.rs:1979:        assert!(
+unchessed-core/src/search.rs:1986:    #[test]
+unchessed-core/src/search.rs:1991:        assert!(is_mate_score(sc));
+unchessed-core/src/search.rs:1995:    #[test]
+unchessed-core/src/search.rs:2002:    #[test]
+unchessed-core/src/search.rs:2004:        assert!(Limits::movetime(500).is_game_mode());
+unchessed-core/src/search.rs:2005:        assert!(
+unchessed-core/src/search.rs:2009:        assert!(Limits {
+unchessed-core/src/search.rs:2015:        assert!(
+unchessed-core/src/search.rs:2023:        assert!(!Limits::default().is_game_mode());
+unchessed-core/src/search.rs:2026:    #[test]
+unchessed-core/src/search.rs:2042:        assert!(
+unchessed-core/src/search.rs:2051:        assert!((low as f64) / 5_000.0 < (full as f64) / 180_000.0 * 0.8);
+unchessed-core/src/search.rs:2053:        assert!(panic <= 40, "panic soft budget {}", panic);
+unchessed-core/src/search.rs:2061:        assert!(hard.unwrap() <= 300 - 60 + 5, "hard {}", hard.unwrap());
+unchessed-core/src/search.rs:2064:    #[test]
+unchessed-core/src/search.rs:2092:        assert!(
+unchessed-core/src/search.rs:2099:    #[test]
+unchessed-core/src/search.rs:2123:            assert!(w[0].score >= w[1].score);
+unchessed-core/src/see.rs:220:mod tests {
+unchessed-core/src/see.rs:244:    #[test]
+unchessed-core/src/see.rs:274:    #[test]
+unchessed-core/src/see.rs:282:    #[test]
+unchessed-core/src/see.rs:291:    #[test]
+unchessed-core/src/see.rs:305:    #[test]
+unchessed-core/src/tt.rs:197:mod tests {
+unchessed-core/src/tt.rs:206:    #[test]
+unchessed-core/src/tt.rs:226:    #[test]
+unchessed-core/src/tt.rs:230:        assert!(tt.hashfull() > 0, "a depth-0 entry is still an entry");
+unchessed-core/src/tt.rs:234:    #[test]
+unchessed-core/src/tt.rs:241:        assert!(
+unchessed-core/src/tt.rs:248:    #[test]
+unchessed-core/src/tt.rs:254:        assert!(tt.hashfull() <= 1000);
+unchessed-core/src/tt.rs:259:    #[test]
+unchessed-core/src/tt.rs:265:        assert!(tt.probe(hash).is_none(), "prefetch must not create entries");
+unchessed-core/src/uci.rs:1922:mod tests {
+unchessed-core/src/uci.rs:1930:    #[test]
+unchessed-core/src/uci.rs:1933:        assert!(n >= 1, "must always yield a usable thread count");
+unchessed-core/src/uci.rs:1934:        assert!(n <= 32, "must stay within the documented cap");
+unchessed-core/src/uci.rs:1943:                assert!(n > 1, "multi-core host must default above a single thread");
+unchessed-core/src/uci.rs:1951:    #[test]
+unchessed-core/src/uci.rs:1954:        assert!(!o.persona_smooth);
+unchessed-core/src/uci.rs:1955:        assert!(!o.engine_detect_v2);
+unchessed-core/src/uci.rs:1956:        assert!(!o.unarchitectured_hint);
+unchessed-core/src/uci.rs:1957:        assert!(o.adaptive);
+unchessed-core/src/uci.rs:1960:    #[test]
+unchessed-core/src/uci.rs:1963:        assert!(!options.adapter_telemetry);
+unchessed-core/src/uci.rs:1972:        assert!(!Options::default().persona_smooth);
+unchessed-core/src/uci.rs:1973:        assert!(!Options::default().engine_detect_v2);
+unchessed-core/src/uci.rs:1976:    #[test]
+unchessed-core/src/uci.rs:1999:        assert!(opt.adapter_telemetry);
+unchessed-core/src/uci.rs:2012:        assert!(!opt.adapter_telemetry);
+unchessed-core/src/uci.rs:2015:    #[test]
+unchessed-core/src/uci.rs:2048:    #[test]
+unchessed-core/src/uci.rs:2076:    #[test]
+unchessed-core/src/uci.rs:2079:        assert!(!options.unarchitectured_hint);
+unchessed-core/src/uci.rs:2080:        assert!(!unarchitectured_wait_allowed(
+unchessed-core/src/uci.rs:2089:        assert!(unarchitectured_wait_allowed(
+unchessed-core/src/uci.rs:2114:        assert!(skipped.hints.is_empty());
+unchessed-core/src/uci.rs:2118:    #[test]
+unchessed-core/src/uci.rs:2143:            assert!(std::time::Instant::now() < deadline, "candidate timed out");
+unchessed-core/src/uci.rs:2157:        assert!(prepared
+unchessed-core/src/uci.rs:2192:            assert!(
+unchessed-core/src/uci.rs:2199:    #[test]
+unchessed-core/src/uci.rs:2253:            assert!(held, "a 4/192 result must be cacheable under the 4/192 key");
+unchessed-core/src/uci.rs:2258:            assert!(
+unchessed-core/src/uci.rs:2278:    #[test]
+unchessed-core/src/uci.rs:2311:    #[test]
+unchessed-core/src/uci.rs:2319:    #[test]
+unchessed-core/src/uci.rs:2330:    #[test]
+unchessed-core/src/unarchitectured_v1.rs:223:mod tests {
+unchessed-core/src/unarchitectured_v1.rs:297:    #[test]
+unchessed-core/src/unarchitectured_v1.rs:304:        assert!(weights.is_quantized());
+unchessed-core/src/unarchitectured_v1.rs:308:    #[test]
+unchessed-core/src/unarchitectured_v1.rs:312:        assert!(TensorPackage::parse(&bytes).is_err());
+unchessed-core/src/unarchitectured_v1.rs:315:    #[test]
+unchessed-core/src/unarchitectured_v1.rs:319:        assert!(TensorPackage::parse(&bytes).is_err());
+unchessed-core/src/unarchitectured_v1.rs:320:        assert!(TensorPackage::parse(&bytes[..20]).is_err());
+unchessed-datagen/src/main.rs:439:    assert!(
+unchessed-datagen/src/main.rs:591:    assert!(n_workers > 0, "need at least 1 worker");
+unchessed-datagen/src/main.rs:1059:    assert!(min_ply >= 2 && max_ply >= min_ply, "need 2 <= min_ply <= max_ply");

@@ -1,0 +1,9 @@
+{
+  "engine": "/home/ubuntu/unchessed_audit/repo/target/debug/unchessed-adapter",
+  "cases": 122,
+  "valid_position_cases": 116,
+  "legal_bestmove_pass": 115,
+  "legal_bestmove_fail": 0,
+  "invalid_fen_cases": 6,
+  "invalid_fen_nonzero_exit": 0
+}

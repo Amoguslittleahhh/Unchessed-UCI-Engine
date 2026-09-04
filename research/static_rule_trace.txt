@@ -1,0 +1,1795 @@
+=== FEN/parser ===
+     1	//! FEN parsing and serialization.
+     2	
+     3	use crate::board::*;
+     4	use crate::movegen::attacked;
+     5	
+     6	pub const START_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+     7	
+     8	pub fn startpos() -> Position {
+     9	    parse(START_FEN).expect("startpos FEN must parse")
+    10	}
+    11	
+    12	pub fn parse(fen: &str) -> Result<Position, String> {
+    13	    let mut pos = Position::empty();
+    14	    let mut parts = fen.split_whitespace();
+    15	
+    16	    let placement = parts.next().ok_or("empty FEN")?;
+    17	    let mut rank: i32 = 7;
+    18	    let mut file: i32 = 0;
+    19	    for ch in placement.chars() {
+    20	        match ch {
+    21	            '/' => {
+    22	                if file != 8 {
+    23	                    return Err(format!("rank {} has {} files, not 8", rank, file));
+    24	                }
+    25	                rank -= 1;
+    26	                file = 0;
+    27	                if rank < 0 {
+    28	                    return Err("too many ranks".into());
+    29	                }
+    30	            }
+    31	            '1'..='8' => {
+    32	                file += ch as i32 - '0' as i32;
+    33	                if file > 8 {
+    34	                    return Err(format!("rank overflow at '{}'", ch));
+    35	                }
+    36	            }
+    37	            _ => {
+    38	                if file > 7 {
+    39	                    return Err(format!("rank overflow at '{}'", ch));
+    40	                }
+    41	                let color = if ch.is_ascii_uppercase() {
+    42	                    Color::White
+    43	                } else {
+    44	                    Color::Black
+    45	                };
+    46	                let piece = match ch.to_ascii_lowercase() {
+    47	                    'p' => PAWN,
+    48	                    'n' => KNIGHT,
+    49	                    'b' => BISHOP,
+    50	                    'r' => ROOK,
+    51	                    'q' => QUEEN,
+    52	                    'k' => KING,
+    53	                    _ => return Err(format!("bad piece '{}'", ch)),
+    54	                };
+    55	                let s = sq(file as u8, rank as u8);
+    56	                let b = 1u64 << s;
+    57	                pos.bb[color.idx()][piece] |= b;
+    58	                pos.occ_side[color.idx()] |= b;
+    59	                pos.occ |= b;
+    60	                pos.board[s as usize] = (color.idx() * 6 + piece) as u8;
+    61	                file += 1;
+    62	            }
+    63	        }
+    64	    }
+    65	    if file != 8 {
+    66	        return Err(format!("rank {} has {} files, not 8", rank, file));
+    67	    }
+    68	    if rank != 0 {
+    69	        return Err(format!("{} ranks given, not 8", 8 - rank));
+    70	    }
+    71	
+    72	    pos.side = match parts.next().unwrap_or("w") {
+    73	        "w" => Color::White,
+    74	        "b" => Color::Black,
+    75	        other => return Err(format!("bad side '{}'", other)),
+    76	    };
+    77	
+    78	    pos.castling = 0;
+    79	    if let Some(c) = parts.next() {
+    80	        if c != "-" {
+    81	            for ch in c.chars() {
+    82	                pos.castling |= match ch {
+    83	                    'K' => WK,
+    84	                    'Q' => WQ,
+    85	                    'k' => BK,
+    86	                    'q' => BQ,
+    87	                    _ => return Err(format!("bad castling '{}'", ch)),
+    88	                };
+    89	            }
+    90	        }
+    91	    }
+    92	    // A castling right is meaningless (and downstream code assumes it's
+    93	    // backed by a real king+rook pair on their home squares -- movegen
+    94	    // builds the castling move purely from the rights bit plus path/attack
+    95	    // checks, and make_move() unconditionally relocates "the" king and rook
+    96	    // there) unless that king and rook actually exist. Reject up front
+    97	    // rather than letting a later synthetic castling move panic trying to
+    98	    // pick up a piece that was never placed.
+    99	    let king_rook_ok = |king_sq: u8, rook_sq: u8, color: Color| {
+   100	        pos.piece_on(king_sq) == Some((color, KING)) && pos.piece_on(rook_sq) == Some((color, ROOK))
+   101	    };
+   102	    if pos.castling & WK != 0 && !king_rook_ok(sq(4, 0), sq(7, 0), Color::White) {
+   103	        return Err("castling right K without king/rook on e1/h1".into());
+   104	    }
+   105	    if pos.castling & WQ != 0 && !king_rook_ok(sq(4, 0), sq(0, 0), Color::White) {
+   106	        return Err("castling right Q without king/rook on e1/a1".into());
+   107	    }
+   108	    if pos.castling & BK != 0 && !king_rook_ok(sq(4, 7), sq(7, 7), Color::Black) {
+   109	        return Err("castling right k without king/rook on e8/h8".into());
+   110	    }
+   111	    if pos.castling & BQ != 0 && !king_rook_ok(sq(4, 7), sq(0, 7), Color::Black) {
+   112	        return Err("castling right q without king/rook on e8/a8".into());
+   113	    }
+   114	
+   115	    pos.ep = NO_EP;
+   116	    if let Some(e) = parts.next() {
+   117	        if e != "-" {
+   118	            let ep_sq = parse_sq(e).ok_or_else(|| format!("bad ep '{}'", e))?;
+   119	            // The ep target is the square a double-moving pawn passed over,
+   120	            // so it must sit on rank 3 (mover was Black) or rank 6 (mover
+   121	            // was White), and that mover's pawn must actually be standing
+   122	            // one rank behind the target -- otherwise movegen can emit an
+   123	            // "en passant" capture with no real pawn behind it, which
+   124	            // board.rs's make_move() removes unconditionally, corrupting
+   125	            // occupancy/hash instead of erroring.
+   126	            let (expected_rank, pawn_rank, mover) = match pos.side {
+   127	                Color::White => (5u8, 4u8, Color::Black),
+   128	                Color::Black => (2u8, 3u8, Color::White),
+   129	            };
+   130	            if rank_of(ep_sq) != expected_rank {
+   131	                return Err(format!("ep square '{}' not on the rank a double move passes over", e));
+   132	            }
+   133	            let pawn_sq = sq(file_of(ep_sq), pawn_rank);
+   134	            if pos.piece_on(pawn_sq) != Some((mover, PAWN)) {
+   135	                return Err(format!("ep square '{}' has no pawn to capture", e));
+   136	            }
+   137	            if pos.piece_on(ep_sq).is_some() {
+   138	                return Err(format!("ep square '{}' is occupied", e));
+   139	            }
+   140	            pos.ep = ep_sq;
+   141	        }
+   142	    }
+   143	
+   144	    pos.halfmove = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+   145	    pos.fullmove = parts.next().and_then(|s| s.parse().ok()).unwrap_or(1);
+   146	
+   147	    if pos.bb[0][KING].count_ones() != 1 || pos.bb[1][KING].count_ones() != 1 {
+   148	        return Err("each side needs exactly one king".into());
+   149	    }
+   150	
+   151	    // The side NOT to move must not be in check -- otherwise the side to move
+   152	    // could simply capture that king, which is impossible in a real game (the
+   153	    // opponent would have had to already be in check on their own turn and
+   154	    // failed to address it). This also catches the degenerate "adjacent
+   155	    // kings" case, since a king itself attacks all its neighboring squares.
+   156	    // Without this check, downstream code that assumes every king square is
+   157	    // a normal, uncapturable king (e.g. NNUE king-bucket lookups) can be fed
+   158	    // a position where the "opponent" king is effectively already gone,
+   159	    // which previously caused an out-of-bounds panic instead of a UCI error.
+   160	    let non_mover = pos.side.flip();
+   161	    let non_mover_king = pos.bb[non_mover.idx()][KING].trailing_zeros() as u8;
+   162	    if attacked(&pos, non_mover_king, pos.side) {
+   163	        return Err("illegal position: side not to move is in check".into());
+   164	    }
+   165	
+   166	    pos.hash = pos.compute_hash();
+   167	    Ok(pos)
+   168	}
+   169	
+   170	pub fn serialize(pos: &Position) -> String {
+   171	    let chars = ['P', 'N', 'B', 'R', 'Q', 'K'];
+   172	    let mut out = String::new();
+   173	    for r in (0..8u8).rev() {
+   174	        let mut empty = 0;
+   175	        for f in 0..8u8 {
+   176	            match pos.piece_on(sq(f, r)) {
+   177	                Some((c, p)) => {
+   178	                    if empty > 0 {
+   179	                        out.push_str(&empty.to_string());
+   180	                        empty = 0;
+   181	                    }
+   182	                    let ch = chars[p];
+   183	                    out.push(if let Color::White = c {
+   184	                        ch
+   185	                    } else {
+   186	                        ch.to_ascii_lowercase()
+   187	                    });
+   188	                }
+   189	                None => empty += 1,
+   190	            }
+   191	        }
+   192	        if empty > 0 {
+   193	            out.push_str(&empty.to_string());
+   194	        }
+   195	        if r > 0 {
+   196	            out.push('/');
+   197	        }
+   198	    }
+   199	    out.push(' ');
+   200	    out.push(if let Color::White = pos.side { 'w' } else { 'b' });
+   201	    out.push(' ');
+   202	    if pos.castling == 0 {
+   203	        out.push('-');
+   204	    } else {
+   205	        if pos.castling & WK != 0 {
+   206	            out.push('K');
+   207	        }
+   208	        if pos.castling & WQ != 0 {
+   209	            out.push('Q');
+   210	        }
+=== move generation ===
+     1	//! Move generation: const attack tables, magic-bitboard slider attacks,
+     2	//! pseudo-legal generation + legality filtering.
+     3	
+     4	use crate::board::*;
+     5	use std::sync::OnceLock;
+     6	
+     7	// ---------------------------------------------------------------------------
+     8	// Attack tables (built at compile time)
+     9	// ---------------------------------------------------------------------------
+    10	
+    11	// Direction indices for RAYS. Positive = target index increases along ray.
+    12	pub const DIR_N: usize = 0; // +8
+    13	pub const DIR_NE: usize = 1; // +9
+    14	pub const DIR_E: usize = 2; // +1
+    15	pub const DIR_SE: usize = 3; // -7
+    16	pub const DIR_S: usize = 4; // -8
+    17	pub const DIR_SW: usize = 5; // -9
+    18	pub const DIR_W: usize = 6; // -1
+    19	pub const DIR_NW: usize = 7; // +7
+    20	
+    21	const DIR_DELTAS: [(i32, i32); 8] = [
+    22	    (0, 1),
+    23	    (1, 1),
+    24	    (1, 0),
+    25	    (1, -1),
+    26	    (0, -1),
+    27	    (-1, -1),
+    28	    (-1, 0),
+    29	    (-1, 1),
+    30	];
+    31	
+    32	const fn build_rays() -> [[Bitboard; 64]; 8] {
+    33	    let mut rays = [[0u64; 64]; 8];
+    34	    let mut d = 0;
+    35	    while d < 8 {
+    36	        let (df, dr) = DIR_DELTAS[d];
+    37	        let mut s = 0i32;
+    38	        while s < 64 {
+    39	            let mut f = (s & 7) + df;
+    40	            let mut r = (s >> 3) + dr;
+    41	            let mut bb = 0u64;
+    42	            while f >= 0 && f < 8 && r >= 0 && r < 8 {
+    43	                bb |= 1u64 << (r * 8 + f);
+    44	                f += df;
+    45	                r += dr;
+    46	            }
+    47	            rays[d][s as usize] = bb;
+    48	            s += 1;
+    49	        }
+    50	        d += 1;
+    51	    }
+    52	    rays
+    53	}
+    54	
+    55	const fn build_leaper(deltas: &[(i32, i32)]) -> [Bitboard; 64] {
+    56	    let mut t = [0u64; 64];
+    57	    let mut s = 0i32;
+    58	    while s < 64 {
+    59	        let f0 = s & 7;
+    60	        let r0 = s >> 3;
+    61	        let mut bb = 0u64;
+    62	        let mut i = 0;
+    63	        while i < deltas.len() {
+    64	            let f = f0 + deltas[i].0;
+    65	            let r = r0 + deltas[i].1;
+    66	            if f >= 0 && f < 8 && r >= 0 && r < 8 {
+    67	                bb |= 1u64 << (r * 8 + f);
+    68	            }
+    69	            i += 1;
+    70	        }
+    71	        t[s as usize] = bb;
+    72	        s += 1;
+    73	    }
+    74	    t
+    75	}
+    76	
+    77	const fn build_pawn_attacks() -> [[Bitboard; 64]; 2] {
+    78	    let mut t = [[0u64; 64]; 2];
+    79	    let mut s = 0i32;
+    80	    while s < 64 {
+    81	        let f = s & 7;
+    82	        let r = s >> 3;
+    83	        let mut w = 0u64;
+    84	        let mut b = 0u64;
+    85	        if r + 1 < 8 {
+    86	            if f - 1 >= 0 {
+    87	                w |= 1u64 << ((r + 1) * 8 + f - 1);
+    88	            }
+    89	            if f + 1 < 8 {
+    90	                w |= 1u64 << ((r + 1) * 8 + f + 1);
+    91	            }
+    92	        }
+    93	        if r - 1 >= 0 {
+    94	            if f - 1 >= 0 {
+    95	                b |= 1u64 << ((r - 1) * 8 + f - 1);
+    96	            }
+    97	            if f + 1 < 8 {
+    98	                b |= 1u64 << ((r - 1) * 8 + f + 1);
+    99	            }
+   100	        }
+   101	        t[0][s as usize] = w;
+   102	        t[1][s as usize] = b;
+   103	        s += 1;
+   104	    }
+   105	    t
+   106	}
+   107	
+   108	pub static RAYS: [[Bitboard; 64]; 8] = build_rays();
+   109	pub static KNIGHT_ATT: [Bitboard; 64] = build_leaper(&[
+   110	    (1, 2),
+   111	    (2, 1),
+   112	    (2, -1),
+   113	    (1, -2),
+   114	    (-1, -2),
+   115	    (-2, -1),
+   116	    (-2, 1),
+   117	    (-1, 2),
+   118	]);
+   119	pub static KING_ATT: [Bitboard; 64] = build_leaper(&[
+   120	    (0, 1),
+   121	    (1, 1),
+   122	    (1, 0),
+   123	    (1, -1),
+   124	    (0, -1),
+   125	    (-1, -1),
+   126	    (-1, 0),
+   127	    (-1, 1),
+   128	]);
+   129	pub static PAWN_ATT: [[Bitboard; 64]; 2] = build_pawn_attacks();
+   130	
+   131	pub const FILE_A: Bitboard = 0x0101_0101_0101_0101;
+   132	pub const FILE_H: Bitboard = FILE_A << 7;
+   133	pub const RANK_1: Bitboard = 0xFF;
+   134	pub const RANK_3: Bitboard = RANK_1 << 16;
+   135	pub const RANK_6: Bitboard = RANK_1 << 40;
+   136	pub const RANK_8: Bitboard = RANK_1 << 56;
+   137	
+   138	// ---------------------------------------------------------------------------
+   139	// Slider attacks: classical ray approach (kept as the correctness oracle
+   140	// magic-table construction is verified against, and as a fallback reference
+   141	// in tests) plus the magic-bitboard tables actually used by search.
+   142	// ---------------------------------------------------------------------------
+   143	
+   144	#[inline]
+   145	fn ray_pos(d: usize, s: u8, occ: Bitboard) -> Bitboard {
+   146	    let ray = RAYS[d][s as usize];
+   147	    let blockers = ray & occ;
+   148	    if blockers != 0 {
+   149	        let first = blockers.trailing_zeros() as usize;
+   150	        ray ^ RAYS[d][first]
+   151	    } else {
+   152	        ray
+   153	    }
+   154	}
+   155	
+   156	#[inline]
+   157	fn ray_neg(d: usize, s: u8, occ: Bitboard) -> Bitboard {
+   158	    let ray = RAYS[d][s as usize];
+   159	    let blockers = ray & occ;
+   160	    if blockers != 0 {
+   161	        let first = (63 - blockers.leading_zeros()) as usize;
+   162	        ray ^ RAYS[d][first]
+   163	    } else {
+   164	        ray
+   165	    }
+   166	}
+   167	
+   168	#[inline]
+   169	fn bishop_att_classical(s: u8, occ: Bitboard) -> Bitboard {
+   170	    ray_pos(DIR_NE, s, occ) | ray_pos(DIR_NW, s, occ) | ray_neg(DIR_SE, s, occ) | ray_neg(DIR_SW, s, occ)
+   171	}
+   172	
+   173	#[inline]
+   174	fn rook_att_classical(s: u8, occ: Bitboard) -> Bitboard {
+   175	    ray_pos(DIR_N, s, occ) | ray_pos(DIR_E, s, occ) | ray_neg(DIR_S, s, occ) | ray_neg(DIR_W, s, occ)
+   176	}
+   177	
+   178	// ---------------------------------------------------------------------------
+   179	// Magic bitboards: O(1) table lookup instead of ray scanning. Magic numbers
+   180	// are found at first use (not embedded as literals) by random search,
+   181	// verified against the classical functions above as ground truth for every
+   182	// occupancy subset -- this makes the search self-checking: it is
+   183	// structurally impossible for a "found" magic to produce a wrong attack set,
+   184	// since a collision against a differing attack value is rejected and
+   185	// retried. Mirrors Stockfish's own approach (it also searches at startup
+   186	// rather than embedding a fixed magic table).
+   187	// ---------------------------------------------------------------------------
+   188	
+   189	/// Relevant occupancy mask for a slider on `s`: the full ray in each
+   190	/// direction with the outermost (board-edge) square removed, since a piece
+   191	/// there can never change the attack set (the ray already terminates at the
+   192	/// board edge regardless of whether it's occupied).
+   193	fn edge_trim(positive_dir: bool, ray: Bitboard) -> Bitboard {
+   194	    if ray == 0 {
+   195	        return 0;
+   196	    }
+   197	    if positive_dir {
+   198	        let hi = 63 - ray.leading_zeros();
+   199	        ray & !(1u64 << hi)
+   200	    } else {
+   201	        let lo = ray.trailing_zeros();
+   202	        ray & !(1u64 << lo)
+   203	    }
+   204	}
+   205	
+   206	fn relevant_bishop_mask(s: u8) -> Bitboard {
+   207	    edge_trim(true, RAYS[DIR_NE][s as usize])
+   208	        | edge_trim(true, RAYS[DIR_NW][s as usize])
+   209	        | edge_trim(false, RAYS[DIR_SE][s as usize])
+   210	        | edge_trim(false, RAYS[DIR_SW][s as usize])
+   211	}
+   212	
+   213	fn relevant_rook_mask(s: u8) -> Bitboard {
+   214	    edge_trim(true, RAYS[DIR_N][s as usize])
+   215	        | edge_trim(true, RAYS[DIR_E][s as usize])
+   216	        | edge_trim(false, RAYS[DIR_S][s as usize])
+   217	        | edge_trim(false, RAYS[DIR_W][s as usize])
+   218	}
+   219	
+   220	#[inline]
+   221	fn splitmix64(state: &mut u64) -> u64 {
+   222	    *state = state.wrapping_add(0x9E37_79B9_7F4A_7C15);
+   223	    let mut z = *state;
+   224	    z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+   225	    z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+   226	    z ^ (z >> 31)
+   227	}
+   228	
+   229	/// AND of three random draws biases toward sparse bit patterns, which tend
+   230	/// to make better magics (standard trick, same one Stockfish uses).
+   231	#[inline]
+   232	fn sparse_rand(state: &mut u64) -> u64 {
+   233	    splitmix64(state) & splitmix64(state) & splitmix64(state)
+   234	}
+   235	
+   236	/// Enumerate every subset of `mask` via the carry-rippler trick (returns
+   237	/// 2^popcount(mask) subsets, including 0, terminating back at 0).
+   238	fn subsets_of(mask: Bitboard) -> Vec<Bitboard> {
+   239	    let mut out = Vec::with_capacity(1 << mask.count_ones());
+   240	    let mut subset: Bitboard = 0;
+   241	    loop {
+   242	        out.push(subset);
+   243	        subset = subset.wrapping_sub(mask) & mask;
+   244	        if subset == 0 {
+   245	            break;
+   246	        }
+   247	    }
+   248	    out
+   249	}
+   250	
+   251	#[derive(Clone, Copy)]
+   252	struct MagicEntry {
+   253	    mask: Bitboard,
+   254	    magic: u64,
+   255	    shift: u32,
+   256	    offset: usize,
+   257	}
+   258	
+   259	struct MagicTables {
+   260	    rook: [MagicEntry; 64],
+   261	    bishop: [MagicEntry; 64],
+   262	    table: Vec<Bitboard>,
+   263	}
+   264	
+   265	/// Search for a working magic for one square + mask, verified against the
+   266	/// classical attack function for every occupancy subset of the mask. Two
+   267	/// subsets are allowed to collide on the same table index only if they
+   268	/// produce the identical attack set; any other collision rejects the magic
+   269	/// and retries with a new random candidate.
+   270	fn find_magic(
+   271	    sq: u8,
+   272	    mask: Bitboard,
+   273	    classical: fn(u8, Bitboard) -> Bitboard,
+   274	    rng: &mut u64,
+   275	) -> (u64, Vec<Bitboard>) {
+   276	    let bits = mask.count_ones();
+   277	    let size = 1usize << bits;
+   278	    let shift = 64 - bits;
+   279	    let subsets = subsets_of(mask);
+   280	    let attacks: Vec<Bitboard> = subsets.iter().map(|&occ| classical(sq, occ)).collect();
+   281	
+   282	    loop {
+   283	        let magic = sparse_rand(rng);
+   284	        // quality filter: reject magics that don't spread bits well into the
+   285	        // top byte of mask*magic (same heuristic Stockfish uses)
+   286	        if (mask.wrapping_mul(magic) >> 56).count_ones() < 6 {
+   287	            continue;
+   288	        }
+   289	        let mut table = vec![0u64; size];
+   290	        let mut used = vec![false; size];
+   291	        let mut ok = true;
+   292	        for (i, &occ) in subsets.iter().enumerate() {
+   293	            let idx = ((occ.wrapping_mul(magic)) >> shift) as usize;
+   294	            if used[idx] {
+   295	                if table[idx] != attacks[i] {
+   296	                    ok = false;
+   297	                    break;
+   298	                }
+   299	            } else {
+   300	                used[idx] = true;
+   301	                table[idx] = attacks[i];
+   302	            }
+   303	        }
+   304	        if ok {
+   305	            return (magic, table);
+   306	        }
+   307	    }
+   308	}
+   309	
+   310	fn build_magics() -> MagicTables {
+   311	    let mut rng: u64 = 0x00C0_FFEE_D00D_2025;
+   312	    let mut table: Vec<Bitboard> = Vec::new();
+   313	    let mut rook = [MagicEntry { mask: 0, magic: 0, shift: 0, offset: 0 }; 64];
+   314	    let mut bishop = [MagicEntry { mask: 0, magic: 0, shift: 0, offset: 0 }; 64];
+   315	
+   316	    for s in 0u8..64 {
+   317	        let mask = relevant_rook_mask(s);
+   318	        let (magic, attacks) = find_magic(s, mask, rook_att_classical, &mut rng);
+   319	        let offset = table.len();
+   320	        table.extend_from_slice(&attacks);
+   321	        rook[s as usize] = MagicEntry { mask, magic, shift: 64 - mask.count_ones(), offset };
+   322	    }
+   323	    for s in 0u8..64 {
+   324	        let mask = relevant_bishop_mask(s);
+   325	        let (magic, attacks) = find_magic(s, mask, bishop_att_classical, &mut rng);
+   326	        let offset = table.len();
+   327	        table.extend_from_slice(&attacks);
+   328	        bishop[s as usize] = MagicEntry { mask, magic, shift: 64 - mask.count_ones(), offset };
+   329	    }
+   330	
+   331	    MagicTables { rook, bishop, table }
+   332	}
+   333	
+   334	static MAGICS: OnceLock<MagicTables> = OnceLock::new();
+   335	
+   336	#[inline]
+   337	fn magics() -> &'static MagicTables {
+   338	    MAGICS.get_or_init(build_magics)
+   339	}
+   340	
+   341	#[inline]
+   342	pub fn bishop_att(s: u8, occ: Bitboard) -> Bitboard {
+   343	    let m = magics();
+   344	    let e = &m.bishop[s as usize];
+   345	    let idx = ((occ & e.mask).wrapping_mul(e.magic) >> e.shift) as usize;
+   346	    m.table[e.offset + idx]
+   347	}
+   348	
+   349	#[inline]
+   350	pub fn rook_att(s: u8, occ: Bitboard) -> Bitboard {
+   351	    let m = magics();
+   352	    let e = &m.rook[s as usize];
+   353	    let idx = ((occ & e.mask).wrapping_mul(e.magic) >> e.shift) as usize;
+   354	    m.table[e.offset + idx]
+   355	}
+   356	
+   357	#[inline]
+   358	pub fn queen_att(s: u8, occ: Bitboard) -> Bitboard {
+   359	    bishop_att(s, occ) | rook_att(s, occ)
+   360	}
+   361	
+   362	/// Is `s` attacked by side `by`?
+   363	pub fn attacked(pos: &Position, s: u8, by: Color) -> bool {
+   364	    let b = by.idx();
+   365	    // A square is attacked by a `by`-pawn if such a pawn stands on the squares
+   366	    // a defender pawn of the other color would attack from `s`.
+   367	    if PAWN_ATT[by.flip().idx()][s as usize] & pos.bb[b][PAWN] != 0 {
+   368	        return true;
+   369	    }
+   370	    if KNIGHT_ATT[s as usize] & pos.bb[b][KNIGHT] != 0 {
+   371	        return true;
+   372	    }
+   373	    if KING_ATT[s as usize] & pos.bb[b][KING] != 0 {
+   374	        return true;
+   375	    }
+   376	    let diag = pos.bb[b][BISHOP] | pos.bb[b][QUEEN];
+   377	    if diag != 0 && bishop_att(s, pos.occ) & diag != 0 {
+   378	        return true;
+   379	    }
+   380	    let ortho = pos.bb[b][ROOK] | pos.bb[b][QUEEN];
+   381	    if ortho != 0 && rook_att(s, pos.occ) & ortho != 0 {
+   382	        return true;
+   383	    }
+   384	    false
+   385	}
+   386	
+   387	/// Is the side to move in check?
+   388	#[inline]
+   389	pub fn in_check(pos: &Position) -> bool {
+   390	    attacked(pos, pos.king_sq(pos.side), pos.side.flip())
+   391	}
+   392	
+   393	/// After `make`, was the move legal for the side that just moved?
+   394	#[inline]
+   395	pub fn king_safe_after(pos_after: &Position, mover: Color) -> bool {
+   396	    !attacked(pos_after, pos_after.king_sq(mover), pos_after.side)
+   397	}
+   398	
+   399	/// Squares strictly between `a` and `b` (exclusive) if they share a rank,
+   400	/// file, or diagonal; 0 otherwise. Used by `pinned_blockers` below to find
+   401	/// the single piece (if any) sitting between a king and an aligned enemy
+   402	/// slider.
+   403	const fn build_between() -> [[u64; 64]; 64] {
+   404	    let mut t = [[0u64; 64]; 64];
+   405	    let mut a = 0usize;
+   406	    while a < 64 {
+   407	        let af = (a % 8) as i32;
+   408	        let ar = (a / 8) as i32;
+   409	        let mut b = 0usize;
+   410	        while b < 64 {
+   411	            if a != b {
+   412	                let bf = (b % 8) as i32;
+   413	                let br = (b / 8) as i32;
+   414	                let df = bf - af;
+   415	                let dr = br - ar;
+   416	                if df == 0 || dr == 0 || df == dr || df == -dr {
+   417	                    let step_f = if df == 0 { 0 } else if df > 0 { 1 } else { -1 };
+   418	                    let step_r = if dr == 0 { 0 } else if dr > 0 { 1 } else { -1 };
+   419	                    let mut bb = 0u64;
+   420	                    let mut f = af + step_f;
+=== board/state ===
+     1	//! Board representation: bitboards + mailbox, copy-make, Zobrist hashing.
+     2	//!
+     3	//! Square mapping: a1 = 0, b1 = 1, ... h8 = 63 (little-endian rank-file).
+     4	
+     5	pub type Bitboard = u64;
+     6	
+     7	#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+     8	pub enum Color {
+     9	    White = 0,
+    10	    Black = 1,
+    11	}
+    12	
+    13	impl Color {
+    14	    #[inline]
+    15	    pub fn idx(self) -> usize {
+    16	        self as usize
+    17	    }
+    18	    #[inline]
+    19	    pub fn flip(self) -> Color {
+    20	        match self {
+    21	            Color::White => Color::Black,
+    22	            Color::Black => Color::White,
+    23	        }
+    24	    }
+    25	}
+    26	
+    27	pub const PAWN: usize = 0;
+    28	pub const KNIGHT: usize = 1;
+    29	pub const BISHOP: usize = 2;
+    30	pub const ROOK: usize = 3;
+    31	pub const QUEEN: usize = 4;
+    32	pub const KING: usize = 5;
+    33	
+    34	pub const NO_PIECE: u8 = 0xFF;
+    35	
+    36	// Castling right bits.
+    37	pub const WK: u8 = 1;
+    38	pub const WQ: u8 = 2;
+    39	pub const BK: u8 = 4;
+    40	pub const BQ: u8 = 8;
+    41	
+    42	pub const NO_EP: u8 = 64;
+    43	
+    44	#[inline]
+    45	pub fn sq(file: u8, rank: u8) -> u8 {
+    46	    rank * 8 + file
+    47	}
+    48	
+    49	#[inline]
+    50	pub fn file_of(s: u8) -> u8 {
+    51	    s & 7
+    52	}
+    53	
+    54	#[inline]
+    55	pub fn rank_of(s: u8) -> u8 {
+    56	    s >> 3
+    57	}
+    58	
+    59	pub fn sq_name(s: u8) -> String {
+    60	    let f = (b'a' + file_of(s)) as char;
+    61	    let r = (b'1' + rank_of(s)) as char;
+    62	    format!("{}{}", f, r)
+    63	}
+    64	
+    65	pub fn parse_sq(s: &str) -> Option<u8> {
+    66	    let b = s.as_bytes();
+    67	    if b.len() < 2 {
+    68	        return None;
+    69	    }
+    70	    let f = b[0].wrapping_sub(b'a');
+    71	    let r = b[1].wrapping_sub(b'1');
+    72	    if f < 8 && r < 8 {
+    73	        Some(sq(f, r))
+    74	    } else {
+    75	        None
+    76	    }
+    77	}
+    78	
+    79	// ---------------------------------------------------------------------------
+    80	// Moves
+    81	// ---------------------------------------------------------------------------
+    82	
+    83	pub const MK_NORMAL: u16 = 0;
+    84	pub const MK_PROMO: u16 = 1;
+    85	pub const MK_EP: u16 = 2;
+    86	pub const MK_CASTLE: u16 = 3;
+    87	
+    88	/// bits 0-5 from, 6-11 to, 12-13 promo piece (0=N .. 3=Q), 14-15 kind.
+    89	#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+    90	pub struct Move(pub u16);
+    91	
+    92	impl Move {
+    93	    pub const NONE: Move = Move(0);
+    94	
+    95	    #[inline]
+    96	    pub fn new(from: u8, to: u8, kind: u16) -> Move {
+    97	        Move(from as u16 | (to as u16) << 6 | kind << 14)
+    98	    }
+    99	
+   100	    #[inline]
+   101	    pub fn new_promo(from: u8, to: u8, piece: usize) -> Move {
+   102	        Move(from as u16 | (to as u16) << 6 | ((piece - KNIGHT) as u16) << 12 | MK_PROMO << 14)
+   103	    }
+   104	
+   105	    #[inline]
+   106	    pub fn from(self) -> u8 {
+   107	        (self.0 & 63) as u8
+   108	    }
+   109	    #[inline]
+   110	    pub fn to(self) -> u8 {
+   111	        ((self.0 >> 6) & 63) as u8
+   112	    }
+   113	    #[inline]
+   114	    pub fn kind(self) -> u16 {
+   115	        self.0 >> 14
+   116	    }
+   117	    #[inline]
+   118	    pub fn promo_piece(self) -> usize {
+   119	        KNIGHT + ((self.0 >> 12) & 3) as usize
+   120	    }
+   121	    #[inline]
+   122	    pub fn is_promo(self) -> bool {
+   123	        self.kind() == MK_PROMO
+   124	    }
+   125	
+   126	    /// UCI long algebraic string, e.g. "e2e4", "e7e8q".
+   127	    pub fn uci(self) -> String {
+   128	        if self == Move::NONE {
+   129	            return "0000".to_string();
+   130	        }
+   131	        let mut s = format!("{}{}", sq_name(self.from()), sq_name(self.to()));
+   132	        if self.is_promo() {
+   133	            s.push(match self.promo_piece() {
+   134	                KNIGHT => 'n',
+   135	                BISHOP => 'b',
+   136	                ROOK => 'r',
+   137	                _ => 'q',
+   138	            });
+   139	        }
+   140	        s
+   141	    }
+   142	}
+   143	
+   144	// ---------------------------------------------------------------------------
+   145	// Zobrist keys (const-generated with splitmix64)
+   146	// ---------------------------------------------------------------------------
+   147	
+   148	pub struct Zobrist {
+   149	    pub psq: [[[u64; 64]; 6]; 2],
+   150	    pub side: u64,
+   151	    pub castle: [u64; 16],
+   152	    pub ep_file: [u64; 8],
+   153	}
+   154	
+   155	const fn sm_next(state: u64) -> (u64, u64) {
+   156	    let s = state.wrapping_add(0x9E37_79B9_7F4A_7C15);
+   157	    let mut z = s;
+   158	    z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+   159	    z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+   160	    (s, z ^ (z >> 31))
+   161	}
+   162	
+   163	const fn build_zobrist() -> Zobrist {
+   164	    let mut st: u64 = 0x00C0_FFEE_D00D_2024;
+   165	    let mut psq = [[[0u64; 64]; 6]; 2];
+   166	    let mut c = 0;
+   167	    while c < 2 {
+   168	        let mut p = 0;
+   169	        while p < 6 {
+   170	            let mut s = 0;
+   171	            while s < 64 {
+   172	                let (ns, v) = sm_next(st);
+   173	                st = ns;
+   174	                psq[c][p][s] = v;
+   175	                s += 1;
+   176	            }
+   177	            p += 1;
+   178	        }
+   179	        c += 1;
+   180	    }
+   181	    let (ns, side) = sm_next(st);
+   182	    st = ns;
+   183	    let mut castle = [0u64; 16];
+   184	    let mut i = 0;
+   185	    while i < 16 {
+   186	        let (ns, v) = sm_next(st);
+   187	        st = ns;
+   188	        castle[i] = v;
+   189	        i += 1;
+   190	    }
+   191	    // castle[0] = 0 so "no rights" contributes nothing; keeps hashes tidy.
+   192	    castle[0] = 0;
+   193	    let mut ep_file = [0u64; 8];
+   194	    let mut i = 0;
+   195	    while i < 8 {
+   196	        let (ns, v) = sm_next(st);
+   197	        st = ns;
+   198	        ep_file[i] = v;
+   199	        i += 1;
+   200	    }
+   201	    Zobrist {
+   202	        psq,
+   203	        side,
+   204	        castle,
+   205	        ep_file,
+   206	    }
+   207	}
+   208	
+   209	pub static ZOBRIST: Zobrist = build_zobrist();
+   210	
+   211	/// castling &= CASTLE_MASK[from] & CASTLE_MASK[to]
+   212	const fn build_castle_mask() -> [u8; 64] {
+   213	    let mut m = [15u8; 64];
+   214	    m[4] = 15 & !(WK | WQ); // e1
+   215	    m[0] = 15 & !WQ; // a1
+   216	    m[7] = 15 & !WK; // h1
+   217	    m[60] = 15 & !(BK | BQ); // e8
+   218	    m[56] = 15 & !BQ; // a8
+   219	    m[63] = 15 & !BK; // h8
+   220	    m
+   221	}
+   222	
+   223	pub static CASTLE_MASK: [u8; 64] = build_castle_mask();
+   224	
+   225	// ---------------------------------------------------------------------------
+   226	// Position
+   227	// ---------------------------------------------------------------------------
+   228	
+   229	#[derive(Clone, Copy)]
+   230	pub struct Position {
+   231	    pub bb: [[Bitboard; 6]; 2],
+   232	    pub occ_side: [Bitboard; 2],
+   233	    pub occ: Bitboard,
+   234	    /// mailbox: color*6 + piece, or NO_PIECE
+   235	    pub board: [u8; 64],
+   236	    pub side: Color,
+   237	    pub castling: u8,
+   238	    pub ep: u8, // NO_EP if none
+   239	    pub halfmove: u16,
+   240	    pub fullmove: u16,
+   241	    pub hash: u64,
+   242	}
+   243	
+   244	impl Position {
+   245	    pub fn empty() -> Position {
+   246	        Position {
+   247	            bb: [[0; 6]; 2],
+   248	            occ_side: [0; 2],
+   249	            occ: 0,
+   250	            board: [NO_PIECE; 64],
+   251	            side: Color::White,
+   252	            castling: 0,
+   253	            ep: NO_EP,
+   254	            halfmove: 0,
+   255	            fullmove: 1,
+   256	            hash: 0,
+   257	        }
+   258	    }
+   259	
+   260	    #[inline]
+   261	    pub fn pieces(&self, c: Color, p: usize) -> Bitboard {
+   262	        self.bb[c.idx()][p]
+   263	    }
+   264	
+   265	    #[inline]
+   266	    pub fn king_sq(&self, c: Color) -> u8 {
+   267	        self.bb[c.idx()][KING].trailing_zeros() as u8
+   268	    }
+   269	
+   270	    /// (color, piece) on a square, if any.
+   271	    #[inline]
+   272	    pub fn piece_on(&self, s: u8) -> Option<(Color, usize)> {
+   273	        let v = self.board[s as usize];
+   274	        if v == NO_PIECE {
+   275	            None
+   276	        } else {
+   277	            let c = if v < 6 { Color::White } else { Color::Black };
+   278	            Some((c, (v % 6) as usize))
+   279	        }
+   280	    }
+   281	
+   282	    #[inline]
+   283	    pub fn has_non_pawn(&self, c: Color) -> bool {
+   284	        self.occ_side[c.idx()] != self.bb[c.idx()][PAWN] | self.bb[c.idx()][KING]
+   285	    }
+   286	
+   287	    #[inline]
+   288	    fn put(&mut self, c: Color, p: usize, s: u8) {
+   289	        let b = 1u64 << s;
+   290	        self.bb[c.idx()][p] |= b;
+   291	        self.occ_side[c.idx()] |= b;
+   292	        self.occ |= b;
+   293	        self.board[s as usize] = (c.idx() * 6 + p) as u8;
+   294	        self.hash ^= ZOBRIST.psq[c.idx()][p][s as usize];
+   295	    }
+   296	
+   297	    #[inline]
+   298	    fn take(&mut self, c: Color, p: usize, s: u8) {
+   299	        let b = 1u64 << s;
+   300	        self.bb[c.idx()][p] &= !b;
+   301	        self.occ_side[c.idx()] &= !b;
+   302	        self.occ &= !b;
+   303	        self.board[s as usize] = NO_PIECE;
+   304	        self.hash ^= ZOBRIST.psq[c.idx()][p][s as usize];
+   305	    }
+   306	
+   307	    /// Recompute the hash from scratch (used after FEN parsing and in tests).
+   308	    pub fn compute_hash(&self) -> u64 {
+   309	        let mut h = 0u64;
+   310	        for s in 0..64u8 {
+   311	            if let Some((c, p)) = self.piece_on(s) {
+   312	                h ^= ZOBRIST.psq[c.idx()][p][s as usize];
+   313	            }
+   314	        }
+   315	        h ^= ZOBRIST.castle[self.castling as usize];
+   316	        if self.ep != NO_EP {
+   317	            h ^= ZOBRIST.ep_file[file_of(self.ep) as usize];
+   318	        }
+   319	        if let Color::Black = self.side {
+   320	            h ^= ZOBRIST.side;
+   321	        }
+   322	        h
+   323	    }
+   324	
+   325	    /// Copy-make: returns the position after the move (assumed pseudo-legal).
+   326	    pub fn make(&self, mv: Move) -> Position {
+   327	        let mut p = *self;
+   328	        let us = p.side;
+   329	        let them = us.flip();
+   330	        let from = mv.from();
+   331	        let to = mv.to();
+   332	        let (_, pt) = p.piece_on(from).expect("make: no piece on from-square");
+   333	
+   334	        // clear old en passant
+   335	        if p.ep != NO_EP {
+   336	            p.hash ^= ZOBRIST.ep_file[file_of(p.ep) as usize];
+   337	            p.ep = NO_EP;
+   338	        }
+   339	
+   340	        let mut capture = false;
+   341	        match mv.kind() {
+   342	            MK_CASTLE => {
+   343	                // king from->to; move the rook too
+   344	                let (rf, rt) = if to > from {
+   345	                    (to + 1, to - 1)
+   346	                } else {
+   347	                    (to - 2, to + 1)
+   348	                };
+   349	                p.take(us, KING, from);
+   350	                p.put(us, KING, to);
+   351	                p.take(us, ROOK, rf);
+   352	                p.put(us, ROOK, rt);
+   353	            }
+   354	            MK_EP => {
+   355	                let cap_sq = if let Color::White = us { to - 8 } else { to + 8 };
+   356	                p.take(them, PAWN, cap_sq);
+   357	                p.take(us, PAWN, from);
+   358	                p.put(us, PAWN, to);
+   359	                capture = true;
+   360	            }
+=== perft ===
+     1	//! Perft: move generation correctness gate.
+     2	
+     3	use crate::board::Position;
+     4	use crate::movegen::legal;
+     5	
+     6	pub fn perft(pos: &Position, depth: u32) -> u64 {
+     7	    if depth == 0 {
+     8	        return 1;
+     9	    }
+    10	    let ml = legal(pos);
+    11	    if depth == 1 {
+    12	        return ml.len as u64;
+    13	    }
+    14	    let mut nodes = 0;
+    15	    for &m in ml.as_slice() {
+    16	        nodes += perft(&pos.make(m), depth - 1);
+    17	    }
+    18	    nodes
+    19	}
+    20	
+    21	/// Perft split by root move (debugging aid).
+    22	pub fn perft_divide(pos: &Position, depth: u32) -> Vec<(String, u64)> {
+    23	    let ml = legal(pos);
+    24	    let mut out = Vec::new();
+    25	    for &m in ml.as_slice() {
+    26	        let n = if depth <= 1 {
+    27	            1
+    28	        } else {
+    29	            perft(&pos.make(m), depth - 1)
+    30	        };
+    31	        out.push((m.uci(), n));
+    32	    }
+    33	    out
+    34	}
+    35	
+    36	#[cfg(test)]
+    37	mod tests {
+    38	    use super::*;
+    39	    use crate::fen;
+    40	
+    41	    fn check(fen: &str, depth: u32, expected: u64) {
+    42	        let pos = fen::parse(fen).unwrap();
+    43	        assert_eq!(perft(&pos, depth), expected, "perft({}) of {}", depth, fen);
+    44	    }
+    45	
+    46	    #[test]
+    47	    fn startpos_shallow() {
+    48	        check(fen::START_FEN, 1, 20);
+    49	        check(fen::START_FEN, 2, 400);
+    50	        check(fen::START_FEN, 3, 8_902);
+    51	        check(fen::START_FEN, 4, 197_281);
+    52	        check(fen::START_FEN, 5, 4_865_609);
+    53	    }
+    54	
+    55	    #[test]
+    56	    fn kiwipete() {
+    57	        let f = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
+    58	        check(f, 1, 48);
+    59	        check(f, 2, 2_039);
+    60	        check(f, 3, 97_862);
+    61	        check(f, 4, 4_085_603);
+    62	    }
+    63	
+    64	    #[test]
+    65	    fn position3() {
+    66	        let f = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1";
+    67	        check(f, 1, 14);
+    68	        check(f, 2, 191);
+    69	        check(f, 3, 2_812);
+    70	        check(f, 4, 43_238);
+    71	        check(f, 5, 674_624);
+    72	    }
+    73	
+    74	    #[test]
+    75	    fn position4() {
+    76	        let f = "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1";
+    77	        check(f, 1, 6);
+    78	        check(f, 2, 264);
+    79	        check(f, 3, 9_467);
+    80	        check(f, 4, 422_333);
+    81	    }
+    82	
+    83	    #[test]
+    84	    fn position5() {
+    85	        let f = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8";
+    86	        check(f, 1, 44);
+    87	        check(f, 2, 1_486);
+    88	        check(f, 3, 62_379);
+    89	        check(f, 4, 2_103_487);
+    90	    }
+    91	
+    92	    #[test]
+    93	    fn position6() {
+    94	        let f = "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10";
+    95	        check(f, 1, 46);
+    96	        check(f, 2, 2_079);
+    97	        check(f, 3, 89_890);
+    98	        check(f, 4, 3_894_594);
+    99	    }
+   100	
+   101	    #[test]
+   102	    #[ignore = "slow; run with cargo test -- --ignored"]
+   103	    fn deep() {
+   104	        check(fen::START_FEN, 6, 119_060_324);
+   105	        check(
+   106	            "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+   107	            5,
+   108	            193_690_690,
+   109	        );
+   110	    }
+   111	}
+=== UCI/game state and tests ===
+unchessed-core/src/uci.rs:15:    position_to_input, ChessformerWeights, HintKey, InferenceExit, UnarchitecturedHintWorker,
+unchessed-core/src/uci.rs:176:    /// position after each played move; [0] is the game-start position
+unchessed-core/src/uci.rs:177:    positions: Vec<Position>,
+unchessed-core/src/uci.rs:193:            positions: vec![p],
+unchessed-core/src/uci.rs:232:    // position remains game 0 for permissive UCI clients.
+unchessed-core/src/uci.rs:279:                    println!("option name UCI_Elo type spin default 2400 min 500 max 3200");
+unchessed-core/src/uci.rs:301:                println!("option name ProbCutMargin type spin default 200 min 50 max 400");
+unchessed-core/src/uci.rs:304:                println!("option name FutilityMargin type spin default 150 min 30 max 400");
+unchessed-core/src/uci.rs:338:            "setoption" => {
+unchessed-core/src/uci.rs:340:                handle_setoption(
+unchessed-core/src/uci.rs:380:            "position" => {
+unchessed-core/src/uci.rs:382:                if let Some(g) = parse_position(&line, &game) {
+unchessed-core/src/uci.rs:439:                    history: game.positions[..game.positions.len().saturating_sub(1)]
+unchessed-core/src/uci.rs:443:                    game_plies: game.positions.len() as u32 - 1,
+unchessed-core/src/uci.rs:483:            // debug: "policy [elo]" prints the human policy for the position
+unchessed-core/src/uci.rs:485:                let elo: i32 = toks.next().and_then(|t| t.parse().ok()).unwrap_or(1500);
+unchessed-core/src/uci.rs:538:/// `setoption name ...` line into (key, value). Deliberately searches for
+unchessed-core/src/uci.rs:540:/// "setoption name EvalFile value" with nothing after it) has its
+unchessed-core/src/uci.rs:543:/// match an empty value at all, silently dropping the whole setoption --
+unchessed-core/src/uci.rs:546:fn parse_setoption_kv(rest: &str) -> (&str, &str) {
+unchessed-core/src/uci.rs:554:fn handle_setoption(
+unchessed-core/src/uci.rs:566:    // setoption name <key with spaces> [value <value...>]
+unchessed-core/src/uci.rs:567:    let rest = match line.strip_prefix("setoption") {
+unchessed-core/src/uci.rs:575:    let (key, value) = parse_setoption_kv(rest);
+unchessed-core/src/uci.rs:662:                opt.elo = e.clamp(500, 3200);
+unchessed-core/src/uci.rs:725:                opt.search.probcut_margin = v.clamp(50, 400);
+unchessed-core/src/uci.rs:867:/// `position` command rather than sending just the newest move, so a fresh
+unchessed-core/src/uci.rs:876:/// it (same position sequence, just with more moves appended); only reset
+unchessed-core/src/uci.rs:877:/// to 0 when it's actually a different game (a real `position` change, not
+unchessed-core/src/uci.rs:879:fn carry_observed_plies(old: &Game, new_positions: &[Position]) -> usize {
+unchessed-core/src/uci.rs:880:    if old.observed_plies == 0 || old.positions.len() > new_positions.len() {
+unchessed-core/src/uci.rs:884:        .positions
+unchessed-core/src/uci.rs:886:        .zip(new_positions.iter())
+unchessed-core/src/uci.rs:895:fn parse_position(line: &str, old: &Game) -> Option<Game> {
+unchessed-core/src/uci.rs:897:    toks.next(); // "position"
+unchessed-core/src/uci.rs:917:                positions: vec![pos],
+unchessed-core/src/uci.rs:929:                    game.positions.push(game.current);
+unchessed-core/src/uci.rs:932:            game.observed_plies = carry_observed_plies(old, &game.positions);
+unchessed-core/src/uci.rs:938:        positions: vec![start],
+unchessed-core/src/uci.rs:951:            game.positions.push(game.current);
+unchessed-core/src/uci.rs:954:    game.observed_plies = carry_observed_plies(old, &game.positions);
+unchessed-core/src/uci.rs:988:/// Opponent moves played since we last looked, with their pre-move positions.
+unchessed-core/src/uci.rs:991:    let n_moves = game.positions.len() - 1;
+unchessed-core/src/uci.rs:994:        let pre = game.positions[i];
+unchessed-core/src/uci.rs:997:            let post = game.positions[i + 1];
+unchessed-core/src/uci.rs:1021:    position_to_input(
+unchessed-core/src/uci.rs:1100:        let deadline = std::time::Instant::now() + std::time::Duration::from_millis(100);
+unchessed-core/src/uci.rs:1108:            if ready.is_some() || std::time::Instant::now() >= deadline {
+unchessed-core/src/uci.rs:1150:        // forward to the real search deadline.
+unchessed-core/src/uci.rs:1341:        println!("bestmove 0000");
+unchessed-core/src/uci.rs:1398:            // Analysis of the pre-move position (opponent to move) used as the
+unchessed-core/src/uci.rs:1459:                        nodes: Some(250_000),
+unchessed-core/src/uci.rs:1485:            // clock signal: instant strong replies in positions with real
+unchessed-core/src/uci.rs:1555:                // bail-out guard: never continue a troll line from a position
+unchessed-core/src/uci.rs:1603:                    println!("bestmove {}", entry.mv.uci());
+unchessed-core/src/uci.rs:1626:    let draw_score = if adaptive_now {
+unchessed-core/src/uci.rs:1627:        crate::adapt::draw_score_for(&cfg, prev_mode)
+unchessed-core/src/uci.rs:1679:                        draw_score,
+unchessed-core/src/uci.rs:1695:                        draw_score,
+unchessed-core/src/uci.rs:1712:                draw_score,
+unchessed-core/src/uci.rs:1728:                draw_score,
+unchessed-core/src/uci.rs:1736:        println!("bestmove 0000");
+unchessed-core/src/uci.rs:1823:        println!("bestmove {}", sel.mv.uci());
+unchessed-core/src/uci.rs:1825:        println!("bestmove {}", lines[0].mv.uci());
+unchessed-core/src/uci.rs:1987:        handle_setoption(
+unchessed-core/src/uci.rs:1988:            "setoption name AdapterTelemetry value TRUE",
+unchessed-core/src/uci.rs:2000:        handle_setoption(
+unchessed-core/src/uci.rs:2001:            "setoption name AdapterTelemetry value false",
+unchessed-core/src/uci.rs:2016:    fn telemetry_indexes_are_reset_per_new_game_and_preserved_on_position_resend() {
+unchessed-core/src/uci.rs:2024:        let resent = parse_position("position startpos moves e2e4", &game).expect("position");
+unchessed-core/src/uci.rs:2042:    // startpos on every `position` command rather than just the newest
+unchessed-core/src/uci.rs:2043:    // move. parse_position() used to ignore the previous Game entirely and
+unchessed-core/src/uci.rs:2049:    fn position_carries_observed_plies_across_gui_resends() {
+unchessed-core/src/uci.rs:2052:        // turn 1: GUI sends "position startpos moves e2e4"
+unchessed-core/src/uci.rs:2053:        let mut g1 = parse_position("position startpos moves e2e4", &g0).unwrap();
+unchessed-core/src/uci.rs:2062:        let mut g2 = parse_position("position startpos moves e2e4 e7e5", &g1).unwrap();
+unchessed-core/src/uci.rs:2066:             new position is the same game continuing"
+unchessed-core/src/uci.rs:2132:        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+unchessed-core/src/uci.rs:2143:            assert!(std::time::Instant::now() < deadline, "candidate timed out");
+unchessed-core/src/uci.rs:2312:    fn setoption_kv_parses_a_normal_value() {
+unchessed-core/src/uci.rs:2314:            parse_setoption_kv("PassedPawnMgPct value 40"),
+unchessed-core/src/uci.rs:2320:    fn setoption_kv_parses_an_empty_value() {
+unchessed-core/src/uci.rs:2325:        // match, and the whole setoption line was dropped on the floor.
+unchessed-core/src/uci.rs:2326:        assert_eq!(parse_setoption_kv("EvalFile value"), ("EvalFile", ""));
+unchessed-core/src/uci.rs:2327:        assert_eq!(parse_setoption_kv("BookFile value"), ("BookFile", ""));
+unchessed-core/src/uci.rs:2331:    fn position_resets_observed_plies_for_a_genuinely_different_game() {
+unchessed-core/src/uci.rs:2333:        let mut g1 = parse_position("position startpos moves e2e4", &g0).unwrap();
+unchessed-core/src/uci.rs:2337:        let g2 = parse_position("position startpos moves d2d4", &g1).unwrap();
+unchessed-core/src/uci.rs:2341:             over stale progress from an unrelated position"
+unchessed-core/src/adapt.rs:48:    ("dragon", 3500),
+unchessed-core/src/adapt.rs:50:    ("lc0", 3500),
+unchessed-core/src/adapt.rs:51:    ("leela", 3500),
+unchessed-core/src/adapt.rs:53:    ("ethereal", 3350),
+unchessed-core/src/adapt.rs:58:    ("torch", 3550),
+unchessed-core/src/adapt.rs:60:    ("alexandria", 3350),
+unchessed-core/src/adapt.rs:85:    /// non-trivial positions — the classic engine tell
+unchessed-core/src/adapt.rs:88:    /// for the ceiling tell so the climb from the 1500 prior does not
+unchessed-core/src/adapt.rs:154:            mean: 1500.0,
+unchessed-core/src/adapt.rs:162:            prev_mean: 1500.0,
+unchessed-core/src/adapt.rs:170:    /// Parse "setoption name UCI_Opponent value <title> <elo> <computer|human> <name...>".
+unchessed-core/src/adapt.rs:210:                self.mean = 1500.0 * 0.5 + e as f64 * 0.5;
+unchessed-core/src/adapt.rs:223:        (2950.0 - 850.0 * (1.0 + cp_loss / 20.0).ln()).clamp(400.0, 3200.0)
+unchessed-core/src/adapt.rs:253:    /// near-perfect replies in positions with real choice are an engine tell.
+unchessed-core/src/adapt.rs:259:    pub fn observe_time(&mut self, used_ms: u64, position_had_choice: bool) {
+unchessed-core/src/adapt.rs:262:        if used_ms < 300 && strong && position_had_choice && !in_opening {
+unchessed-core/src/adapt.rs:264:        } else if used_ms > 1500 {
+unchessed-core/src/adapt.rs:270:    ///  - clock tell: repeated instant-strong replies in real positions;
+unchessed-core/src/adapt.rs:274:    ///    somehow is a 2500+ human, giving them full strength is correct too.)
+unchessed-core/src/adapt.rs:279:    /// positions. Threshold set high (close to weight's own 14.0 cap): a
+unchessed-core/src/adapt.rs:286:    /// against real chess.com games (100-1500 rated): weight>=6.0 still
+unchessed-core/src/adapt.rs:291:    /// genuinely sustained 2500+ performance (own stress-test confirmed
+unchessed-core/src/adapt.rs:310:        if self.weight >= 10.0 && self.mean >= 2450.0 {
+unchessed-core/src/adapt.rs:329:            && self.mean >= 2500.0
+unchessed-core/src/adapt.rs:470:///   CLINCH enters in drawish late middlegames (contempt > 0), and holds
+unchessed-core/src/adapt.rs:602:        // `confidence()` is a ± band; ~150 after a few moves, ~400 early.
+unchessed-core/src/adapt.rs:632:        // Widen the CLINCH deadband when we are unsure of the opponent:
+unchessed-core/src/adapt.rs:708:        || (target + 500 < ENGINE_CEILING.min(cfg_effective_cap(cfg)) && our_eval_cp > 250);
+unchessed-core/src/adapt.rs:733:        return cfg.elo_cap.max(500);
+unchessed-core/src/adapt.rs:737:    t.min(cfg_effective_cap(cfg)).max(500)
+unchessed-core/src/adapt.rs:741:/// draw is mildly bad for us; when we are defending, a draw is a rescue and
+unchessed-core/src/adapt.rs:743:pub fn draw_score_for(cfg: &AdaptConfig, prev: Mode) -> i32 {
+unchessed-core/src/adapt.rs:748:        Mode::Clinch => -(cfg.contempt / 2).clamp(0, 50),
+unchessed-core/src/adapt.rs:846:        // pawn moves in front of our castled king feel scary to humans
+unchessed-core/src/adapt.rs:866:        // Voluntarily forfeiting castling rights is a near-universal red
+unchessed-core/src/adapt.rs:877:        // 3.Kd2 get sampled as a "human blunder", forfeiting all castling
+unchessed-core/src/adapt.rs:880:            let own_castle = if let Color::White = us {
+unchessed-core/src/adapt.rs:885:            if (pos.castling & own_castle) != 0 && (next.castling & own_castle) == 0 {
+unchessed-core/src/adapt.rs:909:/// `probe` lets CLINCH measure trap potential: it analyzes a position
+unchessed-core/src/adapt.rs:945:            let far_ahead = best.score > 500;
+unchessed-core/src/adapt.rs:997:                // keep both queens alive in a drawish position
+unchessed-core/src/adapt.rs:1032:            // (own play vs Stockfish at every UCI_Elo from 500-3200) that
+unchessed-core/src/adapt.rs:1090:            // 30-35% of moves at ~500 Elo, ~0% at 2200+, matching
+unchessed-core/src/adapt.rs:1158:/// Weight applied to an opponent-move observation given the position's
+unchessed-core/src/adapt.rs:1232:        assert_eq!(decide_mode(&cfg, &m, 350, 20, Mode::Punish), Mode::Punish);
+unchessed-core/src/adapt.rs:1235:        assert_ne!(decide_mode(&cfg, &m, 150, 40, Mode::Clinch), Mode::Clinch);
+unchessed-core/src/adapt.rs:1245:        assert!(m.estimate() >= 2500, "estimate {}", m.estimate());
+unchessed-core/src/adapt.rs:1262:            h.observe(if i % 3 == 0 { 150 } else { 20 }, 1.0);
+unchessed-core/src/adapt.rs:1328:        m.seed_from_uci_opponent("- 2500 human IM_Player");
+unchessed-core/src/adapt.rs:1334:            "a labelled 2500 human playing well is MATCH, not FULL, estimate {}",
+unchessed-core/src/adapt.rs:1354:    fn draw_score_respects_defend() {
+unchessed-core/src/adapt.rs:1356:        assert!(draw_score_for(&cfg, Mode::Clinch) < 0);
+unchessed-core/src/adapt.rs:1357:        assert!(draw_score_for(&cfg, Mode::Match) < 0);
+unchessed-core/src/adapt.rs:1358:        assert_eq!(draw_score_for(&cfg, Mode::Defend), 0);
+unchessed-core/src/adapt.rs:1406:    fn king_move_that_forfeits_castling_scores_far_below_a_normal_king_walk() {
+unchessed-core/src/adapt.rs:1409:        // castling rights on move 3) because the old flat 0.45 king-walk
+unchessed-core/src/adapt.rs:1411:        // developing move. White has both castling rights here; Ke1d2
+unchessed-core/src/adapt.rs:1433:            "castling-forfeiting king walk (weight {}) should score well below an ordinary \
+unchessed-core/src/aegis_v4_runtime.rs:684:            ("castling_embedding.weight", 16 * D_MODEL),
+unchessed-core/src/aegis_v4_runtime.rs:686:            ("halfmove_embedding.weight", 16 * D_MODEL),
+unchessed-core/src/aegis_v4_runtime.rs:703:            ("promotion_bias.weight", 5),
+unchessed-core/src/aegis_v4_runtime.rs:706:            ("regret_promotion.weight", 5 * REGRET_WIDTH),
+unchessed-core/src/aegis_v4_runtime.rs:750:/// Runtime input: a single position from the mover's perspective (already
+unchessed-core/src/aegis_v4_runtime.rs:754:/// `unarchitectured_v1_data.encode_action` (source | target<<6 | promotion<<12, with
+unchessed-core/src/aegis_v4_runtime.rs:755:/// promotion in 0..=4 for none/N/B/R/Q).
+unchessed-core/src/aegis_v4_runtime.rs:762:    pub castling: u8,
+unchessed-core/src/aegis_v4_runtime.rs:763:    /// 0..7 file, or 8 if no en-passant square.
+unchessed-core/src/aegis_v4_runtime.rs:765:    pub halfmove_clock: u8,
+unchessed-core/src/aegis_v4_runtime.rs:824:    /// Evidential Dirichlet WDL parameters (win, draw, loss), each >= 0; add 1 and
+unchessed-core/src/aegis_v4_runtime.rs:825:    /// normalize to get win/draw/loss probabilities.
+unchessed-core/src/aegis_v4_runtime.rs:832:/// position, promotion set, persona, rating, time class, or elastic exit.
+unchessed-core/src/aegis_v4_runtime.rs:835:    pub position_hash: u64,
+unchessed-core/src/aegis_v4_runtime.rs:844:    pub fn new(position_hash: u64, input: &PositionInput, exit: InferenceExit) -> Self {
+unchessed-core/src/aegis_v4_runtime.rs:846:            position_hash,
+unchessed-core/src/aegis_v4_runtime.rs:873:/// UCI/search path constructs this worker yet; promotion still requires the
+unchessed-core/src/aegis_v4_runtime.rs:928:        position_hash: u64,
+unchessed-core/src/aegis_v4_runtime.rs:933:        let key = HintKey::new(position_hash, &input, exit);
+unchessed-core/src/aegis_v4_runtime.rs:1006:    let p = 0.3275911;
+unchessed-core/src/aegis_v4_runtime.rs:1498:/// below -50 clamp to exp(-50) (~2e-22: zero contribution to any
+unchessed-core/src/aegis_v4_runtime.rs:1508:    const INV_LN2: f32 = 1.4426950408889634;
+unchessed-core/src/aegis_v4_runtime.rs:1509:    const CLAMP: f32 = -50.0;
+unchessed-core/src/aegis_v4_runtime.rs:2165:    if input.castling >= 16 || input.ep_file > 8 || input.time_class >= 5 {
+unchessed-core/src/aegis_v4_runtime.rs:2211:        weights.t("castling_embedding.weight"),
+unchessed-core/src/aegis_v4_runtime.rs:2212:        input.castling as usize,
+unchessed-core/src/aegis_v4_runtime.rs:2222:    let halfmove_bucket = ((input.halfmove_clock / 8) as usize).min(15);
+unchessed-core/src/aegis_v4_runtime.rs:2224:        weights.t("halfmove_embedding.weight"),
+unchessed-core/src/aegis_v4_runtime.rs:2225:        halfmove_bucket,
+unchessed-core/src/aegis_v4_runtime.rs:2235:    // --- GAB context (per-position, independent of layer) ---
+unchessed-core/src/aegis_v4_runtime.rs:2335:    let normalized_rating = (((input.rating as f32) - 100.0) / 3550.0).clamp(0.0, 1.0);
+unchessed-core/src/aegis_v4_runtime.rs:2406:    let promotion_bias = weights.t("promotion_bias.weight"); // (5, 1)
+unchessed-core/src/aegis_v4_runtime.rs:2411:        let promotion = ((action >> 12) as usize).min(4);
+unchessed-core/src/aegis_v4_runtime.rs:2414:        logits[idx] = dot_kernel(source, target) * scale + promotion_bias.get(promotion);
+unchessed-core/src/aegis_v4_runtime.rs:2420:    let regret_promotion = weights.t("regret_promotion.weight"); // (5, REGRET_WIDTH)
+unchessed-core/src/aegis_v4_runtime.rs:2455:        let promotion = ((action >> 12) as usize).min(4);
+unchessed-core/src/aegis_v4_runtime.rs:2460:                + regret_promotion.get(promotion * REGRET_WIDTH + i))
+unchessed-core/src/aegis_v4_runtime.rs:2543:/// Convert a live position + its legal moves into the mover-perspective
+unchessed-core/src/aegis_v4_runtime.rs:2549:pub fn position_to_input(
+unchessed-core/src/aegis_v4_runtime.rs:2591:    let mut castling = 0u8;
+unchessed-core/src/aegis_v4_runtime.rs:2592:    if pos.castling & mk != 0 {
+unchessed-core/src/aegis_v4_runtime.rs:2593:        castling |= 1;
+unchessed-core/src/aegis_v4_runtime.rs:2595:    if pos.castling & mq != 0 {
+unchessed-core/src/aegis_v4_runtime.rs:2596:        castling |= 2;
+unchessed-core/src/aegis_v4_runtime.rs:2598:    if pos.castling & ok != 0 {
+unchessed-core/src/aegis_v4_runtime.rs:2599:        castling |= 4;
+unchessed-core/src/aegis_v4_runtime.rs:2601:    if pos.castling & oq != 0 {
+unchessed-core/src/aegis_v4_runtime.rs:2602:        castling |= 8;
+unchessed-core/src/aegis_v4_runtime.rs:2606:    let halfmove_clock = pos.halfmove.min(255) as u8;
+unchessed-core/src/aegis_v4_runtime.rs:2616:            let promotion: u16 = if m.is_promo() {
+unchessed-core/src/aegis_v4_runtime.rs:2627:            from as u16 | (to as u16) << 6 | (promotion << 12)
+unchessed-core/src/aegis_v4_runtime.rs:2633:        castling,
+unchessed-core/src/aegis_v4_runtime.rs:2635:        halfmove_clock,
+unchessed-core/src/aegis_v4_runtime.rs:2656:    // Deliberately excludes both frozen Python parity fixtures. These positions
+unchessed-core/src/aegis_v4_runtime.rs:2657:    // exercise opening, castled middlegame, tactical, endgame, and promotion-
+unchessed-core/src/aegis_v4_runtime.rs:2672:    fn start_position_input() -> PositionInput {
+unchessed-core/src/aegis_v4_runtime.rs:2701:            castling: 15,
+unchessed-core/src/aegis_v4_runtime.rs:2703:            halfmove_clock: 0,
+unchessed-core/src/aegis_v4_runtime.rs:2726:    ///     -1.426473, -1.761397, -1.96128, -1.868046, -1.067433, -1.09751,
+unchessed-core/src/aegis_v4_runtime.rs:2729:    ///   representation[:8] = [0.160754, -0.092479, 0.932122, -0.786012,
+unchessed-core/src/aegis_v4_runtime.rs:2731:    ///   best_action_index 7, action 1350
+unchessed-core/src/aegis_v4_runtime.rs:2779:        let input = start_position_input();
+unchessed-core/src/aegis_v4_runtime.rs:2791:        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+unchessed-core/src/aegis_v4_runtime.rs:2797:                std::time::Instant::now() < deadline,
+unchessed-core/src/aegis_v4_runtime.rs:2806:        wrong_key.position_hash ^= 1;
+unchessed-core/src/aegis_v4_runtime.rs:2812:        let mut input = start_position_input();
+unchessed-core/src/aegis_v4_runtime.rs:2829:    fn start_position_matches_python_reference() {
+unchessed-core/src/aegis_v4_runtime.rs:2831:        let input = start_position_input();
+unchessed-core/src/aegis_v4_runtime.rs:2838:            -1.09751, -2.014229, -1.843139, -1.567619,
+unchessed-core/src/aegis_v4_runtime.rs:2862:            0.160754f32,
+unchessed-core/src/aegis_v4_runtime.rs:2884:        assert_eq!(input.legal_actions[best], 1350, "best action encoding");
+unchessed-core/src/aegis_v4_runtime.rs:2887:    /// Second, independently-generated position (after 1.e4 e5, White to
+unchessed-core/src/aegis_v4_runtime.rs:2889:    /// the first test being a start-position-specific coincidence.
+unchessed-core/src/aegis_v4_runtime.rs:2891:    fn midgame_position_matches_python_reference() {
+unchessed-core/src/aegis_v4_runtime.rs:2911:            771, 773, 1025, 1153, 1221, 1347, 1350, 1478, 1669, 1923, 2117, 2499, 2565,
+unchessed-core/src/aegis_v4_runtime.rs:2916:            castling: 15,
+unchessed-core/src/aegis_v4_runtime.rs:2918:            halfmove_clock: 0,
+unchessed-core/src/aegis_v4_runtime.rs:2942:            3.917607545852661,
+unchessed-core/src/aegis_v4_runtime.rs:2957:        assert_eq!(input.legal_actions[best], 1350, "best action encoding");
+unchessed-core/src/aegis_v4_runtime.rs:2963:        let input = start_position_input();
+unchessed-core/src/aegis_v4_runtime.rs:2990:        let input = start_position_input();
+unchessed-core/src/aegis_v4_runtime.rs:3045:        let input = start_position_input();
+unchessed-core/src/aegis_v4_runtime.rs:3058:            -0.9507128,
+unchessed-core/src/aegis_v4_runtime.rs:3064:            -0.79163575,
+unchessed-core/src/aegis_v4_runtime.rs:3067:            -0.71138501,
+unchessed-core/src/aegis_v4_runtime.rs:3073:            0.37547749,
+unchessed-core/src/aegis_v4_runtime.rs:3129:            input.legal_actions[best_128], 1350,
+unchessed-core/src/aegis_v4_runtime.rs:3135:            -0.75749695,
+unchessed-core/src/aegis_v4_runtime.rs:3137:            -0.43399757,
+unchessed-core/src/aegis_v4_runtime.rs:3148:            -1.10875309,
+unchessed-core/src/aegis_v4_runtime.rs:3150:            -0.66685504,
+unchessed-core/src/aegis_v4_runtime.rs:3251:        let input = start_position_input();
+unchessed-core/src/aegis_v4_runtime.rs:3274:        let input = start_position_input();
+unchessed-core/src/aegis_v4_runtime.rs:3281:        let calls_per_round = 50;
+unchessed-core/src/aegis_v4_runtime.rs:3314:        let input = start_position_input();
+unchessed-core/src/aegis_v4_runtime.rs:3324:                InferenceExit::Layer2Width128 => 500,
+unchessed-core/src/aegis_v4_runtime.rs:3355:            positions: usize,
+unchessed-core/src/aegis_v4_runtime.rs:3368:            let input = position_to_input(&pos, legal_moves.as_slice(), 2700, 2, POLICY_GUIDE);
+unchessed-core/src/aegis_v4_runtime.rs:3404:                    .position(|&mv| mv == teacher_best)
+unchessed-core/src/aegis_v4_runtime.rs:3408:                    .position(|&index| index == teacher_index)
+unchessed-core/src/aegis_v4_runtime.rs:3411:                metric.positions += 1;
+unchessed-core/src/aegis_v4_runtime.rs:3435:                let outcome = if teacher_best_score > 50 {
+unchessed-core/src/aegis_v4_runtime.rs:3437:                } else if teacher_best_score < -50 {
+unchessed-core/src/aegis_v4_runtime.rs:3455:                "CALIBRATION {exit:?}: positions={} top1={:.4} top3={:.4} \
+unchessed-core/src/aegis_v4_runtime.rs:3457:                metric.positions,
+unchessed-core/src/aegis_v4_runtime.rs:3458:                metric.top1 as f64 / metric.positions as f64,
+unchessed-core/src/aegis_v4_runtime.rs:3459:                metric.top3 as f64 / metric.positions as f64,
+unchessed-core/src/aegis_v4_runtime.rs:3460:                metric.best_rank_sum as f64 / metric.positions as f64,
+unchessed-core/src/aegis_v4_runtime.rs:3462:                metric.wdl_brier / metric.positions as f64,
+unchessed-core/src/aegis_v4_runtime.rs:3483:        for (position_index, fen_text) in TRIAL_FENS.iter().enumerate() {
+unchessed-core/src/aegis_v4_runtime.rs:3486:            let limits = Limits::movetime(75);
+unchessed-core/src/aegis_v4_runtime.rs:3509:                let input = position_to_input(&pos, legal_moves.as_slice(), 2700, 2, POLICY_GUIDE);
+unchessed-core/src/aegis_v4_runtime.rs:3541:            ) = if position_index.is_multiple_of(2) {
+unchessed-core/src/aegis_v4_runtime.rs:3559:        let positions = TRIAL_FENS.len() as f64;
+unchessed-core/src/aegis_v4_runtime.rs:3564:             inference_ms={:.3}/position bestmove_agreement={}/{}",
+unchessed-core/src/aegis_v4_runtime.rs:3565:            baseline.depth as f64 / positions,
+unchessed-core/src/aegis_v4_runtime.rs:3568:            hinted.depth as f64 / positions,
+unchessed-core/src/aegis_v4_runtime.rs:3571:            inference_elapsed.as_secs_f64() * 1000.0 / positions,
+unchessed-core/src/aegis_v4_runtime.rs:3577:    /// Confirms `position_to_input` (real movegen + real board state) agrees
+unchessed-core/src/aegis_v4_runtime.rs:3578:    /// with the hand-built `start_position_input` fixture already validated
+unchessed-core/src/aegis_v4_runtime.rs:3582:    fn position_to_input_matches_hand_built_start_position() {
+unchessed-core/src/aegis_v4_runtime.rs:3585:        let live_input = position_to_input(&pos, moves.as_slice(), 2700, 2, POLICY_GUIDE);
+unchessed-core/src/aegis_v4_runtime.rs:3586:        let fixture_input = start_position_input();
+unchessed-core/src/aegis_v4_runtime.rs:3589:        assert_eq!(live_input.castling, fixture_input.castling, "castling");
+unchessed-core/src/aegis_v4_runtime.rs:3607:            live_input.legal_actions[best], 1350,
+unchessed-core/src/board.rs:151:    pub castle: [u64; 16],
+unchessed-core/src/board.rs:183:    let mut castle = [0u64; 16];
+unchessed-core/src/board.rs:188:        castle[i] = v;
+unchessed-core/src/board.rs:191:    // castle[0] = 0 so "no rights" contributes nothing; keeps hashes tidy.
+unchessed-core/src/board.rs:192:    castle[0] = 0;
+unchessed-core/src/board.rs:204:        castle,
+unchessed-core/src/board.rs:211:/// castling &= CASTLE_MASK[from] & CASTLE_MASK[to]
+unchessed-core/src/board.rs:212:const fn build_castle_mask() -> [u8; 64] {
+unchessed-core/src/board.rs:223:pub static CASTLE_MASK: [u8; 64] = build_castle_mask();
+unchessed-core/src/board.rs:237:    pub castling: u8,
+unchessed-core/src/board.rs:239:    pub halfmove: u16,
+unchessed-core/src/board.rs:252:            castling: 0,
+unchessed-core/src/board.rs:254:            halfmove: 0,
+unchessed-core/src/board.rs:315:        h ^= ZOBRIST.castle[self.castling as usize];
+unchessed-core/src/board.rs:325:    /// Copy-make: returns the position after the move (assumed pseudo-legal).
+unchessed-core/src/board.rs:334:        // clear old en passant
+unchessed-core/src/board.rs:382:        // castling rights
+unchessed-core/src/board.rs:383:        let old = p.castling;
+unchessed-core/src/board.rs:384:        p.castling &= CASTLE_MASK[from as usize] & CASTLE_MASK[to as usize];
+unchessed-core/src/board.rs:385:        if p.castling != old {
+unchessed-core/src/board.rs:386:            p.hash ^= ZOBRIST.castle[old as usize] ^ ZOBRIST.castle[p.castling as usize];
+unchessed-core/src/board.rs:390:            p.halfmove = 0;
+unchessed-core/src/board.rs:392:            p.halfmove += 1;
+unchessed-core/src/board.rs:409:        p.halfmove += 1;
+unchessed-core/src/book.rs:32:    "main;80;C50;Italian Game, Giuoco Pianissimo;e2e4 e7e5 g1f3 b8c6 f1c4 f8c5 c2c3 g8f6 d2d3 d7d6",
+unchessed-core/src/book.rs:40:    "main;50;B46;Sicilian Taimanov;e2e4 c7c5 g1f3 e7e6 d2d4 c5d4 f3d4 b8c6 b1c3 d8c7",
+unchessed-core/src/book.rs:43:    "main;50;C02;French Advance;e2e4 e7e6 d2d4 d7d5 e4e5 c7c5 c2c3 b8c6 g1f3 d8b6 a2a3",
+unchessed-core/src/book.rs:47:    "main;50;B19;Caro-Kann Classical;e2e4 c7c6 d2d4 d7d5 b1c3 d5e4 c3e4 c8f5 e4g3 f5g6 h2h4 h7h6 g1f3 b8d7",
+unchessed-core/src/book.rs:53:    "main;50;C42;Petroff Classical;e2e4 e7e5 g1f3 g8f6 f3e5 d7d6 e5f3 f6e4 d2d4 d6d5 f1d3 f8d6",
+unchessed-core/src/book.rs:58:    "main;75;D02;London System;d2d4 d7d5 g1f3 g8f6 c1f4 c7c5 e2e3 b8c6 b1d2 e7e6 c2c3 f8d6 f4g3 e8g8",
+unchessed-core/src/book.rs:63:    "main;50;D47;Semi-Slav Meran;d2d4 d7d5 c2c4 c7c6 g1f3 g8f6 b1c3 e7e6 e2e3 b8d7 f1d3 d5c4 d3c4 b7b5",
+unchessed-core/src/book.rs:67:    "main;50;D87;Gruenfeld Exchange;d2d4 g8f6 c2c4 g7g6 b1c3 d7d5 c4d5 f6d5 e2e4 d5c3 b2c3 f8g7 f1c4 c7c5 g1e2 b8c6",
+unchessed-core/src/book.rs:70:    "main;50;E04;Catalan Open;d2d4 g8f6 c2c4 e7e6 g2g3 d7d5 f1g2 f8e7 g1f3 e8g8 e1g1 d5c4 d1c2 a7a6 c2c4 b7b5 c4c2 c8b7",
+unchessed-core/src/book.rs:125:                    format!("illegal book move '{}' in line '{}'", tok, name)
+unchessed-core/src/book.rs:169:    /// All book moves known for this position (embedded + Polyglot merged).
+unchessed-core/src/book.rs:225:    /// Book moves for this position, decoded against its legal moves.
+unchessed-core/src/book.rs:256:    // Polyglot encodes castling as king-takes-rook (e1h1, e1a1, e8h8, e8a8).
+unchessed-core/src/book.rs:258:        let is_castle_encoding = match c {
+unchessed-core/src/book.rs:262:        if is_castle_encoding {
+unchessed-core/src/book.rs:294:/// The Polyglot Zobrist key of a position (distinct from our internal hash).
+unchessed-core/src/book.rs:304:    if pos.castling & WK != 0 {
+unchessed-core/src/book.rs:307:    if pos.castling & WQ != 0 {
+unchessed-core/src/book.rs:310:    if pos.castling & BK != 0 {
+unchessed-core/src/book.rs:313:    if pos.castling & BQ != 0 {
+unchessed-core/src/book.rs:370:            (&["e2e4"], 0x823c9b50fd114196),
+unchessed-core/src/book.rs:371:            (&["e2e4", "d7d5"], 0x0756b94461c50fb0),
+unchessed-core/src/book.rs:391:                let mv = parse_uci_move(&pos, m).unwrap_or_else(|| panic!("illegal {}", m));
+unchessed-core/src/eval.rs:130:    [-57,  14,  31,  34,  36,  38,  40,  46,  47,  50,  54,  50,  49,  50,  44,   0,
+unchessed-core/src/eval.rs:139:    [-25,  -7,   2,  21,  31,  35,  43,  50,  51,  58,  52,  55,  54,  60,   0,   0,
+unchessed-core/src/eval.rs:143:    [-200,-157,  31,  75,  94, 152, 161, 177, 192, 187, 212, 213, 227, 229, 242, 251,
+unchessed-core/src/eval.rs:250:/// vs RubiChess's real formula: no castling-rights-based penalty for a
+unchessed-core/src/eval.rs:251:/// rook stuck behind pawns -- would need castling-rights-history
+unchessed-core/src/eval.rs:363:const PASSED_MG: [i32; 8] = [0, 5, 8, 15, 28, 50, 85, 0];
+unchessed-core/src/eval.rs:407:/// Same-file-only mask of squares strictly ahead of `s` (toward promotion
+unchessed-core/src/eval.rs:483:     -5,   8,  25,  30,  55,  50,  25, -15,
+unchessed-core/src/eval.rs:495:     75,  80,  65,  50,  40,  40,  65,  70,
+unchessed-core/src/eval.rs:506:    -50, -25,  45,  25,  15,  40,   5, -12,
+unchessed-core/src/eval.rs:507:    -30,  40,  30,  45,  60,  70,  50,  30,
+unchessed-core/src/eval.rs:559:    -30, -12, -14,  -6,   2,   8,  -4, -50,
+unchessed-core/src/eval.rs:788:        // Same position with black to move is a big minus for the mover.
+unchessed-core/src/eval.rs:812:        // Same passed a6-pawn in both positions -- the only difference is
+unchessed-core/src/fen.rs:78:    pos.castling = 0;
+unchessed-core/src/fen.rs:82:                pos.castling |= match ch {
+unchessed-core/src/fen.rs:87:                    _ => return Err(format!("bad castling '{}'", ch)),
+unchessed-core/src/fen.rs:92:    // A castling right is meaningless (and downstream code assumes it's
+unchessed-core/src/fen.rs:94:    // builds the castling move purely from the rights bit plus path/attack
+unchessed-core/src/fen.rs:97:    // rather than letting a later synthetic castling move panic trying to
+unchessed-core/src/fen.rs:102:    if pos.castling & WK != 0 && !king_rook_ok(sq(4, 0), sq(7, 0), Color::White) {
+unchessed-core/src/fen.rs:103:        return Err("castling right K without king/rook on e1/h1".into());
+unchessed-core/src/fen.rs:105:    if pos.castling & WQ != 0 && !king_rook_ok(sq(4, 0), sq(0, 0), Color::White) {
+unchessed-core/src/fen.rs:106:        return Err("castling right Q without king/rook on e1/a1".into());
+unchessed-core/src/fen.rs:108:    if pos.castling & BK != 0 && !king_rook_ok(sq(4, 7), sq(7, 7), Color::Black) {
+unchessed-core/src/fen.rs:109:        return Err("castling right k without king/rook on e8/h8".into());
+unchessed-core/src/fen.rs:111:    if pos.castling & BQ != 0 && !king_rook_ok(sq(4, 7), sq(0, 7), Color::Black) {
+unchessed-core/src/fen.rs:112:        return Err("castling right q without king/rook on e8/a8".into());
+unchessed-core/src/fen.rs:123:            // "en passant" capture with no real pawn behind it, which
+unchessed-core/src/fen.rs:144:    pos.halfmove = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+unchessed-core/src/fen.rs:158:    // a position where the "opponent" king is effectively already gone,
+unchessed-core/src/fen.rs:163:        return Err("illegal position: side not to move is in check".into());
+unchessed-core/src/fen.rs:202:    if pos.castling == 0 {
+unchessed-core/src/fen.rs:205:        if pos.castling & WK != 0 {
+unchessed-core/src/fen.rs:208:        if pos.castling & WQ != 0 {
+unchessed-core/src/fen.rs:211:        if pos.castling & BK != 0 {
+unchessed-core/src/fen.rs:214:        if pos.castling & BQ != 0 {
+unchessed-core/src/fen.rs:224:    out.push_str(&format!(" {} {}", pos.halfmove, pos.fullmove));
+unchessed-core/src/movegen.rs:229:/// AND of three random draws biases toward sparse bit patterns, which tend
+unchessed-core/src/movegen.rs:515:/// Pseudo-legal move generation. `caps_only` = captures + promotions (for qsearch).
+unchessed-core/src/movegen.rs:627:    // en passant (counts as a capture)
+unchessed-core/src/movegen.rs:694:    // --- castling ---
+unchessed-core/src/movegen.rs:697:            if pos.castling & WK != 0
+unchessed-core/src/movegen.rs:705:            if pos.castling & WQ != 0
+unchessed-core/src/movegen.rs:714:            if pos.castling & BK != 0
+unchessed-core/src/movegen.rs:722:            if pos.castling & BQ != 0
+unchessed-core/src/nnue.rs:5://!   v2: HalfKA king-relative features (45056 = king_sq x 11 non-own-king
+unchessed-core/src/nnue.rs:70:const FT_IN_V2: usize = 64 * 11 * 64; // 45056
+unchessed-core/src/nnue.rs:113:    /// bucketing (docs/research-notes-moe-2507.11181.md: the fixed
+unchessed-core/src/nnue.rs:124:/// Stockfish's half-ka output-bucket selection; a legal position has 2..=32
+unchessed-core/src/nnue.rs:570:    /// en passant, castling, and promotion all fall out correctly for
+unchessed-core/src/nnue.rs:705:    /// the wrong weights for some king positions. That is exactly the kind of
+unchessed-core/src/nnue.rs:802:        let weights = xorshift_weights(4 * ACC, 0xdead_beef_cafe_0001);
+unchessed-core/src/nnue.rs:1046:    /// when unset) and prints the raw output for the start position.
+unchessed-core/src/nnue.rs:1085:    /// (square ^56), side flipped, castling rights swapped, ep mirrored.
+unchessed-core/src/nnue.rs:1103:        let castling = if parts[2] == "-" {
+unchessed-core/src/nnue.rs:1126:            castling,
+unchessed-core/src/nnue.rs:1136:        // asymmetric middlegame, black castled short, white king in the center
+unchessed-core/src/nnue.rs:1138:        // both castled, opposite sides (white short, black long)
+unchessed-core/src/nnue.rs:1140:        // en-passant square set, black to move next after mirror
+unchessed-core/src/nnue.rs:1149:    /// position: the two evals must be EQUAL. (They would be negations of
+unchessed-core/src/nnue.rs:1203:            assert_ne!(a, b, "[{}] dummy net evals should differ across positions", tag);
+unchessed-core/src/nnue.rs:1238:    /// aren't required to hit IEEE-754 float addition in the same order.
+unchessed-core/src/nnue.rs:1257:    /// against a from-scratch initial_state on the resulting position.
+unchessed-core/src/nnue.rs:1261:            .unwrap_or_else(|| panic!("{}: '{}' illegal in '{}'", ctx, uci, fen));
+unchessed-core/src/nnue.rs:1270:    /// must match a full recompute on the resulting position, for every
+unchessed-core/src/nnue.rs:1273:    /// row nowhere near the mover's destination, en passant removes a row
+unchessed-core/src/nnue.rs:1274:    /// at neither the origin nor the destination, promotion changes which
+unchessed-core/src/nnue.rs:1275:    /// piece-type row gets added, and castling moves two pieces at once
+unchessed-core/src/nnue.rs:1288:                "en passant",
+unchessed-core/src/nnue.rs:1293:                "kingside castling",
+unchessed-core/src/nnue.rs:1298:                "queenside castling",
+unchessed-core/src/nnue.rs:1302:            ("promotion (quiet)", "8/4P1k1/8/8/8/8/6K1/8 w - - 0 1", "e7e8q"),
+unchessed-core/src/nnue.rs:1304:                "promotion + capture",
+unchessed-core/src/nnue.rs:1309:                "king move (non-castling)",
+unchessed-core/src/nnue.rs:1326:    /// (opening theory including a capture and castling both sides), state
+unchessed-core/src/nnue.rs:1345:                    .unwrap_or_else(|| panic!("[{}] ply {}: '{}' illegal", tag, i, uci));
+unchessed-core/src/perft.rs:65:    fn position3() {
+unchessed-core/src/perft.rs:75:    fn position4() {
+unchessed-core/src/perft.rs:84:    fn position5() {
+unchessed-core/src/perft.rs:93:    fn position6() {
+unchessed-core/src/policy.rs:18://! v1 nets use 768 inputs (piece planes only). v2 nets add 4 castling-rights
+unchessed-core/src/policy.rs:19://! bits (mover K/Q, opponent K/Q) and 8 en-passant-file one-hots (780 total)
+unchessed-core/src/policy.rs:137:                ", v2 (castle/ep aware)"
+unchessed-core/src/policy.rs:145:    /// indices (castling rights / ep file, v2 nets only), and the flip flag.
+unchessed-core/src/policy.rs:166:            if pos.castling & mk != 0 {
+unchessed-core/src/policy.rs:169:            if pos.castling & mq != 0 {
+unchessed-core/src/policy.rs:172:            if pos.castling & ok != 0 {
+unchessed-core/src/policy.rs:175:            if pos.castling & oq != 0 {
+unchessed-core/src/policy.rs:238:            // the net's from-to output cannot see promotion piece choice:
+unchessed-core/src/policy.rs:239:            // underpromotions are rare in human play
+unchessed-core/src/polyglot_keys.rs:6:    0x9D39247E33776D41, 0x2AF7398005AAA5C7, 0x44DB015024623547, 0x9C15F73E62A76AE2,
+unchessed-core/src/polyglot_keys.rs:7:    0x75834465489C0C89, 0x3290AC3A203001BF, 0x0FBBAD1F61042279, 0xE83A908FF2FB60CA,
+unchessed-core/src/polyglot_keys.rs:8:    0x0D7E765D58755C10, 0x1A083822CEAFE02D, 0x9605D5F0E25EC3B0, 0xD021FF5CD13A2ED5,
+unchessed-core/src/polyglot_keys.rs:12:    0xAA649C6EBCFD50FC, 0x8DBD98A352AFD40B, 0x87D2074B81D79217, 0x19F3C751D3E92AE1,
+unchessed-core/src/polyglot_keys.rs:13:    0xB4AB30F062B19ABF, 0x7B0500AC42047AC4, 0xC9452CA81A09D85D, 0x24AA6C514DA27500,
+unchessed-core/src/polyglot_keys.rs:14:    0x4C9F34427501B447, 0x14A68FD73C910841, 0xA71B9B83461CBD93, 0x03488B95B0F1850F,
+unchessed-core/src/polyglot_keys.rs:15:    0x637B2B34FF93C040, 0x09D1BC9A3DD90A94, 0x3575668334A1DD3B, 0x735E2B97A4C45A23,
+unchessed-core/src/polyglot_keys.rs:17:    0x9F74D14F7454A824, 0x51EBDC4AB9BA3035, 0x5C82C505DB9AB0FA, 0xFCF7FE8A3430B241,
+unchessed-core/src/polyglot_keys.rs:18:    0x3253A729B9BA3DDE, 0x8C74C368081B3075, 0xB9BC6C87167C33E7, 0x7EF48F2B83024E20,
+unchessed-core/src/polyglot_keys.rs:19:    0x11D505D4C351BD7F, 0x6568FCA92C76A243, 0x4DE0B0F40F32A7B8, 0x96D693460CC37E5D,
+unchessed-core/src/polyglot_keys.rs:22:    0x5355F900C2A82DC7, 0x07FB9F855A997142, 0x5093417AA8A7ED5E, 0x7BCBC38DA25A7F3C,
+unchessed-core/src/polyglot_keys.rs:23:    0x19FC8A768CF4B6D4, 0x637A7780DECFC0D9, 0x8249A47AEE0E41F7, 0x79AD695501E7D1E8,
+unchessed-core/src/polyglot_keys.rs:24:    0x14ACBAF4777D5776, 0xF145B6BECCDEA195, 0xDABF2AC8201752FC, 0x24C3C94DF9C8D3F6,
+unchessed-core/src/polyglot_keys.rs:27:    0xEE954D3C7B411F47, 0x9A85AC909A24EAA1, 0x70AC4CD9F04F21F5, 0xF9B89D3E99A075C2,
+unchessed-core/src/polyglot_keys.rs:32:    0x2171E64683023A08, 0x5B9B63EB9CEFF80C, 0x506AACF489889342, 0x1881AFC9A3A701D6,
+unchessed-core/src/polyglot_keys.rs:33:    0x6503080440750644, 0xDFD395339CDBF4A7, 0xEF927DBCF00C20F2, 0x7B32F7D1E03680EC,
+unchessed-core/src/polyglot_keys.rs:34:    0xB9FD7620E7316243, 0x05A7E8A57DB91B77, 0xB5889C6E15630A75, 0x4A750A09CE9573F7,
+unchessed-core/src/polyglot_keys.rs:39:    0x930F80F4E8EB7462, 0xFF6712FFCFD75EA1, 0xAE623FD67468AA70, 0xDD2C5BC84BC8D8FC,
+unchessed-core/src/polyglot_keys.rs:43:    0xB415938D7DA94E3C, 0x91B859E59ECB6350, 0x10CFF333E0ED804A, 0x28AED140BE0BB7DD,
+unchessed-core/src/polyglot_keys.rs:44:    0xC5CC1D89724FA456, 0x5648F680F11A2741, 0x2D255069F0B7DAB3, 0x9BC5A38EF729ABD4,
+unchessed-core/src/polyglot_keys.rs:51:    0x4850E73E03EB6064, 0xCFC447F1E53C8E1B, 0xB05CA3F564268D99, 0x9AE182C8BC9474E8,
+unchessed-core/src/polyglot_keys.rs:52:    0xA4FC4BD4FC5558CA, 0xE755178D58FC4E76, 0x69B97DB1A4C03DFE, 0xF9B5B7C4ACC67C96,
+unchessed-core/src/polyglot_keys.rs:55:    0x9315E5EB3A129ACE, 0x94061B871E04DF75, 0xDF1D9F9D784BA010, 0x3BBA57B68871B59D,
+unchessed-core/src/polyglot_keys.rs:60:    0x40E087931A00930D, 0x8CFFA9412EB642C1, 0x68CA39053261169F, 0x7A1EE967D27579E2,
+unchessed-core/src/polyglot_keys.rs:61:    0x9D1D60E5076F5B6F, 0x3810E399B6F65BA2, 0x32095B6D4AB5F9B1, 0x35CAB62109DD038A,
+unchessed-core/src/polyglot_keys.rs:64:    0x722FF175F572C348, 0x1D1260A51107FE97, 0x7A249A57EC0C9BA2, 0x04208FE9E8F7F2D6,
+unchessed-core/src/polyglot_keys.rs:67:    0x506E6744CD974924, 0xB0183DB56FFC6A79, 0x0ED9B915C66ED37E, 0x5E11E86D5873D484,
+unchessed-core/src/polyglot_keys.rs:71:    0x0CE2A38C344A6EED, 0x1A804AADB9CFA741, 0x907F30421D78C5DE, 0x501F65EDB3034D07,
+unchessed-core/src/polyglot_keys.rs:72:    0x37624AE5A48FA6E9, 0x957BAF61700CFF4E, 0x3A6C27934E31188A, 0xD49503536ABCA345,
+unchessed-core/src/polyglot_keys.rs:74:    0xD60F6DCEDC314222, 0x56963B0DCA418FC0, 0x16F50EDF91E513AF, 0xEF1955914B609F93,
+unchessed-core/src/polyglot_keys.rs:75:    0x565601C0364E3228, 0xECB53939887E8175, 0xBAC7A9A18531294B, 0xB344C470397BBA52,
+unchessed-core/src/polyglot_keys.rs:76:    0x65D34954DAF3CEBD, 0xB4B81B3FA97511E2, 0xB422061193D6F6A7, 0x071582401C38434D,
+unchessed-core/src/polyglot_keys.rs:80:    0x947AE053EE56E63C, 0xC8C93882F9475F5F, 0x3A9BF55BA91F81CA, 0xD9A11FBB3D9808E4,
+unchessed-core/src/polyglot_keys.rs:82:    0xE9F6082B05542E4E, 0xEBFAFA33D7254B59, 0x9255ABB50D532280, 0xB9AB4CE57F2D34F3,
+unchessed-core/src/polyglot_keys.rs:83:    0x693501D628297551, 0xC62C58F97DD949BF, 0xCD454F8F19C5126A, 0xBBE83F4ECC2BDECB,
+unchessed-core/src/polyglot_keys.rs:84:    0xDC842B7E2819E230, 0xBA89142E007503B8, 0xA3BC941D0A5061CB, 0xE9F6760E32CD8021,
+unchessed-core/src/polyglot_keys.rs:87:    0x0572B974F03CE0BB, 0xB57D2E985E1419C7, 0xE8D9ECBE2CF3D73F, 0x2FE4B17170E59750,
+unchessed-core/src/polyglot_keys.rs:94:    0xD2733C4335C6A72F, 0x7E75D99D94A70F4D, 0x6CED1983376FA72B, 0x97FCAACBF030BC24,
+unchessed-core/src/polyglot_keys.rs:95:    0x7B77497B32503B12, 0x8547EDDFB81CCB94, 0x79999CDFF70902CB, 0xCFFE1939438E9B24,
+unchessed-core/src/polyglot_keys.rs:97:    0x5873888850659AE7, 0x0981DCD296A8736D, 0x9F65789A6509A440, 0x9FF38FED72E9052F,
+unchessed-core/src/polyglot_keys.rs:100:    0x3D5774A11D31AB39, 0x8A1B083821F40CB4, 0x7B4A38E32537DF62, 0x950113646D1D6E03,
+unchessed-core/src/polyglot_keys.rs:101:    0x4DA8979A0041E8A9, 0x3BC36E078F7515D7, 0x5D0A12F27AD310D1, 0x7F9D1A2E1EBE1327,
+unchessed-core/src/polyglot_keys.rs:104:    0xDBC27AB5447822BF, 0x9B3CDB65F82CA382, 0xB67B7896167B4C84, 0xBFCED1B0048EAC50,
+unchessed-core/src/polyglot_keys.rs:107:    0xF3B8B6675A6507FF, 0x9FC477DE4ED681DA, 0x67378D8ECCEF96CB, 0x6DD856D94D259236,
+unchessed-core/src/polyglot_keys.rs:108:    0xA319CE15B0B4DB31, 0x073973751F12DD5E, 0x8A8E849EB32781A5, 0xE1925C71285279F5,
+unchessed-core/src/polyglot_keys.rs:109:    0x74C04BF1790C0EFE, 0x4DDA48153C94938A, 0x9D266D6A1CC0542C, 0x7440FB816508C4FE,
+unchessed-core/src/polyglot_keys.rs:110:    0x13328503DF48229F, 0xD6BF7BAEE43CAC40, 0x4838D65F6EF6748F, 0x1E152328F3318DEA,
+unchessed-core/src/polyglot_keys.rs:113:    0x51D2B1AB2DDFB636, 0x2FD7E4B9E72CD38C, 0x65CA5B96B7552210, 0xDD69A0D8AB3B546D,
+unchessed-core/src/polyglot_keys.rs:116:    0x26E6DB8FFDF5ADFE, 0x469356C504EC9F9D, 0xC8763C5B08D1908C, 0x3F6C6AF859D80055,
+unchessed-core/src/polyglot_keys.rs:118:    0xA09E8C8C35AB96DE, 0xFA7E393983325753, 0xD6B6D0ECC617C699, 0xDFEA21EA9E7557E3,
+unchessed-core/src/polyglot_keys.rs:122:    0x66C1A2A1A60CD889, 0x9E17E49642A3E4C1, 0xEDB454E7BADC0805, 0x50B704CAB602C329,
+unchessed-core/src/polyglot_keys.rs:124:    0x1FE2CCA76517DB90, 0xD7504DFA8816EDBB, 0xB9571FA04DC089C8, 0x1DDC0325259B27DE,
+unchessed-core/src/polyglot_keys.rs:128:    0x2472F6207C2D0484, 0xC2A1E7B5B459AEB5, 0xAB4F6451CC1D45EC, 0x63767572AE3D6174,
+unchessed-core/src/polyglot_keys.rs:129:    0xA59E0BD101731A28, 0x116D0016CB948F09, 0x2CF9C8CA052F6E9F, 0x0B090A7560A968E3,
+unchessed-core/src/polyglot_keys.rs:133:    0x5B45E522E4B1B4EF, 0xB49C3B3995091A36, 0xD4490AD526F14431, 0x12A8F216AF9418C2,
+unchessed-core/src/polyglot_keys.rs:134:    0x001F837CC7350524, 0x1877B51E57A764D5, 0xA2853B80F17F58EE, 0x993E1DE72D36D310,
+unchessed-core/src/polyglot_keys.rs:136:    0x21E0BD5026C619BF, 0x3B097ADAF088F94E, 0x8D14DEDB30BE846E, 0xF95CFFA23AF5F6F4,
+unchessed-core/src/polyglot_keys.rs:139:    0x63573FF03E224774, 0x4FC8E9560F91B123, 0x1DB956E450275779, 0xB8D91274B9E9D4FB,
+unchessed-core/src/polyglot_keys.rs:140:    0xA2EBEE47E2FBFCE1, 0xD9F1F30CCD97FB09, 0xEFED53D75FD64E6B, 0x2E6D02C36017F67F,
+unchessed-core/src/polyglot_keys.rs:145:    0x2738259634305C14, 0x61CF4F94C97DF93D, 0x1B6BACA2AE4E125B, 0x758F450C88572E0B,
+unchessed-core/src/polyglot_keys.rs:146:    0x959F587D507A8359, 0xB063E962E045F54D, 0x60E8ED72C0DFF5D1, 0x7B64978555326F9F,
+unchessed-core/src/polyglot_keys.rs:154:    0xC0C0F5A60EF4CDCF, 0xCAF21ECD4377B28C, 0x57277707199B8175, 0x506C11B9D90E8B1D,
+unchessed-core/src/polyglot_keys.rs:155:    0xD83CC2687A19255F, 0x4A29C6465A314CD1, 0xED2DF21216235097, 0xB5635C95FF7296E2,
+unchessed-core/src/polyglot_keys.rs:158:    0x5092EF950A16DA0B, 0x9338E69C052B8E7B, 0x455A4B4CFE30E3F5, 0x6B02E63195AD0CF8,
+unchessed-core/src/polyglot_keys.rs:159:    0x6B17B224BAD6BF27, 0xD1E0CCD25BB9C169, 0xDE0C89A556B9AE70, 0x50065E535A213CF6,
+unchessed-core/src/polyglot_keys.rs:160:    0x9C1169FA2777B874, 0x78EDEFD694AF1EED, 0x6DC93D9526A50E68, 0xEE97F453F06791ED,
+unchessed-core/src/polyglot_keys.rs:161:    0x32AB0EDB696703D3, 0x3A6853C7E70757A7, 0x31865CED6120F37D, 0x67FEF95D92607890,
+unchessed-core/src/polyglot_keys.rs:163:    0xFB4A3D794A9A80D2, 0x3550C2321FD6109C, 0x371F77E76BB8417E, 0x6BFA9AAE5EC05779,
+unchessed-core/src/polyglot_keys.rs:164:    0xCD04F3FF001A4778, 0xE3273522064480CA, 0x9F91508BFFCFC14A, 0x049A7F41061A9E60,
+unchessed-core/src/polyglot_keys.rs:167:    0x1BDEA12E35F6A8C9, 0x53C065C6C8E63528, 0xE34A1D250E7A8D6B, 0xD6B04D3B7651DD7E,
+unchessed-core/src/polyglot_keys.rs:171:    0xB592BF39B0364963, 0x89C350C893AE7DC1, 0xAC042E70F8B383F2, 0xB49B52E587A1EE60,
+unchessed-core/src/polyglot_keys.rs:173:    0x24B33C9D7ED25117, 0xE74733427B72F0C1, 0x0A804D18B7097475, 0x57E3306D881EDB4F,
+unchessed-core/src/polyglot_keys.rs:175:    0x07A3AEC79624C7DA, 0x84547DDC3E203C94, 0x990A98FD5071D263, 0x1A4FF12616EEFC89,
+unchessed-core/src/polyglot_keys.rs:183:    0xB5FDFC5D3132C498, 0x310CB380DB6F7503, 0xE87FBB46217A360E, 0x2102AE466EBB1148,
+unchessed-core/src/polyglot_keys.rs:192:    0x65FA4F227A2B6D79, 0xD5F9E858292504D5, 0xC2B5A03F71471A6F, 0x59300222B4561E00,
+unchessed-core/src/polyglot_keys.rs:193:    0xCE2F8642CA0712DC, 0x7CA9723FBB2E8988, 0x2785338347F2BA08, 0xC61BB3A141E50E8C,
+unchessed-core/src/polyglot_keys.rs:194:    0x150F361DAB9DEC26, 0x9F6A419D382595F4, 0x64A53DC924FE7AC9, 0x142DE49FFF7A7C3D,
+unchessed-core/src/polyglot_keys.rs:196:    0xF1BCC3D275AFE51A, 0xE728E8C83C334074, 0x96FBF83A12884624, 0x81A1549FD6573DA5,
+unchessed-core/src/polyglot_keys.rs:200:    0xCF3145DE0ADD4289, 0xD0E4427A5514FB72, 0x77C621CC9FB3A483, 0x67A34DAC4356550B,
+unchessed-core/src/polyglot_keys.rs:201:    0xF8D626AAAF278509,
+unchessed-core/src/san.rs:2://! legal moves of a position. Shared by the datagen tool and the future
+unchessed-core/src/san.rs:20:    // castling
+unchessed-core/src/san.rs:64:    // promotion suffix "=X" (or a bare trailing piece letter, e.g. "e8Q")
+unchessed-core/src/san.rs:198:    fn promotion() {
+unchessed-core/src/search.rs:1://! Iterative-deepening alpha-beta search with quiescence, transposition table,
+unchessed-core/src/search.rs:78:            futility_margin: 150,
+unchessed-core/src/search.rs:201:    /// Transposition-table occupancy in permille, for UCI `info hashfull`.
+unchessed-core/src/search.rs:252:    /// score of a drawn line from the ROOT side's perspective (contempt)
+unchessed-core/src/search.rs:253:    root_draw: i32,
+unchessed-core/src/search.rs:256:    /// hashes of game positions + current search path (ancestors of the node)
+unchessed-core/src/search.rs:262:    /// position was passed as `pos` to the negamax/qsearch call running at
+unchessed-core/src/search.rs:304:    /// Only the most recent `halfmove` entries can possibly match: the
+unchessed-core/src/search.rs:305:    /// halfmove clock resets to zero on every capture and pawn push, and
+unchessed-core/src/search.rs:306:    /// those moves are irreversible, so no position before the last one can
+unchessed-core/src/search.rs:316:    /// Note the bound uses `halfmove` from the node being tested, and
+unchessed-core/src/search.rs:317:    /// `make_null` increments `halfmove` without clearing the path, so the
+unchessed-core/src/search.rs:320:    fn is_repetition(&self, hash: u64, halfmove: u16) -> bool {
+unchessed-core/src/search.rs:321:        let window = (halfmove as usize).min(self.path.len());
+unchessed-core/src/search.rs:330:    fn draw(&self, ply: usize) -> i32 {
+unchessed-core/src/search.rs:332:            self.root_draw
+unchessed-core/src/search.rs:334:            -self.root_draw
+unchessed-core/src/search.rs:358:        // SEE-based ordering: a capture/promotion that nets material (or is
+unchessed-core/src/search.rs:414:        // Pin scan is position-wide, not move-specific: compute it at most
+unchessed-core/src/search.rs:519:        // draws
+unchessed-core/src/search.rs:521:        // Checkmate takes precedence over the 50-move rule: a position
+unchessed-core/src/search.rs:522:        // reached at halfmove 100 with the side to move in check and no
+unchessed-core/src/search.rs:523:        // legal reply is a completed game (checkmate), not a draw --
+unchessed-core/src/search.rs:524:        // mirrors Stockfish's own is_draw() guard for this exact edge
+unchessed-core/src/search.rs:526:        // rare in-check-at-halfmove-100 case, not on the hot path; the
+unchessed-core/src/search.rs:529:        if pos.halfmove >= 100 && (!in_chk || legal(pos).len != 0) {
+unchessed-core/src/search.rs:530:            return self.draw(ply);
+unchessed-core/src/search.rs:532:        if self.is_repetition(pos.hash, pos.halfmove) {
+unchessed-core/src/search.rs:533:            return self.draw(ply);
+unchessed-core/src/search.rs:580:            // A null move changes no piece positions (only side-to-move and
+unchessed-core/src/search.rs:581:            // en-passant state), so the evaluator's accumulators are
+unchessed-core/src/search.rs:604:        // a handful of captures/promotions already confirm a fail-high well
+unchessed-core/src/search.rs:734:            // position back up to alpha — a quiet move rarely swings eval by
+unchessed-core/src/search.rs:766:            // away. Nothing between the old and new position of this line
+unchessed-core/src/search.rs:842:                self.draw(ply)
+unchessed-core/src/search.rs:853:/// Zobrist hashes of all game positions before `pos` (used for repetition
+unchessed-core/src/search.rs:854:/// detection). `draw_score` is the value of a drawn line from the root side's
+unchessed-core/src/search.rs:855:/// perspective (0 = neutral; negative = contempt, we want to avoid draws).
+unchessed-core/src/search.rs:872:    draw_score: i32,
+unchessed-core/src/search.rs:885:        draw_score,
+unchessed-core/src/search.rs:896:/// `preprocessing_elapsed` is charged against the same soft/hard deadline as
+unchessed-core/src/search.rs:904:/// position partly as one where these two values agree closely: a large gap
+unchessed-core/src/search.rs:909:/// node limit, no repetition path -- so it is deterministic and cheap.
+unchessed-core/src/search.rs:922:        root_draw: 0,
+unchessed-core/src/search.rs:943:    draw_score: i32,
+unchessed-core/src/search.rs:964:    // situation-based allocation: sharp or wide positions deserve more of
+unchessed-core/src/search.rs:968:        let width = (0.65 + root_moves_list.len as f64 / 45.0).clamp(0.75, 1.3);
+unchessed-core/src/search.rs:1008:        root_draw: draw_score.clamp(-100, 100),
+unchessed-core/src/search.rs:1213:    /// The halfmove-bounded repetition scan must agree with a full scan for
+unchessed-core/src/search.rs:1214:    /// every hash that could legally still be a repetition.
+unchessed-core/src/search.rs:1216:    /// The bound is a strict narrowing: entries older than the halfmove
+unchessed-core/src/search.rs:1219:    /// -- it must never invent a repetition, and never miss one inside the
+unchessed-core/src/search.rs:1222:    fn bounded_repetition_scan_matches_full_scan_within_window() {
+unchessed-core/src/search.rs:1239:            let halfmove = (next() % 60) as u16;
+unchessed-core/src/search.rs:1240:            // Small alphabet so repetitions actually occur.
+unchessed-core/src/search.rs:1254:                root_draw: 0,
+unchessed-core/src/search.rs:1263:            let bounded = searcher.is_repetition(probe, halfmove);
+unchessed-core/src/search.rs:1264:            let window = (halfmove as usize).min(path.len());
+unchessed-core/src/search.rs:1269:                "bounded scan must exactly cover the halfmove window"
+unchessed-core/src/search.rs:1274:                    "bounded scan must never invent a repetition the full scan misses"
+unchessed-core/src/search.rs:1281:    /// positions -- that is the entire basis of the arXiv:2412.17948 filter.
+unchessed-core/src/search.rs:1283:    fn static_and_quiescence_separates_quiet_from_hanging_positions() {
+unchessed-core/src/search.rs:1287:        // Start position: nothing to capture, so quiescence has nothing to
+unchessed-core/src/search.rs:1291:        assert_eq!(s, q, "a position with no captures must be its own qsearch");
+unchessed-core/src/search.rs:1321:            root_draw: 0,
+unchessed-core/src/search.rs:1420:    /// positions with known forced mates, run deterministically, with no
+unchessed-core/src/search.rs:1434:    /// The positions mirror `benchmarks/matetrack.epd`, which is generated
+unchessed-core/src/search.rs:1595:    fn stalemate_position_ignores_root_hints() {
+unchessed-core/src/search.rs:1799:    /// this position. Any legal move missing from the list gets the minimum
+unchessed-core/src/search.rs:1845:            ("a1a6", -1.010350),
+unchessed-core/src/search.rs:1846:            ("a1a5", -1.355014),
+unchessed-core/src/search.rs:1848:            ("a1a3", -1.369275),
+unchessed-core/src/search.rs:1850:            ("a1f1", -0.858250),
+unchessed-core/src/search.rs:1891:    /// A real, non-synthetic disagreement in a full middlegame position.
+unchessed-core/src/search.rs:1894:    /// strongly preferring quiet castling (the only move it scores above
+unchessed-core/src/search.rs:1896:    /// mate fixtures the position is a normal opening tabiya rather than a
+unchessed-core/src/search.rs:1904:    /// real ranking cannot make the search return an illegal or absurd move.
+unchessed-core/src/search.rs:1912:            ("c4e6", -2.502336),
+unchessed-core/src/search.rs:1933:            ("c1e3", -1.295096),
+unchessed-core/src/search.rs:1938:            ("e1g1", 0.136316), // model's top choice: castle
+unchessed-core/src/search.rs:1969:        // The returned move must be one of the position's real legal moves.
+unchessed-core/src/search.rs:1976:        // Nobody is getting mated in this quiet opening position.
+unchessed-core/src/search.rs:1978:        // A sane evaluation: this is a balanced tabiya, not a lost position.
+unchessed-core/src/search.rs:1980:            lines[0].score.abs() < 500,
+unchessed-core/src/search.rs:2004:        assert!(Limits::movetime(500).is_game_mode());
+unchessed-core/src/search.rs:2069:        assert_eq!(ml.len, 1, "test position must have exactly one legal move");
+unchessed-core/src/see.rs:14:/// `occ` is expected to be a subset of the real position's occupancy (pieces
+unchessed-core/src/see.rs:43:/// nets material, negative means it loses material. Quiet non-promoting
+unchessed-core/src/see.rs:46:/// Both colors' pin information for a position.
+unchessed-core/src/see.rs:48:/// SEE needs this, but it depends only on the position -- not on the move
+unchessed-core/src/see.rs:63:/// happens to contain no captures or promotions never needs pin information
+unchessed-core/src/see.rs:104:/// [`see`], but reusing pin information already computed for this position.
+unchessed-core/src/see.rs:107:/// position would silently produce a wrong exchange value.
+unchessed-core/src/see.rs:124:    // Pin info computed once from the STATIC position (an accepted
+unchessed-core/src/see.rs:128:    // some positions get a slightly less accurate SEE in exchange for a
+unchessed-core/src/see.rs:147:    // A promotion nets the promoted piece's value minus the pawn it replaces,
+unchessed-core/src/see.rs:148:    // on top of whatever was captured (or nothing, for a quiet promotion).
+unchessed-core/src/see.rs:156:    // the promoted piece for a promotion, otherwise the moving piece itself.
+unchessed-core/src/see.rs:240:    /// `Pins` depends only on the position, so `see` (which builds it
+unchessed-core/src/see.rs:242:    /// agree on every legal move of every position -- including the pinned
+unchessed-core/src/tt.rs:1://! Transposition table — lock-free, shared across search threads.
+unchessed-core/src/tt.rs:6://! either genuinely a different position or was torn by a concurrent write
+unchessed-core/src/tt.rs:91:    /// child position is made overlaps that memory latency with the
+unchessed-core/src/tt.rs:237:        for hash in 0..250u64 {
+unchessed-core/src/tt.rs:243:            "expected roughly 250 permille, got {full}"
+unchessed-core/src/tt.rs:251:        for hash in 0..5000u64 {
+unchessed-core/src/uci.rs:15:    position_to_input, ChessformerWeights, HintKey, InferenceExit, UnarchitecturedHintWorker,
+unchessed-core/src/uci.rs:176:    /// position after each played move; [0] is the game-start position
+unchessed-core/src/uci.rs:177:    positions: Vec<Position>,
+unchessed-core/src/uci.rs:193:            positions: vec![p],
+unchessed-core/src/uci.rs:232:    // position remains game 0 for permissive UCI clients.
+unchessed-core/src/uci.rs:279:                    println!("option name UCI_Elo type spin default 2400 min 500 max 3200");
+unchessed-core/src/uci.rs:301:                println!("option name ProbCutMargin type spin default 200 min 50 max 400");
+unchessed-core/src/uci.rs:304:                println!("option name FutilityMargin type spin default 150 min 30 max 400");
+unchessed-core/src/uci.rs:338:            "setoption" => {
+unchessed-core/src/uci.rs:340:                handle_setoption(
+unchessed-core/src/uci.rs:380:            "position" => {
+unchessed-core/src/uci.rs:382:                if let Some(g) = parse_position(&line, &game) {
+unchessed-core/src/uci.rs:439:                    history: game.positions[..game.positions.len().saturating_sub(1)]
+unchessed-core/src/uci.rs:443:                    game_plies: game.positions.len() as u32 - 1,
+unchessed-core/src/uci.rs:483:            // debug: "policy [elo]" prints the human policy for the position
+unchessed-core/src/uci.rs:485:                let elo: i32 = toks.next().and_then(|t| t.parse().ok()).unwrap_or(1500);
+unchessed-core/src/uci.rs:538:/// `setoption name ...` line into (key, value). Deliberately searches for
+unchessed-core/src/uci.rs:540:/// "setoption name EvalFile value" with nothing after it) has its
+unchessed-core/src/uci.rs:543:/// match an empty value at all, silently dropping the whole setoption --
+unchessed-core/src/uci.rs:546:fn parse_setoption_kv(rest: &str) -> (&str, &str) {
+unchessed-core/src/uci.rs:554:fn handle_setoption(
+unchessed-core/src/uci.rs:566:    // setoption name <key with spaces> [value <value...>]
+unchessed-core/src/uci.rs:567:    let rest = match line.strip_prefix("setoption") {
+unchessed-core/src/uci.rs:575:    let (key, value) = parse_setoption_kv(rest);
+unchessed-core/src/uci.rs:662:                opt.elo = e.clamp(500, 3200);
+unchessed-core/src/uci.rs:725:                opt.search.probcut_margin = v.clamp(50, 400);
+unchessed-core/src/uci.rs:867:/// `position` command rather than sending just the newest move, so a fresh
+unchessed-core/src/uci.rs:876:/// it (same position sequence, just with more moves appended); only reset
+unchessed-core/src/uci.rs:877:/// to 0 when it's actually a different game (a real `position` change, not
+unchessed-core/src/uci.rs:879:fn carry_observed_plies(old: &Game, new_positions: &[Position]) -> usize {
+unchessed-core/src/uci.rs:880:    if old.observed_plies == 0 || old.positions.len() > new_positions.len() {
+unchessed-core/src/uci.rs:884:        .positions
+unchessed-core/src/uci.rs:886:        .zip(new_positions.iter())
+unchessed-core/src/uci.rs:895:fn parse_position(line: &str, old: &Game) -> Option<Game> {
+unchessed-core/src/uci.rs:897:    toks.next(); // "position"
+unchessed-core/src/uci.rs:917:                positions: vec![pos],
+unchessed-core/src/uci.rs:929:                    game.positions.push(game.current);
+unchessed-core/src/uci.rs:932:            game.observed_plies = carry_observed_plies(old, &game.positions);
+unchessed-core/src/uci.rs:938:        positions: vec![start],
+unchessed-core/src/uci.rs:951:            game.positions.push(game.current);
+unchessed-core/src/uci.rs:954:    game.observed_plies = carry_observed_plies(old, &game.positions);
+unchessed-core/src/uci.rs:988:/// Opponent moves played since we last looked, with their pre-move positions.
+unchessed-core/src/uci.rs:991:    let n_moves = game.positions.len() - 1;
+unchessed-core/src/uci.rs:994:        let pre = game.positions[i];
+unchessed-core/src/uci.rs:997:            let post = game.positions[i + 1];
+unchessed-core/src/uci.rs:1021:    position_to_input(
+unchessed-core/src/uci.rs:1100:        let deadline = std::time::Instant::now() + std::time::Duration::from_millis(100);
+unchessed-core/src/uci.rs:1108:            if ready.is_some() || std::time::Instant::now() >= deadline {
+unchessed-core/src/uci.rs:1150:        // forward to the real search deadline.
+unchessed-core/src/uci.rs:1341:        println!("bestmove 0000");
+unchessed-core/src/uci.rs:1398:            // Analysis of the pre-move position (opponent to move) used as the
+unchessed-core/src/uci.rs:1459:                        nodes: Some(250_000),
+unchessed-core/src/uci.rs:1485:            // clock signal: instant strong replies in positions with real
+unchessed-core/src/uci.rs:1555:                // bail-out guard: never continue a troll line from a position
+unchessed-core/src/uci.rs:1603:                    println!("bestmove {}", entry.mv.uci());
+unchessed-core/src/uci.rs:1626:    let draw_score = if adaptive_now {
+unchessed-core/src/uci.rs:1627:        crate::adapt::draw_score_for(&cfg, prev_mode)
+unchessed-core/src/uci.rs:1679:                        draw_score,
+unchessed-core/src/uci.rs:1695:                        draw_score,
+unchessed-core/src/uci.rs:1712:                draw_score,
+unchessed-core/src/uci.rs:1728:                draw_score,
+unchessed-core/src/uci.rs:1736:        println!("bestmove 0000");
+unchessed-core/src/uci.rs:1823:        println!("bestmove {}", sel.mv.uci());
+unchessed-core/src/uci.rs:1825:        println!("bestmove {}", lines[0].mv.uci());
+unchessed-core/src/uci.rs:1987:        handle_setoption(
+unchessed-core/src/uci.rs:1988:            "setoption name AdapterTelemetry value TRUE",
+unchessed-core/src/uci.rs:2000:        handle_setoption(
+unchessed-core/src/uci.rs:2001:            "setoption name AdapterTelemetry value false",
+unchessed-core/src/uci.rs:2016:    fn telemetry_indexes_are_reset_per_new_game_and_preserved_on_position_resend() {
+unchessed-core/src/uci.rs:2024:        let resent = parse_position("position startpos moves e2e4", &game).expect("position");
+unchessed-core/src/uci.rs:2042:    // startpos on every `position` command rather than just the newest
+unchessed-core/src/uci.rs:2043:    // move. parse_position() used to ignore the previous Game entirely and
+unchessed-core/src/uci.rs:2049:    fn position_carries_observed_plies_across_gui_resends() {
+unchessed-core/src/uci.rs:2052:        // turn 1: GUI sends "position startpos moves e2e4"
+unchessed-core/src/uci.rs:2053:        let mut g1 = parse_position("position startpos moves e2e4", &g0).unwrap();
+unchessed-core/src/uci.rs:2062:        let mut g2 = parse_position("position startpos moves e2e4 e7e5", &g1).unwrap();
+unchessed-core/src/uci.rs:2066:             new position is the same game continuing"
+unchessed-core/src/uci.rs:2132:        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+unchessed-core/src/uci.rs:2143:            assert!(std::time::Instant::now() < deadline, "candidate timed out");
+unchessed-core/src/uci.rs:2312:    fn setoption_kv_parses_a_normal_value() {
+unchessed-core/src/uci.rs:2314:            parse_setoption_kv("PassedPawnMgPct value 40"),
+unchessed-core/src/uci.rs:2320:    fn setoption_kv_parses_an_empty_value() {
+unchessed-core/src/uci.rs:2325:        // match, and the whole setoption line was dropped on the floor.
+unchessed-core/src/uci.rs:2326:        assert_eq!(parse_setoption_kv("EvalFile value"), ("EvalFile", ""));
+unchessed-core/src/uci.rs:2327:        assert_eq!(parse_setoption_kv("BookFile value"), ("BookFile", ""));
+unchessed-core/src/uci.rs:2331:    fn position_resets_observed_plies_for_a_genuinely_different_game() {
+unchessed-core/src/uci.rs:2333:        let mut g1 = parse_position("position startpos moves e2e4", &g0).unwrap();
+unchessed-core/src/uci.rs:2337:        let g2 = parse_position("position startpos moves d2d4", &g1).unwrap();
+unchessed-core/src/uci.rs:2341:             over stale progress from an unrelated position"

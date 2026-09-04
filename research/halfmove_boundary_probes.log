@@ -1,0 +1,14 @@
+=== halfmove_100_quiet ===
+info string [Unchessed] could not parse: position fen 7k/8/8/8/8/8/8/K6R w - - 100 1
+info depth 1 multipv 1 score cp 91 nodes 24 nps 24000 hashfull 0 time 0 pv d2d4
+bestmove d2d4
+=== halfmove_150_quiet ===
+info string [Unchessed] could not parse: position fen 7k/8/8/8/8/8/8/K6R w - - 150 1
+info depth 1 multipv 1 score cp 91 nodes 24 nps 24000 hashfull 0 time 0 pv d2d4
+bestmove d2d4
+=== halfmove_100_mate ===
+info depth 1 multipv 1 score mate 1 nodes 18 nps 18000 hashfull 0 time 0 pv a1a8
+bestmove a1a8
+=== halfmove_150_mate ===
+info depth 1 multipv 1 score mate 1 nodes 18 nps 18000 hashfull 0 time 0 pv a1a8
+bestmove a1a8

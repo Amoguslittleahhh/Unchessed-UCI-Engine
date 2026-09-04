@@ -1,0 +1,33 @@
+unchessed-core/src/adapt.rs:369:    pub fn estimate(&self) -> i32 {
+unchessed-core/src/adapt.rs:1160:pub fn difficulty_weight(pre_lines: &[Line], legal_count: usize, was_book: bool) -> f64 {
+unchessed-core/src/adapt.rs:1362:    fn match_never_samples_into_mate() {
+unchessed-core/src/adapt.rs:1406:    fn king_move_that_forfeits_castling_scores_far_below_a_normal_king_walk() {
+unchessed-core/src/board.rs:212:const fn build_castle_mask() -> [u8; 64] {
+unchessed-core/src/eval.rs:784:    fn material_up_is_positive() {
+unchessed-core/src/movegen.rs:389:pub fn in_check(pos: &Position) -> bool {
+unchessed-core/src/movegen.rs:735:pub fn legal(pos: &Position) -> MoveList {
+unchessed-core/src/nnue.rs:1258:    fn check_incremental_step(net: &Nnue, fen: &str, uci: &str, ctx: &str) {
+unchessed-core/src/perft.rs:6:pub fn perft(pos: &Position, depth: u32) -> u64 {
+unchessed-core/src/perft.rs:22:pub fn perft_divide(pos: &Position, depth: u32) -> Vec<(String, u64)> {
+unchessed-core/src/perft.rs:41:    fn check(fen: &str, depth: u32, expected: u64) {
+unchessed-core/src/san.rs:198:    fn promotion() {
+unchessed-core/src/search.rs:207:pub fn is_mate_score(s: i32) -> bool {
+unchessed-core/src/search.rs:212:pub fn mate_in(s: i32) -> i32 {
+unchessed-core/src/search.rs:285:    fn check_limits(&mut self) {
+unchessed-core/src/search.rs:320:    fn is_repetition(&self, hash: u64, halfmove: u16) -> bool {
+unchessed-core/src/search.rs:1222:    fn bounded_repetition_scan_matches_full_scan_within_window() {
+unchessed-core/src/search.rs:1357:    fn node_limited_go_returns_a_legal_fallback_move() {
+unchessed-core/src/search.rs:1409:    fn finds_mate_in_one() {
+unchessed-core/src/search.rs:1440:    fn matetrack_suite_finds_every_forced_mate() {
+unchessed-core/src/search.rs:1481:    fn root_hints_cannot_override_a_forced_mate() {
+unchessed-core/src/search.rs:1515:    fn root_hints_cannot_override_black_back_rank_mate() {
+unchessed-core/src/search.rs:1548:    fn stale_or_nonfinite_hints_cannot_remove_legal_moves() {
+unchessed-core/src/search.rs:1595:    fn stalemate_position_ignores_root_hints() {
+unchessed-core/src/search.rs:1622:    fn precharged_root_hints_keep_only_move_legal_and_bounded() {
+unchessed-core/src/search.rs:1656:    fn precharged_root_hints_keep_only_move_under_knight_check() {
+unchessed-core/src/search.rs:1692:    fn precharged_root_hints_keep_only_move_under_bishop_check() {
+unchessed-core/src/search.rs:1728:    fn precharged_root_hints_keep_only_move_under_queen_check() {
+unchessed-core/src/search.rs:1764:    fn root_hints_cannot_override_king_and_queen_mate() {
+unchessed-core/src/search.rs:1835:    fn real_checkpoint_ranking_cannot_suppress_back_rank_mate() {
+unchessed-core/src/search.rs:1906:    fn real_checkpoint_ranking_keeps_middlegame_search_sound() {
+unchessed-core/src/search.rs:1987:    fn finds_mate_in_two() {

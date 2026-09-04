@@ -1,0 +1,11 @@
+=== back_rank_pawn ===
+info depth 1 multipv 1 score cp 1132 nodes 12 nps 12000 hashfull 0 time 0 pv a7a8q e8e7
+bestmove a7a8q
+=== bad_castling_right ===
+info string [Unchessed] could not parse: position fen 4k3/8/8/8/8/8/8/4K3 w K - 0 1
+info depth 1 multipv 1 score cp 91 nodes 24 nps 24000 hashfull 0 time 0 pv d2d4
+bestmove d2d4
+=== occupied_ep ===
+info string [Unchessed] could not parse: position fen 4k3/8/8/3pP3/8/8/8/4K3 w - e4 0 1
+info depth 1 multipv 1 score cp 91 nodes 24 nps 24000 hashfull 0 time 0 pv d2d4
+bestmove d2d4
