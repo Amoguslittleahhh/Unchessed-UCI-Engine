@@ -1,5 +1,7 @@
 # Live Rapid Benchmark and Persona Stability Review
 
+> **Evaluator provenance correction:** The archived eight-game match in this report was run without an explicit `EvalFile`, so it used the hand-crafted fallback evaluator (HCE). Its results are retained as an HCE baseline and are not shipped-NNUE strength results. The optimization copy now includes the canonical NNUE asset, and the benchmark harness requires `--eval-file` for future fair runs.
+
 **Date:** 2026-09-04
 **Branch:** `manus/research-facilities`
 **Target:** Unchessed Heavy Optimisation after confidence-aware Elo/persona coupling commit `6b0d84d`

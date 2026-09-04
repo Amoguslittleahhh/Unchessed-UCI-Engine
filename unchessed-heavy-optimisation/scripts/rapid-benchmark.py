@@ -12,6 +12,7 @@ from pathlib import Path
 import chess
 
 TELEMETRY_RE = re.compile(r"event=persona_decision .*?mode_after=(?P<mode>[A-Z]+)")
+OBSERVATION_RE = re.compile(r"event=opponent_observation .*?estimate_elo=(?P<elo>-?\d+) confidence_cp=(?P<conf>-?\d+)")
 
 class UCI:
     def __init__(self, command, name):
@@ -64,6 +65,9 @@ class UCI:
             m = TELEMETRY_RE.search(line)
             if m:
                 telemetry.append(m.group("mode"))
+            obs = OBSERVATION_RE.search(line)
+            if obs:
+                elos.append({"elo": int(obs.group("elo")), "confidence": int(obs.group("conf"))})
             if line.startswith("bestmove "):
                 best = line.split()[1]
                 break
@@ -149,16 +153,20 @@ def main():
     ap.add_argument("--unchessed", required=True)
     ap.add_argument("--stockfish", required=True)
     ap.add_argument("--maia", required=True)
+    ap.add_argument("--eval-file", required=True, help="explicit NNUE file; refuses silent HCE fallback")
     ap.add_argument("--games", type=int, default=6)
     ap.add_argument("--initial-ms", type=int, default=180000)
     ap.add_argument("--inc-ms", type=int, default=2000)
     ap.add_argument("--max-plies", type=int, default=300)
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
+    eval_file = Path(args.eval_file).expanduser().resolve()
+    if not eval_file.is_file() or eval_file.stat().st_size == 0:
+        ap.error(f"NNUE file is missing or empty: {eval_file}")
     # Disable opening-book shortcuts so Elo/persona evidence and move quality are
     # measured from the same start position under the requested clock.
     options = {
-        "Unchessed Game Adapter": {"OwnBook": "false", "AdapterTelemetry": "true", "PersonaSmooth": "true"},
+        "Unchessed Game Adapter": {"EvalFile": str(eval_file), "OwnBook": "false", "AdapterTelemetry": "true", "PersonaSmooth": "true"},
         "Stockfish": {"UCI_AnalyseMode": "false", "Threads": "1", "Hash": "32"},
         "Maia-3": {"Threads": "1"},
     }

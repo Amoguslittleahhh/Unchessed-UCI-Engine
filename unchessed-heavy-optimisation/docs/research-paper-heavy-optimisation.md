@@ -152,7 +152,7 @@ Resident memory increased with Hash size, while portable and v3 builds remained 
 
 ### 5.3 Reproducibility
 
-The raw benchmark table is stored at `benchmarks/results/portable-v3-20260904-113843.tsv`. The harness is `scripts/benchmark-portable-v3.sh`, and the summarizer is `scripts/summarize-benchmark.py`. Results should be regenerated on each target CPU with fixed power mode, thread count, thermal state, operating-system scheduler, and model/evaluator.
+The raw historical benchmark table is stored at `benchmarks/results/portable-v3-20260904-113843-hce.tsv`. A later provenance audit found that this run omitted `EvalFile`, so it measured the hand-crafted fallback evaluator (HCE), not the shipped NNUE. The corrected harness is `scripts/benchmark-portable-v3.sh` and now requires an explicit NNUE path. The summarizer is `scripts/summarize-benchmark.py`. NNUE results should be regenerated on each target CPU with fixed power mode, thread count, thermal state, operating-system scheduler, and model/evaluator.
 
 ## 6. Persona integration with an Lc0 verification pipeline
 

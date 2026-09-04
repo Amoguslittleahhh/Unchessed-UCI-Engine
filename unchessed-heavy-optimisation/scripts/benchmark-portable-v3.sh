@@ -3,6 +3,14 @@ set -euo pipefail
 source "${HOME}/.cargo/env"
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 cd "$ROOT"
+
+if [[ $# -ne 1 || ! -s "$1" ]]; then
+  echo "usage: $0 /absolute/path/to/unchessed-nnue.bin" >&2
+  echo "Refusing to benchmark the hand-crafted fallback; pass the exact NNUE file explicitly." >&2
+  exit 2
+fi
+EVAL_FILE=$(realpath "$1")
+EVAL_SHA256=$(sha256sum "$EVAL_FILE" | awk '{print $1}')
 PORTABLE_TARGET="$ROOT/target-bench-portable"
 V3_TARGET="$ROOT/target-bench-v3"
 mkdir -p "$ROOT/benchmarks/results"
@@ -13,7 +21,7 @@ RUSTFLAGS='-C target-cpu=x86-64-v3' cargo build --release --workspace --target-d
 PORTABLE="$PORTABLE_TARGET/release/unchessed-adapter"
 V3="$V3_TARGET/release/unchessed-adapter"
 OUT="$ROOT/benchmarks/results/portable-v3-$(date +%Y%m%d-%H%M%S).tsv"
-printf 'build\thash_mb\tfen\tnodes\ttime_ms\tnps\tmax_rss_kb\tbestmove\n' > "$OUT"
+printf 'build\thash_mb\tfen\teval_file\teval_sha256\tnodes\ttime_ms\tnps\tmax_rss_kb\tbestmove\n' > "$OUT"
 
 FENS=(
   'startpos'
@@ -34,7 +42,7 @@ for build in portable v3; do
       fi
       tmp=$(mktemp)
       {
-        /usr/bin/time -f 'RSS=%M' sh -c "{ printf 'uci\\nsetoption name Threads value 1\\nsetoption name Hash value $hash\\nsetoption name Adaptive value false\\nsetoption name OwnBook value false\\nisready\\n$pos\\ngo nodes 500000\\n'; sleep 2; printf 'quit\\n'; } | '$exe'"
+        /usr/bin/time -f 'RSS=%M' sh -c "{ printf 'uci\\nsetoption name Threads value 1\\nsetoption name Hash value $hash\\nsetoption name EvalFile value $EVAL_FILE\\nsetoption name Adaptive value false\\nsetoption name OwnBook value false\\nisready\\n$pos\\ngo nodes 500000\\n'; sleep 2; printf 'quit\\n'; } | '$exe'"
       } >"$tmp" 2>&1 || true
       info=$(grep '^info .*nodes ' "$tmp" | tail -1 || true)
       nodes=$(printf '%s\n' "$info" | sed -n 's/.* nodes \([0-9][0-9]*\) .*/\1/p')
@@ -42,7 +50,7 @@ for build in portable v3; do
       nps=$(printf '%s\n' "$info" | sed -n 's/.* nps \([0-9][0-9]*\) .*/\1/p')
       rss=$(sed -n 's/^RSS=//p' "$tmp" | tail -1 || true)
       best=$(grep '^bestmove ' "$tmp" | tail -1 | awk '{print $2}' || true)
-      printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$build" "$hash" "$fen" "${nodes:-0}" "${time_ms:-0}" "${nps:-0}" "${rss:-0}" "${best:-0000}" >> "$OUT"
+      printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$build" "$hash" "$fen" "$EVAL_FILE" "$EVAL_SHA256" "${nodes:-0}" "${time_ms:-0}" "${nps:-0}" "${rss:-0}" "${best:-0000}" >> "$OUT"
       rm -f "$tmp"
     done
   done

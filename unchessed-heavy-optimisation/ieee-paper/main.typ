@@ -123,15 +123,15 @@ These controls are semantic firewalls, not cryptographic security mechanisms. Th
 
 The isolated branch is a copy of the repository's main branch under `unchessed-heavy-optimisation`; the main branch was not edited. The implementation is Rust-based and was validated with the current stable toolchain available in the sandbox. The full workspace validation passed 129 tests, with zero failures and six ignored tests. Release compilation, UCI smoke checks, deep perft, and the earlier portable build checks also passed.
 
-The implementation was reviewed through the audit history in commits `704381f` and `6b0d84d`. The former fixed fail-open search restrictions and malformed policy weights. The latter introduced confidence-aware Elo coupling and regression tests for premature Punish prevention and shrinking uncertainty premium. The relevant tests verify that a fresh uncertain prior does not trigger weak-opponent Punish, while sustained low-quality evidence can still trigger it.
+The implementation was reviewed through the audit history in commits `704381f` and `6b0d84d`. The former fixed fail-open search restrictions and malformed policy weights. The latter introduced confidence-aware Elo coupling and regression tests for premature Punish prevention and shrinking uncertainty premium. The relevant tests verify that a fresh uncertain prior does not trigger weak-opponent Punish, while sustained low-quality evidence can still trigger it. The optimization copy now includes the canonical `unchessed-nnue.bin` asset (SHA-256 `38845a16d73a6fe0bd4ac95c86c017c65c97bc82c7ce2f6dce2f1b3fbe8577b5`), and benchmark scripts require an explicit `EvalFile` path.
 
 = Live rapid benchmark
 
 == Experimental setup
 
-The live comparison used the release build of the updated Unchessed adapter, Stockfish 16 from the Debian package, and the official Maia-3 5M checkpoint configured for Elo 1500. Maia-3 is a human-move prediction engine rather than an objective maximising engine; its result is therefore a human-policy stress observation, not a conventional objective-strength estimate [@maia3].
+The live comparison used the release build of the updated Unchessed adapter, Stockfish 16 from the Debian package, and the official Maia-3 5M checkpoint configured for Elo 1500. The archived match was run before the evaluator-provenance correction and did not send `EvalFile`; it is therefore an HCE-only result, not a shipped-NNUE strength result. Maia-3 is a human-move prediction engine rather than an objective maximising engine; its result is therefore a human-policy stress observation, not a conventional objective-strength estimate [@maia3]. A fair NNUE match must rerun the same harness with `--eval-file /path/to/unchessed-nnue.bin`.
 
-Eight games were played from the standard starting position: four Unchessed--Stockfish games and four Unchessed--Maia-3 games, with colours alternated. Unchessed opening-book shortcuts were disabled. Each side received 180,000 ms plus 2,000 ms increment. The test ran on a Linux x86-64 virtual machine with six visible CPUs. All games ended by checkmate; no illegal moves, crashes, or time forfeits occurred.
+Eight HCE games were played from the standard starting position: four Unchessed--Stockfish games and four Unchessed--Maia-3 games, with colours alternated. Unchessed opening-book shortcuts were disabled. Each side received 180,000 ms plus 2,000 ms increment. The test ran on a Linux x86-64 virtual machine with six visible CPUs. All games ended by checkmate; no illegal moves, crashes, or time forfeits occurred. The result is retained as a clearly labelled HCE baseline; it is not used to claim performance for the NNUE configuration.
 
 == Results
 
