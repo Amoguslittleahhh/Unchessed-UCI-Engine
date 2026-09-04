@@ -250,3 +250,12 @@ The main architectural conclusion is that neural and external-engine capabilitie
 [9]: https://arxiv.org/abs/2412.17948 "Study of the Proper NNUE Dataset"
 [10]: https://arxiv.org/abs/2402.04494 "ChessBench: A Universal Chess-Playing Model Grounded in Human Games"
 [11]: https://backscattering.de/chess/uci/ "Universal Chess Interface protocol specification"
+
+
+## Addendum: Persona stability and firewall audit
+
+The persona state machine was strengthened after review. Persona smoothing is now enabled by default, while the explicit `PersonaSmooth` UCI option remains available for ablation. Smoothed mode uses the existing EMA and dwell logic, preserves immediate Full/Defend/Punish emergency transitions, and adds a two-update cooldown after a deliberate non-emergency transition. A conflicting proposal during cooldown is recorded for telemetry but cannot immediately reverse the active persona. The cooldown is exposed in opt-in persona telemetry, making transition stability auditable without allowing telemetry to influence selection.
+
+A new regression test verifies that a Clinch transition cannot be immediately reversed by a subsequent conflicting evaluation. The post-change workspace run passed 125 tests, with six ignored, deep perft, release validation, and UCI smoke checks.
+
+The root-prior audit confirms that the internal firewall is legal-set anchored. `go_with_root_hints` starts from generated legal moves, intersects them with `searchmoves` when requested, accepts only matching finite policy scores, and retains every legal root even when no hint is supplied. Existing tests cover non-finite and stale hints, check positions, and forced mates. The Aegis hint key now binds en-passant and halfmove state. These measures prevent malformed scores, stale rule-state reuse, illegal candidates, and neural ordering from overriding alpha-beta authority. The external Lc0 UCI process firewall remains a planned supervised provider layer and is not represented as completed implementation.

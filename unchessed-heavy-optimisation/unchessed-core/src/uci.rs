@@ -138,7 +138,7 @@ impl Default for Options {
             unarchitectured_hint_exit: InferenceExit::Layer2Width128,
             unarchitectured_file: String::new(),
             unarchitectured_min_time_ms: 30_000,
-            persona_smooth: false,
+            persona_smooth: true,
             engine_detect_v2: false,
             adapter_telemetry: false,
         }
@@ -324,7 +324,7 @@ pub fn run(ident: EngineIdent) {
                     println!("option name BookDepth type spin default 16 min 0 max 40");
                     println!("option name PolicyFile type string default ");
                     println!("option name UCI_Opponent type string default ");
-                    println!("option name PersonaSmooth type check default false");
+                    println!("option name PersonaSmooth type check default true");
                     println!("option name EngineDetectV2 type check default false");
                     println!("option name AdapterTelemetry type check default false");
                 }
@@ -1361,7 +1361,7 @@ fn emit_persona_decision_telemetry(
     let (adaptive, limit_strength, persona_smooth, engine_detect_v2, own_book) =
         telemetry_option_fields(job);
     println!(
-        "info string [UnchessedTelemetry] v=1 event=persona_decision run={} game={} ply={ply} decision={decision} raw_eval_cp={raw_eval_cp} ema_cp={} mode_before={} mode_after={} candidate={} dwell={} emergency={} adaptive={adaptive} limit_strength={limit_strength} persona_smooth={persona_smooth} engine_detect_v2={engine_detect_v2} own_book={own_book} adapter_telemetry=1 suspect={} action_full={} selected_move={}",
+        "info string [UnchessedTelemetry] v=1 event=persona_decision run={} game={} ply={ply} decision={decision} raw_eval_cp={raw_eval_cp} ema_cp={} mode_before={} mode_after={} candidate={} dwell={} cooldown={} emergency={} adaptive={adaptive} limit_strength={limit_strength} persona_smooth={persona_smooth} engine_detect_v2={engine_detect_v2} own_book={own_book} adapter_telemetry=1 suspect={} action_full={} selected_move={}",
         job.telemetry_run,
         job.game_id,
         snapshot.ema_cp,
@@ -1369,6 +1369,7 @@ fn emit_persona_decision_telemetry(
         update.mode_after.name(),
         snapshot.candidate.name(),
         snapshot.dwell,
+        snapshot.cooldown,
         update.emergency.name(),
         suspect as u8,
         telemetry_action_full(job, suspect),
@@ -2064,7 +2065,7 @@ mod tests {
     #[test]
     fn persona_and_detector_experiments_default_off() {
         let o = Options::default();
-        assert!(!o.persona_smooth);
+        assert!(o.persona_smooth);
         assert!(!o.engine_detect_v2);
         assert!(!o.unarchitectured_hint);
         assert!(o.adaptive);
@@ -2082,7 +2083,7 @@ mod tests {
         assert_eq!(before.elo_cap, after.elo_cap);
         assert_eq!(before.contempt, after.contempt);
         assert_eq!(before.persona_smooth, after.persona_smooth);
-        assert!(!Options::default().persona_smooth);
+        assert!(Options::default().persona_smooth);
         assert!(!Options::default().engine_detect_v2);
     }
 

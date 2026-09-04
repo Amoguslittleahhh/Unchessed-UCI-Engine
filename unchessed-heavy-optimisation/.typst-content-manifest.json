@@ -1,0 +1,11 @@
+{
+  "task_kind": "new-document",
+  "output": "pdf",
+  "signals": ["ieee"],
+  "hard_constraints": ["two-column technical paper", "IEEE-style references"],
+  "content_features": {
+    "code_blocks": 2,
+    "defined_terms": 12,
+    "portrait_images": 0
+  }
+}

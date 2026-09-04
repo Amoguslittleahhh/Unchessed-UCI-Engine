@@ -483,6 +483,9 @@ pub struct PersonaState {
     ema_init: bool,
     dwell: u8,
     candidate: Mode,
+    /// Prevents a noisy next evaluation from immediately undoing a deliberate
+    /// persona transition.
+    cooldown: u8,
 }
 
 /// Stable explanation for a persona transition that bypassed dwell.
@@ -520,6 +523,7 @@ pub struct PersonaTelemetrySnapshot {
     pub ema_cp: i32,
     pub candidate: Mode,
     pub dwell: u8,
+    pub cooldown: u8,
 }
 
 impl Default for PersonaState {
@@ -530,6 +534,7 @@ impl Default for PersonaState {
             ema_init: false,
             dwell: 0,
             candidate: Mode::Match,
+            cooldown: 0,
         }
     }
 }
@@ -577,6 +582,7 @@ impl PersonaState {
             self.ema_init = true;
             self.dwell = 0;
             self.candidate = mode;
+            self.cooldown = 0;
             return PersonaUpdate {
                 mode_before,
                 mode_after: mode,
@@ -589,6 +595,7 @@ impl PersonaState {
             // collapse on ply 1) would skip the dwell / mix seed with vote.
             self.eval_ema = raw_eval_cp as f64;
             self.ema_init = true;
+            self.cooldown = 0;
             return PersonaUpdate {
                 mode_before,
                 mode_after: self.mode,
@@ -597,6 +604,7 @@ impl PersonaState {
         }
         self.eval_ema = Self::ALPHA * raw_eval_cp as f64 + (1.0 - Self::ALPHA) * self.eval_ema;
         let smoothed = self.eval_ema.round() as i32;
+        self.cooldown = self.cooldown.saturating_sub(1);
 
         // Low confidence → require a clearer eval before leaving MATCH.
         // `confidence()` is a ± band; ~150 after a few moves, ~400 early.
@@ -621,6 +629,7 @@ impl PersonaState {
             self.mode = mode;
             self.dwell = 0;
             self.candidate = mode;
+            self.cooldown = 0;
             return PersonaUpdate {
                 mode_before,
                 mode_after: mode,
@@ -644,6 +653,15 @@ impl PersonaState {
                 emergency: PersonaEmergency::None,
             };
         }
+        if self.cooldown > 0 {
+            self.candidate = proposed;
+            self.dwell = 0;
+            return PersonaUpdate {
+                mode_before,
+                mode_after: self.mode,
+                emergency: PersonaEmergency::None,
+            };
+        }
         // Introducing a candidate does not count as an agreeing ply.
         if proposed != self.candidate {
             self.candidate = proposed;
@@ -658,6 +676,7 @@ impl PersonaState {
         if self.dwell >= Self::DWELL {
             self.mode = proposed;
             self.dwell = 0;
+            self.cooldown = 2;
         }
         PersonaUpdate {
             mode_before,
@@ -674,6 +693,7 @@ impl PersonaState {
             ema_cp: self.smoothed_eval(),
             candidate: self.candidate,
             dwell: self.dwell,
+            cooldown: self.cooldown,
         }
     }
 }
@@ -1479,5 +1499,25 @@ mod tests {
         let mut hard = PersonaState::default();
         hard.update(&cfg, &m, 0, 15);
         assert_eq!(hard.update(&cfg, &m, -400, 15), Mode::Defend);
+    }
+
+    #[test]
+    fn persona_transition_cooldown_prevents_immediate_reversal() {
+        let mut cfg = AdaptConfig::default();
+        cfg.persona_smooth = true;
+        let m = OpponentModel::new();
+        let mut s = PersonaState::default();
+        s.update(&cfg, &m, 0, 20);
+        s.update(&cfg, &m, 0, 20);
+        s.update(&cfg, &m, 0, 20);
+        assert_eq!(s.mode, Mode::Match);
+
+        // Two agreeing votes deliberately enter CLINCH.
+        s.update(&cfg, &m, 20, 40);
+        s.update(&cfg, &m, 20, 40);
+        assert_eq!(s.update(&cfg, &m, 20, 40), Mode::Clinch);
+        let held = s.update(&cfg, &m, 300, 20);
+        assert_eq!(held, Mode::Clinch);
+        assert!(s.telemetry_snapshot().cooldown > 0);
     }
 }

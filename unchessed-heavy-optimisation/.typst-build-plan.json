@@ -1,0 +1,43 @@
+{
+  "base": {
+    "adoption": "A",
+    "auto_apply": false,
+    "conflict_group": "document-base",
+    "fidelity_warning": "TeX Gyre Termes/Cursor may be unavailable",
+    "id": "charged-ieee",
+    "init_command": "typst init @preview/charged-ieee:0.1.4 <output-dir>",
+    "kind": "universe-template",
+    "ownership": "global",
+    "reason": "Explicit template or publication-format signal.",
+    "status": "ready",
+    "universe_ref": "@preview/charged-ieee:0.1.4",
+    "version": "0.1.4"
+  },
+  "catalog_version": "2026-07-17-affiliated-formats-v3",
+  "channel": "typst-pdf",
+  "confirmation_candidates": [],
+  "enhancements": [
+    {
+      "adoption": "A",
+      "auto_apply": true,
+      "conflict_group": null,
+      "id": "glossarium",
+      "kind": "universe-package",
+      "ownership": "semantic",
+      "reason": "Content evidence satisfies {\"defined_terms\": 5}",
+      "status": "ready",
+      "universe_ref": "@preview/glossarium:0.5.10",
+      "version": "0.5.10"
+    }
+  ],
+  "exclusions": [],
+  "fingerprint": "sha256:0b2e4056c1c50e5b8a492b7245ca9f878c9463029b4cf9852f26aeffc6de8069",
+  "next_action": "minimal-compile-preflight",
+  "optional_idea": null,
+  "question": null,
+  "reused": false,
+  "schema_version": 1,
+  "state": "ready",
+  "style_owner": "charged-ieee",
+  "typst_version": "typst 0.15.1 (9dfd3a08)"
+}
