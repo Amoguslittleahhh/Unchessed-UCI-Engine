@@ -724,8 +724,15 @@ pub fn decide_mode(
     }
 
     let target = target_elo(cfg, model);
+    // Do not infer "weak opponent" from the point estimate alone. Early in a
+    // game the Elo posterior is intentionally wide; using only `target` made
+    // an unknown opponent enter PUNISH after an ordinary +250 cp advantage.
+    // Require even the upper confidence bound to be clearly below our
+    // effective ceiling before applying the weak-opponent trigger.
+    let opponent_upper = target.saturating_add(model.confidence());
     let punish_trigger = (model.last_was_blunder() && our_eval_cp > 60)
-        || (target + 500 < ENGINE_CEILING.min(cfg_effective_cap(cfg)) && our_eval_cp > 250);
+        || (opponent_upper + 500 < ENGINE_CEILING.min(cfg_effective_cap(cfg))
+            && our_eval_cp > 250);
     if punish_trigger || (prev == Mode::Punish && our_eval_cp > 200) {
         return Mode::Punish;
     }
@@ -752,8 +759,14 @@ pub fn target_elo(cfg: &AdaptConfig, model: &OpponentModel) -> i32 {
         // pure fixed-strength play at the requested rating
         return cfg.elo_cap.max(500);
     }
-    // aim a touch above the estimate: competitive but beatable
-    let t = model.estimate() + 60;
+    // Aim above the estimate, and add a quarter of the uncertainty band. When
+    // evidence is sparse this keeps Match from over-humanising against an
+    // unexpectedly strong opponent; as observations accumulate the target
+    // converges toward estimate + 60.
+    let t = model
+        .estimate()
+        .saturating_add(60)
+        .saturating_add(model.confidence() / 4);
     t.min(cfg_effective_cap(cfg)).max(500)
 }
 
@@ -1265,6 +1278,45 @@ mod tests {
         // clinch holds inside the +-100 band
         assert_eq!(decide_mode(&cfg, &m, 90, 40, Mode::Clinch), Mode::Clinch);
         assert_ne!(decide_mode(&cfg, &m, 150, 40, Mode::Clinch), Mode::Clinch);
+    }
+
+    #[test]
+    fn uncertain_elo_does_not_trigger_weak_opponent_punish() {
+        let cfg = AdaptConfig::default();
+        let fresh = OpponentModel::new();
+        assert_ne!(
+            decide_mode(&cfg, &fresh, 300, 20, Mode::Match),
+            Mode::Punish,
+            "a fresh 1500 prior with a wide confidence band is not proof of a weak opponent"
+        );
+
+        let mut established = OpponentModel::new();
+        for _ in 0..14 {
+            established.observe(220, 1.0);
+        }
+        assert_eq!(
+            decide_mode(&cfg, &established, 300, 20, Mode::Match),
+            Mode::Punish
+        );
+    }
+
+    #[test]
+    fn target_elo_adds_less_uncertainty_as_evidence_accumulates() {
+        let cfg = AdaptConfig::default();
+        let fresh = OpponentModel::new();
+        let fresh_target = target_elo(&cfg, &fresh);
+        let mut observed = OpponentModel::new();
+        for _ in 0..12 {
+            observed.observe(80, 1.0);
+        }
+        let observed_target = target_elo(&cfg, &observed);
+        assert!(fresh.confidence() > observed.confidence());
+        assert!(
+            fresh_target - fresh.estimate() > observed_target - observed.estimate(),
+            "uncertainty premium should shrink with evidence: fresh={} observed={}",
+            fresh_target - fresh.estimate(),
+            observed_target - observed.estimate()
+        );
     }
 
     #[test]
