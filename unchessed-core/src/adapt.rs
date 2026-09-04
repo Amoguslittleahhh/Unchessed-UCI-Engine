@@ -763,6 +763,19 @@ pub trait MovePrior: Send + Sync {
     fn describe(&self) -> String;
 }
 
+/// Convert an untrusted policy output into a bounded positive sampling
+/// weight. A policy provider (e.g. a loaded neural policy net) is an
+/// ordering aid, never a source of NaN/Inf propagation into the sampling
+/// total or a way to make a candidate silently disappear from selection.
+fn safe_prior_weight(priors: &[f64], index: usize) -> f64 {
+    priors
+        .get(index)
+        .copied()
+        .filter(|p| p.is_finite() && *p > 0.0)
+        .unwrap_or(1.0)
+        .clamp(0.1, 100.0)
+}
+
 pub struct HeuristicPrior;
 
 impl MovePrior for HeuristicPrior {
@@ -1099,7 +1112,7 @@ pub fn select_move(
                         weights.push(0.0);
                         continue;
                     }
-                    weights.push(loss * priors.get(i).copied().unwrap_or(1.0).max(0.1));
+                    weights.push(loss * safe_prior_weight(&priors, i));
                 }
                 let total: f64 = weights.iter().sum();
                 if total > 0.0 {
@@ -1126,7 +1139,7 @@ pub fn select_move(
                     weights.push(0.0);
                     continue;
                 }
-                let w = (-loss / temp).exp() * priors.get(i).copied().unwrap_or(1.0);
+                let w = (-loss / temp).exp() * safe_prior_weight(&priors, i);
                 weights.push(w);
             }
             let total: f64 = weights.iter().sum();
@@ -1479,5 +1492,15 @@ mod tests {
         let mut hard = PersonaState::default();
         hard.update(&cfg, &m, 0, 15);
         assert_eq!(hard.update(&cfg, &m, -400, 15), Mode::Defend);
+    }
+
+    #[test]
+    fn malformed_policy_priors_use_safe_finite_weights() {
+        let priors = [f64::NAN, f64::INFINITY, -4.0, 250.0];
+        assert_eq!(safe_prior_weight(&priors, 0), 1.0);
+        assert_eq!(safe_prior_weight(&priors, 1), 1.0);
+        assert_eq!(safe_prior_weight(&priors, 2), 1.0);
+        assert_eq!(safe_prior_weight(&priors, 3), 100.0);
+        assert_eq!(safe_prior_weight(&priors, 8), 1.0);
     }
 }

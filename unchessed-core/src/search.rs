@@ -983,9 +983,12 @@ pub fn go_with_root_hints(
     // their own UCI notation against the already-legal move list (so
     // castling/en-passant/promotion notation is handled exactly like move
     // printing already does, no separate position-aware parsing needed).
-    // Falls back to the full legal set if every requested move turns out
-    // illegal here, rather than searching nothing or panicking on a stale
-    // or malformed list.
+    // An entirely illegal restriction (every requested move turns out not
+    // to be legal here -- a stale or malformed command) is an empty
+    // search, not a fallback to the full legal set: `searchmoves` is an
+    // explicit constraint from the caller, and silently ignoring it when
+    // it can't be satisfied would let a stale/malformed command play an
+    // unintended move outside what was actually authorized.
     let restricted: Vec<Move> = if limits.searchmoves.is_empty() {
         Vec::new()
     } else {
@@ -996,6 +999,9 @@ pub fn go_with_root_hints(
             .filter(|m| limits.searchmoves.iter().any(|s| s == &m.uci()))
             .collect()
     };
+    if !limits.searchmoves.is_empty() && restricted.is_empty() {
+        return Vec::new();
+    }
     let root_slice: &[Move] = if restricted.is_empty() {
         root_moves_list.as_slice()
     } else {
@@ -1516,6 +1522,33 @@ mod tests {
             assert!(is_mate_score(sc), "{id}: score {sc} is not a mate score");
             assert_eq!(mate_in(sc), 1, "{id}: expected mate in 1, got {sc}");
         }
+    }
+
+    #[test]
+    fn invalid_searchmoves_fail_closed_without_unrestricted_fallback() {
+        let pos = fen::startpos();
+        let tt = TT::new(4);
+        let stop = AtomicBool::new(false);
+        let limits = Limits {
+            searchmoves: vec!["a1a1".to_string()],
+            ..Limits::depth(3)
+        };
+        let lines = go_with_root_hints(
+            &pos,
+            &Hce::default(),
+            &limits,
+            1,
+            &tt,
+            &stop,
+            &[],
+            0,
+            SearchParams::default(),
+            1,
+            &[],
+            std::time::Duration::ZERO,
+            &mut |_| {},
+        );
+        assert!(lines.is_empty());
     }
 
     #[test]
