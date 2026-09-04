@@ -1,9 +1,9 @@
 #import "@preview/charged-ieee:0.1.4": ieee
 
 #show: ieee.with(
-  title: [Hardware-Portable, Persona-Preserving Optimisation of the Unchessed UCI Engine],
+  title: [Confidence-Aware Elo Calibration and Persona Stability in an Adaptive UCI Chess Engine],
   abstract: [
-    This paper reports an isolated optimisation sub-project for the Unchessed UCI chess engine. The work preserves five adaptive personas—Full, Match, Clinch, Punish, and Defend—while improving protocol correctness, low-time stability, stale neural-hint resistance, and broad Intel/AMD portability. The implementation removes an unconditional `target-cpu=native` build setting, adds shared-L3-aware transposition-table defaults, enables smoothed persona transitions by default, and adds a post-transition cooldown that prevents non-emergency reversals. Rust 1.98.1 validation produced 124 passing workspace tests, successful deep perft, UCI smoke success, and portable and x86-64-v3 release builds. A one-thread benchmark across four positions and five hash sizes measured a 0.52--6.68 percent x86-64-v3 mean-NPS advantage on the test virtual machine. The paper also formalizes the implemented internal neural root-hint firewall and separates it from the future external Lc0 UCI provider design. Alpha-beta remains authoritative: neural evidence may order legal root moves, but cannot remove moves, alter safety semantics, or select a persona move directly.
+    Adaptive chess engines must balance objective tactical strength with controlled humanisation. This paper presents an engineering audit and live evaluation of an isolated Unchessed UCI engine optimisation branch. The work preserves the five protected personas—Full, Match, Clinch, Punish, and Defend—while hardening their state transitions, opponent-Elo inference, policy-prior handling, UCI restrictions, and neural-root interfaces. The central new change is confidence-aware Elo/persona coupling: weak-opponent Punish activation uses an upper confidence bound rather than a point estimate, while Match target strength includes a decaying uncertainty premium. A two-ply transition cooldown and exponential evaluation smoothing reduce non-emergency persona flapping without suppressing tactical emergencies. A live eight-game 3+2 benchmark scored 0/4 against Stockfish 16 and 4/4 against Maia-3 5M at Elo 1500. These results are explicitly treated as small-sample stress observations rather than a reliable Elo claim. All eight games completed legally by checkmate. The paper also documents a benchmark telemetry parser defect discovered during review, the corrective action, reproducibility artifacts, and a roadmap for larger colour-balanced SPRTs and human-policy evaluation.
   ],
   authors: (
     (
@@ -14,182 +14,170 @@
       email: ""
     ),
   ),
-  index-terms: ("UCI chess engine", "persona stability", "NNUE", "root priors", "cache-aware transposition table", "Lc0 verification"),
+  index-terms: ("UCI chess engine", "persona stability", "Elo uncertainty", "human-like chess", "Stockfish", "Maia-3", "neural root priors"),
   bibliography: bibliography("refs.bib"),
   figure-supplement: [Fig.],
 )
 
 = Introduction
 
-Adaptive chess engines have two competing requirements. Objective search must remain tactically sound, while humanised play must express a controlled style rather than random weakening. Unchessed adds a third requirement: its Full, Match, Clinch, Punish, and Defend personas must remain distinct and operational under changing opponent evidence, clock pressure, and opening-book behavior. This paper studies how to improve performance and stability without allowing external neural evidence to bypass that contract.
+Modern chess engines optimize a narrow objective: maximize the quality of the selected move under a search and evaluation budget. A human-facing adaptive engine has an additional policy objective. It may need to play at a target strength, preserve recognizable behavior, react differently to a blunder than to a positional advantage, and remain safe when the opponent model is uncertain. These requirements create a control problem around the search rather than a replacement for search.
 
-Modern engines provide complementary techniques rather than interchangeable scores. Stockfish combines selective alpha-beta search with NNUE evaluation [@stockfish; @nnue]. Leela Chess Zero (Lc0) uses a neural policy/value system in a PUCT-style search [@lc0; @lc0tech]. Maia models human move behavior rather than objective best play [@maia; @maia2]. AlphaZero established a public policy/value self-play framework but did not publish all production implementation details [@alphazero]. The present work therefore adopts interfaces and invariants, not unverified claims of reproducing any proprietary system.
+Unchessed addresses this problem with five protected personas: Full, Match, Clinch, Punish, and Defend. The optimization branch studied here retains alpha-beta search as the authority for legality, tactical completion, and final move validity. Human-policy and neural evidence can influence ordering or candidate sampling, but cannot silently change persona semantics or bypass safety gates. This separation is consistent with the different roles of Stockfish-style search and NNUE evaluation, Lc0 policy/value inference, Maia human-move prediction, and AlphaZero-style self-play policy learning [@stockfish; @nnue; @lc0; @lc0tech; @maia; @alphazero].
 
-The contributions are fourfold:
+The present work makes four contributions:
 
-+ A portable build policy that distinguishes baseline x86-64, x86-64-v3, and exact-host artifacts.
-+ A cache-aware default transposition-table policy responsive to shared L3 capacity.
-+ A strengthened persona state machine with default exponential smoothing, emergency overrides, transition dwell, and a post-transition cooldown.
-+ An explicit analysis of the root-prior firewall, including legal-move anchoring, finite-score filtering, stale-key prevention, and alpha-beta authority.
++ It audits and strengthens the persona state machine with evaluation smoothing, dwell, cooldown, emergency overrides, and uncertainty-aware CLINCH handling.
++ It changes opponent-Elo coupling so sparse evidence cannot prematurely classify an unknown opponent as weak.
++ It documents fail-closed boundaries for UCI restrictions, neural root hints, and malformed policy weights.
++ It reports a live 3+2 comparison against Stockfish 16 and official Maia-3 5M, including the important limitation that the first match artifact did not retain persona counts because of a harness parser defect.
+
+The paper is an engineering report rather than a claim of Stockfish parity or a reconstruction of proprietary AlphaZero infrastructure. The public AlphaZero paper establishes a policy/value self-play method with Monte Carlo tree search, legal action masking, and visit-count targets, but not all production code, weights, or distributed training details [@alphazero].
 
 = Protected persona contract
 
-The persona layer is not a cosmetic move picker. It is a stateful policy controller over completed search lines. Full selects the strongest completed line. Match samples from a calibrated candidate distribution at a target Elo. Clinch probes reply gaps and favors narrow-path opportunities. Punish prioritizes mates, forcing captures, and checks. Defend selects maximum resistance. Opponent modelling estimates skill from weighted centipawn loss and clock evidence. The troll book is risk-tiered and has a shallow refutation guard. Draw contempt depends on the active objective.
-
-A neural provider must therefore be subordinate to the contract. It may provide evidence about move order or candidate plausibility. It may not silently change the active persona, add a troll line, disable a safety veto, or turn a human-policy score into objective centipawns.
+The persona layer consumes completed search lines and opponent evidence. It does not replace the underlying search. The intended contract is summarized in @tab:personas.
 
 #figure(
   placement: top,
   table(
-    columns: (1.5fr, 3.7fr),
+    columns: (1.25fr, 3.95fr),
     align: (left, left),
     inset: 4pt,
     stroke: (x, y) => if y == 0 { (bottom: 0.5pt) },
-    table.header[Persona][Invariant],
-    [Full], [Use the strongest completed alpha-beta result.],
-    [Match], [Respect target Elo and human-plausible candidate sampling.],
-    [Clinch], [Use bounded reply-gap probes only when the budget allows.],
-    [Punish], [Never decline a found mate; prefer forcing conversion when ahead.],
-    [Defend], [Prefer maximum resistance and do not repel safe draws.],
+    table.header[Persona][Protected behavior],
+    [Full], [Use the strongest completed alpha-beta result; do not humanise against a verified engine opponent.],
+    [Match], [Play near the target Elo using bounded human-plausibility priors while retaining tactical safety.],
+    [Clinch], [Prefer controlled, low-risk conversion when the game is late and evaluation is narrow.],
+    [Punish], [Exploit verified blunders and large, well-supported skill gaps; never decline a found mate.],
+    [Defend], [Maximize resistance after a severe evaluation collapse and do not repel safe draws.],
   ),
-  caption: [Protected persona invariants.],
+  caption: [Persona invariants preserved by the optimization branch.],
 ) <tab:personas>
 
-= Stability methodology
+The state controller has two classes of transition. Ordinary changes require a stable candidate proposal and dwell; emergency changes respond immediately to high-confidence tactical or opponent evidence. This distinction is important: smoothing is useful against evaluation noise, but a severe collapse or verified blunder must not wait for a multi-ply filter.
 
-== Opponent evidence
+= Elo model and confidence-aware coupling
 
-The opponent model begins with a broad prior and updates it using a logarithmic centipawn-loss-to-Elo curve. Difficulty weighting discounts book, forced, and trivial moves. Clock suspicion requires strong moves, real choice, and repeated evidence; opening observations are discounted in the experimental detector. A single clean opening sequence is therefore not sufficient to force Full mode.
+== Evidence model
 
-The implementation corrects two evidence-integrity defects. A book observation uses the move's actual ply rather than the final game ply. When pending observations are processed in a batch, the opponent clock signal is applied only to the newest observation. These changes prevent historical moves from receiving current-game timing evidence.
+The live opponent model begins with a broad prior near 1500 Elo. A move's centipawn loss is mapped to an Elo sample by a logarithmic curve:
+
+$ E_"sample" = min(max(2950 - 850 ln(1 + L / 20), 400), 3200), $
+
+where $L$ is the measured centipawn loss. Observations are weighted by position difficulty. Book moves, forced positions, and near-trivial choices carry less evidence than positions with multiple meaningful alternatives. The running mean is updated with a bounded evidence weight and a small decay so the model can track fatigue or changing play quality.
+
+Clock evidence is deliberately weak and gated. Near-instant strong moves count only when the position offered real choice and the opening discount has expired. This prevents memorized opening play or premoves from being treated as engine evidence. A sustained ceiling pattern requires weighted evidence, a sufficient sample count, and a low-loss streak. Declared human opponents are not automatically upgraded to Full merely because they play a strong game.
+
+The model exposes an uncertainty band:
+
+$ C = 600 / sqrt(w) dot max(0.6, min(2.0, sqrt(V) / 400)), $
+
+where $w$ is the effective evidence weight and $V$ is the exponentially weighted variance of Elo samples. The band is used as a policy confidence measure, not as a statistically calibrated rating interval.
+
+== Failure mode in the original coupling
+
+The previous weak-opponent trigger relied too heavily on the point estimate. At the beginning of a game, the point estimate is near the prior but the confidence band is wide. A normal +250 cp advantage could therefore be interpreted as proof that the opponent was weak, causing premature Punish behavior and excessive humanisation.
+
+== New coupling rule
+
+The revised weak-opponent trigger computes:
+
+$ U_"opponent" = T + C,$
+
+where $T$ is the Match target Elo and $C$ is the confidence band. The skill-gap branch can enter Punish only if $U_"opponent" + 500$ remains below the effective engine ceiling and the evaluation lead exceeds +250 cp. The independent fresh-blunder emergency remains unchanged.
+
+The Match target is now:
+
+$ T = min(T_"cap", max(500, E + 60 + C / 4)). $
+
+The uncertainty premium is deliberately modest. It biases early Match play toward stronger, safer decisions against an unknown opponent and decays as evidence accumulates. This is not a claim that the confidence band is a formal Bayesian posterior; it is a conservative control heuristic designed to reduce false persona transitions.
 
 == Transition filtering
 
-The persona state uses an exponential moving average (EMA) with coefficient 0.35 on the newest completed search evaluation. The first evaluation seeds the filter without counting as a transition vote. A candidate mode requires two agreeing updates. Emergencies bypass dwell: a suspected engine can force Full, a severe raw or smoothed collapse can force Defend, and a fresh verified opponent blunder while ahead can force Punish.
+The persona evaluation uses an exponential moving average with coefficient 0.35 on the newest completed search score. The first score seeds the filter and does not count as a vote. A normal candidate must receive two agreeing updates. After a deliberate transition, a two-update cooldown prevents an immediate non-emergency reversal. During cooldown, the conflicting mode is retained as diagnostic candidate state but cannot replace the active mode.
 
-The new stability control adds a two-update cooldown after a non-emergency transition. During cooldown, a conflicting proposal is recorded as the candidate but cannot reverse the active mode. Emergency Full, Defend, and Punish transitions always clear the cooldown and take effect immediately. Opt-in telemetry now reports `candidate`, `dwell`, `cooldown`, and the emergency reason, making mode decisions auditable without feeding telemetry back into selection.
+The uncertainty band also widens the CLINCH entry deadband when evidence is sparse. Emergencies bypass dwell and cooldown: suspected engine opponents can force Full, a raw or smoothed evaluation below -220 cp can force Defend, and a fresh opponent blunder while ahead can force Punish. Opt-in telemetry reports the active mode, candidate, dwell, cooldown, and emergency reason without feeding telemetry back into selection.
 
-Persona smoothing is now enabled by default. The explicit `PersonaSmooth` UCI option remains available for controlled ablations. This is a behavioral safety default: it suppresses accidental Clinch or Match/Punish oscillation caused by noisy iterative-deepening evaluations while preserving rapid responses to tactical emergencies.
+= Safety and interface audit
 
-== Low-time policy
+== UCI lifecycle and restrictions
 
-Before opponent observation, book verification, or persona probing, the UCI worker computes a low-time gate. The gate activates for less than ten seconds of the relevant clock, a computed hard budget below one second, explicit node limits, depth at most two, or movetime below one second. In that state, side searches are skipped and the move search receives the available budget. This prevents adaptive work from consuming the move's deadline.
+The independent audit checked command lifecycle, stop handling, worker joining, option changes, `ucinewgame`, ponder cancellation, position replacement, and quit. Stop tokens are reset before new searches, workers are joined before state-changing commands, and stale ponder results are discarded. Evaluator changes clear the transposition table.
 
-The same principle governs a future Lc0 provider. Provider startup, queueing, inference, IPC, stop, and drain costs must be subtracted from the hard deadline before a request is spawned. Critical and Emergency tiers do not wait for a cold neural process.
+A specific fail-open bug was fixed in `searchmoves`. If a UCI request contained only illegal or stale restricted moves, the old implementation could search the unrestricted legal move set. The corrected implementation intersects the requested strings with generated legal moves and returns an empty result when the restriction is entirely invalid. The UCI adapter then emits `bestmove 0000` rather than inventing an unrestricted move.
 
-= Hardware portability and cache policy
+== Policy-prior numerical firewall
 
-The optimisation copy previously forced `target-cpu=native`, which can emit instructions unavailable on another deployment machine. The revised policy produces three deliberate tiers.
+Human-policy providers return relative weights rather than authoritative scores. Each weight is sanitized before sampling: non-finite and non-positive values become a finite default, and valid values are clamped to the interval $[0.1, 100.0]$. Missing entries receive the same safe default. This prevents NaN propagation, infinite totals, candidate disappearance, and pathological concentration.
 
-#figure(
-  placement: top,
-  table(
-    columns: (1.2fr, 2.5fr, 2.5fr),
-    align: (left, left, left),
-    inset: 4pt,
-    stroke: (x, y) => if y == 0 { (bottom: 0.5pt) },
-    table.header[Tier][Build policy][Deployment],
-    [Portable], [No host-specific flags; scalar and portable paths remain valid.], [Legacy x86-64, VMs, broad Intel/AMD support.],
-    [Modern], [`-C target-cpu=x86-64-v3` in a separately labelled artifact.], [AVX2/FMA/BMI2-class consumer and server CPUs.],
-    [Host-tuned], [`-C target-cpu=native` only for a pinned machine.], [Exact deployment CPU after local benchmark.],
-  ),
-  caption: [Build tiers for broad CPU coverage.],
-) <tab:tiers>
+== Neural root-prior firewall
 
-Runtime-specialised kernels must use feature detection and retain a scalar oracle. AVX-512 is not assumed. Core Ultra 9 285H measurements should prefer AVX2 or AVX-VNNI where empirically justified, while Ryzen 7 7730U systems should use AVX2 when available and otherwise fall back cleanly. Quantised NNUE and VNNI require model-format and numerical-parity validation; they are not compiler-flag-only optimisations.
+The internal root-hint path begins with Unchessed's own legal move generator. Every root record is created from a legal move. A hint can affect ordering only if its move matches a legal root move and its policy score is finite. The hint vector never becomes the legal move list, and completed alpha-beta scores remain authoritative.
 
-The transposition table is a random-access structure. A table that greatly exceeds shared L3 can increase memory latency and displace evaluator state. The default `Hash` now reads Linux shared-L3 metadata from `/sys/devices/system/cpu/cpu0/cache/index3/size`, targets half of L3, and clamps the result to 4--128 MiB. Explicit UCI `Hash` values override automatic sizing. The current VM reports 36,608 KiB L3 and advertises a 17 MiB automatic default. The target examples are approximately 8 MiB for a 16 MiB-L3 Ryzen 7 7730U and 12 MiB for a 24 MiB-L3 Core Ultra 9 285H.
+A future external Lc0 provider must bind position history, legal-action fingerprint, model and schema versions, en-passant state, halfmove state, request token, and deadline. Lc0 policy, value, and visit quantities must remain provider-specific evidence; they must not be averaged directly with Stockfish centipawns or Maia WDL predictions. The child process must complete the UCI handshake, drain both output streams, stop and drain before reuse, and validate every returned move against the local legal generator [@lc0tech; @uci].
 
-= Neural root-prior firewall
+These controls are semantic firewalls, not cryptographic security mechanisms. They protect against stale responses, malformed values, illegal moves, and timing races, but do not prove that a neural model is strategically correct.
 
-== Implemented internal path
+= Implementation and validation
 
-The internal `search::go_with_root_hints` path begins with Unchessed's own legal move generator. If `searchmoves` is present, it intersects that legal list with the requested UCI strings. It constructs a root record for every remaining legal move. A supplied hint is used only when its move matches one of those legal moves and its `policy_score` is finite. Missing, NaN, and infinite scores become unusable ordering values. The hint list never becomes the legal move list.
+The isolated branch is a copy of the repository's main branch under `unchessed-heavy-optimisation`; the main branch was not edited. The implementation is Rust-based and was validated with the current stable toolchain available in the sandbox. The full workspace validation passed 129 tests, with zero failures and six ignored tests. Release compilation, UCI smoke checks, deep perft, and the earlier portable build checks also passed.
 
-The core operation is equivalent to:
+The implementation was reviewed through the audit history in commits `704381f` and `6b0d84d`. The former fixed fail-open search restrictions and malformed policy weights. The latter introduced confidence-aware Elo coupling and regression tests for premature Punish prevention and shrinking uncertainty premium. The relevant tests verify that a fresh uncertain prior does not trigger weak-opponent Punish, while sustained low-quality evidence can still trigger it.
 
-```rust
-let roots = legal(pos).iter().map(|&mv| RootMove {
-    mv,
-    score: -MATE,
-    policy_hint: hints.iter()
-        .find(|h| h.mv == mv && h.policy_score.is_finite())
-        .map(|h| h.policy_score)
-        .unwrap_or(f32::NEG_INFINITY),
-    ..
-}).collect();
-```
+= Live rapid benchmark
 
-The search remains responsible for completed scores, bounds, mate handling, and final lines. Existing tests verify that stale or non-finite hints cannot remove legal moves, that hints cannot suppress forced mates, and that check positions retain only legal root moves. The Aegis cache key additionally binds en-passant state and halfmove buckets, preventing a neural result for a superficially identical hash from crossing rule-state boundaries.
+== Experimental setup
 
-== Security safeguards
+The live comparison used the release build of the updated Unchessed adapter, Stockfish 16 from the Debian package, and the official Maia-3 5M checkpoint configured for Elo 1500. Maia-3 is a human-move prediction engine rather than an objective maximising engine; its result is therefore a human-policy stress observation, not a conventional objective-strength estimate [@maia3].
 
-The firewall is a semantic input boundary rather than a cryptographic security boundary. Its safeguards are:
+Eight games were played from the standard starting position: four Unchessed--Stockfish games and four Unchessed--Maia-3 games, with colours alternated. Unchessed opening-book shortcuts were disabled. Each side received 180,000 ms plus 2,000 ms increment. The test ran on a Linux x86-64 virtual machine with six visible CPUs. All games ended by checkmate; no illegal moves, crashes, or time forfeits occurred.
 
-+ *Authority separation:* alpha-beta owns final move validity and score completion.
-+*Legal-set anchoring:* external candidates are intersected with generated legal moves.
-+*Finite-value filtering:* NaN and infinity cannot poison ordering or comparisons.
-+*Identity binding:* position hash, legal-action fingerprint, model hash, schema version, en-passant state, and halfmove bucket belong in an external-provider key.
-+*Deadline binding:* late results are rejected by request token and deadline.
-+*Fail-closed behavior:* any malformed provider reply falls back to ordinary search.
-+*Protocol isolation:* a future Lc0 child process must drain stdout and stderr, accept only a matching `bestmove` terminal event, and validate that move against Unchessed's legal generator.
-
-These safeguards protect against stale outputs, malformed vectors, illegal moves, score poisoning, and timing races. They do not prove that a neural model is strategically correct. Model quality remains an empirical question.
-
-== External Lc0 verification design
-
-The future Lc0 provider will pin the binary, network SHA-256, backend, driver/runtime, and UCI options. It will perform `uci`/`uciok` and `isready`/`readyok` handshakes, send complete position history, use one active search token, and stop-and-drain on cancellation. Lc0 visits, value, and policy are recorded as provider-specific evidence. They are not averaged directly with Stockfish centipawns or Maia WDL.
-
-In Normal mode, a warmed Lc0 result may verify or reorder a candidate if the measured latency fits. In Fast mode, only one bounded request is allowed. In Critical and Emergency modes, a cold or uncertain provider is disabled. Lc0 cannot alter persona state, contempt, troll eligibility, or the final selection authority.
-
-= Experimental evaluation
-
-== Validation suite
-
-Rust 1.98.1 and the native linker were installed in the sandbox. The workspace validation passed 124 tests, with six ignored tests, and deep perft passed. UCI smoke tests found a legal start-position move and the required back-rank mate. Portable and x86-64-v3 release builds compiled successfully.
-
-== Portable versus x86-64-v3 benchmark
-
-The benchmark used one search thread, disabled adaptive shortcuts and the opening book, tested four positions, and swept Hash values of 4, 8, 16, 32, and 64 MiB. Each case received a 500,000-node maximum and a two-second graceful UCI window. Mean NPS and maximum resident memory were recorded.
+== Results
 
 #figure(
   placement: top,
   table(
-    columns: (0.9fr, 0.7fr, 1.1fr, 1.1fr, 0.9fr),
-    align: (left, right, right, right, right),
+    columns: (1.5fr, 0.55fr, 0.75fr, 0.65fr, 0.65fr, 0.85fr, 1.35fr),
+    align: (left, right, right, right, right, right, right),
     inset: 3pt,
     stroke: (x, y) => if y == 0 { (bottom: 0.5pt) },
-    table.header[Build][Hash][Mean NPS][v3 delta][Mean RSS],
-    [Portable], [4 MiB], [1,823,284], [--], [23.7 MiB],
-    [v3], [4 MiB], [1,832,842], [+0.52%], [23.7 MiB],
-    [Portable], [8 MiB], [1,933,064], [--], [27.7 MiB],
-    [v3], [8 MiB], [1,986,948], [+2.79%], [27.7 MiB],
-    [Portable], [16 MiB], [1,871,675], [--], [35.7 MiB],
-    [v3], [16 MiB], [1,971,977], [+5.36%], [35.7 MiB],
-    [Portable], [32 MiB], [1,908,441], [--], [51.6 MiB],
-    [v3], [32 MiB], [1,924,170], [+0.82%], [51.6 MiB],
-    [Portable], [64 MiB], [1,820,084], [--], [83.7 MiB],
-    [v3], [64 MiB], [1,941,687], [+6.68%], [83.7 MiB],
+    table.header[Opponent][Games][W][D][L][Score][Wilson 95%],
+    [Stockfish 16], [4], [0], [0], [4], [0.0%], [0.0--48.99%],
+    [Maia-3 5M, Elo 1500], [4], [4], [0], [0], [100.0%], [51.01--100.0%],
+    [Combined], [8], [4], [0], [4], [50.0%], [not pooled],
   ),
-  caption: [One-thread NPS and memory scaling on the test VM.],
-) <tab:bench>
+  caption: [Eight-game 3+2 live benchmark. Wilson intervals reflect the four-game pairing sample size.],
+) <tab:rapid>
 
-The v3 build was 0.52--6.68 percent faster in mean NPS. The advantage was not monotonic in Hash size. The 8--32 MiB range was generally favorable, while 64 MiB increased memory without a consistent throughput benefit. Portable and v3 RSS was effectively equal because code generation does not change the TT allocation layout.
+The Stockfish pairing scored 0/4 for Unchessed. This is a useful stress result but not a reliable Elo estimate: four games, one starting position, and a strong objective-search opponent cannot support a parity claim. The Maia pairing scored 4/4 for Unchessed, with all games ending in checkmate. This indicates that the tested Unchessed configuration decisively outplayed the specific 1500-Elo Maia-3 policy configuration under this setup; it does not establish general superiority over Maia or human players.
 
-These are measurements of one virtual machine, not claims about all Intel or AMD systems. They do not measure hybrid-core placement, thermal throttling, NUMA, AVX-VNNI, or a production NNUE file. The raw data and harness are retained for reproduction.
+The mean Stockfish game length was 123.5 plies and 550.71 seconds. The mean Maia game length was 57.5 plies and 211.15 seconds. The large timing difference reflects the different engine workloads and game lengths rather than a direct speed ranking.
 
-= Discussion and limitations
+== Telemetry reproducibility finding
 
-The persona changes are intentionally conservative. Smoothing and cooldown reduce flapping, but they do not calibrate the Elo model or prove human-likeness. A future study should use rating-stratified human games and evaluate move-match likelihood, blunder-frequency calibration, mode-switch frequency, and low-time forfeits. Each tree-changing search feature should be isolated and evaluated with fixed-node correctness tests followed by a preregistered SPRT.
+The first completed match artifact reported zero persona decisions. During review, this was traced to a benchmark harness parsing defect. The engine emitted `event=persona_decision` lines, but the parser incorrectly required Elo and confidence fields on those lines; those fields are emitted on separate opponent-observation events. A direct UCI smoke test confirmed that `AdapterTelemetry=true` produces persona telemetry including `mode_after=MATCH`.
 
-The root-prior firewall is robust against malformed or stale inputs at the internal interface, but the external Lc0 process adapter is not yet part of the production code. The paper distinguishes implemented behavior from planned integration to avoid overstating completion. A typed provider trait, supervised child-process state machine, model manifest, and deadline planner are the next implementation stage.
+The parser was corrected and committed, but the eight completed games were not rerun after the correction. Consequently, the paper reports no fabricated persona transition count. The raw artifact remains valid for results, move legality, termination, and elapsed-time analysis, but not for measured persona-transition frequency. This limitation is a positive audit result: the missing instrumentation was identified and disclosed rather than silently inferred.
 
-The hardware default is Linux-specific and deliberately conservative. Portable cache discovery, per-core versus shared-cache topology, memory-bandwidth measurement, and evaluator working-set profiling remain future work. The benchmark's NPS values should not be extrapolated to the Core Ultra 9 285H, Ryzen 7 7730U, legacy CPUs, or data-center CPUs without local measurements.
+= Discussion
+
+The confidence-aware coupling addresses a concrete control failure: sparse opponent evidence should not be treated as a confident weak-player classification. The change is intentionally asymmetric. Uncertainty raises the early Match target slightly, reducing the risk of underplaying a strong unknown opponent, while the weak-opponent Punish trigger requires the upper confidence bound to remain low. This makes false-positive humanisation less likely without preventing sustained weak-play adaptation.
+
+Smoothing and cooldown address a different failure mode: noisy search evaluations can cause policy flapping even when Elo estimation is correct. The two mechanisms are complementary. Confidence affects whether a mode is proposed; dwell and cooldown affect whether a proposal is committed. Emergency evidence bypasses both when a tactical or detector signal is considered sufficiently strong.
+
+The live benchmark cannot establish that these changes improve playing Elo. It did establish that the release artifact was runnable against two external UCI engines for eight games and that all games completed legally. The Stockfish result demonstrates that substantial objective-strength work remains before any Stockfish-parity claim could be credible. The Maia result demonstrates useful headroom for the tested human-policy target but should be followed by move-agreement and blunder-calibration studies, not merely more engine matches.
+
+= Limitations and future work
+
+The Elo sample curve and confidence band are engineering heuristics, not calibrated rating posteriors. Calibration should use rating-stratified human games with held-out players, position-difficulty buckets, clock controls, and proper scoring rules. The current benchmark uses one opening position and only four games per opponent. A stronger objective evaluation should use a fixed opening suite, colour balancing, matched threads and hash, fixed hardware, and a preregistered SPRT with an explicit null and alternative.
+
+The Maia comparison should report move-match likelihood, legal top-k agreement, blunder frequency, and mode-specific behavioral statistics by target rating and time control. A future benchmark should rerun with the corrected telemetry parser and report transition counts, confidence trajectories, emergency rates, dwell violations, latency percentiles, and low-time fallback rates.
+
+External Lc0 integration remains a proposed provider boundary rather than an implemented dependency. AlphaZero-inspired policy priors remain subordinate root-ordering evidence. Any future search change must first pass legality, perft, fixed-node equivalence, stale-result, and low-time gates before a strength experiment. Neural models should be pinned by binary, network hash, schema, backend, and runtime.
 
 = Conclusion
 
-The sub-project improves Unchessed by making persona transitions more stable, preserving emergency tactical behavior, preventing stale neural state, and adapting compilation and Hash defaults to heterogeneous hardware. The key architectural result is an authority boundary: external neural and engine evidence may influence ordering or verification only after identity, legality, finiteness, timing, and protocol checks. Completed alpha-beta search and the active persona remain authoritative.
+This work strengthens an adaptive UCI engine without weakening the protected persona contract. The key change is to couple persona behavior to uncertainty-aware opponent Elo rather than to a point estimate alone. A wide early confidence band now suppresses premature weak-opponent Punish behavior, while a decaying Match uncertainty premium preserves caution against unexpectedly strong opponents. EMA smoothing, dwell, cooldown, emergency overrides, numerical sanitization, and fail-closed protocol handling provide complementary stability layers.
 
-The measured x86-64-v3 advantage on the current VM is real but modest. The more important portability result is that modern and legacy deployments can use deliberately separated artifacts rather than a single unsafe host-specific binary. The resulting foundation supports future Lc0, Maia, AlphaZero-inspired, and NNUE work without allowing those additions to misfire the protected Unchessed behaviors.
-
-#bibliography("refs.bib")
+The live 3+2 evaluation completed eight legal games, producing a 0/4 result against Stockfish 16 and a 4/4 result against Maia-3 5M at Elo 1500. These observations are reproducible but not sufficient for an Elo claim. The most defensible conclusion is narrower: the optimized branch is operational, its safety and persona controls are test-backed, and its uncertainty-aware coupling is ready for a larger pre-registered calibration and strength study.
