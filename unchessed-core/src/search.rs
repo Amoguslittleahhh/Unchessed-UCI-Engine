@@ -136,7 +136,7 @@ impl Limits {
     /// engine invests in depth; as the clock drains the budgets shrink
     /// faster than linearly, and in real time trouble it moves near-
     /// instantly on the increment.
-    fn budget(&self, side: Color) -> (Option<u64>, Option<u64>) {
+    pub(crate) fn budget(&self, side: Color) -> (Option<u64>, Option<u64>) {
         if self.infinite {
             return (None, None);
         }

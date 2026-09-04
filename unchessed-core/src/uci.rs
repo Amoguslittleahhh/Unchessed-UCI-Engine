@@ -1333,6 +1333,17 @@ fn run_go(
     model: Arc<Mutex<OpponentModel>>,
     persona: Arc<Mutex<PersonaState>>,
 ) {
+    // Sections 1 (opponent-observation probing) and 2 (book troll-line
+    // recheck) below can run real, uncharged searches -- depth 14/400_000
+    // nodes plus a possible depth 12/250_000 nodes for the former, depth
+    // 8/40_000 nodes for the latter -- before the actual timed move search
+    // in section 3 ever starts its own clock. On a normal clock these are
+    // a rounding error; against a short go movetime/go nodes budget they
+    // can dwarf it (measured up to ~130x the requested movetime). Timed
+    // from here so that elapsed cost is charged against the real search's
+    // deadline via preprocessing_elapsed, the same mechanism already used
+    // to charge Unarchitectured-hint inference time.
+    let job_start = std::time::Instant::now();
     let tt_guard = tt.lock().unwrap();
     let tt: &TT = &tt_guard;
     let pos = job.pos;
@@ -1357,12 +1368,26 @@ fn run_go(
         job.ident_adaptive && (job.opt.adaptive || job.opt.limit_strength) && game_mode;
     let mut rng = Rng::from_time();
     // in time trouble every millisecond goes to the move itself: the model
-    // pauses its measurements and the brain skips its side-searches
+    // pauses its measurements and the brain skips its side-searches. Also
+    // skip when THIS move's own hard deadline is tight regardless of the
+    // overall game clock -- a fixed-movetime/fixed-nodes request (or a
+    // fast-format game with no wtime/btime at all, where the check above
+    // never fires) can be far shorter than the ~1s+ these probes can cost
+    // (depth 14/400_000 nodes, plus up to depth 12/250_000 more), and
+    // charging that cost after the fact (preprocessing_elapsed, below)
+    // only stops it from ALSO overshooting the main search on top of the
+    // probe -- it can't make the probe itself fast.
     let low_time = job
         .limits
         .my_time(pos.side)
         .map(|t| t < 10_000)
-        .unwrap_or(false);
+        .unwrap_or(false)
+        || job
+            .limits
+            .budget(pos.side)
+            .1
+            .map(|hard_ms| hard_ms < 1_000)
+            .unwrap_or(false);
 
     // ------------------------------------------------------------------
     // 1. Feed pending opponent moves to the live model
@@ -1663,74 +1688,51 @@ fn run_go(
     let limits_ref = &job.limits;
     let stop_ref: &AtomicBool = &stop;
     let prepared_ref = prepared_hint.as_ref();
+    let hint_slice: &[search::RootHint] = prepared_ref.map(|p| p.hints.as_slice()).unwrap_or(&[]);
+    // Everything charged against this move's deadline: real search work
+    // already done above (sections 1-2) plus, if applicable, Unarchitectured
+    // hint preparation. `go_with_root_hints` treats preprocessing_elapsed as
+    // already-spent time against the same soft/hard budget as the search
+    // itself, so a short go movetime/go nodes request can no longer be
+    // silently exceeded by work that happened before this point.
+    let preprocessing_elapsed =
+        job_start.elapsed() + prepared_ref.map(|p| p.elapsed).unwrap_or_default();
     let lines = std::thread::scope(|scope| {
         for i in 0..n_helpers {
             let offset = 1 + (i % 3) as i32; // stagger: 1,2,3,1,2,3,...
             scope.spawn(move || {
-                if let Some(prepared) = prepared_ref {
-                    let _ = search::go_with_root_hints(
-                        &pos,
-                        eval_ref,
-                        limits_ref,
-                        1,
-                        tt,
-                        stop_ref,
-                        history_ref,
-                        draw_score,
-                        search_params,
-                        offset,
-                        &[],
-                        prepared.elapsed,
-                        &mut |_| {},
-                    );
-                } else {
-                    let _ = search::go(
-                        &pos,
-                        eval_ref,
-                        limits_ref,
-                        1,
-                        tt,
-                        stop_ref,
-                        history_ref,
-                        draw_score,
-                        search_params,
-                        offset,
-                        &mut |_| {},
-                    );
-                }
+                let _ = search::go_with_root_hints(
+                    &pos,
+                    eval_ref,
+                    limits_ref,
+                    1,
+                    tt,
+                    stop_ref,
+                    history_ref,
+                    draw_score,
+                    search_params,
+                    offset,
+                    &[],
+                    preprocessing_elapsed,
+                    &mut |_| {},
+                );
             });
         }
-        if let Some(prepared) = prepared_ref {
-            search::go_with_root_hints(
-                &pos,
-                eval_ref,
-                limits_ref,
-                multipv_search,
-                tt,
-                stop_ref,
-                history_ref,
-                draw_score,
-                search_params,
-                1,
-                &prepared.hints,
-                prepared.elapsed,
-                &mut |event| print_info(event, multipv_shown),
-            )
-        } else {
-            search::go(
-                &pos,
-                eval_ref,
-                limits_ref,
-                multipv_search,
-                tt,
-                stop_ref,
-                history_ref,
-                draw_score,
-                search_params,
-                1,
-                &mut |event| print_info(event, multipv_shown),
-            )
-        }
+        search::go_with_root_hints(
+            &pos,
+            eval_ref,
+            limits_ref,
+            multipv_search,
+            tt,
+            stop_ref,
+            history_ref,
+            draw_score,
+            search_params,
+            1,
+            hint_slice,
+            preprocessing_elapsed,
+            &mut |event| print_info(event, multipv_shown),
+        )
     });
     if lines.is_empty() {
         println!("bestmove 0000");
