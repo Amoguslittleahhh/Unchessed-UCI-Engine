@@ -305,6 +305,36 @@ impl Position {
     }
 
     /// Recompute the hash from scratch (used after FEN parsing and in tests).
+    /// The Zobrist contribution `ep` should make to the hash, given who's
+    /// to move: zero unless a real en-passant capture is actually available
+    /// (a real pawn of `side_to_move`'s color sits on an adjacent file, on
+    /// the rank the double-moved pawn landed on). `ep` itself is still
+    /// recorded on the position (and in FEN/UCI output) whenever a double
+    /// push happens, per normal chess notation -- this only controls
+    /// whether that flag also perturbs the hash. Without this, two
+    /// positions that are identical in every rules-relevant way except one
+    /// having a dead ep flag (no pawn able to actually use it) get
+    /// different hashes, which can fragment TT identity and hide a real
+    /// repetition behind an irrelevant difference.
+    fn ep_hash_contribution(bb: &[[Bitboard; 6]; 2], side_to_move: Color, ep: u8) -> u64 {
+        let ep_rank = rank_of(ep);
+        let mover_rank = if let Color::White = side_to_move {
+            ep_rank - 1
+        } else {
+            ep_rank + 1
+        };
+        let ep_file_idx = file_of(ep);
+        let capturer_pawns = bb[side_to_move.idx()][PAWN];
+        let has_capture = [ep_file_idx.wrapping_sub(1), ep_file_idx + 1]
+            .into_iter()
+            .any(|f| f < 8 && capturer_pawns & (1u64 << sq(f, mover_rank)) != 0);
+        if has_capture {
+            ZOBRIST.ep_file[ep_file_idx as usize]
+        } else {
+            0
+        }
+    }
+
     pub fn compute_hash(&self) -> u64 {
         let mut h = 0u64;
         for s in 0..64u8 {
@@ -314,7 +344,7 @@ impl Position {
         }
         h ^= ZOBRIST.castle[self.castling as usize];
         if self.ep != NO_EP {
-            h ^= ZOBRIST.ep_file[file_of(self.ep) as usize];
+            h ^= Self::ep_hash_contribution(&self.bb, self.side, self.ep);
         }
         if let Color::Black = self.side {
             h ^= ZOBRIST.side;
@@ -331,9 +361,10 @@ impl Position {
         let to = mv.to();
         let (_, pt) = p.piece_on(from).expect("make: no piece on from-square");
 
-        // clear old en passant
+        // clear old en passant (board/side unchanged from `self` so far --
+        // recompute the same contribution compute_hash() would have made)
         if p.ep != NO_EP {
-            p.hash ^= ZOBRIST.ep_file[file_of(p.ep) as usize];
+            p.hash ^= Self::ep_hash_contribution(&p.bb, us, p.ep);
             p.ep = NO_EP;
         }
 
@@ -374,7 +405,10 @@ impl Position {
                 if pt == PAWN && (from as i16 - to as i16).abs() == 16 {
                     let ep_sq = ((from as u16 + to as u16) / 2) as u8;
                     p.ep = ep_sq;
-                    p.hash ^= ZOBRIST.ep_file[file_of(ep_sq) as usize];
+                    // `p.bb` already reflects this pawn's move (placed above),
+                    // matching what compute_hash() would see for this
+                    // resulting position.
+                    p.hash ^= Self::ep_hash_contribution(&p.bb, them, ep_sq);
                 }
             }
         }
@@ -403,7 +437,7 @@ impl Position {
     pub fn make_null(&self) -> Position {
         let mut p = *self;
         if p.ep != NO_EP {
-            p.hash ^= ZOBRIST.ep_file[file_of(p.ep) as usize];
+            p.hash ^= Self::ep_hash_contribution(&p.bb, p.side, p.ep);
             p.ep = NO_EP;
         }
         p.halfmove += 1;

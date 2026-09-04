@@ -227,6 +227,19 @@ pub fn run(ident: EngineIdent) {
     // persona persists across moves for hysteresis + EMA/dwell; worker updates it
     let persona = Arc::new(Mutex::new(PersonaState::default()));
     let mut worker: Option<JoinHandle<()>> = None;
+    // `go ponder`: the search is deliberately NOT started yet -- its own
+    // limits (movetime/wtime/etc) describe the budget for the move the GUI
+    // expects to make AFTER the pondered move is confirmed, not time to
+    // spend right now. Starting the search immediately (the previous
+    // behavior) meant it ran to completion and returned `bestmove`
+    // immediately, an outright protocol violation: a GUI must not see a
+    // move while it still believes the engine is pondering. Held here until
+    // `ponderhit` (start the real search, clock beginning now) or the ponder
+    // is abandoned by `stop`/a new `position`/`quit` (discarded, no
+    // response -- matching the common real-engine behavior of not
+    // fabricating a bestmove for a position the game may have already
+    // moved past).
+    let mut pending_ponder: Option<GoJob> = None;
     let mut game = Game::new(0);
     // `ucinewgame` owns logical game boundaries. The initial pre-newgame
     // position remains game 0 for permissive UCI clients.
@@ -379,6 +392,12 @@ pub fn run(ident: EngineIdent) {
             }
             "position" => {
                 join_worker(&mut worker, &stop);
+                // A new position while still pondering the old one means the
+                // opponent's actual move has already been established some
+                // other way (or the GUI is resetting) -- the pondered guess
+                // no longer applies to anything, so it's discarded, not
+                // started stale.
+                pending_ponder = None;
                 if let Some(g) = parse_position(&line, &game) {
                     game = g;
                 } else {
@@ -459,16 +478,41 @@ pub fn run(ident: EngineIdent) {
                 if job.game_plies >= opt.book_depth {
                     game.out_of_book_logged = true;
                 }
-                let tt = Arc::clone(&tt);
-                let stop_c = Arc::clone(&stop);
-                let book = Arc::clone(&book);
-                let model = Arc::clone(&model);
-                let persona_c = Arc::clone(&persona);
-                worker = Some(std::thread::spawn(move || {
-                    run_go(job, tt, stop_c, book, model, persona_c);
-                }));
+                if job.limits.ponder {
+                    // Deliberately not spawned: see pending_ponder's
+                    // definition. Waits for `ponderhit` (starts now, using
+                    // these same limits) or `stop`/a new `position` (this
+                    // guess is simply dropped).
+                    pending_ponder = Some(job);
+                } else {
+                    let tt = Arc::clone(&tt);
+                    let stop_c = Arc::clone(&stop);
+                    let book = Arc::clone(&book);
+                    let model = Arc::clone(&model);
+                    let persona_c = Arc::clone(&persona);
+                    worker = Some(std::thread::spawn(move || {
+                        run_go(job, tt, stop_c, book, model, persona_c);
+                    }));
+                }
+            }
+            "ponderhit" => {
+                // The predicted move was played: the budget given in the
+                // original `go ponder ...` line describes the move we're
+                // about to make now, so its clock starts here, not back
+                // when we started pondering.
+                if let Some(job) = pending_ponder.take() {
+                    let tt = Arc::clone(&tt);
+                    let stop_c = Arc::clone(&stop);
+                    let book = Arc::clone(&book);
+                    let model = Arc::clone(&model);
+                    let persona_c = Arc::clone(&persona);
+                    worker = Some(std::thread::spawn(move || {
+                        run_go(job, tt, stop_c, book, model, persona_c);
+                    }));
+                }
             }
             "stop" => {
+                pending_ponder = None;
                 join_worker(&mut worker, &stop);
             }
             "quit" => {
@@ -979,6 +1023,14 @@ fn parse_go(line: &str) -> Limits {
             "movestogo" => num(&mut l.movestogo),
             "nodes" => num(&mut l.nodes),
             "infinite" => l.infinite = true,
+            "ponder" => l.ponder = true,
+            // Per UCI convention, searchmoves takes every remaining token as
+            // a move (it's always the last thing on a `go` line in practice,
+            // and nothing after it is a recognized keyword either way).
+            "searchmoves" => {
+                l.searchmoves = toks.by_ref().map(String::from).collect();
+                break;
+            }
             _ => {}
         }
     }
@@ -1792,7 +1844,7 @@ fn run_go(
                 &mut |_| {},
             )
         };
-        let sel = select_move(
+        let mut sel = select_move(
             &pos,
             &lines,
             mode,
@@ -1802,6 +1854,22 @@ fn run_go(
             &mut rng,
             &mut probe,
         );
+        // Mode::Match deliberately widens its candidate pool to every legal
+        // move (to model human blunders outside the engine's own top-K
+        // lines), which bypasses go searchmoves entirely -- it never
+        // consults the restricted root set the search itself already
+        // honored. Guard here instead of threading the restriction through
+        // select_move: if persona selection picked something outside the
+        // requested set, fall back to lines[0], which is guaranteed to be
+        // in it (it came from the already-restricted search).
+        if !job.limits.searchmoves.is_empty()
+            && !job.limits.searchmoves.iter().any(|s| s == &sel.mv.uci())
+        {
+            sel = crate::adapt::Selection {
+                mv: lines[0].mv,
+                reason: format!("{} (searchmoves override)", sel.reason),
+            };
+        }
         if let (Some(decision), Some(snapshot)) = (job.decision_index, persona_snapshot) {
             emit_persona_decision_telemetry(
                 &job,

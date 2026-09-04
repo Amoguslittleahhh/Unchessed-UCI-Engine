@@ -93,6 +93,20 @@ pub struct Limits {
     pub movestogo: Option<u64>,
     pub nodes: Option<u64>,
     pub infinite: bool,
+    /// `go searchmoves <m1> <m2> ...`: raw UCI move strings restricting the
+    /// root move set. Stored as strings (not `Move`) since parsing a UCI
+    /// move string requires the position, which isn't known at `go`-line
+    /// parse time -- resolved against the actual root move list in
+    /// `go_with_root_hints`. Empty means unrestricted (the default for
+    /// every internally-constructed `Limits`, e.g. the adapter's opponent-
+    /// observation and book-troll-check probes, which must never be
+    /// accidentally restricted by an outer command's searchmoves).
+    pub searchmoves: Vec<String>,
+    /// `go ponder`: the UCI-line "ponder" flag. `Limits` itself does nothing
+    /// with this -- it's read by the UCI command loop to decide whether to
+    /// defer starting the search until `ponderhit`, per this engine's
+    /// pondering model (see uci.rs's "go"/"ponderhit" handling).
+    pub ponder: bool,
 }
 
 impl Limits {
@@ -965,13 +979,35 @@ pub fn go_with_root_hints(
     if root_moves_list.len == 0 {
         return Vec::new();
     }
-    let multipv = multipv.max(1).min(root_moves_list.len);
+    // `go searchmoves`: restrict to the requested root moves, matched by
+    // their own UCI notation against the already-legal move list (so
+    // castling/en-passant/promotion notation is handled exactly like move
+    // printing already does, no separate position-aware parsing needed).
+    // Falls back to the full legal set if every requested move turns out
+    // illegal here, rather than searching nothing or panicking on a stale
+    // or malformed list.
+    let restricted: Vec<Move> = if limits.searchmoves.is_empty() {
+        Vec::new()
+    } else {
+        root_moves_list
+            .as_slice()
+            .iter()
+            .copied()
+            .filter(|m| limits.searchmoves.iter().any(|s| s == &m.uci()))
+            .collect()
+    };
+    let root_slice: &[Move] = if restricted.is_empty() {
+        root_moves_list.as_slice()
+    } else {
+        &restricted
+    };
+    let multipv = multipv.max(1).min(root_slice.len());
 
     // situation-based allocation: sharp or wide positions deserve more of
     // the clock, simple ones less; a single legal move needs almost none
     let root_in_check = in_check(pos);
     let situation = {
-        let width = (0.65 + root_moves_list.len as f64 / 45.0).clamp(0.75, 1.3);
+        let width = (0.65 + root_slice.len() as f64 / 45.0).clamp(0.75, 1.3);
         let sharp = if root_in_check { 1.25 } else { 1.0 };
         width * sharp
     };
@@ -985,8 +1021,7 @@ pub fn go_with_root_hints(
         pv: Vec<Move>,
         depth: i32,
     }
-    let mut roots: Vec<RootMove> = root_moves_list
-        .as_slice()
+    let mut roots: Vec<RootMove> = root_slice
         .iter()
         .map(|&m| RootMove {
             mv: m,
