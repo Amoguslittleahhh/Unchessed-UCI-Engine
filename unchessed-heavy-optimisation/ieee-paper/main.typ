@@ -149,6 +149,20 @@ This observation indicates operational stability under the reported fast control
 
 Because the result was supplied externally and no machine-readable PGN, exact opening list, engine commit identifiers, or SPRT log accompanied it, this paper treats it as an attributed observation rather than an independently reproducible experiment. A valid follow-up must resolve the game-count discrepancy, publish all PGNs and hashes, and use a predeclared paired-game SPRT.
 
+= Real SPRT regression and profile audit
+
+A subsequent externally supplied report provided a real `cutechess-cli` SPRT rather than a small informal match. The comparison used `Adaptive=true`, `OwnBook=false`, paired openings with colors reversed, one thread, Hash 256 MiB, the same SHA-256-verified NNUE file on both engines, `elo0=0`, `elo1=5`, and `alpha=beta=0.05`. The fast screening test stopped after 223 games when the SPRT boundary was reached.
+
+The reported result was an accepted null hypothesis for the heavy branch, an estimated difference of $-244.4 plus.minus 48.0$ Elo relative to `main`, and a 0.0% likelihood of superiority in the reported analysis. Neither side produced an illegal move, disconnect, crash, or time forfeit. Twelve games per side were aborted in flight after the boundary was reached; these were test termination events rather than engine failures.
+
+This result changes the interpretation of the project. The tested heavy branch is decisively weaker than `main` under this matched configuration. It does not establish that every individual audit change is harmful, because the branch contains several coupled modifications, but it invalidates any claim that the current aggregate branch is stronger.
+
+The report also identified an unintended default divergence. Before correction, the heavy branch advertised `PersonaSmooth` as default `true`, whereas `main` and the project persona-gate documentation specify default `false`. The SPRT explicitly pinned the option false on both engines, so the reported Elo result is not attributed to this default mismatch. Nevertheless, the heavy branch has now been corrected to restore `PersonaSmooth=false`, and its regression test and UCI advertisement agree with `main`.
+
+The remaining proposed cause was the release profile. The heavy branch uses fat LTO, abort-on-panic, stripped symbols, and disabled incremental compilation, while `main` uses ordinary `lto=true` without those extra settings. To isolate this variable, the exact heavy source tree was rebuilt once with its heavy profile and once with the `main`-style plain profile. On the same start-position `go nodes 3000000` benchmark, both variants reached depth 14, reported 2,184,042 nodes, and reported hashfull 8. The heavy profile measured 908,881 NPS; the plain-profile copy measured 912,679 NPS. The difference was approximately 0.4%, not a plausible explanation for a -244 Elo result or a 7--9x hashfull discrepancy.
+
+The local three-way run did not reproduce the externally reported hashfull anomaly: the `main` binary measured 821,995 NPS and hashfull 8, while the heavy and exact-source plain-profile variants measured 908,881 and 912,679 NPS respectively, also with hashfull 8. The anomaly therefore remains open. Its cause may depend on benchmark timing, exact binary identity, UCI option state, hash implementation state, or result capture. The experiment does establish that the additional Cargo profile settings are not sufficient to explain it.
+
 = Live rapid benchmark
 
 == Experimental setup

@@ -138,7 +138,7 @@ impl Default for Options {
             unarchitectured_hint_exit: InferenceExit::Layer2Width128,
             unarchitectured_file: String::new(),
             unarchitectured_min_time_ms: 30_000,
-            persona_smooth: true,
+            persona_smooth: false,
             engine_detect_v2: false,
             adapter_telemetry: false,
         }
@@ -324,7 +324,7 @@ pub fn run(ident: EngineIdent) {
                     println!("option name BookDepth type spin default 16 min 0 max 40");
                     println!("option name PolicyFile type string default ");
                     println!("option name UCI_Opponent type string default ");
-                    println!("option name PersonaSmooth type check default true");
+                    println!("option name PersonaSmooth type check default false");
                     println!("option name EngineDetectV2 type check default false");
                     println!("option name AdapterTelemetry type check default false");
                 }
@@ -2065,7 +2065,7 @@ mod tests {
     #[test]
     fn persona_and_detector_experiments_default_off() {
         let o = Options::default();
-        assert!(o.persona_smooth);
+        assert!(!o.persona_smooth);
         assert!(!o.engine_detect_v2);
         assert!(!o.unarchitectured_hint);
         assert!(o.adaptive);
@@ -2083,7 +2083,7 @@ mod tests {
         assert_eq!(before.elo_cap, after.elo_cap);
         assert_eq!(before.contempt, after.contempt);
         assert_eq!(before.persona_smooth, after.persona_smooth);
-        assert!(Options::default().persona_smooth);
+        assert!(!Options::default().persona_smooth);
         assert!(!Options::default().engine_detect_v2);
     }
 
