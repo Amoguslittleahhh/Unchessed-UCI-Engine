@@ -125,6 +125,30 @@ The isolated branch is a copy of the repository's main branch under `unchessed-h
 
 The implementation was reviewed through the audit history in commits `704381f` and `6b0d84d`. The former fixed fail-open search restrictions and malformed policy weights. The latter introduced confidence-aware Elo coupling and regression tests for premature Punish prevention and shrinking uncertainty premium. The relevant tests verify that a fresh uncertain prior does not trigger weak-opponent Punish, while sustained low-quality evidence can still trigger it. The optimization copy now includes the canonical `unchessed-nnue.bin` asset (SHA-256 `38845a16d73a6fe0bd4ac95c86c017c65c97bc82c7ce2f6dce2f1b3fbe8577b5`), and benchmark scripts require an explicit `EvalFile` path.
 
+= Main-branch paired comparison
+
+An externally supplied informal paired-game result compared the `main` adapter with the isolated optimization adapter. The reported configuration used six openings, alternating colors, 400 ms per move, one search thread, 64 MiB Hash, `OwnBook=false`, `Adaptive=false`, and the same explicit NNUE file on both engines. The report stated that neither side produced an illegal move or crashed.
+
+The supplied result was `main 7 -- heavy-optimization 5, 6 draws`. These counts sum to 18 games, although the report also described the experiment as 12 games. The arithmetic inconsistency is preserved rather than silently corrected. Interpreting the win, loss, and draw counts literally gives the following descriptive table.
+
+#figure(
+  placement: top,
+  table(
+    columns: (1.6fr, 0.6fr, 0.6fr, 0.6fr, 0.9fr, 0.9fr),
+    align: (left, right, right, right, right, right),
+    inset: 3pt,
+    stroke: (x, y) => if y == 0 { (bottom: 0.5pt) },
+    table.header[Adapter][Wins][Draws][Losses][Game points][Score],
+    [Main branch], [7], [6], [5], [10/18], [55.6%],
+    [Heavy optimization], [5], [6], [7], [8/18], [44.4%],
+  ),
+  caption: [Externally supplied main-versus-optimization result. The literal counts imply 18 games, not 12.],
+) <tab:main-compare>
+
+This observation indicates operational stability under the reported fast control, but it does not establish a strength improvement. The heavy-optimization adapter scored 44.4% under the literal 18-game interpretation, a two-game-point deficit. The sample is too small and the control too fast to support an Elo estimate or a promotion decision. The result also disabled Adaptive behavior, so it does not test persona transitions, Elo detection, or low-time persona gates.
+
+Because the result was supplied externally and no machine-readable PGN, exact opening list, engine commit identifiers, or SPRT log accompanied it, this paper treats it as an attributed observation rather than an independently reproducible experiment. A valid follow-up must resolve the game-count discrepancy, publish all PGNs and hashes, and use a predeclared paired-game SPRT.
+
 = Live rapid benchmark
 
 == Experimental setup
