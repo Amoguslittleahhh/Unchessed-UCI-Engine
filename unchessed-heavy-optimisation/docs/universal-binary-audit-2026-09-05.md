@@ -33,3 +33,11 @@ A fresh rerun with the available `artifacts/xt-nnue-v1-full.pt.best` file produc
 The next valid experiment is to provide a canonical `UNCHNNUE` runtime file, rerun the portable-v3 script from this exact commit, and use Linux `perf record/report` or an equivalent profiler on the same binary and workload. Only if one non-NNUE function accounts for a repeatable portion of the gap should it receive a runtime-dispatched kernel. Candidate areas are the negamax loop and transposition-table probe/store path, but neither should be changed before profiling.
 
 The attachment’s central conclusion is therefore accepted: NNUE already implements the universal-binary pattern correctly, BMI2 is not currently used, and the build split should not be replaced by speculative dispatch. The audit also corrects the benchmark interpretation: the available local TSV currently shows portable ahead of v3, while the previously stated v3 advantage remains unverified until the original evaluator asset and environment are reproduced.
+
+## Implemented architecture
+
+The branch now contains `unchessed-core/src/cpu.rs`, a centralized `OnceLock`-cached capability registry. It exposes `has_avx2()`, `has_avx2_fma()`, and `has_avx2_sse41()` predicates. NNUE and Aegis no longer perform feature detection independently; their existing target-feature kernels are selected through this shared interface, while scalar implementations remain the fallback. The refactor changes dispatch ownership, not numerical behavior or the weights ABI.
+
+This is intentionally a **capability registry**, not a promise that every v3 instruction is available. Each kernel asks for exactly the features required by its `#[target_feature]` declaration. AVX2 integer kernels require AVX2; FMA kernels require AVX2+FMA; the softmax kernel requires AVX2+SSE4.1. The resulting binary remains portable, and unsupported hardware never enters an unsafe kernel.
+
+The implementation is deliberately limited to existing verified kernels. No unprofiled search or transposition-table SIMD implementation was added.

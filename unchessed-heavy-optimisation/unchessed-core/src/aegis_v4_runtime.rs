@@ -16,6 +16,7 @@
 )]
 
 use crate::board::{file_of, Move, Position, BISHOP, BK, BQ, KNIGHT, NO_EP, QUEEN, ROOK, WK, WQ};
+use crate::cpu;
 use crate::unarchitectured_v1::TensorPackage;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -127,7 +128,7 @@ fn dot_four_three_i16_i8(
 
 fn select_dot_kernel() -> DotKernel {
     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    if std::is_x86_feature_detected!("avx2") && std::is_x86_feature_detected!("fma") {
+    if cpu::has_avx2_fma() {
         return |left, right| unsafe { dot_avx2_fma(left, right) };
     }
     dot_scalar
@@ -135,7 +136,7 @@ fn select_dot_kernel() -> DotKernel {
 
 fn select_dot4_kernel() -> Dot4Kernel {
     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    if std::is_x86_feature_detected!("avx2") && std::is_x86_feature_detected!("fma") {
+    if cpu::has_avx2_fma() {
         return |rows, stride, weights| unsafe { dot4_avx2_fma(rows, stride, weights) };
     }
     dot4_scalar
@@ -143,7 +144,7 @@ fn select_dot4_kernel() -> Dot4Kernel {
 
 fn select_dot4x2_i16_i8_kernel() -> Dot4x2I16I8Kernel {
     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    if std::is_x86_feature_detected!("avx2") {
+    if cpu::has_avx2() {
         return |rows, stride, weights_0, weights_1| unsafe {
             dot4x2_i16_i8_avx2(rows, stride, weights_0, weights_1)
         };
@@ -153,7 +154,7 @@ fn select_dot4x2_i16_i8_kernel() -> Dot4x2I16I8Kernel {
 
 fn select_dot4x3_i16_i8_kernel() -> Dot4x3I16I8Kernel {
     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    if std::is_x86_feature_detected!("avx2") {
+    if cpu::has_avx2() {
         return |rows, stride, weights_0, weights_1, weights_2| unsafe {
             dot4x3_i16_i8_avx2(rows, stride, weights_0, weights_1, weights_2)
         };
@@ -163,7 +164,7 @@ fn select_dot4x3_i16_i8_kernel() -> Dot4x3I16I8Kernel {
 
 fn select_axpy_kernel() -> AxpyKernel {
     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    if std::is_x86_feature_detected!("avx2") && std::is_x86_feature_detected!("fma") {
+    if cpu::has_avx2_fma() {
         return |scale, source, destination| unsafe { axpy_avx2_fma(scale, source, destination) };
     }
     axpy_scalar
@@ -171,7 +172,7 @@ fn select_axpy_kernel() -> AxpyKernel {
 
 fn select_quantize_i16_kernel() -> QuantizeI16Kernel {
     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    if std::is_x86_feature_detected!("avx2") {
+    if cpu::has_avx2() {
         return |source, destination| unsafe { quantize_i16_avx2(source, destination) };
     }
     quantize_i16_scalar
@@ -1561,8 +1562,7 @@ fn softmax8_dispatch(scores: &mut [f32], max_score: f32) -> f32 {
     INIT.call_once(|| SOFTMAX_TOGGLE.store(softmax_toggle_initial(), AtomicOrdering::Relaxed));
     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
     if SOFTMAX_TOGGLE.load(AtomicOrdering::Relaxed) != 0
-        && std::is_x86_feature_detected!("avx2")
-        && std::is_x86_feature_detected!("sse4.1")
+        && cpu::has_avx2_sse41()
     {
         let mut expd = [0.0f32; 64];
         unsafe { exp8_softmax(&scores, &mut expd, max_score) };
@@ -1729,7 +1729,7 @@ fn attention_heads_dispatch(
     INIT.call_once(|| ATTN_TOGGLE.store(attention_toggle_initial(), AtomicOrdering::Relaxed));
     if ATTN_TOGGLE.load(AtomicOrdering::Relaxed) != 0 {
         #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-        if std::is_x86_feature_detected!("avx2") && std::is_x86_feature_detected!("fma") {
+        if cpu::has_avx2_fma() {
             unsafe {
                 attention_heads_inlined(
                     q,
