@@ -2,7 +2,7 @@
   "task_kind": "new-document",
   "output": "pdf",
   "signals": ["ieee"],
-  "hard_constraints": ["two-column technical paper", "IEEE-style references"],
+  "hard_constraints": ["IEEE-style research paper", "PDF"],
   "content_features": {
     "code_blocks": 2,
     "defined_terms": 12,

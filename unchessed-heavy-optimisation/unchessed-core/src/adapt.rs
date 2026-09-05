@@ -731,8 +731,7 @@ pub fn decide_mode(
     // effective ceiling before applying the weak-opponent trigger.
     let opponent_upper = target.saturating_add(model.confidence());
     let punish_trigger = (model.last_was_blunder() && our_eval_cp > 60)
-        || (opponent_upper + 500 < ENGINE_CEILING.min(cfg_effective_cap(cfg))
-            && our_eval_cp > 250);
+        || (opponent_upper + 500 < ENGINE_CEILING.min(cfg_effective_cap(cfg)) && our_eval_cp > 250);
     if punish_trigger || (prev == Mode::Punish && our_eval_cp > 200) {
         return Mode::Punish;
     }
@@ -944,9 +943,133 @@ pub struct Selection {
     pub reason: String,
 }
 
+/// Dedicated CLINCH policy adapter. It ranks only search-approved candidates
+/// whose shallow probe shows opponent reply concentration. The policy prior
+/// supplies naturalness; the probe supplies engagement; search supplies safety.
+#[derive(Clone, Copy, Debug)]
+pub struct ClinchAdapter {
+    pub max_loss_cp: i32,
+    pub probe_gap_weight: f64,
+    pub naturalness_weight: f64,
+    pub engagement_weight: f64,
+}
+
+impl Default for ClinchAdapter {
+    fn default() -> Self {
+        ClinchAdapter {
+            max_loss_cp: 40,
+            probe_gap_weight: 0.60,
+            naturalness_weight: 10.0,
+            engagement_weight: 1.0,
+        }
+    }
+}
+
+impl ClinchAdapter {
+    fn engagement_bonus(pos: &Position, after: &Position, reply_count: usize) -> f64 {
+        let choice = if (3..=20).contains(&reply_count) {
+            8.0
+        } else {
+            0.0
+        };
+        let queens = pos.bb[0][QUEEN] != 0
+            && pos.bb[1][QUEEN] != 0
+            && after.bb[0][QUEEN] != 0
+            && after.bb[1][QUEEN] != 0;
+        choice + if queens { 6.0 } else { 0.0 }
+    }
+
+    fn choose(
+        &self,
+        pos: &Position,
+        lines: &[Line],
+        target_elo: i32,
+        prior: &dyn MovePrior,
+        probe: &mut dyn FnMut(&Position) -> Vec<Line>,
+    ) -> Selection {
+        let best = &lines[0];
+        let candidates: Vec<Line> = lines
+            .iter()
+            .take(5)
+            .filter(|line| best.score - line.score <= self.max_loss_cp)
+            .cloned()
+            .collect();
+        if candidates.is_empty() {
+            return Selection {
+                mv: best.mv,
+                reason: "clinch fallback (no safe candidates)".to_string(),
+            };
+        }
+        let moves: Vec<Move> = candidates.iter().map(|line| line.mv).collect();
+        let priors = prior.priors(pos, &moves, target_elo);
+        let mut chosen = best.mv;
+        let mut chosen_score = f64::MIN;
+        let mut chosen_gap = 0;
+        for (index, line) in candidates.iter().enumerate() {
+            let after = pos.make(line.mv);
+            let replies = probe(&after);
+            let gap = if replies.len() >= 2 {
+                (replies[0].score - replies[1].score).max(0)
+            } else {
+                0
+            };
+            let naturalness = safe_prior_weight(&priors, index).ln();
+            let score = -(best.score - line.score) as f64
+                + self.probe_gap_weight * gap as f64
+                + self.naturalness_weight * naturalness
+                + self.engagement_weight * Self::engagement_bonus(pos, &after, replies.len());
+            if score > chosen_score {
+                chosen_score = score;
+                chosen = line.mv;
+                chosen_gap = gap;
+            }
+        }
+        Selection {
+            mv: chosen,
+            reason: format!(
+                "clinch adapter (reply gap {} cp, target {})",
+                chosen_gap, target_elo
+            ),
+        }
+    }
+}
+
 /// Max centipawns we are willing to give up vs. the best move at a target Elo.
 fn max_loss_for(target: i32) -> f64 {
     ((ENGINE_CEILING - target).max(0) as f64 * 0.35).max(12.0)
+}
+
+/// Small bonus for positions that remain interesting after a candidate move.
+/// This is deliberately much smaller than the centipawn-loss term: engagement
+/// may shape a safe choice, but it can never rescue a tactically bad move.
+fn engagement_score(pos: &Position, after: &Position) -> f64 {
+    let legal_count = legal(after).len;
+    let choice = if (8..=35).contains(&legal_count) {
+        1.0
+    } else {
+        0.0
+    };
+    let queens_alive = pos.bb[0][QUEEN] != 0
+        && pos.bb[1][QUEEN] != 0
+        && after.bb[0][QUEEN] != 0
+        && after.bb[1][QUEEN] != 0;
+    choice + if queens_alive { 1.0 } else { 0.0 }
+}
+
+/// Human error is phase-dependent: opening moves are comparatively rehearsed,
+/// middlegames contain the most genuine decision errors, and endgames have a
+/// smaller but non-zero error rate. This preserves the existing target-Elo
+/// calibration while making blunders less mechanically uniform.
+fn natural_blunder_probability(target: i32, fullmove: u16) -> f64 {
+    let base = ((2200 - target).max(0) as f64 / 1700.0).clamp(0.0, 1.0) * 0.35;
+    let phase_factor = if fullmove <= 10 {
+        0.45
+    } else if fullmove <= 40 {
+        1.0
+    } else {
+        0.75
+    };
+    base * phase_factor
 }
 
 /// Pick the move to play from MultiPV lines according to the persona.
@@ -1017,42 +1140,7 @@ pub fn select_move(
             }
         }
         Mode::Clinch => {
-            // probe top candidates: a trap-laden move is one where the
-            // opponent's best reply is far better than their second-best
-            // (narrow path), while our eval stays acceptable.
-            let budget_loss = 40;
-            let both_queens_now = pos.bb[0][QUEEN] != 0 && pos.bb[1][QUEEN] != 0;
-            let mut best_score = f64::MIN;
-            let mut pick = best.mv;
-            let mut picked_gap = 0;
-            for l in lines.iter().take(3) {
-                let loss = best.score - l.score;
-                if loss > budget_loss {
-                    continue;
-                }
-                let after = pos.make(l.mv);
-                let replies = probe(&after);
-                let gap = if replies.len() >= 2 {
-                    (replies[0].score - replies[1].score).max(0)
-                } else {
-                    0
-                };
-                let mut s = -(loss as f64) + gap as f64 * 0.6;
-                // dirty chess wants pieces on the board: reward lines that
-                // keep both queens alive in a drawish position
-                if both_queens_now && after.bb[0][QUEEN] != 0 && after.bb[1][QUEEN] != 0 {
-                    s += 12.0;
-                }
-                if s > best_score {
-                    best_score = s;
-                    pick = l.mv;
-                    picked_gap = gap;
-                }
-            }
-            Selection {
-                mv: pick,
-                reason: format!("venom line (only-move gap {} cp for opponent)", picked_gap),
-            }
+            ClinchAdapter::default().choose(pos, lines, target_elo(cfg, model), prior, probe)
         }
         Mode::Match => {
             let target = target_elo(cfg, model);
@@ -1134,7 +1222,7 @@ pub fn select_move(
             // against real blunder-frequency-by-rating references (roughly
             // 30-35% of moves at ~500 Elo, ~0% at 2200+, matching
             // HeuristicPrior's own weakening cutoff).
-            let blunder_prob = ((2200 - target).max(0) as f64 / 1700.0).clamp(0.0, 1.0) * 0.35;
+            let blunder_prob = natural_blunder_probability(target, pos.fullmove);
             if blunder_prob > 0.0 && rng.f64() < blunder_prob {
                 let lo = max_loss * 0.25;
                 let mut weights: Vec<f64> = Vec::with_capacity(viable.len());
@@ -1171,7 +1259,11 @@ pub fn select_move(
                     weights.push(0.0);
                     continue;
                 }
-                let w = (-loss / temp).exp() * safe_prior_weight(&priors, i);
+                let after = pos.make(viable[i].0);
+                let engagement = engagement_score(pos, &after);
+                let w = (-loss / temp).exp()
+                    * safe_prior_weight(&priors, i)
+                    * (1.0 + 0.05 * engagement);
                 weights.push(w);
             }
             let total: f64 = weights.iter().sum();
@@ -1261,6 +1353,22 @@ mod tests {
         let mut m = OpponentModel::new();
         m.seed_from_uci_opponent("- 2800 human MagnusFan");
         assert!(m.estimate() < 2300, "human declared elo must not dominate");
+    }
+
+    #[test]
+    fn humanization_blunders_peak_in_middlegame() {
+        let middlegame = natural_blunder_probability(800, 25);
+        assert!(middlegame > natural_blunder_probability(800, 5));
+        assert!(middlegame > natural_blunder_probability(800, 55));
+        assert_eq!(natural_blunder_probability(2200, 25), 0.0);
+    }
+
+    #[test]
+    fn engagement_score_is_bounded_and_rewards_queen_tension() {
+        let pos = crate::fen::startpos();
+        let after = pos.make(Move::new(12, 28, 0));
+        let score = engagement_score(&pos, &after);
+        assert!((0.0..=2.0).contains(&score));
     }
 
     #[test]
