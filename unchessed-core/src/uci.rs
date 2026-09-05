@@ -1703,8 +1703,9 @@ fn run_go(
     // change against unmodified main measured -223.2 +/- 44.6 Elo for the
     // unmodified side (tc=5+0.05, elo0=0 elo1=5 alpha=beta=0.05, LOS 0%),
     // independently reproduced at +147.2 +/- 160.4 Elo (20 games, different
-    // hardware) by manus/research-facilities. Only a single slow-time-control
-    // game has been checked so far, not a real slow confirmation sample.
+    // hardware) by manus/research-facilities. Slow-time-control confirmation
+    // (tc=20+0.2, 267 games) measured -183.1 +/- 38.5 Elo for the unmodified
+    // side, LOS 0% -- same direction and magnitude as the fast gate.
     let known_full =
         adaptive_now && !job.opt.limit_strength && model.lock().unwrap().engine_suspect();
     let multipv_search = if adaptive_now && !known_full {
