@@ -30,6 +30,18 @@ else:
 
 @unittest.skipIf(torch is None, f"torch not installed ({_IMPORT_ERROR})")
 class TrainNnueBestCheckpointTests(unittest.TestCase):
+    def test_grouped_position_split_keeps_duplicates_together(self):
+        import train_nnue as t
+
+        records = t.synth_records(200, t.np.random.default_rng(11))
+        records[100:120] = records[0:20]
+        val, train = t.grouped_position_split(records)
+        val_boards = {bytes(records[i]["bb"].tobytes()) for i in val}
+        train_boards = {bytes(records[i]["bb"].tobytes()) for i in train}
+        self.assertTrue(val_boards.isdisjoint(train_boards))
+        self.assertGreater(len(val), 0)
+        self.assertGreater(len(train), 0)
+
     def test_train_exports_best_epoch_not_last(self):
         import train_nnue as t
 

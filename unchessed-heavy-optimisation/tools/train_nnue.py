@@ -411,6 +411,30 @@ def export_net(model, path):
     os.replace(tmp, path)
 
 
+def grouped_position_split(data, validation_fraction=0.02):
+    """Deterministically split by board position, not by record.
+
+    NNUE corpora often contain the same position at several nearby plies or
+    in multiple relabelled shards. A record-wise random split can therefore
+    leak exact positions into validation and select an overfit checkpoint.
+    Hashing only the 96-byte board payload keeps all labels for a position in
+    one partition while remaining streaming-friendly at training time.
+    """
+    raw = np.ascontiguousarray(data["bb"]).view(np.uint8).reshape(len(data), 96)
+    h = np.full(len(data), np.uint64(1469598103934665603), dtype=np.uint64)
+    prime = np.uint64(1099511628211)
+    for column in raw.T:
+        h ^= column.astype(np.uint64)
+        h *= prime
+    modulus = max(2, round(1.0 / validation_fraction))
+    val_mask = (h % np.uint64(modulus)) == 0
+    if not val_mask.any():
+        val_mask[int(h.argmin())] = True
+    if val_mask.all():
+        val_mask[int(h.argmax())] = False
+    return np.flatnonzero(val_mask), np.flatnonzero(~val_mask)
+
+
 def train(shards, out_path, epochs):
     # Read shard sizes up front and allocate the full array once, then read
     # each shard directly into its slice -- avoids ever holding both the
@@ -440,11 +464,10 @@ def train(shards, out_path, epochs):
         data[offset : offset + cnt] = part
         offset += cnt
     del part
-    n_val = min(200_000, max(1, n // 50))  # 200k, or 2% if smaller
     rng = np.random.default_rng(42)
-    perm = rng.permutation(n)
-    val_idx_np, train_idx_np = perm[:n_val], perm[n_val:]
-    print(f"total {n} records: {len(train_idx_np)} train / {n_val} val", flush=True)
+    val_idx_np, train_idx_np = grouped_position_split(data)
+    print(f"total {n} records: {len(train_idx_np)} train / {len(val_idx_np)} val "
+          "(deterministic position-group split)", flush=True)
     print(f"device: {DEVICE}"
           + (f" ({torch.cuda.get_device_name(DEVICE)})" if DEVICE.type == "cuda" else "")
           + f", batch size: {BATCH_SIZE}, ft_in (export): {FT_IN}", flush=True)

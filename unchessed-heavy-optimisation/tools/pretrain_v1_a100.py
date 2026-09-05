@@ -281,10 +281,37 @@ class UnarchitecturedV1OracleDualElo(UnarchitecturedV1Oracle):
 # loss + evaluation (with the conditioning sweep)
 # ----------------------------------------------------------------------
 
-def pretrain_loss(output, batch, config, quality_weights):
-    """Weighted legal-only policy cross-entropy (the pretrain
-    objective). quality_weights indexes [calibrated, native,
-    approximate, human]."""
+def skill_coherence_loss(model, batch, logits, delta):
+    """Penalize abrupt policy changes for a 200-Elo skill step.
+
+    Maia-2 reports coherence as a distinct objective: a unified skill-aware
+    model should change smoothly as skill changes, rather than switching
+    between independently trained bucket models.  The symmetric KL term is
+    deliberately local and does not force the two skill levels to make the
+    same move; it only discourages discontinuous distributions.
+    """
+    if delta <= 0 or "rating" not in batch:
+        return logits.new_zeros(())
+    lower = {k: v for k, v in batch.items()}
+    upper = {k: v for k, v in batch.items()}
+    rating = batch["rating"].to(dtype=torch.float32)
+    lower["rating"] = (rating - float(delta)).clamp(100.0, 3650.0).to(batch["rating"].dtype)
+    upper["rating"] = (rating + float(delta)).clamp(100.0, 3650.0).to(batch["rating"].dtype)
+    lower_logits = model(lower)["logits"].float()
+    upper_logits = model(upper)["logits"].float()
+    log_p = F.log_softmax(lower_logits, dim=1)
+    log_q = F.log_softmax(upper_logits, dim=1)
+    p = log_p.exp()
+    q = log_q.exp()
+    return 0.5 * (F.kl_div(log_p, q, reduction="batchmean") +
+                  F.kl_div(log_q, p, reduction="batchmean"))
+
+
+def pretrain_loss(output, batch, config, quality_weights, model=None):
+    """Weighted legal-only policy cross-entropy plus optional local skill
+    coherence. quality_weights indexes [calibrated, native, approximate,
+    human]. The regularizer is opt-in so old checkpoints and ablations remain
+    exactly reproducible."""
     logits = output["logits"].float()
     ce = F.cross_entropy(logits, batch["target_index"], reduction="none",
                          label_smoothing=0.01)
@@ -293,7 +320,14 @@ def pretrain_loss(output, batch, config, quality_weights):
         dtype=logits.dtype,
     )[batch["pretrain_quality"].long()]
     policy_ce = (ce * weights).sum() / weights.sum().clamp_min(1.0)
-    return policy_ce, {"policy_ce": policy_ce.detach()}
+    coherence_weight = float(config.get("skill_coherence_weight", 0.0))
+    coherence_delta = float(config.get("skill_coherence_delta", 200.0))
+    coherence = (skill_coherence_loss(model, batch, logits, coherence_delta)
+                 if model is not None and coherence_weight > 0 else logits.new_zeros(()))
+    total = policy_ce + coherence_weight * coherence
+    return total, {"policy_ce": policy_ce.detach(),
+                   "skill_coherence": coherence.detach(),
+                   "skill_coherence_weight": coherence_weight}
 
 
 @torch.no_grad()
@@ -573,7 +607,8 @@ def train(args) -> int:
                         with autocast_context(device, precision), ctx:
                             output = train_model(batch)
                             loss, _ = pretrain_loss(
-                                output, batch, config, quality_weights)
+                                output, batch, config, quality_weights,
+                                model=train_model)
                             scaled_loss = loss / accumulation
                         scaler.scale(scaled_loss).backward()
                         step_loss += float(loss.detach())
