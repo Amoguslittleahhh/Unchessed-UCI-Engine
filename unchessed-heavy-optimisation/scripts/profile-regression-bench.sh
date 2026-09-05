@@ -5,6 +5,7 @@ ROOT=/home/ubuntu/unchessed-research
 SRC="$ROOT/unchessed-heavy-optimisation"
 MAIN=/home/ubuntu/unchessed-main-inspect
 WORK=/tmp/unchessed-profile-control
+ADAPTIVE_VALUE=${ADAPTIVE_VALUE:-true}
 rm -rf "$WORK"
 cp -a "$SRC" "$WORK"
 python3 - "$WORK/Cargo.toml" <<'PY'
@@ -18,6 +19,7 @@ PY
 cargo build --release --manifest-path "$MAIN/Cargo.toml" -p unchessed-adapter >/tmp/main-profile-build.log
 cargo build --release --manifest-path "$SRC/Cargo.toml" -p unchessed-adapter >/tmp/heavy-profile-build.log
 cargo build --release --manifest-path "$WORK/Cargo.toml" -p unchessed-adapter >/tmp/plain-profile-build.log
+printf 'adaptive=%s\n' "$ADAPTIVE_VALUE"
 printf 'variant\tdepth\tnodes\tnps\thashfull\n'
 for spec in \
   "main:$MAIN/target/release/unchessed-adapter:$MAIN/unchessed-nnue.bin" \
@@ -30,8 +32,10 @@ for spec in \
     printf 'setoption name Threads value 1\n';
     printf 'setoption name Hash value 256\n';
     printf 'setoption name EvalFile value %s\n' "$net";
-    printf 'setoption name Adaptive value false\n';
+    printf 'setoption name Adaptive value %s\n' "$ADAPTIVE_VALUE";
     printf 'setoption name OwnBook value false\n';
+    printf 'setoption name PersonaSmooth value false\n';
+    printf 'setoption name EngineDetectV2 value false\n';
     printf 'isready\n';
     printf 'position startpos\n';
     printf 'go nodes 3000000\n';

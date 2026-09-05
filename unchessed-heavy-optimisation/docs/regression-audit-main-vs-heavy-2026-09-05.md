@@ -94,3 +94,19 @@ The corrected branch passed:
 - Git whitespace validation.
 
 The next investigation should isolate one source-level behavior at a time, beginning with an exact reproducibility package containing both binaries, compiler version, NNUE hash, UCI command transcript, per-search `info` lines, and the complete cutechess configuration.
+
+## Adaptive-path reproduction
+
+The follow-up hypothesis was tested by rerunning the exact three-way profile benchmark with `Adaptive=true` explicitly set on all variants, while also pinning `PersonaSmooth=false`, `EngineDetectV2=false`, `OwnBook=false`, one thread, Hash 256 MiB, and the same explicit NNUE file.
+
+| Variant | Depth | Nodes | NPS | Hashfull |
+|---|---:|---:|---:|---:|
+| Main binary | 13 | 2,545,559 | 899,490 | 10 |
+| Heavy profile | 13 | 2,545,559 | 938,627 | 10 |
+| Exact heavy source, plain profile | 13 | 2,545,559 | 971,216 | 10 |
+
+The reported 7--9x hashfull anomaly did **not** reappear under `Adaptive=true`. Hashfull remained identical across all three variants, and the exact-source plain-profile build was faster than the heavy-profile build. This narrows the issue but does not fully explain the externally supplied 223-game result.
+
+The independent 223-game SPRT itself was not rerun in this sandbox because `cutechess-cli` is not installed here and no exact launcher or machine-readable game package was included with the attached report. The branch-level conclusion therefore remains based on the supplied SPRT, while the local controlled evidence now rules out both the extra Cargo profile settings and the tested isolated adaptive start-position path as sufficient explanations for the hashfull anomaly.
+
+The next reproducibility requirement is an exact package containing the two binaries, compiler/toolchain information, NNUE hash, UCI transcript, opening suite, cutechess command line, per-game PGNs, and SPRT log. Without that package, a local rerun cannot be claimed as an independent reproduction of the -244 Elo result.

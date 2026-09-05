@@ -163,6 +163,10 @@ The remaining proposed cause was the release profile. The heavy branch uses fat 
 
 The local three-way run did not reproduce the externally reported hashfull anomaly: the `main` binary measured 821,995 NPS and hashfull 8, while the heavy and exact-source plain-profile variants measured 908,881 and 912,679 NPS respectively, also with hashfull 8. The anomaly therefore remains open. Its cause may depend on benchmark timing, exact binary identity, UCI option state, hash implementation state, or result capture. The experiment does establish that the additional Cargo profile settings are not sufficient to explain it.
 
+The adaptive-path hypothesis was then tested by rerunning the same three-way benchmark with `Adaptive=true` explicitly set on all variants, while pinning `PersonaSmooth=false`, `EngineDetectV2=false`, `OwnBook=false`, one thread, Hash 256 MiB, and the same NNUE file. The `main`, heavy-profile, and exact-source plain-profile builds reached depth 13 and reported 2,545,559 nodes with hashfull 10. Their measured NPS values were 899,490, 938,627, and 971,216 respectively. Thus, the 7--9x hashfull anomaly did not reappear under the adaptive path, and the exact-source plain-profile build was faster than the heavy-profile build.
+
+The reported 223-game SPRT was not independently rerun in this sandbox because `cutechess-cli` is unavailable and the attached report did not include a complete machine-readable game package or exact launcher. The -244 Elo result is therefore retained as a supplied real result, while this local experiment rules out both the extra Cargo settings and the tested isolated adaptive start-position path as sufficient explanations of the hashfull anomaly. A portable reproduction requires both binaries, toolchain information, NNUE hash, UCI transcript, opening suite, exact cutechess command, per-game PGNs, and the SPRT log.
+
 = Live rapid benchmark
 
 == Experimental setup
