@@ -89,7 +89,7 @@ For every surviving candidate, the adapter performs the existing shallow probe a
 
 == Naturalness and engagement
 
-The policy prior is evaluated only on the filtered candidate set. A move with a high human-policy probability receives a naturalness bonus, but that bonus cannot overcome the loss ceiling. Engagement receives two small bonuses. The first applies when the probed position has a moderate number of legal replies, representing meaningful choice rather than a sterile forced line. The second applies when both queens remain on the board, preserving tactical tension in positions where CLINCH is intended to create a challenging game.
+The policy prior is evaluated only on the filtered candidate set. A move with a high human-policy probability receives a naturalness bonus, but that bonus cannot overcome the loss ceiling. Engagement receives two CLINCH-specific bonuses. The first applies when the shallow probe returns between 3 and 20 opponent replies, representing meaningful practical choice rather than a sterile forced line; it contributes +8.0. The second contributes +6.0 when both queens remain on the board after the candidate, preserving tactical tension in positions where CLINCH is intended to create a challenging game. This probe-reply signal is distinct from the separate MATCH-only `engagement_score`, which inspects the resulting position’s raw legal-move count.
 
 This realizes the three golden rules as separate terms:
 
@@ -157,7 +157,9 @@ The new tests verify that middlegame blunder probability exceeds opening and end
 
 == Tooling
 
-Cute Chess 1.5.1 was installed successfully and reports its Qt and Ubuntu runtime versions. A direct UCI node-limited search returned `readyok` and a legal move. A short process-level Cute Chess match did not complete within the sandbox timeout; therefore, this paper makes no Elo claim.
+Cute Chess 1.5.1 was installed successfully and reports its Qt and Ubuntu runtime versions. A direct UCI node-limited search returned `readyok` and a legal move. Because the Cute Chess AppImage did not start a headless game in this sandbox, a reproducible UCI runner was used for the real benchmark. It played six games against the official Stockfish 19 universal binary, with Stockfish's native UCI Elo caps at 1320, 1800, and 2400, two games per cap and alternating colors. Both engines used one thread, 16 MiB hash, and 30 ms per move; games were capped at 120 plies.
+
+The results were 0--2--0 at Elo 1320 (score 0.500), 0--1--1 at Elo 1800 (score 0.250), and 0--0--2 at Elo 2400 (score 0.000), for an overall Unchessed score of 0.250. These results are real benchmark observations, but the sample is too small for an Elo estimate or SPRT claim. Three games reached the ply cap and were recorded as draws. Complete records and the exact runner are stored under `benchmarks/2026-09-05/`.
 
 #figure(
   placement: top,
@@ -170,15 +172,18 @@ Cute Chess 1.5.1 was installed successfully and reports its Qt and Ubuntu runtim
     [Ignored Rust tests], [6], [Existing ignored tests; not counted as failures],
     [Release build], [Passed], [All workspace binaries linked successfully],
     [Direct UCI test], [Passed], [`readyok` and legal node-limited move],
-    [Cute Chess version], [1.5.1], [Harness installed and launches],
-    [Elo or human-likeness result], [Not measured], [Requires trained artifacts and paired games],
+    [Cute Chess version], [1.5.1], [Installed; AppImage game mode unavailable headlessly],
+    [Stockfish 1320 cap], [0--2--0, score 0.500], [Two real games; descriptive only],
+    [Stockfish 1800 cap], [0--1--1, score 0.250], [Two real games; descriptive only],
+    [Stockfish 2400 cap], [0--0--2, score 0.000], [Two real games; descriptive only],
+    [Overall benchmark], [0--3--3, score 0.250], [Six games; not an Elo estimate],
   ),
   caption: [Validation status for the implementation round.],
 ) <fig:validation>
 
 == Threats to validity
 
-The coefficients were not tuned by a statistically powered match campaign. The sandbox did not contain a trained dual-Elo deployment artifact or PyTorch, so policy quality and human-likeness could not be measured end-to-end. The engagement heuristic is intentionally simple and should not be interpreted as a learned model of human interest. Reply-gap concentration is a practical proxy for difficulty, not a complete measure of educational or aesthetic value.
+The coefficients were not tuned by a statistically powered match campaign. The sandbox did not contain a trained dual-Elo deployment artifact or PyTorch, so policy quality and human-likeness could not be measured end-to-end. The six-game benchmark is a real smoke benchmark, not a statistically powered strength test; the 30 ms per-move limit, 120-ply cap, and tiny sample make the observed scores highly uncertain. The engagement heuristic is intentionally simple and should not be interpreted as a learned model of human interest. Reply-gap concentration is a practical proxy for difficulty, not a complete measure of educational or aesthetic value.
 
 A further limitation is that the current CLINCH adapter examines the existing MultiPV lines rather than generating a separate policy-guided candidate pool. This is safe and inexpensive, but a future experiment should compare it with a wider legal candidate pool filtered by shallow search.
 

@@ -1,0 +1,40 @@
+{
+  "source": "benchmarks/2026-09-05/elo_matrix_real.json",
+  "rows": [
+    {
+      "sf_elo": 1320,
+      "games": 2,
+      "wins": 0,
+      "draws": 2,
+      "losses": 0,
+      "score": 0.5,
+      "wilson95_low": 0.09452865480086614,
+      "wilson95_high": 0.9054713451991339,
+      "avg_plies": 120.0
+    },
+    {
+      "sf_elo": 1800,
+      "games": 2,
+      "wins": 0,
+      "draws": 1,
+      "losses": 1,
+      "score": 0.25,
+      "wilson95_low": 0.026676532765647132,
+      "wilson95_high": 0.8021374907895433,
+      "avg_plies": 115.5
+    },
+    {
+      "sf_elo": 2400,
+      "games": 2,
+      "wins": 0,
+      "draws": 0,
+      "losses": 2,
+      "score": 0.0,
+      "wilson95_low": 0.0,
+      "wilson95_high": 0.6576280471103807,
+      "avg_plies": 103.5
+    }
+  ],
+  "overall_score": 0.25,
+  "games": 6
+}
