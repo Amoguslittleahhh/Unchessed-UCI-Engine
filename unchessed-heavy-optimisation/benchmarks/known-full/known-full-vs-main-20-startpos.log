@@ -1,0 +1,83 @@
+Started game 1 of 20 (main vs known_full)
+Started game 2 of 20 (known_full vs main)
+Finished game 1 (main vs known_full): 0-1 {Black mates}
+Score of main vs known_full: 0 - 1 - 0  [0.000] 1
+Started game 3 of 20 (main vs known_full)
+Finished game 3 (main vs known_full): 0-1 {Black mates}
+Score of main vs known_full: 0 - 2 - 0  [0.000] 2
+Started game 4 of 20 (known_full vs main)
+Finished game 2 (known_full vs main): 1/2-1/2 {Draw by fifty moves rule}
+Score of main vs known_full: 0 - 2 - 1  [0.167] 3
+Started game 5 of 20 (main vs known_full)
+Finished game 4 (known_full vs main): 1-0 {White mates}
+Score of main vs known_full: 0 - 3 - 1  [0.125] 4
+Started game 6 of 20 (known_full vs main)
+Finished game 5 (main vs known_full): 0-1 {Black mates}
+Score of main vs known_full: 0 - 4 - 1  [0.100] 5
+Started game 7 of 20 (main vs known_full)
+Finished game 7 (main vs known_full): 1-0 {White mates}
+Score of main vs known_full: 1 - 4 - 1  [0.250] 6
+Started game 8 of 20 (known_full vs main)
+Finished game 8 (known_full vs main): 1-0 {White mates}
+Score of main vs known_full: 1 - 5 - 1  [0.214] 7
+Started game 9 of 20 (main vs known_full)
+Finished game 9 (main vs known_full): 1/2-1/2 {Draw by 3-fold repetition}
+Score of main vs known_full: 1 - 5 - 2  [0.250] 8
+Started game 10 of 20 (known_full vs main)
+Finished game 6 (known_full vs main): 0-1 {Black mates}
+Score of main vs known_full: 2 - 5 - 2  [0.333] 9
+Started game 11 of 20 (main vs known_full)
+Finished game 10 (known_full vs main): 1-0 {White mates}
+Score of main vs known_full: 2 - 6 - 2  [0.300] 10
+Started game 12 of 20 (known_full vs main)
+Finished game 11 (main vs known_full): 0-1 {Black mates}
+Score of main vs known_full: 2 - 7 - 2  [0.273] 11
+Started game 13 of 20 (main vs known_full)
+Finished game 12 (known_full vs main): 1-0 {White mates}
+Score of main vs known_full: 2 - 8 - 2  [0.250] 12
+Started game 14 of 20 (known_full vs main)
+Finished game 13 (main vs known_full): 1-0 {White mates}
+Score of main vs known_full: 3 - 8 - 2  [0.308] 13
+Started game 15 of 20 (main vs known_full)
+Finished game 15 (main vs known_full): 0-1 {Black mates}
+Score of main vs known_full: 3 - 9 - 2  [0.286] 14
+Started game 16 of 20 (known_full vs main)
+Finished game 14 (known_full vs main): 1/2-1/2 {Draw by insufficient mating material}
+Score of main vs known_full: 3 - 9 - 3  [0.300] 15
+Started game 17 of 20 (main vs known_full)
+Finished game 16 (known_full vs main): 1-0 {White mates}
+Score of main vs known_full: 3 - 10 - 3  [0.281] 16
+Started game 18 of 20 (known_full vs main)
+Finished game 17 (main vs known_full): 0-1 {Black mates}
+Score of main vs known_full: 3 - 11 - 3  [0.265] 17
+Started game 19 of 20 (main vs known_full)
+Finished game 19 (main vs known_full): 1-0 {White mates}
+Score of main vs known_full: 4 - 11 - 3  [0.306] 18
+Started game 20 of 20 (known_full vs main)
+Finished game 18 (known_full vs main): 1-0 {White mates}
+Score of main vs known_full: 4 - 12 - 3  [0.289] 19
+Finished game 20 (known_full vs main): 1/2-1/2 {Draw by fifty moves rule}
+Score of main vs known_full: 4 - 12 - 4  [0.300] 20
+...      main playing White: 3 - 6 - 1  [0.350] 10
+...      main playing Black: 1 - 6 - 3  [0.250] 10
+...      White vs Black: 9 - 7 - 4  [0.550] 20
+Elo difference: -147.2 +/- 160.4, LOS: 2.3 %, DrawRatio: 20.0 %
+SPRT: llr 0 (0.0%), lbound -inf, ubound inf
+
+Player: main
+   "Draw by 3-fold repetition": 1
+   "Draw by fifty moves rule": 2
+   "Draw by insufficient mating material": 1
+   "Loss: Black mates": 6
+   "Loss: White mates": 6
+   "Win: Black mates": 1
+   "Win: White mates": 3
+Player: known_full
+   "Draw by 3-fold repetition": 1
+   "Draw by fifty moves rule": 2
+   "Draw by insufficient mating material": 1
+   "Loss: Black mates": 1
+   "Loss: White mates": 3
+   "Win: Black mates": 6
+   "Win: White mates": 6
+Finished match

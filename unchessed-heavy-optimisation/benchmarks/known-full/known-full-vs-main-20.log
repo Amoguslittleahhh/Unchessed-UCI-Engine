@@ -1,0 +1,79 @@
+Started game 2 of 20 (known_full vs main)
+Started game 1 of 20 (main vs known_full)
+Finished game 1 (main vs known_full): 1-0 {White mates}
+Score of main vs known_full: 1 - 0 - 0  [1.000] 1
+Started game 3 of 20 (main vs known_full)
+Finished game 2 (known_full vs main): 1-0 {White mates}
+Score of main vs known_full: 1 - 1 - 0  [0.500] 2
+Started game 4 of 20 (known_full vs main)
+Finished game 3 (main vs known_full): 1-0 {White mates}
+Score of main vs known_full: 2 - 1 - 0  [0.667] 3
+Started game 5 of 20 (main vs known_full)
+Finished game 5 (main vs known_full): 1-0 {White mates}
+Score of main vs known_full: 3 - 1 - 0  [0.750] 4
+Started game 6 of 20 (known_full vs main)
+Finished game 6 (known_full vs main): 1-0 {White mates}
+Score of main vs known_full: 3 - 2 - 0  [0.600] 5
+Started game 7 of 20 (main vs known_full)
+Finished game 7 (main vs known_full): 0-1 {Black mates}
+Score of main vs known_full: 3 - 3 - 0  [0.500] 6
+Started game 8 of 20 (known_full vs main)
+Finished game 8 (known_full vs main): 0-1 {Black mates}
+Score of main vs known_full: 4 - 3 - 0  [0.571] 7
+Started game 9 of 20 (main vs known_full)
+Finished game 9 (main vs known_full): 1-0 {White mates}
+Score of main vs known_full: 5 - 3 - 0  [0.625] 8
+Started game 10 of 20 (known_full vs main)
+Finished game 10 (known_full vs main): 1-0 {White mates}
+Score of main vs known_full: 5 - 4 - 0  [0.556] 9
+Started game 11 of 20 (main vs known_full)
+Finished game 11 (main vs known_full): 1-0 {White mates}
+Score of main vs known_full: 6 - 4 - 0  [0.600] 10
+Started game 12 of 20 (known_full vs main)
+Finished game 12 (known_full vs main): 1-0 {White mates}
+Score of main vs known_full: 6 - 5 - 0  [0.545] 11
+Started game 13 of 20 (main vs known_full)
+Finished game 13 (main vs known_full): 1-0 {White mates}
+Score of main vs known_full: 7 - 5 - 0  [0.583] 12
+Started game 14 of 20 (known_full vs main)
+Finished game 14 (known_full vs main): 1-0 {White mates}
+Score of main vs known_full: 7 - 6 - 0  [0.538] 13
+Started game 15 of 20 (main vs known_full)
+Finished game 15 (main vs known_full): 1-0 {White mates}
+Score of main vs known_full: 8 - 6 - 0  [0.571] 14
+Started game 16 of 20 (known_full vs main)
+Finished game 16 (known_full vs main): 1-0 {White mates}
+Score of main vs known_full: 8 - 7 - 0  [0.533] 15
+Started game 17 of 20 (main vs known_full)
+Finished game 17 (main vs known_full): 1-0 {White mates}
+Score of main vs known_full: 9 - 7 - 0  [0.563] 16
+Started game 18 of 20 (known_full vs main)
+Finished game 18 (known_full vs main): 1-0 {White mates}
+Score of main vs known_full: 9 - 8 - 0  [0.529] 17
+Started game 19 of 20 (main vs known_full)
+Finished game 19 (main vs known_full): 1/2-1/2 {Draw by 3-fold repetition}
+Score of main vs known_full: 9 - 8 - 1  [0.528] 18
+Started game 20 of 20 (known_full vs main)
+Finished game 4 (known_full vs main): 1-0 {White mates}
+Score of main vs known_full: 9 - 9 - 1  [0.500] 19
+Finished game 20 (known_full vs main): 1-0 {White mates}
+Score of main vs known_full: 9 - 10 - 1  [0.475] 20
+...      main playing White: 8 - 1 - 1  [0.850] 10
+...      main playing Black: 1 - 9 - 0  [0.100] 10
+...      White vs Black: 17 - 2 - 1  [0.875] 20
+Elo difference: -17.4 +/- 158.6, LOS: 40.9 %, DrawRatio: 5.0 %
+SPRT: llr 0 (0.0%), lbound -inf, ubound inf
+
+Player: main
+   "Draw by 3-fold repetition": 1
+   "Loss: Black mates": 1
+   "Loss: White mates": 9
+   "Win: Black mates": 1
+   "Win: White mates": 8
+Player: known_full
+   "Draw by 3-fold repetition": 1
+   "Loss: Black mates": 1
+   "Loss: White mates": 8
+   "Win: Black mates": 1
+   "Win: White mates": 9
+Finished match

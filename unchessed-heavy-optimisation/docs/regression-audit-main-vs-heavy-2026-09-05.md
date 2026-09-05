@@ -97,7 +97,7 @@ The candidate should be tested against unmodified main with the same NNUE, optio
 | Near-even result | The full-branch gain depends on interaction with another change or on an environment/configuration difference. |
 | Negative result | The original result depends on coupled behavior, benchmark state, or an unisolated factor. |
 
-The isolated candidate must pass the usual UCI, legality, crash, and SPRT gates before any default or main-branch port is considered.
+The isolated candidate must pass the usual UCI, legality, crash, and SPRT gates before any default or main-branch port is considered. The candidate build and smoke gates have passed. A first 20-game paired start-position Cute Chess run with the canonical NNUE, one thread, Hash 64 MiB, Adaptive=true, OwnBook=false, PersonaSmooth=false, EngineDetectV2=false, and 0.2+0.05 seconds scored `main 4 - 12 - 4 known_full`, corresponding to **+147.2 +/- 160.4 Elo for known_full-only relative to main**, LOS 2.3%. All games completed legally; the wide interval means this is directional evidence, not a conclusive causal estimate. The raw PGN and log are `benchmarks/known-full/known-full-vs-main-20-startpos.pgn` and `benchmarks/known-full/known-full-vs-main-20-startpos.log`.
 
 ## Independent reproduction limitation
 
@@ -123,3 +123,9 @@ ae32c419c39a338de6fd15971160f32b46851f3bb90ec4fe8843b7d5998f4dcb
 The candidate passed UCI handshake, `readyok`, explicit NNUE loading, and a 100,000-node start-position smoke search. The main clone remained clean and unchanged. A full paired-game SPRT was not run because `cutechess-cli` is unavailable in this sandbox.
 
 The reproducible builder is committed at `scripts/research/build-known-full-isolation.sh`.
+
+## Explicit-NNUE ISA benchmark
+
+The portable-versus-`x86-64-v3` harness was rerun with the canonical NNUE file passed explicitly. The file SHA-256 was `38845a16d73a6fe0bd4ac95c86c017c65c97bc82c7ce2f6dce2f1b3fbe8577b5`. Across 20 observations per build and TT sizes from 4 to 64 MiB, portable averaged 275,144 NPS and `x86-64-v3` averaged 281,851 NPS, a measured **2.44% v3 NPS advantage** in this VM. Mean resident memory was 18,592 versus 18,572 KiB; the build did not show a meaningful RSS difference. This result supersedes the unverified external 26% figure for this controlled run: the 26% value is retained only as an external report requiring hardware-specific reproduction. The raw TSV is `benchmarks/results/portable-v3-20260905-034215.tsv`.
+
+The first attempted run used `matetrack.epd`, which contains comment lines and fixed mate positions; Cute Chess warned about invalid comment FENs and the resulting 20-game score was heavily color-biased. It is retained only as a harness diagnostic, not as strength evidence. The clean start-position run above is the valid isolation result.
