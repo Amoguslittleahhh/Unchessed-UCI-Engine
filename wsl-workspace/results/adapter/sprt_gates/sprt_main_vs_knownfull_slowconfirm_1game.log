@@ -1,0 +1,14 @@
+Indexing opening suite...
+Started game 1 of 1 (Main vs KnownFullOnly)
+Finished game 1 (Main vs KnownFullOnly): 0-1 {Black wins by adjudication}
+Score of Main vs KnownFullOnly: 0 - 1 - 0  [0.000] 1
+...      Main playing White: 0 - 1 - 0  [0.000] 1
+...      White vs Black: 0 - 1 - 0  [0.000] 1
+Elo difference: -inf +/- nan, LOS: 15.9 %, DrawRatio: 0.0 %
+SPRT: llr 0 (0.0%), lbound -inf, ubound inf
+
+Player: Main
+   "Loss: Black wins by adjudication": 1
+Player: KnownFullOnly
+   "Win: Black wins by adjudication": 1
+Finished match

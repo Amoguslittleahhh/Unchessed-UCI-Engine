@@ -1693,7 +1693,21 @@ fn run_go(
     // 3. Main search
     // ------------------------------------------------------------------
     let multipv_shown = job.opt.multipv;
-    let multipv_search = if adaptive_now {
+    // Widening to MultiPV>=5 exists to give Mode::Match's blunder-sampling
+    // and persona move variety real alternative lines to choose from. Once
+    // the opponent model has flagged a strong/computer opponent, the persona
+    // system stays in Mode::Full and never uses those alternative lines, so
+    // the extra tracked PVs are a pure alpha-beta pruning cost with no
+    // behavioral upside. Ported from manus/research-facilities's
+    // `known_full` (commit 63101a8): isolated 233-game SPRT of this single
+    // change against unmodified main measured -223.2 +/- 44.6 Elo for the
+    // unmodified side (tc=5+0.05, elo0=0 elo1=5 alpha=beta=0.05, LOS 0%),
+    // independently reproduced at +147.2 +/- 160.4 Elo (20 games, different
+    // hardware) by manus/research-facilities. Only a single slow-time-control
+    // game has been checked so far, not a real slow confirmation sample.
+    let known_full =
+        adaptive_now && !job.opt.limit_strength && model.lock().unwrap().engine_suspect();
+    let multipv_search = if adaptive_now && !known_full {
         multipv_shown.max(5)
     } else {
         multipv_shown
