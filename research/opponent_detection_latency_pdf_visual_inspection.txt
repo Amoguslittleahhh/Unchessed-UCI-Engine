@@ -1,0 +1,10 @@
+Visual inspection of /home/ubuntu/unchessed-repo/ieee-paper/opponent_detection_latency.pdf on 2026-09-06:
+- Overall layout matches IEEE two-column conference style.
+- Title, abstract, sectioning, equation formatting, and tables are legible.
+- Figure 1 is readable at column width and correctly shows the rating trajectory and delayed Full transition marker.
+- Table I fits the column and remains legible.
+- Table II fits the column and remains legible.
+- The compiled output currently spans 4 pages.
+- Page 4 contains only the tail of the references section and substantial whitespace.
+- build2.log reports a balance-package warning about calling \balance in the second column.
+- Recommended cleanup: remove \balance and recompile, then re-check page count and reference flow.
