@@ -1,0 +1,74 @@
+{
+  "games": [
+    {
+      "arm": "standard",
+      "game_log": "standard/game_01_unchessed.log",
+      "observation_count": 15,
+      "first_suspect_ply": 30,
+      "first_suspect_reason": "legacy_ceiling",
+      "first_full_ply": 30,
+      "max_fusion_score_milli": 0,
+      "max_fusion_evidence_milli": 119,
+      "last_estimate_elo": 2555,
+      "last_confidence_cp": 253
+    },
+    {
+      "arm": "standard",
+      "game_log": "standard/game_02_unchessed.log",
+      "observation_count": 15,
+      "first_suspect_ply": 30,
+      "first_suspect_reason": "legacy_ceiling",
+      "first_full_ply": 30,
+      "max_fusion_score_milli": 576,
+      "max_fusion_evidence_milli": 314,
+      "last_estimate_elo": 2686,
+      "last_confidence_cp": 194
+    },
+    {
+      "arm": "fusion",
+      "game_log": "fusion/game_03_unchessed.log",
+      "observation_count": 15,
+      "first_suspect_ply": 26,
+      "first_suspect_reason": "legacy_accelerated_resilient",
+      "first_full_ply": 26,
+      "max_fusion_score_milli": 0,
+      "max_fusion_evidence_milli": 333,
+      "last_estimate_elo": 2653,
+      "last_confidence_cp": 199
+    },
+    {
+      "arm": "fusion",
+      "game_log": "fusion/game_04_unchessed.log",
+      "observation_count": 15,
+      "first_suspect_ply": 24,
+      "first_suspect_reason": "legacy_accelerated_resilient",
+      "first_full_ply": 24,
+      "max_fusion_score_milli": 3318,
+      "max_fusion_evidence_milli": 446,
+      "last_estimate_elo": 2715,
+      "last_confidence_cp": 164
+    }
+  ],
+  "arms": {
+    "standard": {
+      "games": 2,
+      "full_confirmation_rate": 1.0,
+      "first_full_ply_mean": 30,
+      "first_full_ply_median": 30.0,
+      "max_fusion_score_mean": 288,
+      "reasons": {
+        "legacy_ceiling": 2
+      }
+    },
+    "fusion": {
+      "games": 2,
+      "full_confirmation_rate": 1.0,
+      "first_full_ply_mean": 25,
+      "first_full_ply_median": 25.0,
+      "max_fusion_score_mean": 1659,
+      "reasons": {
+        "legacy_accelerated_resilient": 2
+      }
+    }
+  }
+}

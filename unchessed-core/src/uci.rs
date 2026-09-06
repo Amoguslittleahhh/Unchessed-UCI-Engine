@@ -1264,7 +1264,7 @@ fn emit_observation_telemetry(
         .map(|n| n.to_string())
         .unwrap_or_else(|| "none".to_string());
     println!(
-        "info string [UnchessedTelemetry] v=1 event={event} run={} game={} ply={ply} observation={observation} source={source}{reason_fields} adaptive={adaptive} limit_strength={limit_strength} persona_smooth={persona_smooth} engine_detect_v2={engine_detect_v2} own_book={own_book} adapter_telemetry=1 low_time={} clock_available={clock_available} opp_time_used_ms={opp_time_used_ms} cp_loss={cp_loss} difficulty_weight_milli={difficulty_weight_milli} legal_count={legal_count} had_choice={had_choice} estimate_elo={} confidence_cp={} weight_milli={} suspicion_milli={} low_loss_streak={} samples={} is_computer={} declared_elo={declared_elo} suspect={} suspect_reason={} accelerated_score_milli={} accelerated_evidence_milli={} accelerated_streak={} accelerated_fusion_streak={} action_full={}",
+        "info string [UnchessedTelemetry] v=1 event={event} run={} game={} ply={ply} observation={observation} source={source}{reason_fields} adaptive={adaptive} limit_strength={limit_strength} persona_smooth={persona_smooth} engine_detect_v2={engine_detect_v2} own_book={own_book} adapter_telemetry=1 low_time={} clock_available={clock_available} opp_time_used_ms={opp_time_used_ms} cp_loss={cp_loss} difficulty_weight_milli={difficulty_weight_milli} legal_count={legal_count} had_choice={had_choice} estimate_elo={} confidence_cp={} weight_milli={} suspicion_milli={} low_loss_streak={} samples={} is_computer={} declared_elo={declared_elo} suspect={} suspect_reason={} accelerated_score_milli={} accelerated_evidence_milli={} accelerated_streak={} accelerated_fusion_streak={} accelerated_resilient_score_milli={} accelerated_resilient_evidence_milli={} accelerated_resilient_streak={} action_full={}",
         job.telemetry_run,
         job.game_id,
         low_time as u8,
@@ -1281,6 +1281,9 @@ fn emit_observation_telemetry(
         snapshot.accelerated_evidence_milli,
         snapshot.accelerated_streak,
         snapshot.accelerated_fusion_streak,
+        snapshot.accelerated_resilient_score_milli,
+        snapshot.accelerated_resilient_evidence_milli,
+        snapshot.accelerated_resilient_streak,
         telemetry_action_full(job, snapshot.suspect),
     );
 }

@@ -1,3 +1,3 @@
-Visual QA completed on 2026-09-06.
+Visual QA completed on 2026-09-06 after the resilient-channel revision.
 
-The latency comparison PNG is readable at publication scale: both panels show standard and fusion points, horizontal means, clear axis labels, and a compact legend. The compiled IEEEtran PDF is three pages in a conventional two-column conference layout. The table fits without clipping, the figure is legible, equations are readable, references resolve, and no page contains an orphaned heading or clipped content. Page three has intentional lower whitespace because the conclusion and references finish early; no layout defect was observed.
+The revised PDF is three pages in a conventional IEEEtran two-column layout. The expanded experiment table fits without clipping, including the safe-clock rows. The resilient-channel section flows cleanly across the first two pages. The existing latency figure remains readable, equations and references resolve, and no headings or table rows are clipped. Page three has intentional lower whitespace after the conclusion and references; no layout defect was observed.

@@ -86,6 +86,12 @@ const ACCEL_FUSION_SCORE_MIN: f64 = 0.35;
 const ACCEL_FUSION_DECAY: f64 = 0.96;
 const ACCEL_FUSION_NEGATIVE_EVIDENCE: f64 = 0.20;
 const ACCEL_FUSION_EVIDENCE_MIN: f64 = 0.28;
+// Resilient channel for strong opponents whose move quality is noisy. It does
+// not use volatility as a veto; it requires enough good-quality mass, limits
+// catastrophic blunders, and still needs two consecutive confirmations.
+const ACCEL_RESILIENT_SCORE_MIN: f64 = 0.55;
+const ACCEL_RESILIENT_EVIDENCE_MIN: f64 = 0.48;
+const ACCEL_RESILIENT_BAD_MASS_MAX: f64 = 1.80;
 
 #[derive(Clone)]
 pub struct OpponentModel {
@@ -128,6 +134,16 @@ pub struct OpponentModel {
     /// Consecutive observations whose fused evidence clears the agreement
     /// floor. This prevents one score spike from causing confirmation.
     accel_fusion_streak: u32,
+    /// Leaky evidence channel for strong but noisy opponents.
+    accel_resilient_score: f64,
+    /// Current resilient evidence after rating/quality/no-catastrophe fusion.
+    accel_resilient_evidence: f64,
+    /// Consecutive resilient observations above the evidence floor.
+    accel_resilient_streak: u32,
+    /// Leaky mass of good-quality observations in the resilient channel.
+    accel_resilient_good_mass: f64,
+    /// Leaky mass of catastrophic or highly damaging observations.
+    accel_resilient_bad_mass: f64,
 }
 
 /// Stable explanation for the detector rule currently in effect.
@@ -146,6 +162,7 @@ pub enum SuspectReason {
     V2AnonymousCeiling,
     LegacyAcceleratedCeiling,
     LegacyAcceleratedFusion,
+    LegacyAcceleratedResilient,
 }
 
 impl SuspectReason {
@@ -161,6 +178,7 @@ impl SuspectReason {
             SuspectReason::V2AnonymousCeiling => "v2_anonymous_ceiling",
             SuspectReason::LegacyAcceleratedCeiling => "legacy_accelerated_ceiling",
             SuspectReason::LegacyAcceleratedFusion => "legacy_accelerated_fusion",
+            SuspectReason::LegacyAcceleratedResilient => "legacy_accelerated_resilient",
         }
     }
 
@@ -186,6 +204,9 @@ pub struct OpponentTelemetrySnapshot {
     pub accelerated_evidence_milli: i32,
     pub accelerated_streak: u32,
     pub accelerated_fusion_streak: u32,
+    pub accelerated_resilient_score_milli: i32,
+    pub accelerated_resilient_evidence_milli: i32,
+    pub accelerated_resilient_streak: u32,
 }
 
 impl Default for OpponentModel {
@@ -215,6 +236,11 @@ impl OpponentModel {
             accel_fusion_score: 0.0,
             accel_fusion_evidence: 0.0,
             accel_fusion_streak: 0,
+            accel_resilient_score: 0.0,
+            accel_resilient_evidence: 0.0,
+            accel_resilient_streak: 0,
+            accel_resilient_good_mass: 0.0,
+            accel_resilient_bad_mass: 0.0,
         }
     }
 
@@ -308,7 +334,7 @@ impl OpponentModel {
         } else {
             0
         };
-        self.update_accelerated_fusion();
+        self.update_accelerated_fusion(cp_loss);
     }
 
     /// Feed the opponent's clock usage for their last move. Near-instant,
@@ -372,6 +398,9 @@ impl OpponentModel {
         if self.accelerated_detect && self.accelerated_fusion() {
             return SuspectReason::LegacyAcceleratedFusion;
         }
+        if self.accelerated_detect && self.accelerated_resilient() {
+            return SuspectReason::LegacyAcceleratedResilient;
+        }
         if self.weight >= 10.0 && self.mean >= 2450.0 {
             return SuspectReason::LegacyCeiling;
         }
@@ -399,11 +428,16 @@ impl OpponentModel {
     /// burst. The leaky CUSUM accumulator then rewards sustained agreement and
     /// forgets stale evidence after a regime change. This is deliberately
     /// interpretable and cheap enough for every observed move.
-    fn update_accelerated_fusion(&mut self) {
+    fn update_accelerated_fusion(&mut self, cp_loss: i32) {
         if self.samples < ACCEL_N_MIN {
             self.accel_fusion_evidence = 0.0;
             self.accel_fusion_streak = 0;
             self.accel_fusion_score *= ACCEL_FUSION_DECAY;
+            self.accel_resilient_score *= ACCEL_FUSION_DECAY;
+            self.accel_resilient_evidence = 0.0;
+            self.accel_resilient_streak = 0;
+            self.accel_resilient_good_mass *= ACCEL_FUSION_DECAY;
+            self.accel_resilient_bad_mass *= ACCEL_FUSION_DECAY;
             return;
         }
         let rating = ((self.mean - 2350.0) / 350.0).clamp(0.0, 1.0);
@@ -433,6 +467,52 @@ impl OpponentModel {
         if self.mean < 2250.0 || self.volatility() > 520 {
             self.accel_fusion_score = (self.accel_fusion_score - 0.75).max(-3.0);
         }
+
+        // Resilient lane: preserve evidence from a strong opponent even when
+        // volatility is elevated. Good moves add mass, while severe mistakes
+        // subtract more than ordinary noise. This distinguishes a noisy strong
+        // player from a weak erratic player without treating volatility itself
+        // as proof of human play.
+        let good_mass = if cp_loss <= 40 {
+            1.0
+        } else if cp_loss <= 90 {
+            0.65
+        } else if cp_loss <= 140 {
+            0.25
+        } else {
+            0.0
+        };
+        let bad_mass = if cp_loss >= 220 {
+            1.0
+        } else if cp_loss >= 150 {
+            0.65
+        } else if cp_loss >= 110 {
+            0.25
+        } else {
+            0.0
+        };
+        self.accel_resilient_good_mass =
+            (self.accel_resilient_good_mass * 0.86 + good_mass).min(8.0);
+        self.accel_resilient_bad_mass =
+            (self.accel_resilient_bad_mass * 0.86 + bad_mass).min(5.0);
+        let rating = ((self.mean - 2350.0) / 350.0).clamp(0.0, 1.0);
+        let confidence_loose = (1.0 - self.confidence() as f64 / 650.0).clamp(0.0, 1.0);
+        let quality_mass = (self.accel_resilient_good_mass / 4.5).clamp(0.0, 1.0);
+        let catastrophe_guard =
+            (1.0 - self.accel_resilient_bad_mass / ACCEL_RESILIENT_BAD_MASS_MAX).clamp(0.0, 1.0);
+        self.accel_resilient_evidence =
+            (0.50 * rating + 0.20 * confidence_loose + 0.20 * quality_mass
+                + 0.10 * catastrophe_guard)
+                .clamp(0.0, 1.0);
+        self.accel_resilient_streak = if self.accel_resilient_evidence >= ACCEL_RESILIENT_EVIDENCE_MIN {
+            self.accel_resilient_streak.saturating_add(1)
+        } else {
+            0
+        };
+        self.accel_resilient_score = (self.accel_resilient_score * ACCEL_FUSION_DECAY
+            + (self.accel_resilient_evidence - 0.40) * 3.0
+            - bad_mass * 0.55)
+            .clamp(-3.0, 8.0);
     }
 
     fn accelerated_fusion(&self) -> bool {
@@ -440,6 +520,16 @@ impl OpponentModel {
             && self.accel_fusion_score >= ACCEL_FUSION_SCORE_MIN
             && self.accel_fusion_evidence >= ACCEL_FUSION_EVIDENCE_MIN
             && self.accel_fusion_streak >= 2
+    }
+
+    fn accelerated_resilient(&self) -> bool {
+        self.samples >= ACCEL_N_MIN + 2
+            && self.mean >= 2450.0
+            && self.accel_resilient_score >= ACCEL_RESILIENT_SCORE_MIN
+            && self.accel_resilient_evidence >= ACCEL_RESILIENT_EVIDENCE_MIN
+            && self.accel_resilient_streak >= 2
+            && self.accel_resilient_good_mass >= 3.0
+            && self.accel_resilient_bad_mass <= ACCEL_RESILIENT_BAD_MASS_MAX
     }
 
     fn suspect_reason_v2(&self) -> SuspectReason {
@@ -482,6 +572,9 @@ impl OpponentModel {
             accelerated_evidence_milli: (self.accel_fusion_evidence * 1000.0).round() as i32,
             accelerated_streak: self.accel_streak,
             accelerated_fusion_streak: self.accel_fusion_streak,
+            accelerated_resilient_score_milli: (self.accel_resilient_score * 1000.0).round() as i32,
+            accelerated_resilient_evidence_milli: (self.accel_resilient_evidence * 1000.0).round() as i32,
+            accelerated_resilient_streak: self.accel_resilient_streak,
         }
     }
 
@@ -1378,6 +1471,34 @@ mod tests {
         }
         assert_ne!(m.suspect_reason(), SuspectReason::LegacyAcceleratedFusion);
         assert!(m.accel_fusion_evidence < ACCEL_FUSION_EVIDENCE_MIN || m.accel_fusion_score < ACCEL_FUSION_SCORE_MIN);
+    }
+
+    #[test]
+    fn accelerated_resilient_channel_confirms_noisy_strong_play() {
+        let mut m = OpponentModel::new();
+        m.accelerated_detect = true;
+        // Strong-but-noisy sequence: repeated high-quality moves with a few
+        // substantial, non-catastrophic mistakes. The stable harmonic lane
+        // should be cautious, while the resilient lane should confirm.
+        for i in 0..48 {
+            let loss = if i % 6 == 3 { 80 } else { 8 };
+            m.observe(loss, 1.0);
+        }
+        assert_eq!(m.suspect_reason(), SuspectReason::LegacyAcceleratedResilient);
+        assert!(m.accel_resilient_good_mass >= 3.0);
+        assert!(m.accel_resilient_bad_mass <= ACCEL_RESILIENT_BAD_MASS_MAX);
+    }
+
+    #[test]
+    fn accelerated_resilient_channel_rejects_catastrophic_erratic_play() {
+        let mut m = OpponentModel::new();
+        m.accelerated_detect = true;
+        let losses = [8, 8, 260, 8, 8, 220, 8, 190, 8, 8, 240, 8, 8, 260, 8, 8, 220, 8, 180, 8, 8, 240];
+        for loss in losses {
+            m.observe(loss, 0.4);
+        }
+        assert_ne!(m.suspect_reason(), SuspectReason::LegacyAcceleratedResilient);
+        assert!(m.accel_resilient_bad_mass > ACCEL_RESILIENT_BAD_MASS_MAX);
     }
 
     #[test]

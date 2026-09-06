@@ -6,14 +6,14 @@
 \usepackage{xcolor}
 \usepackage{url}
 \usepackage{balance}
-\title{Real Asymmetric Evaluation of a Robust Evidence-Fusion Detector for Engine Opponent Recognition}
+\title{Real Asymmetric Evaluation and Noise-Tolerant Evidence Fusion for Engine Opponent Recognition}
 \author{\IEEEauthorblockN{Manus AI}\IEEEauthorblockA{Unchessed-UCI Engine Research Series\\
 Unarchitectured Metal Integration Track}}
 \begin{document}
 \maketitle
 
 \begin{abstract}
-Detecting whether an opponent is an engine is an online decision problem with asymmetric costs: a false positive changes the playing policy against a human, while a late positive wastes the early game in a conservative mode. This paper evaluates a default-off \texttt{AcceleratedDetection} path in the Unchessed UCI engine after extending it with a bounded sequential evidence-fusion mechanism. The mechanism combines estimated strength, confidence tightness, volatility, and trend by a harmonic mean, then accumulates concordant evidence with a leaky CUSUM-style update and a two-observation agreement gate. Unlike an earlier mirror match, the present experiment uses an asymmetric real opponent: Stockfish 16, driven through UCI and explicitly presented to the detector as an unknown human. Across 32 real engine games, the fusion arm confirmed Full mode in all observed games, triggered its new reason in 7 of 16 games, and showed a mean first-Full latency of 30.6 plies at 80 ms per move versus 30.0 for standard detection. Under a faster 30 ms condition, the corresponding means were 29.67 and 30.0 plies. The evidence therefore supports operational safety and demonstrates that the path can produce earlier confirmations in some games, but it does not establish a uniformly lower latency. The paper provides the complete telemetry protocol, calibration changes, regression evidence, and the limitations required for a stronger multi-opponent claim.
+Detecting whether an opponent is an engine is an online decision problem with asymmetric costs: a false positive changes the playing policy against a human, while a late positive wastes the early game in a conservative mode. This paper evaluates a default-off \texttt{AcceleratedDetection} path in the Unchessed UCI engine after adding two bounded sequential channels. The stable channel combines estimated strength, confidence tightness, volatility, and trend by a harmonic mean. The resilient channel is designed for strong opponents whose move-quality trace is noisy: it accumulates good-quality mass, limits catastrophic mistakes, and requires a two-observation confirmation. A 32-game Stockfish 16 study showed mixed latency, while an independent Stockfish 19 replication reported 28.0 versus 27.75 mean plies. A new clock-controlled four-game run produced 30 and 30 plies for standard detection versus 26 and 24 for the resilient arm, with zero low-time skips. These results support operational safety and demonstrate a targeted improvement for noisy evidence, but do not establish a uniformly lower latency. The paper documents the low-time methodological trap, telemetry protocol, calibration, regression evidence, and remaining multi-opponent limitations.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -25,7 +25,7 @@ An adaptive chess engine must infer properties of the opponent from sparse, nois
 
 The Unchessed engine previously contained a default-off secondary confirmation path based on a hard conjunction of estimated Elo, confidence, volatility, and trend. The present work makes that path more robust and more measurable. The contribution is not a claim that a fixed threshold is universally optimal. Instead, it is an interpretable sequential layer that allows several weak signals to accumulate only when they agree, while preserving the original legacy ceiling and a default-off UCI control.
 
-The evaluation addresses the primary metric directly: the number of plies until the engine enters \texttt{Mode::Full}. It uses a distinct real engine rather than a mirror of Unchessed. The opponent is Stockfish 16 [1], but its UCI opponent declaration is intentionally set to an unknown human so the detector cannot use its known-engine lookup. The experiment is scoped to the Unarchitectured Metal integration series and enables the committed Metal runtime artifact in both arms.
+The evaluation addresses the primary metric directly: the number of plies until the engine enters \texttt{Mode::Full}. It uses distinct real engines rather than a mirror of Unchessed. The repository experiments use Stockfish 16 [1], while an independent replication supplied with this work uses Stockfish 19. In both cases, the UCI opponent declaration is intentionally set to an unknown human so the detector cannot use its known-engine lookup. The experiment is scoped to the Unarchitectured Metal integration series and enables the committed Metal runtime artifact in both arms.
 
 \section{Detector Design}
 \subsection{Concordant sequential evidence}
@@ -39,16 +39,19 @@ The resulting agreement value $e_t\in[0,1]$ updates a signed, leaky accumulator,
 \begin{equation}
  S_t=\operatorname{clip}(0.96S_{t-1}+4.0(e_t-0.20),-3,8).
 \end{equation}
-The accumulator is additionally penalized when the running mean falls below 2250 Elo or volatility exceeds 520. Fusion confirmation requires at least eight samples, $S_t\geq0.35$, $e_t\geq0.28$, and two consecutive observations above the evidence floor. These values were calibrated from the real telemetry described in Section IV; they are not presented as a universal optimum.
+The accumulator is additionally penalized when the running mean falls below 2250 Elo or volatility exceeds 520. Stable fusion confirmation requires at least eight samples, $S_t\geq0.35$, $e_t\geq0.28$, and two consecutive observations above the evidence floor. These values were calibrated from real telemetry and are not presented as universal optima.
+
+\subsection{Noise-tolerant resilient channel}
+The stable lane intentionally treats high volatility as a veto. That is unsafe for the motivating case of a strong but inconsistent opponent. The resilient lane therefore maintains two leaky masses: good-quality mass assigns full, partial, or zero credit to move losses below 40, 90, and 140 centipawns, while bad mass penalizes losses above 110, 150, and 220 centipawns. Its evidence combines rating, a looser confidence signal, accumulated good mass, and a catastrophe guard. Confirmation requires at least ten samples, an estimated mean of 2450 Elo, resilient score at least 0.55, evidence at least 0.48, two consecutive qualifying observations, good mass at least 3.0, and bad mass at most 1.80. This is a bounded hysteretic correction, not a claim that volatility is irrelevant.
 
 \subsection{Compatibility and telemetry}
-The UCI option \texttt{AcceleratedDetection} remains default-off. When enabled, the fusion reason is evaluated before the legacy weight/mean ceiling, so an actual fusion confirmation is observable and can reduce latency. When disabled, the legacy detector is unchanged. Observation telemetry exposes the score, current evidence, accelerated streak, and fusion-agreement streak. The parser accepts older schema-v1 captures by defaulting absent diagnostic fields to zero.
+The UCI option \texttt{AcceleratedDetection} remains default-off. When enabled, stable fusion is evaluated before the legacy weight/mean ceiling, followed by the resilient lane; when disabled, the legacy detector is unchanged. Observation telemetry exposes both channel scores, current evidence, and streaks. The parser accepts older schema-v1 captures by defaulting absent diagnostic fields to zero.
 
 \section{Experimental Protocol}
 \subsection{Real asymmetric opponent}
 The experiment uses a release build of Unchessed against Stockfish 16. Both engines run with one thread and 64 MiB hash. Unchessed uses adaptive mode, disables its own book, enables adapter telemetry, enables the committed Unarchitectured Metal artifact, and sets \texttt{UCI\_Opponent} to ``- - human UnknownOpponent''. Stockfish is therefore a distinct opponent, but the detector must infer engine-like behavior from live observations. Each game starts from one of six fixed opening prefixes; the same ordered prefix set is reused across the standard and fusion arms. Each game is allowed to continue for 40 plies, which is sufficient to observe the first transition in all completed detections.
 
-Two conditions are tested. The normal condition gives both engines an 80 ms move budget and contains 10 games per arm. The fast condition gives both engines a 30 ms move budget and contains 6 games per arm. The driver records every UCI line, every observation telemetry record, the first suspect reason, and the first persona decision with \texttt{mode\_after=FULL}. No observations are simulated or replayed into the detector.
+Two movetime conditions were tested in the earlier study: 80 ms with 10 games per arm and 30 ms with 6 games per arm. A corrected clock-controlled condition then used a 60-second starting clock, 2 games per arm, and a 32-ply cap. The driver records every UCI line, every observation telemetry record, the first suspect reason, the first persona decision with \texttt{mode\_after=FULL}, observation counts, and low-time skips. The driver rejects a starting clock below 10 seconds because the adapter intentionally suppresses probing below that floor. No observations are simulated or replayed into the detector.
 
 \begin{table}[t]
 \caption{Real asymmetric experiment matrix.}
@@ -63,6 +66,8 @@ Normal & Standard & 10 & 80 ms & 100\% & 0/10\\
 Normal & Fusion & 10 & 80 ms & 100\% & 4/10\\
 Fast & Standard & 6 & 30 ms & 100\% & 0/6\\
 Fast & Fusion & 6 & 30 ms & 100\% & 3/6\\
+Safe clock & Standard & 2 & 60 s start & 100\% & 0/2\\
+Safe clock & Resilient & 2 & 60 s start & 100\% & 2/2\\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -80,27 +85,28 @@ Figure~\ref{fig:latency} shows the observed first-Full distributions. At 80 ms, 
 \label{fig:latency}
 \end{figure}
 
-The fusion reason appeared in 4 of 10 normal games and 3 of 6 fast games. The remaining fusion-arm confirmations used the unchanged legacy ceiling. No game produced an illegal move or a process failure in the experiment. This is a useful operational result, but it is not equivalent to a strength result and does not prove that fusion is uniformly faster.
+The fusion reason appeared in 4 of 10 normal games and 3 of 6 fast games. In the corrected clock-controlled run, the resilient reason appeared in both enabled games, with first-Full plies 26 and 24 versus 30 and 30 for standard detection. All four clock-controlled games produced 15 observations and zero low-time skips. No game produced an illegal move or a process failure. This is an operational and targeted-channel result, not proof of universal superiority.
 
 \section{Calibration and Regression Evidence}
 The first real telemetry run showed that the initial accumulator was too conservative for the observed Stockfish trajectory: its evidence baseline was too high and its score could remain negative even when rating and confidence were converging. Calibration reduced the negative-evidence center from 0.42 to 0.20, changed the decay from 0.94 to 0.96, used gain 4.0, reduced the score threshold to 0.35, and required current evidence of at least 0.28 plus two consecutive qualifying observations. The two-observation rule was retained to prevent a single move from causing confirmation.
 
-The Rust core-library suite passes 128 tests, including 23 opponent-model tests. The latter cover default-off behavior, unchanged legacy timing, deterministic sustained-evidence confirmation, the two-observation gate, and rejection of an erratic mixed-quality sequence. The telemetry parser suite passes five tests, including backward compatibility for older schema-v1 records. The release adapter builds successfully, and a UCI startup smoke test reports \texttt{uciok}, \texttt{readyok}, and the expected default-off option.
+The Rust opponent-model suite passes 25 tests, including stable-fusion, noisy-strong resilient confirmation, catastrophic-erratic rejection, default-off behavior, unchanged legacy timing, and the two-observation gates. The telemetry parser suite passes six tests, including resilient diagnostics and backward compatibility for older schema-v1 records. The release adapter builds successfully, and a UCI startup smoke test reports \texttt{uciok}, \texttt{readyok}, and the expected default-off option.
 
 \section{Discussion}
-The real asymmetric experiment answers a narrower and more useful question than a mirror match: can the new path operate against a different engine and sometimes produce an earlier Full transition without destabilizing the engine? The answer is yes for this Stockfish-16 protocol. The fusion path triggered in a substantial minority of games and was earlier in some matched openings, particularly in the fast condition.
+The real asymmetric experiments answer a narrower and more useful question than a mirror match: can the new path operate against a different engine and sometimes produce an earlier Full transition without destabilizing the engine? The answer is yes for the repository Stockfish-16 protocol and the independently reported Stockfish-19 replication. The new resilient lane additionally confirms the intended noisy-evidence stress case in deterministic regression tests and in the small corrected clock-controlled run.
 
-The experiment does not support the stronger claim that fusion is uniformly better. Normal-speed mean latency was 0.6 plies worse, and only one distinct opponent was tested. The result is also conditional on the Unarchitectured Metal runtime, fixed openings, one thread, a short horizon, and a detector-facing opponent string that intentionally avoids the known-engine shortcut. Strength, false-positive rate against humans, and generalization across engine families remain unmeasured by this experiment.
+The experiment does not support the stronger claim that AcceleratedDetection is uniformly better. The earlier 80 ms repository run was 0.6 plies worse on average, the independent Stockfish-19 result was only 0.25 plies earlier, and the corrected clock-controlled run had just two games per arm. The low-time trap also shows that a latency result is uninterpretable when observation coverage is zero. Results remain conditional on fixed openings, one thread, short horizons, and a detector-facing opponent string that avoids the known-engine shortcut. False-positive rate against humans and generalization across engine families remain unmeasured.
 
 The next decisive evaluation should use at least three opponent classes: a strong classical engine, a weaker engine, and a human-like policy. Each class should be tested at multiple time controls with hundreds of games, and the primary analysis should use paired opening prefixes, first-Full latency, false-positive rate, and time-to-correct-detection. A sequential test should be applied to latency distributions rather than to game score alone. Bayesian online change-point detection provides a related framework for regime shifts [2], while sequential probability-ratio testing supplies a principled way to control error rates [3].
 
 \section{Conclusion}
-This work provides a real, telemetry-backed asymmetric test of the AcceleratedDetection fusion model in the Unarchitectured Metal series. The implementation is lightweight, interpretable, dependency-free, and guarded by a harmonic-mean veto, a leaky sequential score, and a two-observation agreement gate. Across 32 Stockfish games, it preserved 100\% observed Full confirmation and zero stability failures, while triggering earlier than the legacy path in a subset of games. The measured latency effect is mixed rather than flawless: the evidence justifies continued multi-opponent experimentation, not a claim of universal superiority.
+This work provides a real, telemetry-backed asymmetric evaluation and a targeted correction to the AcceleratedDetection fusion model in the Unarchitectured Metal series. The implementation is lightweight, interpretable, dependency-free, and now has both a volatility-sensitive stable lane and a volatility-tolerant resilient lane. The independent replication and corrected clock-controlled run support the methodological requirement that observation coverage be reported explicitly. The evidence shows occasional earlier confirmation and robust operation, but remains mixed rather than flawless. A Maia-style or human-like strong-but-inconsistent opponent is the required next evaluation before any universal latency claim.
 
 \balance
-\begin{thebibliography}{3}
+\begin{thebibliography}{4}
 \bibitem{stockfish} Stockfish Developers, ``Stockfish,'' open-source chess engine, version 16 documentation and source repository. [Online]. Available: \url{https://stockfishchess.org/}
 \bibitem{adamsmackay} R. P. Adams and D. J. C. MacKay, ``Bayesian online changepoint detection,'' arXiv:0710.3742, 2007. [Online]. Available: \url{https://arxiv.org/abs/0710.3742}
 \bibitem{cusum} M. Pollak, ``Average run lengths of cumulative sum control charts for detection of a shift in distribution,'' \emph{Annals of Statistics}, vol. 15, no. 2, pp. 749--779, 1987. [Online]. Available: \url{https://projecteuclid.org/journals/annals-of-statistics/volume-15/issue-2/Average-run-lengths-of-cumulative-sum-control-charts-for-detection/10.1214/aos/1176350364.full}
+\bibitem{maia} G. McIlroy-Young, R. Sen, J. Kleinberg, and A. Anderson, ``Aligning superhuman AI with human behavior: Chess as a model system,'' in \emph{Proc. 25th ACM SIGKDD}, 2020. [Online]. Available: \url{https://doi.org/10.1145/3394486.3403219}
 \end{thebibliography}
 \end{document}
