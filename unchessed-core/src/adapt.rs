@@ -74,6 +74,17 @@ const KNOWN_ENGINES: &[(&str, i32)] = &[
 /// only fires on a sustained (2 consecutive, or 1 plus a clock tell),
 /// non-erratic, non-negative-trending high estimate -- it does not relax
 /// the existing weight/mean ceiling rule, which stays unchanged.
+///
+/// Real paired-game SPRT (2026-09-06, main binary both sides, same NNUE,
+/// Adaptive=true, tc=5+0.05, 1000 games, mirror match -- one side
+/// Baseline/off, one side Accelerated/on): Elo difference -3.8 +/- 16.7,
+/// LOS 32.7%, no SPRT bound reached (round cap hit). No measurable
+/// strength effect either direction in this test. Expected: both sides
+/// are the same engine, so they detect each other as strong quickly
+/// regardless of this option -- a mirror match's final score isn't the
+/// right instrument for this feature's actual target metric (moves
+/// until Mode::Full confirmation), only for ruling out a strength cost.
+/// It does that: option stays default-off, no evidence of harm either.
 const ACCEL_N_MIN: u32 = 8; // post-opening evidence, matches observe_time's own opening gate
 const ACCEL_R_MIN: f64 = 2550.0;
 const ACCEL_C_MAX: i32 = 220;
