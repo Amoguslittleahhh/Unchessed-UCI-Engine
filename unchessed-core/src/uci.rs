@@ -63,6 +63,11 @@ struct Options {
     unarchitectured_min_time_ms: u64,
     persona_smooth: bool,
     engine_detect_v2: bool,
+    /// Default-off secondary engine-confirmation path: lets a sustained,
+    /// high-confidence, non-erratic Elo estimate confirm engine_suspect()
+    /// faster than the legacy weight>=10/mean>=2450 ceiling alone, without
+    /// weakening that existing rule. See OpponentModel::accelerated_ceiling.
+    accelerated_detect: bool,
     /// Default-off diagnostic output. This is deliberately not part of
     /// AdaptConfig and must never influence search, selection, or model state.
     adapter_telemetry: bool,
@@ -116,6 +121,7 @@ impl Default for Options {
             unarchitectured_min_time_ms: 30_000,
             persona_smooth: false,
             engine_detect_v2: false,
+            accelerated_detect: false,
             adapter_telemetry: false,
         }
     }
@@ -286,6 +292,7 @@ pub fn run(ident: EngineIdent) {
                     println!("option name UCI_Opponent type string default ");
                     println!("option name PersonaSmooth type check default false");
                     println!("option name EngineDetectV2 type check default false");
+                    println!("option name AcceleratedDetection type check default false");
                     println!("option name AdapterTelemetry type check default false");
                 }
                 // tunable search constants (defaults match prior hard-coded
@@ -357,6 +364,7 @@ pub fn run(ident: EngineIdent) {
                     let mut m = model.lock().unwrap();
                     *m = OpponentModel::new();
                     m.experimental_detect = opt.engine_detect_v2;
+                    m.accelerated_detect = opt.accelerated_detect;
                 }
                 *persona.lock().unwrap() = PersonaState::default();
                 last_opp_clock = None;
@@ -854,6 +862,10 @@ fn handle_setoption(
         "enginedetectv2" => {
             opt.engine_detect_v2 = value.eq_ignore_ascii_case("true");
             model.lock().unwrap().experimental_detect = opt.engine_detect_v2;
+        }
+        "accelerateddetection" => {
+            opt.accelerated_detect = value.eq_ignore_ascii_case("true");
+            model.lock().unwrap().accelerated_detect = opt.accelerated_detect;
         }
         "uci_opponent" => {
             let log = model.lock().unwrap().seed_from_uci_opponent(value);

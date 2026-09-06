@@ -32,6 +32,7 @@ SUSPECT_REASON_VALUES = {
     "v2_clock_threshold",
     "v2_declared_exempt",
     "v2_anonymous_ceiling",
+    "legacy_accelerated_ceiling",
 }
 EVENTS = {"opponent_observation", "observation_skipped", "persona_decision"}
 OPTION_FIELDS = (
