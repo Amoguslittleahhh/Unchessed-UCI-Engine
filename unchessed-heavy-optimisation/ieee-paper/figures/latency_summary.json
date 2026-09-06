@@ -1,0 +1,130 @@
+{
+  "normal_80ms": {
+    "root": "unchessed-heavy-optimisation/results/unarchitectured-metal-asymmetric-latency-v5",
+    "arms": {
+      "standard": {
+        "games": 10,
+        "full_rate": 1.0,
+        "latencies": [
+          30,
+          30,
+          30,
+          28,
+          30,
+          32,
+          32,
+          32,
+          28,
+          28
+        ],
+        "mean_ply": 30,
+        "median_ply": 30.0,
+        "fusion_trigger_rate": 0.0,
+        "reasons": {
+          "legacy_ceiling": 10
+        }
+      },
+      "fusion": {
+        "games": 10,
+        "full_rate": 1.0,
+        "latencies": [
+          30,
+          30,
+          32,
+          26,
+          30,
+          28,
+          32,
+          34,
+          32,
+          32
+        ],
+        "mean_ply": 30.6,
+        "median_ply": 31.0,
+        "fusion_trigger_rate": 0.4,
+        "reasons": {
+          "legacy_accelerated_fusion": 4,
+          "legacy_ceiling": 6
+        }
+      }
+    },
+    "paired": {
+      "complete_pairs": 10,
+      "fusion_minus_standard_ply": [
+        0,
+        0,
+        2,
+        -2,
+        0,
+        -4,
+        0,
+        2,
+        4,
+        4
+      ],
+      "mean_delta_ply": 0.6,
+      "median_delta_ply": 0.0,
+      "fusion_earlier_pairs": 2,
+      "same_pairs": 4,
+      "fusion_later_pairs": 4
+    }
+  },
+  "fast_30ms": {
+    "root": "unchessed-heavy-optimisation/results/unarchitectured-metal-asymmetric-latency-fast-v1",
+    "arms": {
+      "standard": {
+        "games": 6,
+        "full_rate": 1.0,
+        "latencies": [
+          32,
+          32,
+          28,
+          26,
+          32,
+          30
+        ],
+        "mean_ply": 30,
+        "median_ply": 31.0,
+        "fusion_trigger_rate": 0.0,
+        "reasons": {
+          "legacy_ceiling": 6
+        }
+      },
+      "fusion": {
+        "games": 6,
+        "full_rate": 1.0,
+        "latencies": [
+          32,
+          32,
+          30,
+          24,
+          32,
+          28
+        ],
+        "mean_ply": 29.666666666666668,
+        "median_ply": 31.0,
+        "fusion_trigger_rate": 0.5,
+        "reasons": {
+          "legacy_ceiling": 3,
+          "legacy_accelerated_fusion": 3
+        }
+      }
+    },
+    "paired": {
+      "complete_pairs": 6,
+      "fusion_minus_standard_ply": [
+        0,
+        0,
+        2,
+        -2,
+        0,
+        -2
+      ],
+      "mean_delta_ply": -0.3333333333333333,
+      "median_delta_ply": 0.0,
+      "fusion_earlier_pairs": 2,
+      "same_pairs": 3,
+      "fusion_later_pairs": 1
+    }
+  }
+}

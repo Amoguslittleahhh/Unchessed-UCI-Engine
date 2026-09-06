@@ -1,0 +1,267 @@
+{
+  "games": [
+    {
+      "arm": "standard",
+      "game_log": "standard/game_01_unchessed.log",
+      "observation_count": 19,
+      "first_suspect_ply": 30,
+      "first_suspect_reason": "legacy_ceiling",
+      "first_full_ply": 30,
+      "max_fusion_score_milli": 3601,
+      "max_fusion_evidence_milli": 436,
+      "last_estimate_elo": 2741,
+      "last_confidence_cp": 160
+    },
+    {
+      "arm": "standard",
+      "game_log": "standard/game_02_unchessed.log",
+      "observation_count": 19,
+      "first_suspect_ply": 30,
+      "first_suspect_reason": "legacy_ceiling",
+      "first_full_ply": 30,
+      "max_fusion_score_milli": 0,
+      "max_fusion_evidence_milli": 314,
+      "last_estimate_elo": 2688,
+      "last_confidence_cp": 186
+    },
+    {
+      "arm": "standard",
+      "game_log": "standard/game_03_unchessed.log",
+      "observation_count": 19,
+      "first_suspect_ply": 30,
+      "first_suspect_reason": "legacy_ceiling",
+      "first_full_ply": 30,
+      "max_fusion_score_milli": 0,
+      "max_fusion_evidence_milli": 369,
+      "last_estimate_elo": 2520,
+      "last_confidence_cp": 266
+    },
+    {
+      "arm": "standard",
+      "game_log": "standard/game_04_unchessed.log",
+      "observation_count": 19,
+      "first_suspect_ply": 28,
+      "first_suspect_reason": "legacy_ceiling",
+      "first_full_ply": 28,
+      "max_fusion_score_milli": 0,
+      "max_fusion_evidence_milli": 381,
+      "last_estimate_elo": 2723,
+      "last_confidence_cp": 166
+    },
+    {
+      "arm": "standard",
+      "game_log": "standard/game_05_unchessed.log",
+      "observation_count": 19,
+      "first_suspect_ply": 30,
+      "first_suspect_reason": "legacy_ceiling",
+      "first_full_ply": 30,
+      "max_fusion_score_milli": 0,
+      "max_fusion_evidence_milli": 265,
+      "last_estimate_elo": 2701,
+      "last_confidence_cp": 193
+    },
+    {
+      "arm": "standard",
+      "game_log": "standard/game_06_unchessed.log",
+      "observation_count": 19,
+      "first_suspect_ply": 32,
+      "first_suspect_reason": "legacy_ceiling",
+      "first_full_ply": 32,
+      "max_fusion_score_milli": 1274,
+      "max_fusion_evidence_milli": 373,
+      "last_estimate_elo": 2586,
+      "last_confidence_cp": 170
+    },
+    {
+      "arm": "standard",
+      "game_log": "standard/game_07_unchessed.log",
+      "observation_count": 19,
+      "first_suspect_ply": 32,
+      "first_suspect_reason": "legacy_ceiling",
+      "first_full_ply": 32,
+      "max_fusion_score_milli": 0,
+      "max_fusion_evidence_milli": 342,
+      "last_estimate_elo": 2593,
+      "last_confidence_cp": 174
+    },
+    {
+      "arm": "standard",
+      "game_log": "standard/game_08_unchessed.log",
+      "observation_count": 19,
+      "first_suspect_ply": 32,
+      "first_suspect_reason": "legacy_ceiling",
+      "first_full_ply": 32,
+      "max_fusion_score_milli": 2454,
+      "max_fusion_evidence_milli": 437,
+      "last_estimate_elo": 2700,
+      "last_confidence_cp": 168
+    },
+    {
+      "arm": "standard",
+      "game_log": "standard/game_09_unchessed.log",
+      "observation_count": 19,
+      "first_suspect_ply": 28,
+      "first_suspect_reason": "legacy_ceiling",
+      "first_full_ply": 28,
+      "max_fusion_score_milli": 0,
+      "max_fusion_evidence_milli": 220,
+      "last_estimate_elo": 2462,
+      "last_confidence_cp": 240
+    },
+    {
+      "arm": "standard",
+      "game_log": "standard/game_10_unchessed.log",
+      "observation_count": 19,
+      "first_suspect_ply": 28,
+      "first_suspect_reason": "legacy_ceiling",
+      "first_full_ply": 28,
+      "max_fusion_score_milli": 3670,
+      "max_fusion_evidence_milli": 398,
+      "last_estimate_elo": 2621,
+      "last_confidence_cp": 162
+    },
+    {
+      "arm": "fusion",
+      "game_log": "fusion/game_11_unchessed.log",
+      "observation_count": 19,
+      "first_suspect_ply": 30,
+      "first_suspect_reason": "legacy_accelerated_fusion",
+      "first_full_ply": 30,
+      "max_fusion_score_milli": 2783,
+      "max_fusion_evidence_milli": 429,
+      "last_estimate_elo": 2742,
+      "last_confidence_cp": 167
+    },
+    {
+      "arm": "fusion",
+      "game_log": "fusion/game_12_unchessed.log",
+      "observation_count": 19,
+      "first_suspect_ply": 30,
+      "first_suspect_reason": "legacy_accelerated_fusion",
+      "first_full_ply": 30,
+      "max_fusion_score_milli": 4231,
+      "max_fusion_evidence_milli": 440,
+      "last_estimate_elo": 2698,
+      "last_confidence_cp": 152
+    },
+    {
+      "arm": "fusion",
+      "game_log": "fusion/game_13_unchessed.log",
+      "observation_count": 19,
+      "first_suspect_ply": 32,
+      "first_suspect_reason": "legacy_ceiling",
+      "first_full_ply": 32,
+      "max_fusion_score_milli": 0,
+      "max_fusion_evidence_milli": 0,
+      "last_estimate_elo": 2510,
+      "last_confidence_cp": 269
+    },
+    {
+      "arm": "fusion",
+      "game_log": "fusion/game_14_unchessed.log",
+      "observation_count": 19,
+      "first_suspect_ply": 26,
+      "first_suspect_reason": "legacy_accelerated_fusion",
+      "first_full_ply": 26,
+      "max_fusion_score_milli": 3818,
+      "max_fusion_evidence_milli": 448,
+      "last_estimate_elo": 2680,
+      "last_confidence_cp": 176
+    },
+    {
+      "arm": "fusion",
+      "game_log": "fusion/game_15_unchessed.log",
+      "observation_count": 19,
+      "first_suspect_ply": 30,
+      "first_suspect_reason": "legacy_ceiling",
+      "first_full_ply": 30,
+      "max_fusion_score_milli": 0,
+      "max_fusion_evidence_milli": 300,
+      "last_estimate_elo": 2576,
+      "last_confidence_cp": 177
+    },
+    {
+      "arm": "fusion",
+      "game_log": "fusion/game_16_unchessed.log",
+      "observation_count": 19,
+      "first_suspect_ply": 28,
+      "first_suspect_reason": "legacy_accelerated_fusion",
+      "first_full_ply": 28,
+      "max_fusion_score_milli": 4734,
+      "max_fusion_evidence_milli": 488,
+      "last_estimate_elo": 2735,
+      "last_confidence_cp": 140
+    },
+    {
+      "arm": "fusion",
+      "game_log": "fusion/game_17_unchessed.log",
+      "observation_count": 19,
+      "first_suspect_ply": 32,
+      "first_suspect_reason": "legacy_ceiling",
+      "first_full_ply": 32,
+      "max_fusion_score_milli": 3660,
+      "max_fusion_evidence_milli": 403,
+      "last_estimate_elo": 2621,
+      "last_confidence_cp": 155
+    },
+    {
+      "arm": "fusion",
+      "game_log": "fusion/game_18_unchessed.log",
+      "observation_count": 19,
+      "first_suspect_ply": 34,
+      "first_suspect_reason": "legacy_ceiling",
+      "first_full_ply": 34,
+      "max_fusion_score_milli": 0,
+      "max_fusion_evidence_milli": 177,
+      "last_estimate_elo": 2530,
+      "last_confidence_cp": 206
+    },
+    {
+      "arm": "fusion",
+      "game_log": "fusion/game_19_unchessed.log",
+      "observation_count": 19,
+      "first_suspect_ply": 32,
+      "first_suspect_reason": "legacy_ceiling",
+      "first_full_ply": 32,
+      "max_fusion_score_milli": 0,
+      "max_fusion_evidence_milli": 290,
+      "last_estimate_elo": 2585,
+      "last_confidence_cp": 245
+    },
+    {
+      "arm": "fusion",
+      "game_log": "fusion/game_20_unchessed.log",
+      "observation_count": 19,
+      "first_suspect_ply": 32,
+      "first_suspect_reason": "legacy_ceiling",
+      "first_full_ply": 32,
+      "max_fusion_score_milli": 0,
+      "max_fusion_evidence_milli": 229,
+      "last_estimate_elo": 2425,
+      "last_confidence_cp": 229
+    }
+  ],
+  "arms": {
+    "standard": {
+      "games": 10,
+      "full_confirmation_rate": 1.0,
+      "first_full_ply_mean": 30,
+      "first_full_ply_median": 30.0,
+      "max_fusion_score_mean": 1099.9,
+      "reasons": {
+        "legacy_ceiling": 10
+      }
+    },
+    "fusion": {
+      "games": 10,
+      "full_confirmation_rate": 1.0,
+      "first_full_ply_mean": 30.6,
+      "first_full_ply_median": 31.0,
+      "max_fusion_score_mean": 1922.6,
+      "reasons": {
+        "legacy_accelerated_fusion": 4,
+        "legacy_ceiling": 6
+      }
+    }
+  }
+}

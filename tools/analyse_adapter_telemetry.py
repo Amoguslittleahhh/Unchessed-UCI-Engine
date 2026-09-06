@@ -55,7 +55,7 @@ DECISION_REQUIRED = COMMON_FIELDS | {
     "dwell", "emergency", "suspect", "action_full", "selected_move",
 }
 OBSERVATION_ALLOWED = OBSERVATION_REQUIRED | {
-    "reason", "accelerated_score_milli", "accelerated_evidence_milli", "accelerated_streak"
+    "reason", "accelerated_score_milli", "accelerated_evidence_milli", "accelerated_streak", "accelerated_fusion_streak"
 }
 DECISION_ALLOWED = DECISION_REQUIRED
 
@@ -193,6 +193,7 @@ def validate_record(fields: dict[str, str], origin: str, line_no: int) -> dict[s
             accelerated_score_milli=sint(fields.get("accelerated_score_milli", "0"), "accelerated_score_milli", origin, line_no),
             accelerated_evidence_milli=sint(fields.get("accelerated_evidence_milli", "0"), "accelerated_evidence_milli", origin, line_no),
             accelerated_streak=uint(fields.get("accelerated_streak", "0"), "accelerated_streak", origin, line_no),
+            accelerated_fusion_streak=uint(fields.get("accelerated_fusion_streak", "0"), "accelerated_fusion_streak", origin, line_no),
             action_full=bit(fields["action_full"], "action_full", origin, line_no),
         )
         if result["suspect_reason"] not in SUSPECT_REASON_VALUES:
