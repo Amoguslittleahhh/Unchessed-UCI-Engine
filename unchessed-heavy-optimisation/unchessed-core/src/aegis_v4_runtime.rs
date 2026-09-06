@@ -16,6 +16,7 @@
 )]
 
 use crate::board::{file_of, Move, Position, BISHOP, BK, BQ, KNIGHT, NO_EP, QUEEN, ROOK, WK, WQ};
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 use crate::cpu;
 use crate::unarchitectured_v1::TensorPackage;
 use std::cell::RefCell;

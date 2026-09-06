@@ -191,6 +191,24 @@ fn sub_row_scalar(acc: &mut [f32], row: &[f32]) {
     }
 }
 
+#[cfg(target_arch = "aarch64")]
+unsafe fn add_row_neon(acc: &mut [f32], row: &[f32]) {
+    use std::arch::aarch64::*;
+    let n = acc.len().min(row.len());
+    let a = acc.as_mut_ptr();
+    let w = row.as_ptr();
+    let mut i = 0usize;
+    while i + 4 <= n {
+        let v = vaddq_f32(vld1q_f32(a.add(i)), vld1q_f32(w.add(i)));
+        vst1q_f32(a.add(i), v);
+        i += 4;
+    }
+    while i < n {
+        *a.add(i) += *w.add(i);
+        i += 1;
+    }
+}
+
 #[cfg(target_arch = "x86_64")]
 #[target_feature(enable = "avx2")]
 unsafe fn add_row_avx2(acc: &mut [f32], row: &[f32]) {
@@ -206,6 +224,24 @@ unsafe fn add_row_avx2(acc: &mut [f32], row: &[f32]) {
     }
     while i < n {
         *a.add(i) += *w.add(i);
+        i += 1;
+    }
+}
+
+#[cfg(target_arch = "aarch64")]
+unsafe fn sub_row_neon(acc: &mut [f32], row: &[f32]) {
+    use std::arch::aarch64::*;
+    let n = acc.len().min(row.len());
+    let a = acc.as_mut_ptr();
+    let w = row.as_ptr();
+    let mut i = 0usize;
+    while i + 4 <= n {
+        let v = vsubq_f32(vld1q_f32(a.add(i)), vld1q_f32(w.add(i)));
+        vst1q_f32(a.add(i), v);
+        i += 4;
+    }
+    while i < n {
+        *a.add(i) -= *w.add(i);
         i += 1;
     }
 }
@@ -232,6 +268,12 @@ unsafe fn sub_row_avx2(acc: &mut [f32], row: &[f32]) {
 #[inline]
 fn add_row(acc: &mut [f32], ft_w: &[f32], idx: usize) {
     let row = &ft_w[idx * ACC..(idx + 1) * ACC];
+    #[cfg(target_arch = "aarch64")]
+    if cpu::has_neon() {
+        // SAFETY: AArch64 NEON is part of the supported architecture baseline.
+        unsafe { add_row_neon(acc, row) };
+        return;
+    }
     #[cfg(target_arch = "x86_64")]
     if cpu::has_avx2() {
         // SAFETY: guarded by a runtime AVX2+FMA check; the kernel only
@@ -247,6 +289,12 @@ fn add_row(acc: &mut [f32], ft_w: &[f32], idx: usize) {
 #[inline]
 fn sub_row(acc: &mut [f32], ft_w: &[f32], idx: usize) {
     let row = &ft_w[idx * ACC..(idx + 1) * ACC];
+    #[cfg(target_arch = "aarch64")]
+    if cpu::has_neon() {
+        // SAFETY: AArch64 NEON is part of the supported architecture baseline.
+        unsafe { sub_row_neon(acc, row) };
+        return;
+    }
     #[cfg(target_arch = "x86_64")]
     if cpu::has_avx2() {
         // SAFETY: as above.
@@ -323,8 +371,62 @@ unsafe fn crelu_dot_avx2(acc: &[f32], w: &[f32]) -> f32 {
     out
 }
 
+#[cfg(target_arch = "aarch64")]
+unsafe fn screlu_dot_neon(acc: &[f32], w: &[f32]) -> f32 {
+    use std::arch::aarch64::*;
+    let zero = vdupq_n_f32(0.0);
+    let one = vdupq_n_f32(1.0);
+    let n = acc.len().min(w.len());
+    let a = acc.as_ptr();
+    let p = w.as_ptr();
+    let mut i = 0usize;
+    let mut sum = vdupq_n_f32(0.0);
+    while i + 4 <= n {
+        let v = vld1q_f32(a.add(i));
+        let c = vminq_f32(vmaxq_f32(v, zero), one);
+        let sq = vmulq_f32(c, c);
+        sum = vaddq_f32(sum, vmulq_f32(sq, vld1q_f32(p.add(i))));
+        i += 4;
+    }
+    let mut out = vaddvq_f32(sum);
+    while i < n {
+        out += screlu(*a.add(i)) * *p.add(i);
+        i += 1;
+    }
+    out
+}
+
+#[cfg(target_arch = "aarch64")]
+unsafe fn crelu_dot_neon(acc: &[f32], w: &[f32]) -> f32 {
+    use std::arch::aarch64::*;
+    let zero = vdupq_n_f32(0.0);
+    let one = vdupq_n_f32(1.0);
+    let n = acc.len().min(w.len());
+    let a = acc.as_ptr();
+    let p = w.as_ptr();
+    let mut i = 0usize;
+    let mut sum = vdupq_n_f32(0.0);
+    while i + 4 <= n {
+        let v = vld1q_f32(a.add(i));
+        let c = vminq_f32(vmaxq_f32(v, zero), one);
+        sum = vaddq_f32(sum, vmulq_f32(c, vld1q_f32(p.add(i))));
+        i += 4;
+    }
+    let mut out = vaddvq_f32(sum);
+    while i < n {
+        out += crelu(*a.add(i)) * *p.add(i);
+        i += 1;
+    }
+    out
+}
+
 #[inline]
 fn screlu_dot(acc: &[f32], w: &[f32]) -> f32 {
+    #[cfg(target_arch = "aarch64")]
+    if cpu::has_neon() {
+        // SAFETY: AArch64 NEON is part of the supported architecture baseline.
+        return unsafe { screlu_dot_neon(acc, w) };
+    }
     #[cfg(target_arch = "x86_64")]
     if cpu::has_avx2_fma() {
         // SAFETY: guarded by a runtime AVX2+FMA check.
@@ -340,6 +442,11 @@ fn screlu_dot(acc: &[f32], w: &[f32]) -> f32 {
 
 #[inline]
 fn crelu_dot(acc: &[f32], w: &[f32]) -> f32 {
+    #[cfg(target_arch = "aarch64")]
+    if cpu::has_neon() {
+        // SAFETY: AArch64 NEON is part of the supported architecture baseline.
+        return unsafe { crelu_dot_neon(acc, w) };
+    }
     #[cfg(target_arch = "x86_64")]
     if cpu::has_avx2_fma() {
         // SAFETY: guarded by a runtime AVX2+FMA check.
