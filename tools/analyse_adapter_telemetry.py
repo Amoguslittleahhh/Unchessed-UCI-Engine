@@ -33,6 +33,7 @@ SUSPECT_REASON_VALUES = {
     "v2_declared_exempt",
     "v2_anonymous_ceiling",
     "legacy_accelerated_ceiling",
+    "legacy_accelerated_fusion",
 }
 EVENTS = {"opponent_observation", "observation_skipped", "persona_decision"}
 OPTION_FIELDS = (
@@ -54,7 +55,9 @@ DECISION_REQUIRED = COMMON_FIELDS | {
     "decision", "raw_eval_cp", "ema_cp", "mode_before", "mode_after", "candidate",
     "dwell", "emergency", "suspect", "action_full", "selected_move",
 }
-OBSERVATION_ALLOWED = OBSERVATION_REQUIRED | {"reason"}
+OBSERVATION_ALLOWED = OBSERVATION_REQUIRED | {
+    "reason", "accelerated_score_milli", "accelerated_evidence_milli", "accelerated_streak"
+}
 DECISION_ALLOWED = DECISION_REQUIRED
 
 
@@ -188,6 +191,9 @@ def validate_record(fields: dict[str, str], origin: str, line_no: int) -> dict[s
             declared_elo=optional_sint(fields["declared_elo"], "declared_elo", origin, line_no),
             suspect=bit(fields["suspect"], "suspect", origin, line_no),
             suspect_reason=fields["suspect_reason"],
+            accelerated_score_milli=sint(fields.get("accelerated_score_milli", "0"), "accelerated_score_milli", origin, line_no),
+            accelerated_evidence_milli=sint(fields.get("accelerated_evidence_milli", "0"), "accelerated_evidence_milli", origin, line_no),
+            accelerated_streak=uint(fields.get("accelerated_streak", "0"), "accelerated_streak", origin, line_no),
             action_full=bit(fields["action_full"], "action_full", origin, line_no),
         )
         if result["suspect_reason"] not in SUSPECT_REASON_VALUES:

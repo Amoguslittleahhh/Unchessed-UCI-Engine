@@ -20,7 +20,7 @@ OBS = (
     "difficulty_weight_milli=800 legal_count=31 had_choice=1 estimate_elo=2187 "
     "confidence_cp=244 weight_milli=7410 suspicion_milli=0 low_loss_streak=2 "
     "samples=9 is_computer=0 declared_elo=none suspect={suspect} "
-    "suspect_reason=none action_full=0"
+    "suspect_reason=none accelerated_score_milli=0 accelerated_evidence_milli=0 accelerated_streak=0 action_full=0"
 )
 DECISION = (
     "info string [UnchessedTelemetry] v=1 event=persona_decision run=run-a "
@@ -76,6 +76,16 @@ class AdapterTelemetryParserTests(unittest.TestCase):
         self.assertEqual(report["persona"]["pooled_flips"], 1)
         self.assertEqual(report["persona"]["pooled_flip_rate"], 1.0)
         self.assertEqual(games[0]["persona_flip_rate"], 1.0)
+
+    def test_old_schema_v1_capture_defaults_new_fusion_diagnostics(self):
+        legacy = OBS.format(game=3, ply=23, observation=1, options=OPTIONS, suspect=0)
+        legacy = legacy.replace(
+            " accelerated_score_milli=0 accelerated_evidence_milli=0 accelerated_streak=0", ""
+        )
+        records = parse_telemetry_text(legacy)
+        self.assertEqual(records[0]["accelerated_score_milli"], 0)
+        self.assertEqual(records[0]["accelerated_evidence_milli"], 0)
+        self.assertEqual(records[0]["accelerated_streak"], 0)
 
     def test_malformed_unknown_schema_duplicate_field_and_duplicate_index_rejected(self):
         bad_schema = OBS.format(game=1, ply=23, observation=1, options=OPTIONS, suspect=0).replace("v=1", "v=2")

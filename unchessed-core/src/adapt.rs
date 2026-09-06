@@ -89,6 +89,13 @@ const ACCEL_N_MIN: u32 = 8; // post-opening evidence, matches observe_time's own
 const ACCEL_R_MIN: f64 = 2550.0;
 const ACCEL_C_MAX: i32 = 220;
 const ACCEL_V_MAX: i32 = 300; // stays below trend()'s own erratic cutoff of 380
+// Robust-fusion constants. The fusion path is intentionally bounded and
+// dependency-free: it borrows the one-sided CUSUM idea from sequential
+// change detection, but combines four weak, differently-shaped signals using
+// a harmonic mean so one noisy channel cannot dominate the decision.
+const ACCEL_FUSION_SCORE_MIN: f64 = 1.00;
+const ACCEL_FUSION_DECAY: f64 = 0.94;
+const ACCEL_FUSION_NEGATIVE_EVIDENCE: f64 = 0.42;
 
 #[derive(Clone)]
 pub struct OpponentModel {
@@ -122,6 +129,12 @@ pub struct OpponentModel {
     /// Default-off secondary confirmation path. Live search uses this only
     /// when UCI AcceleratedDetection=true. See `accelerated_ceiling`.
     pub accelerated_detect: bool,
+    /// Bounded sequential evidence score for the robust fusion path. This is
+    /// not a probability; it is a leaky, signed evidence accumulator.
+    accel_fusion_score: f64,
+    /// Last [0,1] agreement score across rating, confidence, stability, and
+    /// trend signals. Exposed through telemetry for threshold calibration.
+    accel_fusion_evidence: f64,
 }
 
 /// Stable explanation for the detector rule currently in effect.
@@ -139,6 +152,7 @@ pub enum SuspectReason {
     V2DeclaredExempt,
     V2AnonymousCeiling,
     LegacyAcceleratedCeiling,
+    LegacyAcceleratedFusion,
 }
 
 impl SuspectReason {
@@ -153,6 +167,7 @@ impl SuspectReason {
             SuspectReason::V2DeclaredExempt => "v2_declared_exempt",
             SuspectReason::V2AnonymousCeiling => "v2_anonymous_ceiling",
             SuspectReason::LegacyAcceleratedCeiling => "legacy_accelerated_ceiling",
+            SuspectReason::LegacyAcceleratedFusion => "legacy_accelerated_fusion",
         }
     }
 
@@ -174,6 +189,9 @@ pub struct OpponentTelemetrySnapshot {
     pub declared_elo: Option<i32>,
     pub suspect: bool,
     pub suspect_reason: SuspectReason,
+    pub accelerated_score_milli: i32,
+    pub accelerated_evidence_milli: i32,
+    pub accelerated_streak: u32,
 }
 
 impl Default for OpponentModel {
@@ -200,6 +218,8 @@ impl OpponentModel {
             experimental_detect: false,
             accel_streak: 0,
             accelerated_detect: false,
+            accel_fusion_score: 0.0,
+            accel_fusion_evidence: 0.0,
         }
     }
 
@@ -293,6 +313,7 @@ impl OpponentModel {
         } else {
             0
         };
+        self.update_accelerated_fusion();
     }
 
     /// Feed the opponent's clock usage for their last move. Near-instant,
@@ -356,7 +377,9 @@ impl OpponentModel {
         if self.weight >= 10.0 && self.mean >= 2450.0 {
             return SuspectReason::LegacyCeiling;
         }
-        if self.accelerated_detect && self.accelerated_ceiling() {
+        if self.accelerated_detect && self.accelerated_fusion() {
+            SuspectReason::LegacyAcceleratedFusion
+        } else if self.accelerated_detect && self.accelerated_ceiling() {
             SuspectReason::LegacyAcceleratedCeiling
         } else {
             SuspectReason::None
@@ -369,6 +392,51 @@ impl OpponentModel {
     /// qualifying move is never enough on its own.
     fn accelerated_ceiling(&self) -> bool {
         self.accel_streak >= 2 || (self.accel_streak >= 1 && self.suspicion >= 2.0)
+    }
+
+    /// Homemade breakthrough: concordant sequential evidence fusion.
+    ///
+    /// Each observation contributes a bounded score only when four partially
+    /// independent signals agree: high estimated strength, narrow confidence,
+    /// low volatility, and non-negative trend. A harmonic mean is used instead
+    /// of an arithmetic mean, so a single weak signal vetoes a false-positive
+    /// burst. The leaky CUSUM accumulator then rewards sustained agreement and
+    /// forgets stale evidence after a regime change. This is deliberately
+    /// interpretable and cheap enough for every observed move.
+    fn update_accelerated_fusion(&mut self) {
+        if self.samples < ACCEL_N_MIN {
+            self.accel_fusion_evidence = 0.0;
+            self.accel_fusion_score *= ACCEL_FUSION_DECAY;
+            return;
+        }
+        let rating = ((self.mean - 2350.0) / 350.0).clamp(0.0, 1.0);
+        let confidence = (1.0 - self.confidence() as f64 / 420.0).clamp(0.0, 1.0);
+        let stability = (1.0 - self.volatility() as f64 / 520.0).clamp(0.0, 1.0);
+        let trend = (0.5 + (self.mean - self.prev_mean) / 90.0).clamp(0.0, 1.0);
+        let product = rating * confidence * stability * trend;
+        let harmonic = if product <= f64::EPSILON {
+            0.0
+        } else {
+            4.0 / (1.0 / rating.max(0.02)
+                + 1.0 / confidence.max(0.02)
+                + 1.0 / stability.max(0.02)
+                + 1.0 / trend.max(0.02))
+        };
+        let clock_support = (self.suspicion / 3.0).clamp(0.0, 1.0);
+        self.accel_fusion_evidence = (0.85 * harmonic + 0.15 * clock_support).clamp(0.0, 1.0);
+        let centered = self.accel_fusion_evidence - ACCEL_FUSION_NEGATIVE_EVIDENCE;
+        self.accel_fusion_score = (self.accel_fusion_score * ACCEL_FUSION_DECAY
+            + centered * 2.4)
+            .clamp(-3.0, 8.0);
+        if self.mean < 2250.0 || self.volatility() > 520 {
+            self.accel_fusion_score = (self.accel_fusion_score - 0.75).max(-3.0);
+        }
+    }
+
+    fn accelerated_fusion(&self) -> bool {
+        self.samples >= ACCEL_N_MIN
+            && self.accel_fusion_score >= ACCEL_FUSION_SCORE_MIN
+            && self.accel_fusion_evidence >= 0.48
     }
 
     fn suspect_reason_v2(&self) -> SuspectReason {
@@ -407,6 +475,9 @@ impl OpponentModel {
             declared_elo: self.declared_elo,
             suspect: suspect_reason.is_suspect(),
             suspect_reason,
+            accelerated_score_milli: (self.accel_fusion_score * 1000.0).round() as i32,
+            accelerated_evidence_milli: (self.accel_fusion_evidence * 1000.0).round() as i32,
+            accelerated_streak: self.accel_streak,
         }
     }
 
@@ -1289,6 +1360,35 @@ mod tests {
             "accelerated path should confirm a sustained, high, narrow, non-erratic estimate"
         );
         assert_eq!(m.suspect_reason(), SuspectReason::LegacyAcceleratedCeiling);
+    }
+
+    #[test]
+    fn accelerated_fusion_confirms_on_concordant_sustained_evidence() {
+        let mut m = OpponentModel::new();
+        m.accelerated_detect = true;
+        let mut fusion_at = None;
+        for observation in 1..=32 {
+            m.observe(8, 0.4);
+            if m.suspect_reason() == SuspectReason::LegacyAcceleratedFusion {
+                fusion_at = Some(observation);
+                break;
+            }
+        }
+        assert!(fusion_at.is_some(), "fusion score should confirm sustained evidence");
+        let fusion_at = fusion_at.unwrap();
+        assert_eq!(fusion_at, 29, "fusion confirmation should remain deterministic");
+        assert!(m.accel_fusion_evidence >= 0.48);
+    }
+
+    #[test]
+    fn accelerated_fusion_rejects_erratic_mixed_quality_play() {
+        let mut m = OpponentModel::new();
+        m.accelerated_detect = true;
+        for i in 0..32 {
+            m.observe(if i % 3 == 0 { 180 } else { 8 }, 0.4);
+        }
+        assert_ne!(m.suspect_reason(), SuspectReason::LegacyAcceleratedFusion);
+        assert!(m.accel_fusion_evidence < 0.48 || m.accel_fusion_score < ACCEL_FUSION_SCORE_MIN);
     }
 
     #[test]
