@@ -392,7 +392,9 @@ impl OpponentModel {
         if self.is_computer {
             return SuspectReason::LegacyComputer;
         }
-        if self.suspicion >= 3.0 {
+        if self.suspicion >= 3.0
+            && (!self.accelerated_detect || self.accelerated_clock_corroborated())
+        {
             return SuspectReason::LegacyClock;
         }
         if self.accelerated_detect && self.accelerated_fusion() {
@@ -415,6 +417,14 @@ impl OpponentModel {
     /// doc comment). Requires either two consecutive qualifying observations,
     /// or one qualifying observation plus a live clock tell -- a single
     /// qualifying move is never enough on its own.
+    fn accelerated_clock_corroborated(&self) -> bool {
+        self.samples >= 10
+            && self.mean >= 2450.0
+            && self.accel_resilient_score >= 0.35
+            && self.accel_resilient_evidence >= 0.30
+            && self.accel_resilient_streak >= 2
+    }
+
     fn accelerated_ceiling(&self) -> bool {
         self.accel_streak >= 2 || (self.accel_streak >= 1 && self.suspicion >= 2.0)
     }
@@ -1487,6 +1497,18 @@ mod tests {
         assert_eq!(m.suspect_reason(), SuspectReason::LegacyAcceleratedResilient);
         assert!(m.accel_resilient_good_mass >= 3.0);
         assert!(m.accel_resilient_bad_mass <= ACCEL_RESILIENT_BAD_MASS_MAX);
+    }
+
+    #[test]
+    fn accelerated_mode_does_not_promote_clock_tells_without_strength_corroboration() {
+        let mut m = OpponentModel::new();
+        m.accelerated_detect = true;
+        for _ in 0..8 {
+            m.observe(8, 0.4);
+            m.observe_time(50, true);
+        }
+        assert_ne!(m.suspect_reason(), SuspectReason::LegacyClock);
+        assert!(m.accel_resilient_streak < 2 || m.mean < 2450.0);
     }
 
     #[test]

@@ -1,3 +1,3 @@
-Visual QA completed on 2026-09-06 after the resilient-channel revision.
+Visual QA completed after the Stockfish 19, Maia-3, and strength-SPRT revision.
 
-The revised PDF is three pages in a conventional IEEEtran two-column layout. The expanded experiment table fits without clipping, including the safe-clock rows. The resilient-channel section flows cleanly across the first two pages. The existing latency figure remains readable, equations and references resolve, and no headings or table rows are clipped. Page three has intentional lower whitespace after the conclusion and references; no layout defect was observed.
+The PDF remains a clean three-page IEEEtran two-column paper. The updated abstract and protocol fit without clipping. The existing latency figure and safe-clock experiment table remain readable. The new Stockfish 19 and Maia-3 discussion flows correctly across pages two and three. References fit within the final page, and no equations, headings, table rows, or figure captions are clipped. Lower whitespace on page three is intentional after the conclusion and references.

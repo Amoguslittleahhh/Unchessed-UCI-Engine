@@ -1,0 +1,75 @@
+{
+  "games": [
+    {
+      "arm": "standard",
+      "game_log": "standard/game_01_unchessed.log",
+      "observation_count": 15,
+      "first_suspect_ply": 14,
+      "first_suspect_reason": "legacy_clock",
+      "first_full_ply": 14,
+      "max_fusion_score_milli": 0,
+      "max_fusion_evidence_milli": 150,
+      "last_estimate_elo": 2206,
+      "last_confidence_cp": 370
+    },
+    {
+      "arm": "standard",
+      "game_log": "standard/game_02_unchessed.log",
+      "observation_count": 15,
+      "first_suspect_ply": 12,
+      "first_suspect_reason": "legacy_clock",
+      "first_full_ply": 12,
+      "max_fusion_score_milli": 0,
+      "max_fusion_evidence_milli": 150,
+      "last_estimate_elo": 2324,
+      "last_confidence_cp": 311
+    },
+    {
+      "arm": "fusion",
+      "game_log": "fusion/game_03_unchessed.log",
+      "observation_count": 15,
+      "first_suspect_ply": null,
+      "first_suspect_reason": null,
+      "first_full_ply": null,
+      "max_fusion_score_milli": 0,
+      "max_fusion_evidence_milli": 150,
+      "last_estimate_elo": 2332,
+      "last_confidence_cp": 336
+    },
+    {
+      "arm": "fusion",
+      "game_log": "fusion/game_04_unchessed.log",
+      "observation_count": 15,
+      "first_suspect_ply": 26,
+      "first_suspect_reason": "legacy_accelerated_fusion",
+      "first_full_ply": 26,
+      "max_fusion_score_milli": 1929,
+      "max_fusion_evidence_milli": 417,
+      "last_estimate_elo": 2474,
+      "last_confidence_cp": 198
+    }
+  ],
+  "arms": {
+    "standard": {
+      "games": 2,
+      "full_confirmation_rate": 1.0,
+      "first_full_ply_mean": 13,
+      "first_full_ply_median": 13.0,
+      "max_fusion_score_mean": 0,
+      "reasons": {
+        "legacy_clock": 2
+      }
+    },
+    "fusion": {
+      "games": 2,
+      "full_confirmation_rate": 0.5,
+      "first_full_ply_mean": 26,
+      "first_full_ply_median": 26,
+      "max_fusion_score_mean": 964.5,
+      "reasons": {
+        "null": 1,
+        "legacy_accelerated_fusion": 1
+      }
+    }
+  }
+}
