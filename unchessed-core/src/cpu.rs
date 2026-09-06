@@ -41,6 +41,13 @@ pub(crate) fn has_avx2_sse41() -> bool {
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 #[inline]
 fn detect() -> Capabilities {
+    if std::env::var_os("UNCHESSED_DISABLE_SIMD").is_some() {
+        return Capabilities {
+            avx2: false,
+            fma: false,
+            sse41: false,
+        };
+    }
     Capabilities {
         avx2: std::is_x86_feature_detected!("avx2"),
         fma: std::is_x86_feature_detected!("fma"),
