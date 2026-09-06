@@ -7,7 +7,7 @@ definition. Its section 3.3 shows that a simpler gate (move counter, or a
 pure material criterion like the one used by the earlier dkappe/Scorpio
 line of work the paper compares against) measurably degrades the result.
 
-Our own corpus builder (`tools/build_unarchitectured_v1_calibration_corpus.py::
+Our own corpus builder (`tools/build_unarchitectured_metal_calibration_corpus.py::
 classify_phase`) buckets by material and ply, not by the Lichess rules.
 Before anyone commits to phase-specialized training data, the two
 definitions' disagreement on *our* positions is a free, offline question.
@@ -47,9 +47,9 @@ split needs.
 
 Usage:
   python3 tools/measure_game_phase_definitions.py \
-      --corpus artifacts/unarchitectured-v1-calibration-corpus.jsonl \
+      --corpus artifacts/unarchitectured-metal-calibration-corpus.jsonl \
       --epd benchmarks/matetrack.epd \
-      --out benchmarks/unarchitectured-v1/game-phase-definitions.json
+      --out benchmarks/unarchitectured-metal/game-phase-definitions.json
 
 No non-repo dependency beyond `chess` (already in tools/requirements-dev.txt).
 """
@@ -181,7 +181,7 @@ def lichess_material_only_phase(board: chess.Board) -> str:
 # ---------------------------------------------------------------------------
 
 def corpus_builder_phase(board: chess.Board) -> str:
-    """Mirror of tools/build_unarchitectured_v1_calibration_corpus.py."""
+    """Mirror of tools/build_unarchitectured_metal_calibration_corpus.py."""
     pieces = board.piece_map().values()
     non_pawn = sum(1 for p in pieces if p.piece_type not in (chess.PAWN, chess.KING))
     total = sum(1 for _ in pieces)
@@ -361,7 +361,7 @@ def main(argv: list[str] | None = None) -> int:
         "lichess_material_only": "same thresholds, without the backrank/mixedness terms",
         "corpus_builder": (
             "endgame iff total pieces <= 12 or non-pawn pieces <= 4; opening iff "
-            "fullmove <= 12; middlegame otherwise (tools/build_unarchitectured_v1_"
+            "fullmove <= 12; middlegame otherwise (tools/build_unarchitectured_metal_"
             "calibration_corpus.py::classify_phase)"
         ),
     }

@@ -29,7 +29,7 @@ opportunity sizing, not as engine measurements.
 ### 1. NNUE SIMD (`nnue.rs`) — the big one
 
 The NNUE had no SIMD at all, despite being the evaluator that runs in every
-real game, while `aegis_v4_runtime.rs` (unwired, default-off) had five rounds of
+real game, while `unarchitectured_metal_runtime.rs` (unwired, default-off) had five rounds of
 AVX2 tuning. Added AVX2+FMA kernels with runtime dispatch and the existing
 scalar code retained as fallback and as the behavioral reference:
 
@@ -37,7 +37,7 @@ scalar code retained as fallback and as the behavioral reference:
 - `screlu_dot` / `crelu_dot` — the output layer, run at nearly every node.
 
 Dispatch resolves once through a `OnceLock<bool>`, matching the pattern already
-used in `aegis_v4_runtime.rs`. Non-x86 keeps the scalar path.
+used in `unarchitectured_metal_runtime.rs`. Non-x86 keeps the scalar path.
 
 Differential test (2000 random vectors, C port of both implementations):
 

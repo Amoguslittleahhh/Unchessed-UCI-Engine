@@ -4,7 +4,7 @@
 Trains a small NumPy MLP on the shards produced by
 tools/pretrain_move_dataset.py with the pretrain objective:
 cross-entropy over the position's LEGAL actions (20480 = 4096 moves x
-5 promotion classes, the Unarchitectured v1 student action
+5 promotion classes, the Unarchitectured Metal student action
 vocabulary), conditioned on (board, elo_self, elo_oppo). This is the
 sandbox-runnable proof-of-concept for the two-stage retrain plan
 (docs/move-prediction-pretrain-plan.md): stage 1 pretrain = this

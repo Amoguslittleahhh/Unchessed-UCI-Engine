@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """GPU stage of the move-prediction pretrain pipeline (A100/H100).
 
-Trains the Unarchitectured v1 oracle architecture on v5 dual-elo
+Trains the Unarchitectured Metal oracle architecture on v5 dual-elo
 shards (built by tools/pretrain_v5_data.py on the CPU box) with the
 move-prediction objective:
 
@@ -12,7 +12,7 @@ move-prediction objective:
                       (quality in {calibrated, native, human}) to
                       align the level axis and pull in human style.
 
-Model: the existing Unarchitectured v1 oracle (16-layer d512 board
+Model: the existing Unarchitectured Metal oracle (16-layer d512 board
 trunk + GAB + legal decoder) with ONE change for this retrain round:
 the single-scalar rating path in history_context (measured inert,
 0/200 sweep — docs/rating-conditioning-finding.md) is replaced by a
@@ -93,7 +93,7 @@ from pretrain_v5_data import (  # noqa: E402
     VERSION,
     parse_header as parse_v5_header,
 )
-from train_unarchitectured_v1_a100 import (  # noqa: E402
+from train_unarchitectured_metal_a100 import (  # noqa: E402
     EpochRecordPrefetcher,
     UnarchitecturedV1Oracle,
     autocast_context,
@@ -105,14 +105,14 @@ from train_unarchitectured_v1_a100 import (  # noqa: E402
     require_finite_metrics,
     resolve_precision,
 )
-from train_unarchitectured_v1_student_a100 import (  # noqa: E402
+from train_unarchitectured_metal_student_a100 import (  # noqa: E402
     POLICY_GUIDE,
     POLICY_HUMAN,
     UnarchitecturedV1RecordShards,
     prepare_batch,
     synthetic_records as v4_synthetic_records,
 )
-from unarchitectured_v1_safety import (  # noqa: E402
+from unarchitectured_metal_safety import (  # noqa: E402
     TrainingSafetyController,
     atomic_json,
     write_heartbeat,

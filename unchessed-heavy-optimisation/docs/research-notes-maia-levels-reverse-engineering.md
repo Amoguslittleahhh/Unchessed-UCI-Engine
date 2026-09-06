@@ -167,7 +167,7 @@ next steps, not gaps in the mechanism.
   Maia model was executed here. Where the README and code disagreed the
   code wins (all citations above are code-level).
 - Labeling run on the full blocks (this commit): 71,961 games → **800,971
-  rows** (profile in `benchmarks/unarchitectured-v1/`). The both-players
+  rows** (profile in `benchmarks/unarchitectured-metal/`). The both-players
   window rule excludes 57,994 games (81%) whose two ratings span more than
   100 points — the strict cost of Maia's rule, which is exactly why it
   isolates "the average move at level L". The 600–900 windows are empty:
@@ -193,10 +193,10 @@ next steps, not gaps in the mechanism.
   the same path the blocks were validated with.
 - `tools/test_build_level_conditioned_moves.py` — fixture + real-block
   tests.
-- `benchmarks/unarchitectured-v1/level-conditioned-moves-profile.json` —
+- `benchmarks/unarchitectured-metal/level-conditioned-moves-profile.json` —
   full-run profile: per-window row counts, skip counts, games per source,
   sha256 of the full (uncommitted) row stream, exact parameters.
-- `benchmarks/unarchitectured-v1/level-conditioned-moves-sample.jsonl` —
+- `benchmarks/unarchitectured-metal/level-conditioned-moves-sample.jsonl` —
   deterministic 200-rows-per-window sample of the full output (the
   retraining pipeline's inspectable slice; the full output regenerates
   bit-for-bit from the pinned blocks).

@@ -79,7 +79,7 @@ gate that a future run should use.**
    and TensorRT inference, on 8× V100. This engine is classical alpha-beta
    + NNUE eval (single 512-wide output head, v3 format — the bucketed-head
    variant was deliberately dropped from v2) + an optional policy prior
-   (Unarchitectured v1). There is no MCTS to gate and no CNN to
+   (Unarchitectured Metal). There is no MCTS to gate and no CNN to
    specialize; nothing here changes the current checkpoint, the
    `UnarchitecturedHint` default (still `false`), or `runtime_safety_suite`
    (still `false`).
@@ -90,7 +90,7 @@ gate that a future run should use.**
    the gate is good*, and its §3.3 is actionable immediately: the gate
    should be the Lichess definition, not material or move count.
 3. **Our corpus gate is exactly the class the paper demotes.**
-   `tools/build_unarchitectured_v1_calibration_corpus.py::classify_phase`
+   `tools/build_unarchitectured_metal_calibration_corpus.py::classify_phase`
    buckets by material + ply (`total pieces ≤ 12 or non-pawns ≤ 4` →
    endgame; `fullmove ≤ 12` → opening) — the "simplified framework,
    employing material-based criteria" that the paper compares against (and
@@ -98,7 +98,7 @@ gate that a future run should use.**
    interpolation (`unchessed-core/src/eval.rs:626-627`, 0–24 material
    phase) is in the same family.
 4. **Measured on our data** (`tools/measure_game_phase_definitions.py`,
-   artifact `benchmarks/unarchitectured-v1/game-phase-definitions.json`,
+   artifact `benchmarks/unarchitectured-metal/game-phase-definitions.json`,
    2026-08-26; 600 corpus + 7 matetrack positions):
 
    | definition | opening | middlegame | endgame |
@@ -119,7 +119,7 @@ gate that a future run should use.**
      position corpus is five orders of magnitude larger than ours; its
      overfitting caveat (separated learning on ~30M positions per phase) is
      the honest warning for a much smaller corpus.
-5. **If phase specialization ever happens to Unarchitectured v1, the root
+5. **If phase specialization ever happens to Unarchitectured Metal, the root
    is where it costs nothing.** The hint net runs once per move, so a
    per-position hand-crafted gate is free there, and the paper's design
    shows hand-crafted routing avoids the failure modes (routing overhead,
@@ -146,5 +146,5 @@ paper cites; it was not cross-checked against Lichess's live analysis API
   exactly one Lichess term flips the phase (pinned), mirror agreement with
   all 600 stored corpus tags, matetrack uniform endgame, committed-artifact
   consistency, `--help` standalone, dependency scan.
-- `benchmarks/unarchitectured-v1/game-phase-definitions.json` — committed
+- `benchmarks/unarchitectured-metal/game-phase-definitions.json` — committed
   artifact of the run above.

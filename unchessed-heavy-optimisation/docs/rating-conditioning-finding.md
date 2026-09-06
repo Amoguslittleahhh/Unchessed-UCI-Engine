@@ -6,7 +6,7 @@ network per rating band) and by Chessformer
 approach: one model *conditioned* on rating, reporting state-of-the-art human
 move-matching from a single rating-conditioned network.
 
-Unarchitectured v1 is built for the conditioned approach. It has a `rating`
+Unarchitectured Metal is built for the conditioned approach. It has a `rating`
 input projected through `rating_weight`/`rating_bias` into the history vector,
 and a `policy_kind` input selecting `POLICY_HUMAN` (0) or `POLICY_GUIDE` (1)
 via LoRA-adapted policy heads. Both are live in the shipped engine: `uci.rs`
@@ -35,7 +35,7 @@ sweep:
 largest logit perturbation anywhere is 0.004 — smaller than the gaps between
 adjacent candidate moves by two to three orders of magnitude (typical top-2
 gaps in this model are 0.1–1.9, see
-`benchmarks/unarchitectured-v1/hint-disagreements-2026-08-24.json`). Teacher
+`benchmarks/unarchitectured-metal/hint-disagreements-2026-08-24.json`). Teacher
 agreement is byte-identical at 0.2650 for every rating.
 
 The response is also suspiciously *linear* in rating — deltas scale almost
@@ -90,7 +90,7 @@ Concretely, and in priority order alongside the earlier findings:
    single scalar this doc found inert. `tools/build_level_conditioned_moves.py`
    already emits the dual-elo move labels a retrain would train on;
 3. theme-balanced sampling toward quiet/mate/fork positions
-   (`docs/unarchitectured-v1-theme-breakdown.md`);
+   (`docs/unarchitectured-metal-theme-breakdown.md`);
 4. weight clipping so the result is quantizable
    (`docs/fishtest-and-quantization-notes.md`).
 

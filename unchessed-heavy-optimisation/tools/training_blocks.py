@@ -3,7 +3,7 @@
 
 Why this tool exists
 --------------------
-This repo's training pipelines (NNUE, Unarchitectured v1) need game data
+This repo's training pipelines (NNUE, Unarchitectured Metal) need game data
 spanning all player levels. The sandbox cannot reach the usual data hosts
 (lichess.org, archive.org, twic.sesse.net — see the egress audit in
 docs/dev-environment.md), but it can reach GitHub over git, and the PGN

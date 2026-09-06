@@ -41,7 +41,7 @@ from analyse_policy_prior_calibration import (  # noqa: E402
 ARTIFACT = (
     ROOT
     / "benchmarks"
-    / "unarchitectured-v1"
+    / "unarchitectured-metal"
     / "policy-prior-calibration-2026-08-25.json"
 )
 DOC = ROOT / "docs" / "policy-prior-calibration.md"

@@ -60,7 +60,7 @@ Arrow Lake ships 256-bit AVX-VNNI (`VPDPBUSD` / `VPDPWSSD`). That is a
 single-instruction int8/int16 dot-product-accumulate — the exact primitive a
 quantized NNUE output layer wants — and crucially it comes **without** the
 AVX-512 frequency penalty that made VNNI a loss on the Xeon (documented in
-`docs/unarchitectured-v1-runtime-optimization.md`).
+`docs/unarchitectured-metal-runtime-optimization.md`).
 
 This strengthens the int16 recommendation from
 `docs/performance-ceiling-and-gpu-viability.md`: on your CPU, quantization has
@@ -137,7 +137,7 @@ In priority order:
   `docs/performance-ceiling-and-gpu-viability.md`: alpha-beta is sequential and
   cannot batch, and a ~5 µs round trip against a ~20 ns eval is 250x the wrong
   direction. Integrated GPUs are worse, not better, here.
-- Bigger nets. The 4.2M Unarchitectured v1 student measured top-1 0.255 and
+- Bigger nets. The 4.2M Unarchitectured Metal student measured top-1 0.255 and
   costs more than it returns; a low-end machine is the last place to pay that.
 
 ## Recommended order for *your* setup

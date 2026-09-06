@@ -92,7 +92,7 @@ thesis recommends.
 
 1. **The audit result is "nothing to port."** Tesseract is a strictly
    weaker stack than what `unchessed-core` already ships (hand-tuned HCE
-   at ~2400 vs. NNUE v3 + optional Unarchitectured v1 prior here). Its
+   at ~2400 vs. NNUE v3 + optional Unarchitectured Metal prior here). Its
    value is the technique checklist, and on that checklist this engine is
    at-or-ahead in more modern form on every row.
 2. **The negative results are the reusable part — as evidence for the

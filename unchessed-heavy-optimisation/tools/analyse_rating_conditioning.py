@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Measure whether the `rating` and `policy_kind` inputs actually condition
-the Unarchitectured v1 policy.
+the Unarchitectured Metal policy.
 
 Motivation
 ----------
@@ -11,7 +11,7 @@ other approach and conditions one model on rating, reporting that its Maia-3
 family reaches state-of-the-art human move-matching precisely because a single
 rating-conditioned model works.
 
-Unarchitectured v1 is built for the conditioned approach. It has:
+Unarchitectured Metal is built for the conditioned approach. It has:
 
   - a `rating` input, projected through `rating_weight`/`rating_bias` into the
     32-wide history vector;
@@ -46,9 +46,9 @@ input that changes logits by less than typical float noise is decorative.
 Usage
 -----
     python3 tools/analyse_rating_conditioning.py \\
-        artifacts/unarchitectured-v1-final.unarchv1 \\
-        artifacts/unarchitectured-v1-calibration-corpus.jsonl \\
-        --labels artifacts/unarchitectured-v1-calibration-labels.json
+        artifacts/unarchitectured-metal-final.unmetal \\
+        artifacts/unarchitectured-metal-calibration-corpus.jsonl \\
+        --labels artifacts/unarchitectured-metal-calibration-labels.json
 
 Requires torch (install separately; see tools/requirements-dev.txt).
 """
@@ -72,7 +72,7 @@ if any(a in ("-h", "--help") for a in sys.argv[1:]):
 
 import chess  # noqa: E402
 
-from unarchitectured_v1_position_encoding import encode_position  # noqa: E402
+from unarchitectured_metal_position_encoding import encode_position  # noqa: E402
 
 CONFIG = {"d_model": 256, "heads": 8, "history_width": 32, "policy_adapter_rank": 16}
 # The Maia ladder, which is the comparison this is really about.
@@ -87,7 +87,7 @@ def clamp_cp(v: int) -> float:
 def policy_logits(weights, board, rating, policy_kind, time_class=2):
     import torch
 
-    from reference_forward_unarchitectured_v1 import forward
+    from reference_forward_unarchitectured_metal import forward
 
     enc = encode_position(board)
     actions = list(enc["legal_actions"])
@@ -125,7 +125,7 @@ def main() -> int:
             print(f"missing: {p}", file=sys.stderr)
             return 2
 
-    from reference_forward_unarchitectured_v1 import read_package
+    from reference_forward_unarchitectured_metal import read_package
 
     weights = read_package(args.package)
     labels = json.loads(args.labels.read_text()) if args.labels else {}

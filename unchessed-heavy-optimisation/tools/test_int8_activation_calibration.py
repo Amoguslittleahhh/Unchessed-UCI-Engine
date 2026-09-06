@@ -24,7 +24,7 @@ TOOLS = ROOT / "tools"
 if str(TOOLS) not in sys.path:
     sys.path.insert(0, str(TOOLS))
 
-ARTIFACT = ROOT / "benchmarks" / "unarchitectured-v1" / "int8-activation-calibration.json"
+ARTIFACT = ROOT / "benchmarks" / "unarchitectured-metal" / "int8-activation-calibration.json"
 
 try:
     import torch

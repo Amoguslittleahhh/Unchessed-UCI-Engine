@@ -4,7 +4,7 @@
 
 > **Implement now** means an isolated correctness, provenance, diagnostic, or default-off observability change can be authored without unavailable training assets. It does **not** mean that a game-facing behavior, a trained model, or an Elo claim is ready. A change is promotable only after the evidence in its row is complete.
 
-The current sandbox has `rustc/cargo 1.75.0`, which cannot read the repository’s lockfile v4, lacks PyTorch, lacks the real NNUE corpus/sidecars and Unarchitectured checkpoints/shards, and lacks the configured cutechess/book environment. The shipped NNUE and deployed `.unarchv1` package are present; neither substitutes for the missing original-position/training assets. These are distinct blockers, not interchangeable reasons to weaken a test.
+The current sandbox has `rustc/cargo 1.75.0`, which cannot read the repository’s lockfile v4, lacks PyTorch, lacks the real NNUE corpus/sidecars and Unarchitectured checkpoints/shards, and lacks the configured cutechess/book environment. The shipped NNUE and deployed `.unmetal` package are present; neither substitutes for the missing original-position/training assets. These are distinct blockers, not interchangeable reasons to weaken a test.
 
 ## Decision summary
 
@@ -13,7 +13,7 @@ The current sandbox has `rustc/cargo 1.75.0`, which cannot read the repository�
 | **Search** | Exact `go nodes N` enforcement; default-off `SearchStats`; `RFPMaxDepth=6` UCI parameterization. | Local Rust acceptance until a current stable toolchain is used; real match infrastructure for tuning. | Any changed pruning/default value, default `ProbcutSeeFilter`, or new tree-changing heuristic. |
 | **NNUE** | Streaming/atomic relabel hardening, manifest/binding schema, structural validator, tiny CPU fixtures, future-corpus state companion, and ordinary-v4 run manifests. | Existing-corpus high-node labels: no 108M corpus, sidecars, or full per-record state/reconstruction proof; full training also lacks Torch/CUDA. | Candidate NNUE/default replacement, after smoke screening. |
 | **Persona** | `AdapterTelemetry=false`, snapshots/parser/manifest, and legacy-versus-V2 Python detector parity work. | A behavioural result: no truth-labelled current games with option vectors and joinable telemetry; local Rust tests need current Cargo. | Either option default flip or any search/move-selection behavior claim. |
-| **Unarchitectured v1** | At most the stale loader-comment correction; retain the shipped i8-weight/i16-activation runtime. | Wider GAB, QAT/value clipping, and int8 activations: no checkpoint/training shards/Torch; frozen-checkpoint int8 studies already fail parity. | Any root-hint/default/candidate deployment. |
+| **Unarchitectured Metal** | At most the stale loader-comment correction; retain the shipped i8-weight/i16-activation runtime. | Wider GAB, QAT/value clipping, and int8 activations: no checkpoint/training shards/Torch; frozen-checkpoint int8 studies already fail parity. | Any root-hint/default/candidate deployment. |
 | **Oracle conditioning** | A fail-closed, analysis-only legacy-oracle sweep CLI and fixtures for its error paths. | The diagnostic run: trusted `UNARCHV1_ORACLE_TRAINING_V1_DDP` checkpoint and Torch are absent. | Any retrain or game-reachable integration selected by the diagnostic. |
 
 ## Implementation order
@@ -77,5 +77,5 @@ First use reject-only smoke screens where available; a pass means only “not ob
 [S]: ./01-search.md "01 — Classic alpha-beta search tuning"
 [N]: ./02-nnue.md "02 — NNUE relabeling and retraining support"
 [P]: ./03-persona.md "03 — Real-play persona and engine-detection measurement"
-[U]: ./04-unarch.md "04 — Unarchitectured v1 GAB and quantization"
+[U]: ./04-unarch.md "04 — Unarchitectured Metal GAB and quantization"
 [O]: ./05-oracle.md "05 — Oracle-side rating-conditioning experiment"

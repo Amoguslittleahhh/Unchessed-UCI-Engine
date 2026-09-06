@@ -32,7 +32,7 @@ from pentanomial_sprt import (  # noqa: E402
 )
 
 RANGE_ARTIFACT = (
-    ROOT / "benchmarks" / "unarchitectured-v1" / "int8-weight-range-2026-08-25.json"
+    ROOT / "benchmarks" / "unarchitectured-metal" / "int8-weight-range-2026-08-25.json"
 )
 DOC = ROOT / "docs" / "fishtest-and-quantization-notes.md"
 

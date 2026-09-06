@@ -310,7 +310,7 @@ def test_ddp_gloo_two_rank_smoke(tmp_path):
                      "compile": False, "allow_tf32": True,
                      "prefetch_batches": 2, "prefetch_workers": 2},
         "quality_weights": [1.0, 1.0, 0.5, 1.0],
-        "safety_config": "config/unarchitectured_v1_safety.json",
+        "safety_config": "config/unarchitectured_metal_safety.json",
         "pretrain": {
             "dual_elo": True,
             "d_model": 64, "board_layers": 2, "board_heads": 4,
@@ -386,7 +386,7 @@ def test_loader_training_smoke(tmp_path):
         pretrain_loss,
         prepare_v5_batch,
     )
-    from train_unarchitectured_v1_a100 import make_optimizer
+    from train_unarchitectured_metal_a100 import make_optimizer
 
     out = _build(tmp_path, [GAME_A, GAME_C])
     train = UnarchitecturedV5RecordShards(

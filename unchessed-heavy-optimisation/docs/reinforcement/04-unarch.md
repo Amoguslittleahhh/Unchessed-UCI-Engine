@@ -1,8 +1,8 @@
-# 04 — Unarchitectured v1 GAB and quantization
+# 04 — Unarchitectured Metal GAB and quantization
 
 **Investigation ID:** 04-unarch  
 **Repository / branch:** `/home/ubuntu/Unchessed-UCI-Engine`, `manus/rustc-bootstrap-trial` (`818ef9dd5bb7be64fd6085f7c1910b953390da6e`)  
-**Scope:** Unarchitectured v1 runtime, `UNARCHV1` package format, student/oracle trainers, exporter, calibration and analysis tools, test suites, and the supplied runtime-speed backlog.  
+**Scope:** Unarchitectured Metal runtime, `UNARCHV1` package format, student/oracle trainers, exporter, calibration and analysis tools, test suites, and the supplied runtime-speed backlog.
 **Disposition:** No tracked repository file was changed. No training, self-play, model forward pass, benchmark, or SPRT was run.
 
 ## Required structured fields
@@ -10,7 +10,7 @@
 | Field | Value |
 |---|---|
 | `id` | `04-unarch` |
-| `topic` | `Unarchitectured v1 GAB and quantization` |
+| `topic` | `Unarchitectured Metal GAB and quantization` |
 | `summary` | `The shipped calibrated compact student has a real, load-bearing but under-sized GAB and a working int8-weight/int16-activation runtime. Widening GAB or moving activations to int8 cannot be safely obtained by package conversion or kernels: both require a new trained checkpoint, full numerical revalidation, and a real paired-game SPRT before any game-facing/default conclusion. The existing package, calibration corpus, labels, analyses, and default-off safety plumbing make offline candidate evaluation ready once a candidate checkpoint exists; this checkout lacks every Unarchitectured training/oracle/student checkpoint and training shard, and the local Python lacks Torch.` |
 | `evidence` | `Inspected the Rust package loader/runtime, PyTorch student and A100 trainers, exporter/reference forward, checked-in GAB and int8 studies, UCI and SPRT runner, package integrity metadata, local asset inventory, and focused Python tests.` |
 | `recommended_changes` | `Do not add an int8-activation kernel or widen/convert the shipped package. Correct the stale package-loader comment now if desired; when real retraining assets exist, run a factorial GAB/QAT experiment, constrain weights during training using target-scheme-derived bounds, export each candidate, retain all three named parity gates at 5e-3, and require an explicit full-exit real SPRT while UnarchitecturedHint remains false by default.` |
@@ -19,7 +19,7 @@
 
 ## Executive decision
 
-> **Implemented-ready now:** preserve the current runtime and its int8-weight/int16-activation arithmetic; use the existing package/corpus/labels to reproduce the GAB and quantization diagnostics when a Python environment with Torch is available; and, if making a documentation-only change, correct the stale `unarchitectured_v1.rs` module comment that says runtime readiness is still false even though the complete forward lives in `aegis_v4_runtime.rs`. None of these changes enables the hint or claims Elo.
+> **Implemented-ready now:** preserve the current runtime and its int8-weight/int16-activation arithmetic; use the existing package/corpus/labels to reproduce the GAB and quantization diagnostics when a Python environment with Torch is available; and, if making a documentation-only change, correct the stale `unarchitectured_metal.rs` module comment that says runtime readiness is still false even though the complete forward lives in `unarchitectured_metal_runtime.rs`. None of these changes enables the hint or claims Elo.
 >
 > **Retrain-gated:** widening GAB from the shipped student’s `d1=8, d2=32, d3=32` to the paper-comparable `32,64,64`; quantization-aware weight constraints; and any attempt to run activations at int8. Tensor shapes and learned weights must change together, so neither can be achieved safely by padding, reshaping, transcoding, or a new SIMD kernel on the frozen package.
 >
@@ -29,7 +29,7 @@
 
 ### 1. The shipped package is healthy, calibrated, and fixed to the small GAB
 
-A non-mutating `tools/inspect_unarchitectured_v1.py` inspection passed the actual package at `artifacts/unarchitectured-v1-final.unarchv1`. It is 4,277,712 bytes, SHA-256 `5fd9fc3fbf47bd2620c2e832e24c98525b59feeea791abf1c7ae32b9d311b16d`, and contains 121 tensors: 75 per-tensor symmetric-int8 sections and 46 f32 sections. Its metadata identifies a calibrated `UNARCHV1_STUDENT_CALIBRATED_V1` checkpoint, records calibration on 344,600 labelled actions at target coverage 0.995, and embeds the actual student configuration. The output package exists; its source `.pt` checkpoint does not.
+A non-mutating `tools/inspect_unarchitectured_metal.py` inspection passed the actual package at `artifacts/unarchitectured-metal-final.unmetal`. It is 4,277,712 bytes, SHA-256 `5fd9fc3fbf47bd2620c2e832e24c98525b59feeea791abf1c7ae32b9d311b16d`, and contains 121 tensors: 75 per-tensor symmetric-int8 sections and 46 f32 sections. Its metadata identifies a calibrated `UNARCHV1_STUDENT_CALIBRATED_V1` checkpoint, records calibration on 344,600 labelled actions at target coverage 0.995, and embeds the actual student configuration. The output package exists; its source `.pt` checkpoint does not.
 
 The package metadata and tensor shapes agree on the deployed student configuration. This is important because the repository’s oracle configuration contains larger numbers that do **not** describe the shipped model.
 
@@ -101,7 +101,7 @@ There is a ready fail-closed paired-game launcher, but it requires an engine bin
 |---|---|---|---|---|
 | Keep retained i8 weights + dynamic i16 activations | **Implemented and retained** | Shipped package and Rust implementation | None for existing behavior | Preserve regression gates; benchmark only if changing the code. |
 | Reproduce frozen GAB ablation/int8 study | **Tooling-ready, offline only** | Package, 600-FEN corpus, and labels are present | Torch absent in this sandbox | Install/use a pinned Torch environment; reproduce reports into a new, candidate-labelled path. |
-| Correct stale package-loader comment | **Implemented-ready, documentation only** | Source is present | None | Ensure comment says the parser itself does not forward while `aegis_v4_runtime.rs` does; no behavior change. |
+| Correct stale package-loader comment | **Implemented-ready, documentation only** | Source is present | None | Ensure comment says the parser itself does not forward while `unarchitectured_metal_runtime.rs` does; no behavior change. |
 | Parameterize Rust runtime for larger GAB dimensions | **Do not implement speculatively** | Only the old 8/32/32 package exists | No widened trained package/reference vectors | Candidate checkpoint first; then update schema/arrays and prove old/new intended package behavior with Python reference. |
 | Widen GAB to 32/64/64 | **Retrain-gated** | Config/trainer architecture supports config-driven GAB dimensions | No Unarchitectured oracle/student checkpoint or training/calibration/validation shards | Controlled retraining, export, offline calibration, numerical parity, safety/deployment checks, real SPRT. |
 | Add pure int8 activation kernels | **Rejected for current checkpoint; retrain-gated hypothesis only** | Negative study and current package exist | All five schemes miss parity; mixed split fails holdout | Quantization-aware candidate with target range design; repeat whole-model + held-out test before writing kernel. |
@@ -135,7 +135,7 @@ If int8 activations remain the delivery goal, add fake-quant/observer simulation
 
 For a genuine widened checkpoint, update the Rust schema and GAB workspace/array dimensions to match the exported candidate or, preferably, derive validated dimensions from package sections while enforcing allowed architectural relationships. The package format’s generic shapes are not enough: the runtime must validate `gab.token_projection`, `gab.compress`, templates, coefficients, and all dependent scratch sizes before forwarding. Reject mismatched or unsupported candidate packages fail-closed.
 
-**Do not remove, rename, weaken, or replace the following three gates.** They must continue to use the independent `tools/reference_forward_unarchitectured_v1.py` oracle and retain the full-exit `5e-3` tolerance:
+**Do not remove, rename, weaken, or replace the following three gates.** They must continue to use the independent `tools/reference_forward_unarchitectured_metal.py` oracle and retain the full-exit `5e-3` tolerance:
 
 1. `start_position_matches_python_reference`;
 2. `midgame_position_matches_python_reference`; and
@@ -156,8 +156,8 @@ Only then make a copy of the SPRT launcher for the candidate, parameterize an ex
 | Package inspection | **Passed.** 121 tensors; 75 int8 / 46 f32; calibrated `UNARCHV1_STUDENT_CALIBRATED_V1`; package SHA-256 `5fd9…b16d`. | Establishes package integrity/metadata and actual GAB dimensions, not forward quality or Elo. |
 | Focused GAB and int8 test suites | **28 passed, 0 failed, 8 skipped.** `python3 -m unittest -v tools/test_gab_ablation.py tools/test_int8_activation_calibration.py`. | Artefact contracts, package-header dimensions, calibration-sweep logic, and tool help passed. Eight tests requiring Torch were skipped. |
 | Standalone tool help | **Passed.** Both GAB and int8 analysis scripts accepted `--help` without Torch/model loading. | Confirms command discoverability, not analysis execution. |
-| Inputs/assets | **Present:** shipped `.unarchv1`, primary/replication calibration corpora, labels, calibration report, GAB and quantization JSON artefacts. **Absent:** any Unarchitectured `.pt/.pth/.ckpt` oracle/student checkpoint and discoverable Unarchitectured training shards. | The finished package is sufficient for offline analyses; it cannot be resumed, widened, or quantization-aware retrained. |
-| Rust named parity tests | **Not executed locally.** Their declarations remain at `aegis_v4_runtime.rs:2829`, `:2891`, and `:3582`. | Installed Cargo 1.75 rejects the repository’s v4 `Cargo.lock` (`requires -Znext-lockfile-bump`). The initial multi-filter cargo invocation was invalid; the corrected single-filter attempt reached this lockfile/toolchain blocker. Do not interpret the historical passing result as a fresh run. |
+| Inputs/assets | **Present:** shipped `.unmetal`, primary/replication calibration corpora, labels, calibration report, GAB and quantization JSON artefacts. **Absent:** any Unarchitectured `.pt/.pth/.ckpt` oracle/student checkpoint and discoverable Unarchitectured training shards. | The finished package is sufficient for offline analyses; it cannot be resumed, widened, or quantization-aware retrained. |
+| Rust named parity tests | **Not executed locally.** Their declarations remain at `unarchitectured_metal_runtime.rs:2829`, `:2891`, and `:3582`. | Installed Cargo 1.75 rejects the repository’s v4 `Cargo.lock` (`requires -Znext-lockfile-bump`). The initial multi-filter cargo invocation was invalid; the corrected single-filter attempt reached this lockfile/toolchain blocker. Do not interpret the historical passing result as a fresh run. |
 | Training / benchmark / SPRT | **Not run.** | Explicitly excluded by this investigation; no strength or speed claim is made. |
 | Worktree | **Clean after investigation.** | This report is outside the repository; no tracked repository file changed. |
 
@@ -167,17 +167,17 @@ Only then make a copy of the SPRT launcher for the candidate, parameterize an ex
 
 [2]: [GAB ablation tests](file:///home/ubuntu/Unchessed-UCI-Engine/tools/test_gab_ablation.py) — binary-header shape checks and artefact consistency contracts.
 
-[3]: [Rust `UNARCHV1` loader](file:///home/ubuntu/Unchessed-UCI-Engine/unchessed-core/src/unarchitectured_v1.rs) — binary header, dtype, alignment, CRC, and section validation.
+[3]: [Rust `UNARCHV1` loader](file:///home/ubuntu/Unchessed-UCI-Engine/unchessed-core/src/unarchitectured_metal.rs) — binary header, dtype, alignment, CRC, and section validation.
 
-[4]: [Python `UNARCHV1` package builder/parser](file:///home/ubuntu/Unchessed-UCI-Engine/tools/unarchitectured_v1_package.py) — writer-side dtype, metadata, scale, and checksum conventions.
+[4]: [Python `UNARCHV1` package builder/parser](file:///home/ubuntu/Unchessed-UCI-Engine/tools/unarchitectured_metal_package.py) — writer-side dtype, metadata, scale, and checksum conventions.
 
-[5]: [Rust Unarchitectured runtime](file:///home/ubuntu/Unchessed-UCI-Engine/unchessed-core/src/aegis_v4_runtime.rs) — fixed schema, i16×i8 arithmetic, GAB forward path, and named parity gates.
+[5]: [Rust Unarchitectured runtime](file:///home/ubuntu/Unchessed-UCI-Engine/unchessed-core/src/unarchitectured_metal_runtime.rs) — fixed schema, i16×i8 arithmetic, GAB forward path, and named parity gates.
 
 [6]: [GAB contribution analyser](file:///home/ubuntu/Unchessed-UCI-Engine/tools/analyse_gab_contribution.py) — reproducible frozen-weight ablation contract and candidate inputs.
 
-[7]: [UNARCHV1 exporter](file:///home/ubuntu/Unchessed-UCI-Engine/tools/export_unarchitectured_v1.py) — calibrated checkpoint requirement and per-tensor symmetric int8 export rule.
+[7]: [UNARCHV1 exporter](file:///home/ubuntu/Unchessed-UCI-Engine/tools/export_unarchitectured_metal.py) — calibrated checkpoint requirement and per-tensor symmetric int8 export rule.
 
-[8]: [Runtime optimization record](file:///home/ubuntu/Unchessed-UCI-Engine/docs/unarchitectured-v1-runtime-optimization.md) — retained quantization path, numerical gates, rejected int8 activation attempt, and default-off integration decision.
+[8]: [Runtime optimization record](file:///home/ubuntu/Unchessed-UCI-Engine/docs/unarchitectured-metal-runtime-optimization.md) — retained quantization path, numerical gates, rejected int8 activation attempt, and default-off integration decision.
 
 [9]: [Fishtest and quantization notes](file:///home/ubuntu/Unchessed-UCI-Engine/docs/fishtest-and-quantization-notes.md) — post-training range evidence, training-time clipping context, and pentanomial analysis guidance.
 
@@ -185,14 +185,14 @@ Only then make a copy of the SPRT launcher for the candidate, parameterize an ex
 
 [11]: [Int8 activation calibration tests](file:///home/ubuntu/Unchessed-UCI-Engine/tools/test_int8_activation_calibration.py) — artefact and quantizer safeguards.
 
-[12]: [Direct compact-student trainer](file:///home/ubuntu/Unchessed-UCI-Engine/tools/train_unarchitectured_v1_student_a100.py) — config-driven student GAB, gradient clipping, optimizer step, calibration, and checkpoint selection.
+[12]: [Direct compact-student trainer](file:///home/ubuntu/Unchessed-UCI-Engine/tools/train_unarchitectured_metal_student_a100.py) — config-driven student GAB, gradient clipping, optimizer step, calibration, and checkpoint selection.
 
-[13]: [A100 oracle/student trainer](file:///home/ubuntu/Unchessed-UCI-Engine/tools/train_unarchitectured_v1_a100.py) — oracle/distillation loops and mixed-precision optimizer steps.
+[13]: [A100 oracle/student trainer](file:///home/ubuntu/Unchessed-UCI-Engine/tools/train_unarchitectured_metal_a100.py) — oracle/distillation loops and mixed-precision optimizer steps.
 
 [14]: [UCI integration controls](file:///home/ubuntu/Unchessed-UCI-Engine/unchessed-core/src/uci.rs) — explicit default-off hint, default shallow exit, and minimum time control.
 
-[15]: [Supplied runtime-speed backlog](file:///home/ubuntu/Unchessed-UCI-Engine/scripts/research/arena_agent_unarchitectured_v1_runtime_speed_prompt.md) — canonical v1 scope, historical gates, benchmark context, and explicit default-off instruction.
+[15]: [Supplied runtime-speed backlog](file:///home/ubuntu/Unchessed-UCI-Engine/scripts/research/arena_agent_unarchitectured_metal_runtime_speed_prompt.md) — canonical v1 scope, historical gates, benchmark context, and explicit default-off instruction.
 
-[16]: [Paired root-hint SPRT runner](file:///home/ubuntu/Unchessed-UCI-Engine/scripts/sprt-history/sprt_unarchitectured_v1_hint.sh) — required external assets and real-match setup.
+[16]: [Paired root-hint SPRT runner](file:///home/ubuntu/Unchessed-UCI-Engine/scripts/sprt-history/sprt_unarchitectured_metal_hint.sh) — required external assets and real-match setup.
 
-[17]: [Unarchitectured v1 calibration record](file:///home/ubuntu/Unchessed-UCI-Engine/docs/unarchitectured-v1-calibration.md) — exit-specific policy quality, corpus provenance, and remaining promotion gates.
+[17]: [Unarchitectured Metal calibration record](file:///home/ubuntu/Unchessed-UCI-Engine/docs/unarchitectured-metal-calibration.md) — exit-specific policy quality, corpus provenance, and remaining promotion gates.

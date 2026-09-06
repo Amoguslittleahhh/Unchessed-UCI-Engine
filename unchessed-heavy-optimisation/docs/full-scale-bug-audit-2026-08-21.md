@@ -9,7 +9,7 @@
 | V5 training control plane | **Conditionally ready for a staged research pilot**, not a full-cost run |
 | V5 GPU numerical path | **UNVERIFIED**: this sandbox has no PyTorch, NumPy, CUDA, NCCL, or Verda GPU |
 | V5 engine deployment | **BLOCKED**: exporter, inspector, quantization drift gate, Rust scalar runtime, and runtime safety tests do not exist |
-| Strength claim | **NOT AVAILABLE**: no trained Unarchitectured v1 model, integrated NPS, Elo, or SPRT |
+| Strength claim | **NOT AVAILABLE**: no trained Unarchitectured Metal model, integrated NPS, Elo, or SPRT |
 
 V5 cannot be guaranteed to train well before running it. This audit does show
 that the two concrete failures that wasted the v1 run—replacement oversampling
@@ -19,7 +19,7 @@ fail-closed controls.
 ## Scope
 
 The audit covered 214 Rust, Python, shell, and JSON source/configuration files,
-the production Rust workspace, canonical Unarchitectured v1 plus experimental Hydra v1-v5 reports, v3/v4 data ABIs, Verda CPU
+the production Rust workspace, canonical Unarchitectured Metal plus experimental Hydra v1-v5 reports, v3/v4 data ABIs, Verda CPU
 and GPU profile resolution, exact UCI teacher labelling, multi-GPU Oracle and
 student training control flow, packaging, opening coverage, and black-box UCI
 behavior.
@@ -39,7 +39,7 @@ service credential was available or simulated.
 | Python unit tests | **107 passed, 0 failed, 1 dependency-gated module skipped** |
 | Python bytecode compilation | PASS |
 | Shell `bash -n` over training/SPRT scripts | PASS |
-| Unarchitectured v1 and experimental Hydra v1-v5 deterministic report checks | PASS |
+| Unarchitectured Metal and experimental Hydra v1-v5 deterministic report checks | PASS |
 | UCI smoke | **9/9 passed** |
 | Adversarial UCI edge smoke | PASS |
 | Persona/identity/fixed-strength smoke | PASS |
@@ -111,7 +111,7 @@ curve should stop near epoch four, not epoch 29.
 ### F-04 — Critical: training could produce another unusable checkpoint
 
 **Status:** deployment implementation is still absent, but the spend hazard is
-fixed. `tools/unarchitectured_v1_runtime_readiness.py --strict` checks for:
+fixed. `tools/unarchitectured_metal_runtime_readiness.py --strict` checks for:
 
 - quantized exporter;
 - package inspector;
@@ -163,7 +163,7 @@ to the 878M Blackwell model.
 ### F-11 — High: canonical student depended on an experimental v4 config
 
 **Fix:** expanded the canonical runtime-student architecture and added
-`config/unarchitectured_v1_student.json`. Training and architecture reports no
+`config/unarchitectured_metal_student.json`. Training and architecture reports no
 longer require an experimental config for student shape or optimizer settings.
 
 ### F-12 — High: package readers disagreed on tensor shape/byte validation
@@ -207,7 +207,7 @@ independently rerun:
 - sustained memory stability; and
 - Verda NVMe throughput.
 
-### O-03 — High: no real Unarchitectured v1 dataset exists in this environment
+### O-03 — High: no real Unarchitectured Metal dataset exists in this environment
 
 There is no generated train/tune/final manifest, no player/game-disjoint audit
 of the intended corpus, no measured human/guide mixture, and no actual common-
@@ -251,7 +251,7 @@ profile-minimum dataset, not 8x Blackwell.
 ### Existing production engine
 
 **GO for the currently shipped evaluator/search behavior under existing
-claims.** This does not promote the Unarchitectured v1 neural path, which remains default-off.
+claims.** This does not promote the Unarchitectured Metal neural path, which remains default-off.
 
 ## Required staged rollout
 
@@ -273,7 +273,7 @@ cargo clippy --workspace --release -- -D warnings
 python3 -m unittest discover -s tools -p 'test_*.py'
 python3 -m py_compile tools/*.py
 bash -n scripts/training/*.sh scripts/sprt-history/*.sh
-python3 tools/unarchitectured_v1_runtime_readiness.py --strict
+python3 tools/unarchitectured_metal_runtime_readiness.py --strict
 ```
 
 The last command is expected to fail until the runtime pipeline is genuinely

@@ -10,7 +10,7 @@
 | **Topic** | Oracle-side rating-conditioning experiment |
 | **Summary** | The repository contains a reproducible 200-position, seven-rating student diagnostic and the Python definition/checkpoint contract of the original 58.4M offline oracle. It does **not** contain an oracle checkpoint or an oracle-compatible sweep executable. The current student-only analyser cannot be pointed at an oracle `.pt` file. A small, offline analysis tool can be added without touching engine behavior; it should fail with exit code 2 and an explicit missing-checkpoint message before importing Torch when the required file is absent. |
 | **Implemented-ready work** | Implement the isolated oracle analyser specified below, reusing the frozen corpus, shared FEN encoder, and metrics schema. It requires only a trusted legacy oracle checkpoint plus a Python environment with `torch`; it performs inference only. |
-| **Blocked work** | No `UNARCHV1_ORACLE_TRAINING_V1_DDP` checkpoint is present in the repository. A scan found only the exported 4,277,712-byte runtime student (`artifacts/unarchitectured-v1-final.unarchv1`) and an unrelated NNUE binary; no oracle-named checkpoint was found under `/home/ubuntu` outside caches. This sandbox also lacks the optional `torch` package. Therefore the proposed sweep cannot be executed here and no oracle conclusion is available. |
+| **Blocked work** | No `UNARCHV1_ORACLE_TRAINING_V1_DDP` checkpoint is present in the repository. A scan found only the exported 4,277,712-byte runtime student (`artifacts/unarchitectured-metal-final.unmetal`) and an unrelated NNUE binary; no oracle-named checkpoint was found under `/home/ubuntu` outside caches. This sandbox also lacks the optional `torch` package. Therefore the proposed sweep cannot be executed here and no oracle conclusion is available. |
 | **Requires real SPRT** | The diagnostic itself does **not** require an SPRT: it is an offline causal-location measurement. Any retrain that follows either branch, and especially any integration or default change reachable in games, still requires the project’s real cutechess/pentanomial SPRT gate before a strength claim or behavior promotion. |
 
 ## Evidence ledger
@@ -25,7 +25,7 @@ One reporting detail should be preserved accurately in an oracle implementation.
 
 ### Why the current analyser cannot run the oracle
 
-`tools/analyse_rating_conditioning.py` is specifically a runtime-student package tool. It calls `read_package()` from `reference_forward_unarchitectured_v1.py`, whose binary reader requires magic `UNARCHV1`, then runs the 8-layer/256-wide exported student reference forward pass.[2][3] It accepts only `package` and `corpus` positionals, does not load a PyTorch checkpoint, and its FEN batch has no move-history tensors because that exported reference implements the student layout.
+`tools/analyse_rating_conditioning.py` is specifically a runtime-student package tool. It calls `read_package()` from `reference_forward_unarchitectured_metal.py`, whose binary reader requires magic `UNARCHV1`, then runs the 8-layer/256-wide exported student reference forward pass.[2][3] It accepts only `package` and `corpus` positionals, does not load a PyTorch checkpoint, and its FEN batch has no move-history tensors because that exported reference implements the student layout.
 
 The original offline oracle is materially different. `UnarchitecturedV1Oracle` is a 16-layer, 512-wide board trunk with a four-layer legal-action decoder; it takes `history`, `history_len`, `rating`, `time_class`, `policy_kind`, padded `safe_actions`, and `legal_mask`, and returns policy logits over legal-action slots.[4] Its trainer saves a PyTorch mapping with format `UNARCHV1_ORACLE_TRAINING_V1_DDP`, `config`, `model`, `optimizer`, metrics, and shard manifests.[4] The saved checkpoint is not a `UNARCHV1` export and cannot safely be fed to the student package reader.
 
@@ -33,7 +33,7 @@ A later pretraining path is also not interchangeable with this original oracle. 
 
 ### Inputs available and missing
 
-The calibration corpus is present and is appropriate to reuse unchanged: `artifacts/unarchitectured-v1-calibration-corpus.jsonl` contains a manifest plus 600 deduplicated FENs, stratified overall as 200 opening, 200 middlegame, and 200 endgame positions. It was sampled from over-the-board tournament PGN, source-disjoint—but not record-proven disjoint—from the Lichess training population. The matching labels JSON contains 600 FEN-keyed score maps. The existing analyser already skips the manifest row and selects the first 200 FEN records at `--limit 200`.[2][6]
+The calibration corpus is present and is appropriate to reuse unchanged: `artifacts/unarchitectured-metal-calibration-corpus.jsonl` contains a manifest plus 600 deduplicated FENs, stratified overall as 200 opening, 200 middlegame, and 200 endgame positions. It was sampled from over-the-board tournament PGN, source-disjoint—but not record-proven disjoint—from the Lichess training population. The matching labels JSON contains 600 FEN-keyed score maps. The existing analyser already skips the manifest row and selects the first 200 FEN records at `--limit 200`.[2][6]
 
 The rating-variation hypothesis has been narrowed independently. The pretrain data bridge stores both `elo_self` and `elo_oppo` per move, taking them from self-play labels or WhiteElo/BlackElo headers; thus “the student never saw rating variation” is not sufficient to explain the student result.[7] This does **not** establish that the oracle’s policy targets varied with rating, which is exactly why an oracle inference sweep is still needed.
 
@@ -48,8 +48,8 @@ Add a **new analysis-only** tool named `tools/analyse_oracle_rating_conditioning
 ```bash
 python3 tools/analyse_oracle_rating_conditioning.py \
   --oracle /secure/path/unchessed-v1-oracle.pt \
-  --corpus artifacts/unarchitectured-v1-calibration-corpus.jsonl \
-  --labels artifacts/unarchitectured-v1-calibration-labels.json \
+  --corpus artifacts/unarchitectured-metal-calibration-corpus.jsonl \
+  --labels artifacts/unarchitectured-metal-calibration-labels.json \
   --limit 200 \
   --ratings 600 1000 1400 1800 2200 2600 3200 \
   --policy-kind 1 \
@@ -125,11 +125,11 @@ No production behavior changes under this plan. The offline oracle is documented
 
 [1]: file:///home/ubuntu/Unchessed-UCI-Engine/docs/rating-conditioning-finding.md "Student finding and committed oracle-side decision procedure"
 [2]: file:///home/ubuntu/Unchessed-UCI-Engine/tools/analyse_rating_conditioning.py "Current student-only sweep implementation"
-[3]: file:///home/ubuntu/Unchessed-UCI-Engine/tools/reference_forward_unarchitectured_v1.py "UNARCHV1 reader and student reference forward pass"
-[4]: file:///home/ubuntu/Unchessed-UCI-Engine/tools/train_unarchitectured_v1_a100.py "Original offline oracle interface and checkpoint serialization"
+[3]: file:///home/ubuntu/Unchessed-UCI-Engine/tools/reference_forward_unarchitectured_metal.py "UNARCHV1 reader and student reference forward pass"
+[4]: file:///home/ubuntu/Unchessed-UCI-Engine/tools/train_unarchitectured_metal_a100.py "Original offline oracle interface and checkpoint serialization"
 [5]: file:///home/ubuntu/Unchessed-UCI-Engine/tools/pretrain_v1_a100.py "Dual-Elo oracle lineage and checkpoint contract"
-[6]: file:///home/ubuntu/Unchessed-UCI-Engine/tools/build_unarchitectured_v1_calibration_corpus.py "Calibration corpus provenance and construction"
+[6]: file:///home/ubuntu/Unchessed-UCI-Engine/tools/build_unarchitectured_metal_calibration_corpus.py "Calibration corpus provenance and construction"
 [7]: file:///home/ubuntu/Unchessed-UCI-Engine/tools/pretrain_move_dataset.py "Dual-Elo data bridge"
-[8]: file:///home/ubuntu/Unchessed-UCI-Engine/config/unarchitectured_v1_training.json "Original oracle configuration"
-[9]: file:///home/ubuntu/Unchessed-UCI-Engine/tools/unarchitectured_v1_position_encoding.py "Shared FEN-to-model-input encoding"
-[10]: file:///home/ubuntu/Unchessed-UCI-Engine/scripts/research/arena_agent_unarchitectured_v1_runtime_speed_prompt.md "Standing real-SPRT rule for game-reachable behavior"
+[8]: file:///home/ubuntu/Unchessed-UCI-Engine/config/unarchitectured_metal_training.json "Original oracle configuration"
+[9]: file:///home/ubuntu/Unchessed-UCI-Engine/tools/unarchitectured_metal_position_encoding.py "Shared FEN-to-model-input encoding"
+[10]: file:///home/ubuntu/Unchessed-UCI-Engine/scripts/research/arena_agent_unarchitectured_metal_runtime_speed_prompt.md "Standing real-SPRT rule for game-reachable behavior"

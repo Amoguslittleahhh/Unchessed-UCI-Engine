@@ -1,8 +1,8 @@
 {
  "schema": 1,
- "name": "Unarchitectured v1 pretrain (dual-elo, move-prediction)",
+ "name": "Unarchitectured Metal pretrain (dual-elo, move-prediction)",
  "lineage": {
-  "architecture": "config/unarchitectured_v1.json (offline_oracle)",
+  "architecture": "config/unarchitectured_metal.json (offline_oracle)",
   "data": "tools/pretrain_v5_data.py output (UNCHD5R0 shards)",
   "changes_vs_v1_training": [
    "dual-elo conditioning: single-scalar rating path in history_context replaced by elo_self + elo_oppo projections (docs/rating-conditioning-finding.md: 0/200 sweep with the scalar)",
@@ -25,7 +25,7 @@
   "prefetch_workers": 4
  },
  "quality_weights": [1.0, 1.0, 0.5, 1.0],
- "safety_config": "config/unarchitectured_v1_safety.json",
+ "safety_config": "config/unarchitectured_metal_safety.json",
  "pretrain": {
   "expected_parameters": 58486415,
   "dual_elo": true,

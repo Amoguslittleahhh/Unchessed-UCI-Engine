@@ -123,17 +123,17 @@ the highest-risk calibration class (Stage 3).
 |---|---|---|
 | `Threads` | `available_parallelism()`, cap 32 (`uci.rs:86-87`) | **measured/fixed**: was default 1 (6% of a 16-core chip); regression test asserts the default (`docs/tuning-core-ultra-9-285h-and-low-end.md`) |
 | `Hash` | 128 MB, range 1–2048 | **measured**: probe cost 2.5 ns/probe ≤64 MB vs 14.9 ns at 256 MB; 128 MB sensible, low-end 32–64 MB (same doc) |
-| `UNCHESSED_INFERENCE_THREADS` | env, default 1 (`aegis_v4_runtime.rs:70-80`) | **measured** (round 7): 1 thread 7.92 ms was fastest; old default 4 was 11.01 ms |
+| `UNCHESSED_INFERENCE_THREADS` | env, default 1 (`unarchitectured_metal_runtime.rs:70-80`) | **measured** (round 7): 1 thread 7.92 ms was fastest; old default 4 was 11.01 ms |
 | `UnarchitecturedMinTime` | 30000 (1000–600000) | **best of 3 SPRT-tested values** (1000 → −26.1/−15.1 Elo; 30000 → −5.8, LOS 34%); only meaningful while the hint is on, which it is not by default |
 | MultiPV | 1 (3 in adaptive mode) | not tuned |
 | BookDepth / OwnBook | 16 / true (adaptive mode) | not tuned (adaptive/persona mode, out of scope for strength) |
 | UCI_Elo / Contempt / Troll | 2400 / 25 / Auto | limit-strength/persona features, not strength knobs |
 
-### E. Unarchitectured v1 runtime
+### E. Unarchitectured Metal runtime
 
 - Architecture constants (`D_MODEL 256`, 8 layers, etc.,
-  `aegis_v4_runtime.rs:25-41`) are fixed by the checkpoint — not tunable.
-- `TOKEN_BLOCK = 4` kernel unroll (`aegis_v4_runtime.rs:1109+`):
+  `unarchitectured_metal_runtime.rs:25-41`) are fixed by the checkpoint — not tunable.
+- `TOKEN_BLOCK = 4` kernel unroll (`unarchitectured_metal_runtime.rs:1109+`):
   hand-picked, **never micro-benchmarked** on the target CPU. Tuning it is
   a Stage-5 microbenchmark, not SPRT (it changes speed, not the tree).
 - int16 activations: closed as retrain-gated
@@ -203,7 +203,7 @@ advertised UCI bounds (they were designed as the tuning range —
 `SearchParams` doc comment). Sequential, one parameter at a time, each
 candidate gated by ≥2000 games at `tc=5+0.05`; keep only positive-LLR
 results; re-baseline after each acceptance; record every negative in
-`benchmarks/unarchitectured-v1/` with the game count, per project
+`benchmarks/unarchitectured-metal/` with the game count, per project
 discipline. If a parameter is inconclusive at a 30000-game cap, it stays
 at its default and is documented as such (the first knight-outpost attempt
 is the precedent).
@@ -238,7 +238,7 @@ order cannot be misread as waiving them):
 
 - `UnarchitecturedHint` stays default **false**;
 - `runtime_safety_suite` stays **false**;
-- no `aegis_v4_runtime.rs` change from this work order (the 5e-3 parity
+- no `unarchitectured_metal_runtime.rs` change from this work order (the 5e-3 parity
   gates `start_position_matches_python_reference`,
   `midgame_position_matches_python_reference`,
   `position_to_input_matches_hand_built_start_position` are untouched);

@@ -11,7 +11,7 @@ use crate::adapt::{
     difficulty_weight, select_move, AdaptConfig, HeuristicPrior, MaiaPrior, MovePrior,
     OpponentModel, PersonaState, Rng,
 };
-use crate::aegis_v4_runtime::{
+use crate::unarchitectured_metal_runtime::{
     position_to_input, ChessformerWeights, HintKey, InferenceExit, UnarchitecturedHintWorker,
     POLICY_GUIDE,
 };
@@ -24,7 +24,7 @@ use crate::nnue::Nnue;
 use crate::policy::PolicyNet;
 use crate::search::{self, InfoEvent, Limits, Line, SearchParams};
 use crate::tt::TT;
-use crate::unarchitectured_v1::TensorPackage;
+use crate::unarchitectured_metal::TensorPackage;
 
 pub struct EngineIdent {
     pub name: &'static str,
@@ -55,7 +55,7 @@ struct Options {
     search: SearchParams,
     threads: usize,
     eval_params: EvalParams,
-    /// Experimental Unarchitectured v1 root ordering candidate. Default-off;
+    /// Experimental Unarchitectured Metal root ordering candidate. Default-off;
     /// alpha-beta remains authoritative and every legal move remains searched.
     unarchitectured_hint: bool,
     unarchitectured_hint_exit: InferenceExit,
@@ -177,7 +177,7 @@ fn unarchitectured_path(option: &str) -> Result<std::path::PathBuf, String> {
         .parent()
         .ok_or("executable has no parent directory")?
         .to_path_buf();
-    Ok(directory.join("unarchitectured-v1-final.unarchv1"))
+    Ok(directory.join("unarchitectured-metal-final.unmetal"))
 }
 
 fn load_unarchitectured_candidate(option: &str) -> Result<UnarchitecturedCandidate, String> {
@@ -312,6 +312,12 @@ pub fn run(ident: EngineIdent) {
                 println!("option name UnarchitecturedFile type string default ");
                 println!(
                     "option name UnarchitecturedMinTime type spin default 30000 min 1000 max 600000"
+                );
+                println!("option name UnarchitecturedMetalHint type check default false");
+                println!("option name UnarchitecturedMetalHintExit type string default 2/128");
+                println!("option name UnarchitecturedMetalFile type string default ");
+                println!(
+                    "option name UnarchitecturedMetalMinTime type spin default 30000 min 1000 max 600000"
                 );
                 if ident.adaptive_engine {
                     println!("option name Adaptive type check default true");
@@ -663,7 +669,7 @@ fn handle_setoption(
                 opt.multipv = n.clamp(1, 8);
             }
         }
-        "unarchitecturedhint" => {
+        "unarchitecturedhint" | "unarchitecturedmetalhint" => {
             let enabled = value.eq_ignore_ascii_case("true");
             if !enabled {
                 opt.unarchitectured_hint = false;
@@ -688,7 +694,7 @@ fn handle_setoption(
                 }
             }
         }
-        "unarchitecturedhintexit" => {
+        "unarchitecturedhintexit" | "unarchitecturedmetalhintexit" => {
             match InferenceExit::from_option_name(&value) {
                 Some(exit) => {
                     opt.unarchitectured_hint_exit = exit;
@@ -703,7 +709,7 @@ fn handle_setoption(
                 ),
             }
         }
-        "unarchitecturedfile" => {
+        "unarchitecturedfile" | "unarchitecturedmetalfile" => {
             opt.unarchitectured_file = value.to_string();
             if opt.unarchitectured_hint {
                 match load_unarchitectured_candidate(&opt.unarchitectured_file) {
@@ -721,7 +727,7 @@ fn handle_setoption(
                 }
             }
         }
-        "unarchitecturedmintime" => {
+        "unarchitecturedmintime" | "unarchitecturedmetalmintime" => {
             if let Ok(milliseconds) = value.parse::<u64>() {
                 opt.unarchitectured_min_time_ms = milliseconds.clamp(1_000, 600_000);
             }
@@ -1096,7 +1102,7 @@ fn unarchitectured_input(
     pos: &Position,
     legal_moves: &[Move],
     rating: i32,
-) -> crate::aegis_v4_runtime::PositionInput {
+) -> crate::unarchitectured_metal_runtime::PositionInput {
     position_to_input(
         pos,
         legal_moves,
@@ -1595,7 +1601,7 @@ fn run_go(
             let had_choice = lc > 8 && w >= 0.8;
             if ordinal + 1 == job.pending.len() {
                 if let Some(used) = job.opp_time_used {
-                m.observe_time(used, had_choice);
+                    m.observe_time(used, had_choice);
                 }
             }
             if telemetry_enabled(&job) {
@@ -1734,9 +1740,8 @@ fn run_go(
     // 3. Main search
     // ------------------------------------------------------------------
     let multipv_shown = job.opt.multipv;
-    let known_full = adaptive_now
-        && !job.opt.limit_strength
-        && model.lock().unwrap().engine_suspect();
+    let known_full =
+        adaptive_now && !job.opt.limit_strength && model.lock().unwrap().engine_suspect();
     let multipv_search = if adaptive_now && !known_full {
         multipv_shown.max(5)
     } else {
@@ -2233,7 +2238,7 @@ mod tests {
     fn unarchitectured_candidate_produces_exact_real_root_hints() {
         let path = concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../artifacts/unarchitectured-v1-final.unarchv1"
+            "/../artifacts/unarchitectured-metal-final.unmetal"
         );
         let candidate = Arc::new(Mutex::new(Some(
             load_unarchitectured_candidate(path).expect("load candidate"),
@@ -2312,7 +2317,7 @@ mod tests {
 
     #[test]
     fn unarchitectured_hint_exit_option_selects_exit() {
-        use crate::aegis_v4_runtime::InferenceExit;
+        use crate::unarchitectured_metal_runtime::InferenceExit;
 
         // Option parsing: the three exits, unknown values rejected.
         assert_eq!(
@@ -2336,7 +2341,7 @@ mod tests {
         // so a 4/192 request must be answered from a 4/192 cache entry).
         let path = concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../artifacts/unarchitectured-v1-final.unarchv1"
+            "/../artifacts/unarchitectured-metal-final.unmetal"
         );
         let candidate = Arc::new(Mutex::new(Some(
             load_unarchitectured_candidate(path).expect("load candidate"),

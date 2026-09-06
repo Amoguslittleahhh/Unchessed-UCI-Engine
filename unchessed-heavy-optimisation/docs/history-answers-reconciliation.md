@@ -13,9 +13,9 @@ Everything reported missing is present and pushed on
 | reported missing | actual location |
 |---|---|
 | `docs/fishtest-and-quantization-notes.md` | present, line 87 |
-| "2.06x the int8 limit" | `docs/fishtest-and-quantization-notes.md:87`, and `benchmarks/unarchitectured-v1/int8-weight-range-2026-08-25.json` (`headroom_ratio: 2.062`) |
-| rating-inertness sweep (0/200) | `docs/rating-conditioning-finding.md`, `benchmarks/unarchitectured-v1/rating-conditioning-2026-08-25.json`, `tools/analyse_rating_conditioning.py` |
-| "21.7%" GAB ablation | `docs/gab-capacity-finding.md:45`, `benchmarks/unarchitectured-v1/gab-ablation-2026-08-25.json` |
+| "2.06x the int8 limit" | `docs/fishtest-and-quantization-notes.md:87`, and `benchmarks/unarchitectured-metal/int8-weight-range-2026-08-25.json` (`headroom_ratio: 2.062`) |
+| rating-inertness sweep (0/200) | `docs/rating-conditioning-finding.md`, `benchmarks/unarchitectured-metal/rating-conditioning-2026-08-25.json`, `tools/analyse_rating_conditioning.py` |
+| "21.7%" GAB ablation | `docs/gab-capacity-finding.md:45`, `benchmarks/unarchitectured-metal/gab-ablation-2026-08-25.json` |
 
 Verified with `git cat-file -e FETCH_HEAD:<path>` for each, and confirmed
 absent from `origin/main` — which is consistent with the review, not in
@@ -41,9 +41,9 @@ seven commits deep.**
 ### Q2 — I conflated two models when phrasing the question
 
 The review is right that the shipped **NNUE is f32 and has no int8 runtime
-path**, and that int8 applies only to the Unarchitectured v1 package.
+path**, and that int8 applies only to the Unarchitectured Metal package.
 
-My measurement was in fact taken on the Unarchitectured v1 checkpoint — the
+My measurement was in fact taken on the Unarchitectured Metal checkpoint — the
 tensors in the artifact are `blocks.0.qkv`, `blocks.0.down`, `blocks.0.up`
 and so on, plus the embedding tables. It never touched `unchessed-nnue.bin`.
 So the number is real and correctly scoped, but I described it in the
@@ -52,20 +52,20 @@ genuinely unanswerable question. The doc itself is scoped correctly; the
 question I asked was not.
 
 The substance stands: the failed int8 activation prototype was an
-Unarchitectured v1 experiment, weights there peak at 2.06x the `±127/64`
+Unarchitectured Metal experiment, weights there peak at 2.06x the `±127/64`
 reference bound, and the trainer has `clip_grad_norm_` but no weight
 clipping. `±127/64` is Stockfish's bound for their architecture, used as a
 reference point — the doc already says so.
 
 ### Q5 — I quoted the student's dimensions, the review quoted the oracle's
 
-Both are correct, for different models. `config/unarchitectured_v1_training.json`
+Both are correct, for different models. `config/unarchitectured_metal_training.json`
 holds `gab_token_projection: 16, gab_hidden: 64, gab_templates: 64` — but
 those live under an **`oracle`** key, alongside `board_layers: 16` and
 `decoder_layers: 4`. That is the 58M teacher.
 
 The shipped **student** artifact says otherwise. Read directly from
-`artifacts/unarchitectured-v1-final.unarchv1`:
+`artifacts/unarchitectured-metal-final.unmetal`:
 
 ```
 gab.token_projection   (8, 256)     -> d1 = 8

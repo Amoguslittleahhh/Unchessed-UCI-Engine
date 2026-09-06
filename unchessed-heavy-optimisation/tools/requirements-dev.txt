@@ -27,7 +27,7 @@ pytest>=7.4
 # NOT listed, on purpose:
 #
 # torch -- imported only by the A100 training scripts
-# (train_unarchitectured_v1_a100.py and friends), which are meant to run on a
+# (train_unarchitectured_metal_a100.py and friends), which are meant to run on a
 # training host with a GPU, not in a dev checkout. It is a multi-gigabyte
 # dependency and nothing in the tools/ test suite needs it; the tests that
 # would touch it skip when it is absent. Install it separately on the machine

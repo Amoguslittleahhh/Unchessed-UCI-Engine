@@ -52,9 +52,9 @@ material.
 Usage
 -----
     python3 tools/tag_calibration_themes.py \\
-        artifacts/unarchitectured-v1-calibration-corpus.jsonl \\
-        artifacts/unarchitectured-v1-calibration-labels.json \\
-        --package artifacts/unarchitectured-v1-final.unarchv1
+        artifacts/unarchitectured-metal-calibration-corpus.jsonl \\
+        artifacts/unarchitectured-metal-calibration-labels.json \\
+        --package artifacts/unarchitectured-metal-final.unmetal
 
 Without `--package` it only tags and reports theme coverage (no torch needed).
 With it, it additionally scores the real checkpoint per theme.
@@ -159,7 +159,7 @@ def classify(board: chess.Board, best_uci: str, scores: dict, saw_mate: bool):
 def build_batch(board: chess.Board, rating: int, time_class: int, policy_kind: int):
     import torch
 
-    from unarchitectured_v1_position_encoding import encode_position
+    from unarchitectured_metal_position_encoding import encode_position
 
     enc = encode_position(board)
     actions = list(enc["legal_actions"])
@@ -209,8 +209,8 @@ def main() -> int:
         if not args.package.is_file():
             print(f"missing: {args.package}", file=sys.stderr)
             return 2
-        from reference_forward_unarchitectured_v1 import forward as fwd
-        from reference_forward_unarchitectured_v1 import read_package
+        from reference_forward_unarchitectured_metal import forward as fwd
+        from reference_forward_unarchitectured_metal import read_package
 
         forward = fwd
         weights = read_package(args.package)

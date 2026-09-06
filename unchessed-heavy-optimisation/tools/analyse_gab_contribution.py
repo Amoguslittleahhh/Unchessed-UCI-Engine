@@ -7,7 +7,7 @@ Why
 
 `Chessformer: A Unified Architecture for Chess Modeling`
 (arXiv:2605.19091) is the canonical reference for the architecture
-Unarchitectured v1 derives from: square tokens, an attention-based
+Unarchitectured Metal derives from: square tokens, an attention-based
 source-destination policy head, and **Geometric Attention Bias** -- a dynamic
 positional encoding generated from a compressed board representation and mixed
 from a set of learned templates.
@@ -51,9 +51,9 @@ output.
 Usage
 -----
     python3 tools/analyse_gab_contribution.py \\
-        artifacts/unarchitectured-v1-final.unarchv1 \\
-        artifacts/unarchitectured-v1-calibration-corpus.jsonl \\
-        artifacts/unarchitectured-v1-calibration-labels.json
+        artifacts/unarchitectured-metal-final.unmetal \\
+        artifacts/unarchitectured-metal-calibration-corpus.jsonl \\
+        artifacts/unarchitectured-metal-calibration-labels.json
 
 Requires torch (install separately; see tools/requirements-dev.txt).
 """
@@ -77,7 +77,7 @@ if any(a in ("-h", "--help") for a in sys.argv[1:]):
 
 import chess  # noqa: E402
 
-from unarchitectured_v1_position_encoding import encode_position  # noqa: E402
+from unarchitectured_metal_position_encoding import encode_position  # noqa: E402
 
 MATE_CLAMP_CP = 2000
 CONFIG = {"d_model": 256, "heads": 8, "history_width": 32, "policy_adapter_rank": 16}
@@ -110,7 +110,7 @@ def build_batch(board, rating, time_class, policy_kind):
 
 def evaluate(weights, rows, labels, args, tag):
     """Return (top1, mean_regret) for one weight variant."""
-    from reference_forward_unarchitectured_v1 import forward
+    from reference_forward_unarchitectured_metal import forward
 
     hits = 0
     scored = 0
@@ -135,7 +135,7 @@ def evaluate(weights, rows, labels, args, tag):
         # argmax. 32 of the 600 positions have two or more moves sharing the
         # top teacher score; picking any of them is equally correct, and
         # string comparison would mark all but one wrong. This matches the
-        # definition used by analyse_unarchitectured_v1_ordering_risk.py, so
+        # definition used by analyse_unarchitectured_metal_ordering_risk.py, so
         # the baselines are directly comparable.
         regret = clamp_cp(label["best_score"]) - clamp_cp(scores[chosen])
         hits += int(regret == 0)
@@ -168,7 +168,7 @@ def main() -> int:
 
     import torch
 
-    from reference_forward_unarchitectured_v1 import read_package
+    from reference_forward_unarchitectured_metal import read_package
 
     base = read_package(args.package)
     labels = json.loads(args.labels.read_text())

@@ -4,7 +4,7 @@
 was **not** run here. Do not treat this note as a compile certificate.
 A machine with the toolchain must compile before merge.
 
-## Is Unarchitectured v1 “done” (fast enough to actually use)?
+## Is Unarchitectured Metal “done” (fast enough to actually use)?
 
 **No.** `UnarchitecturedHint` stays **default-off**. Real SPRTs (round 7
 and later) never trended positive. Speed work (AVX2, int8 weights/int16

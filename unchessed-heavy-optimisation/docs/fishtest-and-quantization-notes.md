@@ -48,7 +48,7 @@ error guarantees. That caveat is in the tool's own docstring.
 
 ## 2. Our weights violate the int8 range Stockfish's scheme requires
 
-`docs/unarchitectured-v1-runtime-optimization.md` records a rejected int8
+`docs/unarchitectured-metal-runtime-optimization.md` records a rejected int8
 activation prototype: it failed the parity gate at `1.01e-2` against a
 required `5e-3`, and was documented rather than having the tolerance loosened.
 The reason it failed was never established.
@@ -85,15 +85,15 @@ Measured on the real exported checkpoint against Stockfish's `±127/64`:
 | square_embedding.weight | **4.09** | 4.56% |
 
 **Scope, to prevent a misreading:** this measurement is on the
-**Unarchitectured v1** package (`artifacts/unarchitectured-v1-final.unarchv1`)
+**Unarchitectured Metal** package (`artifacts/unarchitectured-metal-final.unmetal`)
 — the tensors above are its `blocks.*` layers and embedding tables. The
 shipped NNUE (`unchessed-nnue.bin`) is f32 and has **no int8 runtime path at
 all**, so none of this concerns it. The rejected int8 activation prototype
-that motivated this section was likewise an Unarchitectured v1 experiment.
+that motivated this section was likewise an Unarchitectured Metal experiment.
 
 Peak magnitude is **4.09 — 2.06x the int8 limit**, and the worst tensor has
 7.5% of its weights out of range. Full per-tensor data in
-`benchmarks/unarchitectured-v1/int8-weight-range-2026-08-25.json`.
+`benchmarks/unarchitectured-metal/int8-weight-range-2026-08-25.json`.
 
 This is a quantitative explanation for the `1.01e-2` parity failure that was
 previously unexplained: post-hoc quantization of weights that exceed the
@@ -116,7 +116,7 @@ per-tensor bounds from the chosen scheme.
   produces paired games; only the analysis was missing. Use
   `tools/pentanomial_sprt.py --pgn <out.pgn> --engine Hint`.
 - **The int8 backlog item should be re-scoped.** The remaining-work list in
-  `docs/unarchitectured-v1-runtime-optimization.md` describes "calibrated int8
+  `docs/unarchitectured-metal-runtime-optimization.md` describes "calibrated int8
   activations […] a different calibration scheme might close that gap". This
   evidence says a calibration scheme will *not* close it on its own — the
   weights are out of range before calibration begins. The prerequisite is

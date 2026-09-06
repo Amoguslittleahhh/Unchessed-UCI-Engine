@@ -51,9 +51,9 @@ What it measures
 Usage
 -----
     python3 tools/analyse_policy_prior_calibration.py \\
-        artifacts/unarchitectured-v1-final.unarchv1 \\
-        artifacts/unarchitectured-v1-calibration-corpus.jsonl \\
-        artifacts/unarchitectured-v1-calibration-labels.json
+        artifacts/unarchitectured-metal-final.unmetal \\
+        artifacts/unarchitectured-metal-calibration-corpus.jsonl \\
+        artifacts/unarchitectured-metal-calibration-labels.json
 
 Requires torch (install separately; see tools/requirements-dev.txt).
 """
@@ -78,7 +78,7 @@ if any(a in ("-h", "--help") for a in sys.argv[1:]):
 
 import chess  # noqa: E402
 
-from unarchitectured_v1_position_encoding import encode_position  # noqa: E402
+from unarchitectured_metal_position_encoding import encode_position  # noqa: E402
 
 CONFIG = {"d_model": 256, "heads": 8, "history_width": 32, "policy_adapter_rank": 16}
 N_BINS = 10
@@ -96,7 +96,7 @@ def collect(weights, rows, labels, rating, time_class, policy_kind):
     """Return per-position (logits, index_of_teacher_best)."""
     import torch
 
-    from reference_forward_unarchitectured_v1 import forward
+    from reference_forward_unarchitectured_metal import forward
 
     out = []
     for rec in rows:
@@ -201,7 +201,7 @@ def main() -> int:
             print(f"missing: {p}", file=sys.stderr)
             return 2
 
-    from reference_forward_unarchitectured_v1 import read_package
+    from reference_forward_unarchitectured_metal import read_package
 
     weights = read_package(args.package)
     labels = json.loads(args.labels.read_text())

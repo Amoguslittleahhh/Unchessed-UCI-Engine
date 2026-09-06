@@ -27,7 +27,7 @@ Repo: https://github.com/Amoguslittleahhh/Unchessed-UCI-Engine
   clearer name for what it's actually for now). It already has real,
   independently-verified work on it: `cargo test --workspace --release`
   passes 123/123 as of the last review, three named parity gates pass,
-  `unarchitectured_v1.rs`'s change is comment-only, `search.rs`'s real
+  `unarchitectured_metal.rs`'s change is comment-only, `search.rs`'s real
   change is a narrow node-limit correctness fix. Build on it, don't
   restart from `main`.
 - Commit and push there. Don't open a PR into `main` yourself.
@@ -52,8 +52,8 @@ The project's three live subsystems, in one line each:
   search**, not architecture or data volume (`docs/nnue-v4-108m-recipe-result.md`,
   `docs/ieee-low-cp-val-mae-and-persona.md`). Best v4 retrain is still
   −155.6 ± 47.7 Elo behind the shipped v3 default.
-- **Unarchitectured v1** — an experimental transformer move-ordering
-  hint (`aegis_v4_runtime.rs`, `unarchitectured_v1.rs`). Real speed work
+- **Unarchitectured Metal** — an experimental transformer move-ordering
+  hint (`unarchitectured_metal_runtime.rs`, `unarchitectured_metal.rs`). Real speed work
   exists (~7.5ms/call forward pass); the hint itself has **never once
   trended positive** across four real SPRT batches and must stay
   `UnarchitecturedHint=false`.
@@ -70,7 +70,7 @@ The project's three live subsystems, in one line each:
    project had one catastrophic failure early on from skipping this —
    it's the reason the rule exists, not a formality.
 2. **The three named parity tests must keep passing** after any
-   `aegis_v4_runtime.rs` change: `start_position_matches_python_reference`,
+   `unarchitectured_metal_runtime.rs` change: `start_position_matches_python_reference`,
    `midgame_position_matches_python_reference`,
    `position_to_input_matches_hand_built_start_position`
    (`cargo test -p unchessed-core --release`).
@@ -84,7 +84,7 @@ The project's three live subsystems, in one line each:
 5. **Report negative results as plainly as positive ones.** A
    well-run experiment that disproves the hypothesis is real progress
    and should be written up with the same care as a win — this project
-   has several of those already (`docs/unarchitectured-v1-why-the-hint-costs-elo.md`,
+   has several of those already (`docs/unarchitectured-metal-why-the-hint-costs-elo.md`,
    `docs/nnue-v4-retrain-data-scaling-finding.md`) and treats them as
    genuine contributions, not failures to hide.
 
@@ -135,7 +135,7 @@ conclusion.
 
 The project already has two move-prediction-adjacent systems: a
 Maia-style human-move policy net (rating-conditioned priors used by the
-persona system) and Unarchitectured v1 (a transformer hint that's never
+persona system) and Unarchitectured Metal (a transformer hint that's never
 helped Elo despite good top-1 accuracy work). Both are trained with a
 fairly standard "predict the next move/label" objective.
 
@@ -150,8 +150,8 @@ what's already been tried? Concrete angles to actually investigate
   files, check what's already been read) suggest this changes anything
   for a model this size, or is it a scale-dependent trick that doesn't
   transfer down?
-- The Unarchitectured v1 hint's actual measured failure mode
-  (`docs/unarchitectured-v1-why-the-hint-costs-elo.md`) is structural —
+- The Unarchitectured Metal hint's actual measured failure mode
+  (`docs/unarchitectured-metal-why-the-hint-costs-elo.md`) is structural —
   it only orders the first iterative-deepening pass, and the real cost
   is the forward-pass time budget, not prediction quality. Does a
   better prediction *objective* address a budget problem at all, or is
@@ -257,7 +257,7 @@ blocker has only ever been asset availability.
 
 Do not start anything here without explicit go-ahead from a human, not
 just an acknowledged plan. This tier is: any full NNUE v4 candidate
-retrain at real scale, any Unarchitectured v1 GAB-widening or
+retrain at real scale, any Unarchitectured Metal GAB-widening or
 quantization retrain, any full self-play RL pipeline, any cloud spend
 of any kind. All of round 13-19's own history in this repo (the −155.6
 Elo NNUE result, the persona SPRT) went through exactly this kind of

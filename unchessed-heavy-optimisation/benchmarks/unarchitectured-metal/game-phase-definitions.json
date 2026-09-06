@@ -1,0 +1,129 @@
+{
+  "by_definition": {
+    "lichess": {
+      "counts": {
+        "endgame": 253,
+        "opening": 183,
+        "middlegame": 171
+      },
+      "pct": {
+        "opening": 30.15,
+        "middlegame": 28.17,
+        "endgame": 41.68
+      },
+      "total": 607
+    },
+    "lichess_material_only": {
+      "counts": {
+        "endgame": 253,
+        "opening": 259,
+        "middlegame": 95
+      },
+      "pct": {
+        "opening": 42.67,
+        "middlegame": 15.65,
+        "endgame": 41.68
+      },
+      "total": 607
+    },
+    "corpus_builder": {
+      "counts": {
+        "middlegame": 200,
+        "opening": 200,
+        "endgame": 207
+      },
+      "pct": {
+        "opening": 32.95,
+        "middlegame": 32.95,
+        "endgame": 34.1
+      },
+      "total": 607
+    }
+  },
+  "cross_tab_stored_tag_vs_lichess": {
+    "endgame -> endgame": 200,
+    "middlegame -> endgame": 46,
+    "middlegame -> middlegame": 149,
+    "middlegame -> opening": 5,
+    "opening -> middlegame": 22,
+    "opening -> opening": 178
+  },
+  "disagreements_stored_tag_vs_lichess": 73,
+  "positions_tagged": 600,
+  "inputs": [
+    {
+      "kind": "corpus",
+      "path": "artifacts/unarchitectured-metal-calibration-corpus.jsonl",
+      "positions": 600
+    },
+    {
+      "kind": "epd",
+      "path": "benchmarks/matetrack.epd",
+      "positions": 7
+    }
+  ],
+  "per_position_epd": [
+    {
+      "source": "benchmarks/matetrack.epd",
+      "label": "backrank-rook",
+      "fen": "6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1",
+      "lichess": "endgame",
+      "lichess_material_only": "endgame",
+      "corpus_builder": "endgame"
+    },
+    {
+      "source": "benchmarks/matetrack.epd",
+      "label": "backrank-rook-black",
+      "fen": "r5k1/8/8/8/8/8/5PPP/6K1 b - - 0 1",
+      "lichess": "endgame",
+      "lichess_material_only": "endgame",
+      "corpus_builder": "endgame"
+    },
+    {
+      "source": "benchmarks/matetrack.epd",
+      "label": "backrank-full-shield",
+      "fen": "6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1",
+      "lichess": "endgame",
+      "lichess_material_only": "endgame",
+      "corpus_builder": "endgame"
+    },
+    {
+      "source": "benchmarks/matetrack.epd",
+      "label": "smothered-knight",
+      "fen": "6rk/6pp/8/6N1/8/8/8/6K1 w - - 0 1",
+      "lichess": "endgame",
+      "lichess_material_only": "endgame",
+      "corpus_builder": "endgame"
+    },
+    {
+      "source": "benchmarks/matetrack.epd",
+      "label": "queen-support-king",
+      "fen": "7k/5K2/Q7/8/8/8/8/8 w - - 0 1",
+      "lichess": "endgame",
+      "lichess_material_only": "endgame",
+      "corpus_builder": "endgame"
+    },
+    {
+      "source": "benchmarks/matetrack.epd",
+      "label": "corner-queen",
+      "fen": "k7/8/2K5/8/8/8/8/1Q6 w - - 0 1",
+      "lichess": "endgame",
+      "lichess_material_only": "endgame",
+      "corpus_builder": "endgame"
+    },
+    {
+      "source": "benchmarks/matetrack.epd",
+      "label": "ladder-two-rooks",
+      "fen": "7k/R7/1R6/8/8/8/8/6K1 w - - 0 1",
+      "lichess": "endgame",
+      "lichess_material_only": "endgame",
+      "corpus_builder": "endgame"
+    }
+  ],
+  "definitions": {
+    "lichess": "endgame iff majors_and_minors <= 6; middlegame iff not endgame and (majors_and_minors <= 10 or backrank sparse (<4 own pieces on own back rank) or mixedness > 150); opening otherwise. Ported from scalachess Divider.scala per arXiv:2401.16852 Appendix B.",
+    "lichess_material_only": "same thresholds, without the backrank/mixedness terms",
+    "corpus_builder": "endgame iff total pieces <= 12 or non-pawn pieces <= 4; opening iff fullmove <= 12; middlegame otherwise (tools/build_unarchitectured_metal_calibration_corpus.py::classify_phase)"
+  },
+  "conclusion": "Of 607 positions: Lichess gives 183/171/253 (opening/middlegame/endgame); the corpus builder's stored tag gives 200/200/207; the two disagree on 73 tagged positions. Dropping the backrank/mixedness terms from the Lichess definition reclassifies 76 of 607 positions, i.e. those terms are not decorative on real play. No phase-specialized model exists for this repo's checkpoint; this measurement only sizes the data question a phase-specialized retrain would face."
+}

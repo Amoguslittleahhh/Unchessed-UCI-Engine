@@ -25,7 +25,7 @@ import chess
 
 ROOT = Path(__file__).resolve().parent.parent
 ARTIFACT = (
-    ROOT / "benchmarks" / "unarchitectured-v1" / "hint-disagreements-2026-08-24.json"
+    ROOT / "benchmarks" / "unarchitectured-metal" / "hint-disagreements-2026-08-24.json"
 )
 SEARCH_RS = ROOT / "unchessed-core" / "src" / "search.rs"
 

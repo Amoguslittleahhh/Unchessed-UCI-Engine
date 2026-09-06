@@ -6,7 +6,7 @@ missing. Same tiered structure and credit discipline as the original
 research brief: Tier 1 is cheap (design/analysis/small bounded code),
 Tier 2 needs a posted plan first, Tier 3 needs explicit human go-ahead.
 Same standing rules apply: no default flip or search-behavior change
-without a real paired-game SPRT; the three named `aegis_v4_runtime.rs`
+without a real paired-game SPRT; the three named `unarchitectured_metal_runtime.rs`
 parity gates must keep passing; state what you verified vs. assumed.
 
 ## What's already implemented (don't propose these as new — verify first, this list exists so you don't re-discover it the hard way)

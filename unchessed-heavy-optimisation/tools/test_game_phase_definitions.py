@@ -38,9 +38,9 @@ from measure_game_phase_definitions import (  # noqa: E402
     _block_score,
 )
 
-CORPUS = REPO / "artifacts" / "unarchitectured-v1-calibration-corpus.jsonl"
+CORPUS = REPO / "artifacts" / "unarchitectured-metal-calibration-corpus.jsonl"
 MATRACK = REPO / "benchmarks" / "matetrack.epd"
-ARTIFACT = REPO / "benchmarks" / "unarchitectured-v1" / "game-phase-definitions.json"
+ARTIFACT = REPO / "benchmarks" / "unarchitectured-metal" / "game-phase-definitions.json"
 
 # Corpus positions where exactly one Lichess term decides the phase
 # (measured with the tool, 2026-08-26; see the artifact).

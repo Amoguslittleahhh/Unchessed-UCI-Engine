@@ -37,7 +37,7 @@ This report answers that from the committed codebase, committed SPRTs, the liter
 
 Nasu’s NNUE and Stockfish’s HalfKAv2_hm remain the production reference [2]. Tan & Watkinson Medina, *Study of the Proper NNUE Dataset* (arXiv:2412.17948) [3], is the Grade-A paper in this repo’s survey: an NNUE is a *static* function, so labels from tactical positions are noise the net cannot represent. Their M1 (`|static − qsearch|`) and M2 (`|static − search|`) filters are already implemented in `unchessed-datagen` with this engine’s measured 60/70 cp margins [4]. Klein’s *Neural Networks for Chess* (arXiv:2209.01506) [5] documents WDL blending and the p=2.5 power loss that `wdl_loss()` copies.
 
-ChessBench (Ruoss et al., arXiv:2402.04494) [6] shows even a 270 M transformer cannot perfectly distill Stockfish 16 search; “perfect distillation is still beyond reach.” That is the same ceiling Unarchitectured v1 hit (top-1 0.255).
+ChessBench (Ruoss et al., arXiv:2402.04494) [6] shows even a 270 M transformer cannot perfectly distill Stockfish 16 search; “perfect distillation is still beyond reach.” That is the same ceiling Unarchitectured Metal hit (top-1 0.255).
 
 ### B. Human-aligned play
 
@@ -208,7 +208,7 @@ A 10–20 cp val-MAE net that was bought by clipping or by training on a tiny ho
 
 ## VIII. Conclusion
 
-Extremely low NNUE val-MAE (10–20 cp) is not a hyperparameter hunt on the current corpus. It is a **teacher-noise** requirement. The shipped training stack is already sitting on a ~50–56 cp floor. Persona adaptation is orthogonal and **benefits** from a more accurate eval; Adaptive should stay on. The Unarchitectured v1 hint is a different, still-blocked subsystem and must stay off. The honest production next step remains the round-13 108 M best-checkpoint SPRT for Elo, and a *new labelling campaign* if and only if someone needs the 10–20 cp number for its own sake.
+Extremely low NNUE val-MAE (10–20 cp) is not a hyperparameter hunt on the current corpus. It is a **teacher-noise** requirement. The shipped training stack is already sitting on a ~50–56 cp floor. Persona adaptation is orthogonal and **benefits** from a more accurate eval; Adaptive should stay on. The Unarchitectured Metal hint is a different, still-blocked subsystem and must stay off. The honest production next step remains the round-13 108 M best-checkpoint SPRT for Elo, and a *new labelling campaign* if and only if someone needs the 10–20 cp number for its own sake.
 
 ---
 
@@ -236,7 +236,7 @@ Extremely low NNUE val-MAE (10–20 cp) is not a hyperparameter hunt on the curr
 
 [11] Unchessed AI, “NNUE v4 full-scale training recipe,” `docs/nnue-v4-training-recipe.md`, 2026-08-30.
 
-[12] Unchessed AI, “Why the Unarchitectured v1 hint costs Elo,” `docs/unarchitectured-v1-why-the-hint-costs-elo.md`.
+[12] Unchessed AI, “Why the Unarchitectured Metal hint costs Elo,” `docs/unarchitectured-metal-why-the-hint-costs-elo.md`.
 
 [13] Unchessed AI, “arXiv survey — chess AI and LLM research,” `docs/research-survey-arxiv-2026-08-24.md`, 2026-08-24.
 

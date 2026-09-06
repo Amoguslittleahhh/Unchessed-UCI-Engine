@@ -78,7 +78,7 @@ The UCI protocol reference is especially important for deployment. It defines `u
 
 ## Deployment and harness assessment
 
-The checked-in scripts are UCI-driven. For example, `wsl-workspace/scripts/run_internal_ladder_v2.sh:11–20` launches two engine processes through `cutechess-cli`, specifies `-each proto=uci`, repeats rounds, and runs concurrent games. `scripts/sprt-history/sprt_rook.sh:13–24` does the same. Other repository scripts use the same `proto=uci` pattern. The adapter's own diagnostic tool `tools/unarchitectured_v1_depth_time_calibration.py` explicitly sends `ucinewgame`, then `position`, and later `go`.
+The checked-in scripts are UCI-driven. For example, `wsl-workspace/scripts/run_internal_ladder_v2.sh:11–20` launches two engine processes through `cutechess-cli`, specifies `-each proto=uci`, repeats rounds, and runs concurrent games. `scripts/sprt-history/sprt_rook.sh:13–24` does the same. Other repository scripts use the same `proto=uci` pattern. The adapter's own diagnostic tool `tools/unarchitectured_metal_depth_time_calibration.py` explicitly sends `ucinewgame`, then `position`, and later `go`.
 
 This establishes that the intended harness protocol is UCI and that at least one in-repository direct client sends `ucinewgame`. It does **not** establish, from source inspection alone, that:
 

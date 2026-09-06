@@ -1,7 +1,7 @@
 # NNUE round 12 — results (2026-08-28)
 
 Honest results for the round-12 request
-(`scripts/research/arena_agent_unarchitectured_v1_runtime_speed_prompt.md`).
+(`scripts/research/arena_agent_unarchitectured_metal_runtime_speed_prompt.md`).
 Diff vs `main` (`8f63321`, the re-imported root commit): 8 files,
 +689/−87 — all listed below. All work pushed to
 `arena/01a02efe-unchessed-uci-engine` at `0f59057`.

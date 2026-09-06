@@ -10,7 +10,7 @@ P,N,B,R,Q,K; 6-11 = opponent; a1=0 square numbering; move = from |
 to<<6; castling bits 0/1 mover-K/Q, 2/3 opponent-K/Q), and actions
 live in the 4096x5 = 20480 move-promotion space (move*5 + promotion,
 promotion 0 none / 1 knight / 2 bishop / 3 rook / 4 queen) — the same
-action vocabulary as the Unarchitectured v1 student
+action vocabulary as the Unarchitectured Metal student
 (`policy_action_vocabulary: 20480`).
 
 Inputs (all already in the repo or produced by the cloud generator):
@@ -65,7 +65,7 @@ import chess
 import chess.pgn
 import numpy as np
 
-MAX_LEGAL = 218  # maximum_legal_tokens in config/unarchitectured_v1.json
+MAX_LEGAL = 218  # maximum_legal_tokens in config/unarchitectured_metal.json
 ENGINE_IDS = {"maia3": 0, "stockfish": 1, "lc0": 2, "rubichess": 3,
               "human": 4}
 QUALITY_IDS = {"calibrated": 0, "native": 1, "approximate": 2,

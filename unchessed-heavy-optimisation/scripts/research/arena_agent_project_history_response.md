@@ -11,32 +11,32 @@ forward.
 ## 1. Training-corpus provenance
 
 Confirmed, and this gap is real: **no training-membership manifest exists
-anywhere in this repo.** `docs/unarchitectured-v1-calibration.md` states it
+anywhere in this repo.** `docs/unarchitectured-metal-calibration.md` states it
 explicitly, more than once: *"The student was trained on Lichess online
 play. This corpus is sampled from over-the-board tournament archives
 (TWIC)... so the two do not share games... This repository contains no
 training-membership manifest, so record-level disjointness cannot be
 proven here and is not claimed. What is claimed is source-population
 disjointness."* The same caveat is repeated independently in
-`tools/build_unarchitectured_v1_calibration_corpus.py:1-13,218`,
-`docs/unarchitectured-v1-integration-trial.md:50-52`, and
-`docs/unarchitectured-v1-runtime-optimization.md:172`.
+`tools/build_unarchitectured_metal_calibration_corpus.py:1-13,218`,
+`docs/unarchitectured-metal-integration-trial.md:50-52`, and
+`docs/unarchitectured-metal-runtime-optimization.md:172`.
 
 The calibration corpus itself is genuinely TWIC-sourced OTB data — e.g.
-`artifacts/unarchitectured-v1-calibration-corpus-replication.jsonl` entries
+`artifacts/unarchitectured-metal-calibration-corpus-replication.jsonl` entries
 carry real tournament metadata (`"source_event": "65th ch-RUS HL"`,
 `"source_date": "2012.06.20"`), filtered to both players 2300+,
 FEN-deduplicated, capped at 2 positions/game, phase-stratified.
 
 **What's missing**: no Lichess month/date range is documented anywhere for
 the *student's own* training corpus specifically (`config/
-unarchitectured_v1_training.json`, `tools/unarchitectured_v1_data.py`,
-`tools/unarchitectured_v1_base_data.py`, both A100 training scripts —
+unarchitectured_metal_training.json`, `tools/unarchitectured_metal_data.py`,
+`tools/unarchitectured_metal_base_data.py`, both A100 training scripts —
 none state a date range; they operate on pre-built shards, not raw PGN
 ranges). The only concrete Lichess months anywhere in the repo belong to
 the *separate* NNUE pipeline (`scripts/nnue-pipeline/full_pipeline.sh:17`:
 `MONTHS="2026-07 2026-06 2026-05 2026-04 2026-03"`) — that's a different
-model's training data, not the Unarchitectured v1 student's.
+model's training data, not the Unarchitectured Metal student's.
 
 **Bottom line**: your gap assessment is accurate. This is a genuinely
 open question with no answer in this repo's history — not something
@@ -51,7 +51,7 @@ repo, case-insensitive full-text search.
 
 More importantly: the shipped NNUE is **f32-weighted, not int8-quantized
 at all**. Int8 quantization in this codebase applies exclusively to
-Unarchitectured v1's runtime package (`docs/unarchitectured-v1.md:196-206`,
+Unarchitectured Metal's runtime package (`docs/unarchitectured-metal.md:196-206`,
 "symmetric int8 matrix export") — a completely different model. There is
 no int8 NNUE runtime path anywhere in this tree.
 
@@ -75,7 +75,7 @@ NNUE with a measured overshoot) doesn't match what's actually shipped.
 ## 3. `UnarchitecturedMinTime` default (30000ms)
 
 Found via `git log -S "UnarchitecturedMinTime" --oneline --all`: introduced
-in commit `2b3677a` / `d0e5666` ("Wire default-off Unarchitectured v1 UCI
+in commit `2b3677a` / `d0e5666` ("Wire default-off Unarchitectured Metal UCI
 candidate", 2026-08-23, co-authored by arena-agent) —
 `unchessed-core/src/uci.rs`:
 ```rust
@@ -84,7 +84,7 @@ println!("option name UnarchitecturedMinTime type spin default 30000 min 1000 ma
 
 **No rationale is stated anywhere** — not in the commit message (title
 only, no body), not in the accompanying doc update
-(`docs/unarchitectured-v1-integration-trial.md:28-30`, which describes
+(`docs/unarchitectured-metal-integration-trial.md:28-30`, which describes
 only the *mechanism*: submit/wait only on clocks above the threshold, skip
 silently below it). No benchmark, measurement, or SPSA/SPRT result ties to
 why specifically 30 seconds rather than 10 or 60.
@@ -98,8 +98,8 @@ to test, not a value with its own prior justification to defend.
 
 ## 4. Does the 58M oracle condition on rating?
 
-Both the oracle (`tools/train_unarchitectured_v1_a100.py:352-393`) and the
-student (`tools/train_unarchitectured_v1_student_a100.py:303-345`) use the
+Both the oracle (`tools/train_unarchitectured_metal_a100.py:352-393`) and the
+student (`tools/train_unarchitectured_metal_student_a100.py:303-345`) use the
 **identical** rating-conditioning mechanism: a learned
 `rating_weight`/`rating_bias` applied as
 `values = values + normalized_rating[:, None] * rating_weight + rating_bias`,
@@ -126,11 +126,11 @@ verified finding either way.
 ## 5. Chessformer / GAB ablation numbers
 
 "Chessformer" in this repo is exclusively an **internal Rust type name**
-(`unchessed-core/src/aegis_v4_runtime.rs:607`, `pub struct
+(`unchessed-core/src/unarchitectured_metal_runtime.rs:607`, `pub struct
 ChessformerWeights`) and appears in commit titles about the runtime
 backend — not a citation of an external paper's results anywhere.
 
-This project's own GAB config, from `config/unarchitectured_v1_training.
+This project's own GAB config, from `config/unarchitectured_metal_training.
 json:22-24`:
 ```json
 "gab_token_projection": 16, "gab_hidden": 64, "gab_templates": 64
@@ -177,7 +177,7 @@ SPSA-tuned.
 
 **(c) Apex v1 / Hydra v1-v4 failure modes**: no documented technical
 failure reason exists for any of them — this is a real, confirmed gap,
-not something either of us missed. `docs/unarchitectured-v1.md:3-8,88-96`
+not something either of us missed. `docs/unarchitectured-metal.md:3-8,88-96`
 frames them only as *"experimental lineage labels... superseded"* with a
 "contributions carried forward" table (what each version added, never why
 it was superseded). `scripts/sprt-history/` has SPRT scripts for named

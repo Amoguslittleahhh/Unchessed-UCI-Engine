@@ -2,7 +2,7 @@
 # ============================================================================
 # PRETRAIN PIPELINE — GPU STAGE (runs on the A100/H100 box)
 #
-# Trains the dual-elo Unarchitectured v1 oracle on the v5 shards built
+# Trains the dual-elo Unarchitectured Metal oracle on the v5 shards built
 # by cpu_stage.sh:
 #   stage 1 (pretrain): legal-only policy cross-entropy, all rows,
 #                       approximate rows down-weighted (0.5x)

@@ -1,6 +1,6 @@
 # GAB is load-bearing, and ours is 4x under-provisioned
 
-Findings from checking Unarchitectured v1 against
+Findings from checking Unarchitectured Metal against
 [arXiv:2605.19091](https://arxiv.org/abs/2605.19091) (*Chessformer: A Unified
 Architecture for Chess Modeling*, Monroe, Eilender, Chalmers, Tang, Anderson).
 
@@ -8,7 +8,7 @@ This is the canonical reference for the architecture this project's model
 derives from — square tokens, an attention-based source-destination policy
 head, and **Geometric Attention Bias (GAB)**, a dynamic positional encoding
 generated from a compressed board representation and mixed from learned
-templates. Our `aegis_v4_runtime.rs` implements exactly this: `gab.templates`
+templates. Our `unarchitectured_metal_runtime.rs` implements exactly this: `gab.templates`
 of shape `(32, 64, 64)`, per-layer coefficient projections, biases added to the
 dot-product logits before softmax.
 
@@ -21,7 +21,7 @@ Elo, puzzle accuracy, and policy accuracy alike.
 Read directly from the exported checkpoint:
 
 Note these are the **student's** dimensions, read from the shipped artifact.
-`config/unarchitectured_v1_training.json` lists `gab_token_projection: 16,
+`config/unarchitectured_metal_training.json` lists `gab_token_projection: 16,
 gab_hidden: 64, gab_templates: 64`, but those sit under an `oracle` key and
 describe the 58M teacher. The student that actually ships is smaller than its
 own teacher on every GAB axis as well as smaller than the paper.
@@ -55,7 +55,7 @@ So the contribution is from the *learned template content*, not from the mere
 presence of a bias tensor of the right shape.
 
 For scale: the model's entire margin over the free MVV-LVA heuristic is
-+0.100 top-1 (see `docs/unarchitectured-v1-theme-breakdown.md`). GAB accounts
++0.100 top-1 (see `docs/unarchitectured-metal-theme-breakdown.md`). GAB accounts
 for 0.058 of that. **Remove GAB and most of the model's advantage over a
 zero-cost heuristic disappears.**
 
@@ -64,7 +64,7 @@ zero-cost heuristic disappears.**
 Rounds 2–4 pushed the forward pass from 89ms to ~9.7ms and concluded speed had
 hit diminishing returns. Rounds 7–8 established the hint never trended
 positive across four SPRT batches, and
-`docs/unarchitectured-v1-why-the-hint-costs-elo.md` showed the cost is
+`docs/unarchitectured-metal-why-the-hint-costs-elo.md` showed the cost is
 structural rather than a quality failure.
 
 This adds a *capacity* explanation to sit beside those. The component the
@@ -74,7 +74,7 @@ setting. That is a concrete, named architectural deficiency — considerably
 more actionable than another round of kernel micro-optimisation.
 
 It also sharpens the retrain guidance from
-`docs/unarchitectured-v1-theme-breakdown.md`. That doc said a retrain should
+`docs/unarchitectured-metal-theme-breakdown.md`. That doc said a retrain should
 target quiet positions, mates and forks by theme-balanced sampling. This adds
 a second, independent lever: **widen GAB to at least the paper's 5M
 configuration** (d1=32, d2=d3=64).
@@ -96,13 +96,13 @@ retrained net would still need its own SPRT gate.
   instead. The dimensional comparison is still meaningful, but the two are not
   identical designs.
 - Corpus provenance is source-population-disjoint only, per
-  `docs/unarchitectured-v1-calibration.md`.
+  `docs/unarchitectured-metal-calibration.md`.
 
 ## A measurement bug this caught
 
 The first version of this tool scored a hit as `chosen == argmax_string`,
 giving a baseline of 0.2550 against the 0.2683 already committed in
-`benchmarks/unarchitectured-v1/ordering-risk-2026-08-24.json` — same
+`benchmarks/unarchitectured-metal/ordering-risk-2026-08-24.json` — same
 checkpoint, same 600 positions.
 
 The cause: **32 of the 600 positions have two or more moves tied at the top

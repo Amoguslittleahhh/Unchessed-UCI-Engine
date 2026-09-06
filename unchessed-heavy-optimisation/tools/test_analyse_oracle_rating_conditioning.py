@@ -81,10 +81,10 @@ class BareEnvironmentCliTests(unittest.TestCase):
             self.assertEqual(result.stderr, f"missing corpus: {missing}\n")
             self.assertFalse(report.exists())
 
-    def test_runtime_unarchv1_fixture_is_rejected_without_torch(self):
+    def test_runtime_unmetal_fixture_is_rejected_without_torch(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            runtime = root / "runtime.unarchv1"
+            runtime = root / "runtime.unmetal"
             corpus = root / "corpus.jsonl"
             runtime.write_bytes(b"UNARCHV1" + b"not a torch checkpoint")
             corpus.write_text('{"fen": "startpos"}\n', encoding="utf-8")

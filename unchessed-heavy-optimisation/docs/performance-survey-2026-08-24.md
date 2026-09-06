@@ -33,7 +33,7 @@ per element, and it is invoked from `eval_with_state` at essentially every
 search node. `add_row`/`sub_row` (lines 138/146) are likewise scalar loops over
 256 floats, run on every accumulator update.
 
-This is the single largest miss in the codebase. `aegis_v4_runtime.rs` got five
+This is the single largest miss in the codebase. `unarchitectured_metal_runtime.rs` got five
 rounds of AVX2/FMA work and is now heavily vectorized — but the NNUE, which is
 the evaluator that *actually runs in every real game*, never received any of it.
 
@@ -51,7 +51,7 @@ difference is float summation order, which is why the change must reuse the
 existing `nnue.rs` tolerance tests (there is already a 1cp-tolerance test that
 documents f32 summation-order noise). Runtime `is_x86_feature_detected!`
 dispatch with the current scalar code as fallback keeps non-x86 correct — the
-same pattern `aegis_v4_runtime.rs` already uses, so there is a working in-repo
+same pattern `unarchitectured_metal_runtime.rs` already uses, so there is a working in-repo
 model to copy.
 
 **This is the highest-value item and it does not change the search tree at all.**
@@ -244,7 +244,7 @@ These are not bugs today, but they are fragile:
 - **`scores` arrays are `[i32; 256]` while `MoveList` holds 256 moves.** These
   are consistent, but nothing statically prevents `generate()` from exceeding
   256 in an extreme position. The theoretical maximum for legal chess is 218
-  (which `aegis_v4_runtime.rs` uses as `MAX_ACTIONS`), so 256 is safe — worth a
+  (which `unarchitectured_metal_runtime.rs` uses as `MAX_ACTIONS`), so 256 is safe — worth a
   `debug_assert!` to keep it that way.
 
 ## Suggested order of work

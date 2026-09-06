@@ -57,7 +57,7 @@ Repo: https://github.com/Amoguslittleahhh/Unchessed-UCI-Engine
    independent reasons for deferring self-play RL (no MCTS/PUCT, no
    policy/value ABI, no measured NNUE throughput) are unaffected and
    still stand on their own.
-2. **Unarchitectured v1** — experimental transformer move-ordering
+2. **Unarchitectured Metal** — experimental transformer move-ordering
    hint. Real speed work exists (~7.5ms/call forward pass); the hint
    itself has never trended positive across four SPRT batches. Must
    stay `UnarchitecturedHint=false`.
@@ -73,7 +73,7 @@ Repo: https://github.com/Amoguslittleahhh/Unchessed-UCI-Engine
    cutechess SPRT. Simulation and unit tests are evidence for a
    writeup, never a substitute.
 2. The three named parity tests must keep passing after any
-   `aegis_v4_runtime.rs` change: `start_position_matches_python_reference`,
+   `unarchitectured_metal_runtime.rs` change: `start_position_matches_python_reference`,
    `midgame_position_matches_python_reference`,
    `position_to_input_matches_hand_built_start_position`.
 3. State what you verified vs. assumed. "Should work" is not "I ran it."
@@ -109,8 +109,8 @@ scratch — start from validated real numbers instead."
 
 1. **Move/piece prediction objective** — is there a training-objective
    change (not a bigger model) that would help the existing policy net
-   or Unarchitectured v1's prediction quality, given what's already
-   failed? Ground this against `docs/unarchitectured-v1-why-the-hint-costs-elo.md`
+   or Unarchitectured Metal's prediction quality, given what's already
+   failed? Ground this against `docs/unarchitectured-metal-why-the-hint-costs-elo.md`
    (the hint's failure is structural/budget, not prediction quality) —
    be honest if a better objective doesn't address a budget problem.
 2. **NNUE label-noise follow-up** — see the updated finding above. If
@@ -230,7 +230,7 @@ research and fixed-position safety checks.
 
 ## Tier 3 — real compute, real SPRT, explicit human go-ahead
 
-Any full NNUE v4 candidate retrain at scale, any Unarchitectured v1
+Any full NNUE v4 candidate retrain at scale, any Unarchitectured Metal
 GAB-widening/quantization retrain, any full self-play RL pipeline, any
 cloud spend, endgame tablebase file acquisition/hosting, Chess960's
 final validation, and any search-extension/pruning campaign's real SPRT

@@ -1,6 +1,6 @@
 # Calibrated int8 activations: measured, and it doesn't work
 
-`docs/unarchitectured-v1-runtime-optimization.md` lists calibrated int8
+`docs/unarchitectured-metal-runtime-optimization.md` lists calibrated int8
 activations as the first item of "Remaining performance work", with the
 honest caveat that a better calibration scheme "might close that gap, but
 it's unproven". This settles it: **five schemes measured, none passes, and
@@ -9,7 +9,7 @@ either.** The item should be closed as tried-and-rejected rather than left
 open as a promising lead.
 
 Tool: `tools/analyse_int8_activation_calibration.py`.
-Artifact: `benchmarks/unarchitectured-v1/int8-activation-calibration.json`.
+Artifact: `benchmarks/unarchitectured-metal/int8-activation-calibration.json`.
 Tests: `tools/test_int8_activation_calibration.py` (17 tests, 19 subtests).
 
 ## Why this was worth measuring before implementing

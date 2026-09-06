@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "architecture": "Unarchitectured Metal compact Chessformer student",
+  "date": "2026-08-23",
+  "host": {
+    "cpu": "Intel Xeon Processor @ 2.60GHz",
+    "architecture": "x86_64",
+    "visible_logical_cpus": 2,
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)"
+  },
+  "baseline": {
+    "git_commit": "8991045d1440fadd0917c9befc6f1842cb301f87",
+    "description": "merged round-two main plus status-only prompt update"
+  },
+  "source_sha256": "dc0babf878f2884ef8f7c366baf4a9bd52c99c27d1e3f3208b76146c88ccddf0",
+  "artifact_sha256": "5fd9fc3fbf47bd2620c2e832e24c98525b59feeea791abf1c7ae32b9d311b16d",
+  "comparison": {
+    "method": "alternating baseline and round-three release benchmarks; 200 calls per run; median of three runs per path",
+    "one_thread": {
+      "baseline_runs_milliseconds": [15.831563, 15.847183, 15.815639],
+      "round_three_runs_milliseconds": [15.137596, 14.573288, 14.697528],
+      "baseline_median_milliseconds": 15.831563,
+      "round_three_median_milliseconds": 14.697528,
+      "speedup": 1.0772
+    },
+    "two_threads": {
+      "baseline_runs_milliseconds": [14.156111, 14.15892, 14.206816],
+      "round_three_runs_milliseconds": [13.23959, 13.163678, 12.940551],
+      "baseline_median_milliseconds": 14.15892,
+      "round_three_median_milliseconds": 13.163678,
+      "speedup": 1.0756
+    }
+  },
+  "two_thread_exit_ladder": {
+    "shallow_2x128_milliseconds": 2.570135,
+    "middle_4x192_milliseconds": 5.613094,
+    "full_8x256_milliseconds": 13.102574
+  },
+  "maximum_integer_vs_dequantized_drift": {
+    "shallow_2x128": {
+      "logits": 0.00007987,
+      "regret_mean": 0.00001568,
+      "regret_log_scale": 0.00003022,
+      "evidence": 0.00001287,
+      "representation": 0.00000715
+    },
+    "middle_4x192": {
+      "logits": 0.00008392,
+      "regret_mean": 0.00002819,
+      "regret_log_scale": 0.00002976,
+      "evidence": 0.00002217,
+      "representation": 0.00001165
+    },
+    "full_8x256": {
+      "logits": 0.000094,
+      "regret_mean": 0.00005573,
+      "regret_log_scale": 0.00005865,
+      "evidence": 0.00005341,
+      "representation": 0.0000267
+    },
+    "enforced_test_tolerance": 0.0005
+  },
+  "correctness": {
+    "full_start_python_parity_tolerance": 0.005,
+    "full_midgame_python_parity_tolerance": 0.005,
+    "narrow_logits_python_parity_tolerance": 0.005,
+    "narrow_pooled_output_python_parity_tolerance": 0.02,
+    "all_exit_best_move_match": true,
+    "position_conversion_test": true
+  },
+  "rejected_experiments": [
+    "AVX-512 VNNI i16-by-i8 kernels: exact but slower",
+    "degree-six range-reduced exponential: parity-safe but slower",
+    "output-major QKV and FFN-up: slower from strided output traffic",
+    "pairwise pooled-token sum: no material parity tightening"
+  ],
+  "warning": "Host-specific standalone latency only. Shared-host load varies between sessions. No search integration, clock-safety, calibration, tactical-safety, Elo, or SPRT claim is made."
+}

@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "architecture": "Unarchitectured Metal compact Chessformer student",
+  "date": "2026-08-22",
+  "host": {
+    "cpu": "Intel Xeon Processor @ 2.60GHz",
+    "architecture": "x86_64",
+    "visible_logical_cpus": 2,
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)"
+  },
+  "source_sha256": "a7823ba4f2a587faa1d78331a2e8a88eba65c0763aff783bfe4b761e0e6df5d0",
+  "artifact_sha256": "5fd9fc3fbf47bd2620c2e832e24c98525b59feeea791abf1c7ae32b9d311b16d",
+  "backend": {
+    "weights": "retained symmetric package int8",
+    "activations": "dynamic symmetric per-token int16",
+    "accumulator": "int32",
+    "x86_kernel": "AVX2 two-output/three-output four-token microkernels",
+    "fallback": "scalar i16 x i8 to i32"
+  },
+  "controlled_backend_comparison": {
+    "method": "four alternating 50-call rounds per path in the same process after five warmups",
+    "calls_per_path": 200,
+    "one_thread": {
+      "dequantized_f32_milliseconds": 21.487748,
+      "retained_int8_milliseconds": 15.454061,
+      "speedup": 1.3904
+    },
+    "two_threads": {
+      "dequantized_f32_milliseconds": 16.007506,
+      "retained_int8_milliseconds": 13.007211,
+      "speedup": 1.2307
+    }
+  },
+  "two_thread_exit_ladder": {
+    "shallow_2x128_milliseconds": 2.428812,
+    "middle_4x192_milliseconds": 5.213683,
+    "full_8x256_milliseconds": 12.775529
+  },
+  "maximum_integer_vs_dequantized_drift": {
+    "shallow_2x128": {
+      "logits": 0.00012088,
+      "regret_mean": 0.000009,
+      "regret_log_scale": 0.00001705,
+      "evidence": 0.00001311,
+      "representation": 0.00000736
+    },
+    "middle_4x192": {
+      "logits": 0.00006807,
+      "regret_mean": 0.00002086,
+      "regret_log_scale": 0.00001538,
+      "evidence": 0.00000811,
+      "representation": 0.0000109
+    },
+    "full_8x256": {
+      "logits": 0.0000968,
+      "regret_mean": 0.00003862,
+      "regret_log_scale": 0.00005136,
+      "evidence": 0.00002122,
+      "representation": 0.00002832
+    },
+    "enforced_test_tolerance": 0.0005
+  },
+  "correctness": {
+    "full_start_python_parity_tolerance": 0.005,
+    "full_midgame_python_parity_tolerance": 0.005,
+    "narrow_logits_python_parity_tolerance": 0.005,
+    "narrow_pooled_output_python_parity_tolerance": 0.02,
+    "all_exit_best_move_match": true,
+    "position_conversion_test": true
+  },
+  "warning": "Standalone shared-sandbox latency and fixture drift only. This is not integrated search NPS, tactical-safety, calibration, Elo, or SPRT evidence; the model remains unwired."
+}

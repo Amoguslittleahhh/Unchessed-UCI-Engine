@@ -4,7 +4,7 @@ The Core Ultra 9 285H has an Intel AI Boost NPU (~13 TOPS INT8, ~36 platform
 TOPS including CPU+iGPU). Assessment for this engine.
 
 **Short answer: not for the NNUE (worse than the GPU case, by a lot). There is
-exactly one place it genuinely fits — the Unarchitectured v1 transformer — but
+exactly one place it genuinely fits — the Unarchitectured Metal transformer — but
 that feature is currently blocked on *value*, not on cost, so the NPU does not
 unblock anything today.**
 
@@ -36,7 +36,7 @@ one Qwen-1.5B test), because the NPU's advantage is perf-per-watt, not latency.
 For a 256-wide integer dot product the CPU wins outright — that is precisely
 what AVX2/AVX-VNNI is for.
 
-## Case 2 — the Unarchitectured v1 transformer: the one real fit
+## Case 2 — the Unarchitectured Metal transformer: the one real fit
 
 This is a genuinely different workload, and on paper it is *NPU-shaped*:
 
@@ -94,7 +94,7 @@ NPU:  Intel(R) AI Boost
 |---|---:|---:|---:|---:|
 | `tiny_256x1` (single linear layer, NNUE output-layer shape) | 256 | 0.020 ms | 0.395 ms | ~20x slower |
 | `student_8x256` (8x 256x256 matmul+ReLU) | ~0.5M | 0.047 ms | 0.498 ms | ~11x slower |
-| `student_64x256` (64x 256x256 matmul+ReLU, sized to roughly match Unarchitectured v1's ~4.2M runtime params) | ~4.2M | 0.388 ms | 0.580 ms | ~1.5x slower |
+| `student_64x256` (64x 256x256 matmul+ReLU, sized to roughly match Unarchitectured Metal's ~4.2M runtime params) | ~4.2M | 0.388 ms | 0.580 ms | ~1.5x slower |
 
 **This confirms Case 1's verdict with real data, and sharpens it: the real
 measured NPU dispatch cost (~0.3-0.6ms) is *lower* than the ~1ms literature
@@ -114,7 +114,7 @@ shape for the doc's existing argument that Case 2 is "technically a good fit"
 once the feature has value worth accelerating — it just isn't there yet.
 
 **Caveat on the stand-in models, stated plainly:** `student_64x256` is 64
-flat `matmul→ReLU` blocks, not Unarchitectured v1's real architecture
+flat `matmul→ReLU` blocks, not Unarchitectured Metal's real architecture
 (attention, per-layer GAB bias, LoRA policy heads, multiple output heads).
 Real compute is structured very differently and the real model has a real
 memory-access pattern this doesn't reproduce, so this bounds the dispatch-vs-
@@ -142,7 +142,7 @@ depth/NPS, and an SPRT — none of which an NPU answers.
 
 There is also a hard engineering cost: NPU access means **OpenVINO or
 DirectML** — a large vendor-specific dependency, an ONNX/IR export path for
-`aegis_v4_runtime.rs`, per-vendor drivers, and a silent-CPU-fallback failure
+`unarchitectured_metal_runtime.rs`, per-vendor drivers, and a silent-CPU-fallback failure
 mode that is a well-documented footgun. For a dependency-free Rust engine that
 is a significant architectural commitment for a default-off feature whose value
 is unproven.
@@ -152,7 +152,7 @@ is unproven.
 | Use | Verdict |
 |---|---|
 | NNUE eval per node | **No.** ~50,000x dispatch overhead; cannot batch. |
-| Unarchitectured v1 per move | **Technically a good fit**, but the feature is blocked on value, not cost. Revisit only if it passes an SPRT on CPU first. |
+| Unarchitectured Metal per move | **Technically a good fit**, but the feature is blocked on value, not cost. Revisit only if it passes an SPRT on CPU first. |
 | Training / offline labelling | Use the **iGPU or a real GPU**, not the NPU. |
 
 **Recommended: ignore the NPU.** The correct sequencing is to prove the
@@ -170,7 +170,7 @@ shape profile means the port would be relatively clean.
 ## Status flag
 
 NPU dispatch is recorded as an **experimental, unimplemented** capability in
-`config/unarchitectured_v1_runtime_capabilities.json`:
+`config/unarchitectured_metal_runtime_capabilities.json`:
 
 ```json
 "npu_dispatch": false,
@@ -179,11 +179,11 @@ NPU dispatch is recorded as an **experimental, unimplemented** capability in
 
 There is **no NPU code path anywhere in this repository** — inference is
 CPU-only. The flag exists so the state is explicit rather than merely absent,
-and it is *enforced*, not decorative: `tools/unarchitectured_v1_runtime_readiness.py`
+and it is *enforced*, not decorative: `tools/unarchitectured_metal_runtime_readiness.py`
 treats it as an experimental capability that must stay false, and readiness
 fails closed if it is ever flipped on without an implementation behind it —
 even when every other required capability is true. Two regression tests in
-`tools/test_unarchitectured_v1_runtime_readiness.py` lock that in.
+`tools/test_unarchitectured_metal_runtime_readiness.py` lock that in.
 
 If NPU work is ever started, it must:
 
@@ -213,6 +213,6 @@ If NPU work is ever started, it must:
 
 - `docs/performance-ceiling-and-gpu-viability.md` — the GPU analysis this
   parallels, and the 2.67x Amdahl ceiling on evaluator work generally.
-- `docs/unarchitectured-v1-calibration.md` — the top-1 0.255 measurement.
+- `docs/unarchitectured-metal-calibration.md` — the top-1 0.255 measurement.
 - `docs/tuning-core-ultra-9-285h-and-low-end.md` — AVX-VNNI, which is the
   *right* way to accelerate int8 work on this chip.

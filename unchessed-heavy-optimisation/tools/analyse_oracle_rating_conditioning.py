@@ -155,7 +155,7 @@ def load_legacy_oracle(path: Path):
         )
 
     try:
-        from train_unarchitectured_v1_a100 import UnarchitecturedV1Oracle
+        from train_unarchitectured_metal_a100 import UnarchitecturedV1Oracle
 
         model = UnarchitecturedV1Oracle(checkpoint["config"])
         model.load_state_dict(checkpoint["model"], strict=True)
@@ -285,7 +285,7 @@ def run_sweep(
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     try:
         import chess
-        from unarchitectured_v1_position_encoding import encode_position
+        from unarchitectured_metal_position_encoding import encode_position
     except ModuleNotFoundError as exc:
         raise RuntimeError(
             f"missing dependency: {exc.name}; install it on the trusted analysis host"

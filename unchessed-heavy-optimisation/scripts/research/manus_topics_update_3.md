@@ -153,7 +153,7 @@ catches.
 29. **No `bench` command / fixed NPS regression suite.** No standard
     UCI `bench` subcommand or fixed benchmark position set for tracking
     nodes/sec across commits — only ad-hoc microbenchmarks in
-    `aegis_v4_runtime.rs` testing network/hint code specifically, not
+    `unarchitectured_metal_runtime.rs` testing network/hint code specifically, not
     general search throughput. Research whether a lightweight
     fixed-position `bench` command (a few dozen standard positions,
     fixed depth or node budget, report total nodes/sec) is worth adding

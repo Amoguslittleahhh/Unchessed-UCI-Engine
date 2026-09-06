@@ -132,7 +132,7 @@ HEADER_PREFIX = struct.Struct("<8sHHHHIQ32s")
 HEADER = struct.Struct("<8sHHHHIQ32sI")
 
 # The v3 base record (160 bytes) is the frozen struct from
-# unarchitectured_v1_base_data: 12 bitboards, move, promotion, wdl,
+# unarchitectured_metal_base_data: 12 bitboards, move, promotion, wdl,
 # rating, castling, ep_file, halfmove, time_class, flags, history_len,
 # history(8), game_hash, player_hash, teacher_score, best_move,
 # best_score, move_score, ply, remaining_ms, increment_ms, reserved.
@@ -232,7 +232,7 @@ def pack_record(bb: tuple, move: int, promotion: int, wdl: int, rating: int,
                 teacher_best_action: int, policy_kind: int,
                 legal_flags: int, legal_actions: tuple, legal_regrets: tuple,
                 elo_oppo: int, pretrain_quality: int) -> bytes:
-    from unarchitectured_v1_base_data import RECORD as V3_STRUCT
+    from unarchitectured_metal_base_data import RECORD as V3_STRUCT
     assert len(history) == 8
     base_bytes = V3_STRUCT.pack(
         *bb, move, promotion, wdl, rating, castling, ep_file, halfmove,
@@ -253,7 +253,7 @@ def pack_record(bb: tuple, move: int, promotion: int, wdl: int, rating: int,
 
 
 def unpack_record(payload: bytes) -> dict:
-    from unarchitectured_v1_base_data import RECORD as V3_STRUCT
+    from unarchitectured_metal_base_data import RECORD as V3_STRUCT
     base = V3_STRUCT.unpack(payload[: V3_STRUCT.size])
     tail = TAIL_V5.unpack(payload[V3_STRUCT.size:])
     return {

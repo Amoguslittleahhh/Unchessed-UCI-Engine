@@ -2,7 +2,7 @@
 
 Honest results for the recipe-validation ask in
 `docs/nnue-v4-retrain-data-scaling-finding.md` (item 1 of
-`scripts/research/arena_agent_unarchitectured_v1_runtime_speed_prompt.md`).
+`scripts/research/arena_agent_unarchitectured_metal_runtime_speed_prompt.md`).
 
 ## What this round actually did
 
@@ -12,7 +12,7 @@ Honest results for the recipe-validation ask in
 | Recover the shipped default's training recipe | **Done** — from `full_pipeline.sh` / `full_pipeline_cloud.sh` |
 | Fourth local data point (108M shards) | **Not run** — shards not in git; sandbox is 2 vCPU / 3.8 GB / no GPU |
 | Go/no-go on cloud 178M | **NO-GO** until the 108M local SPRT exists; see the recipe |
-| Unarchitectured v1 retrain / oracle rating sweep / MinTime | **Not started** — gated as before |
+| Unarchitectured Metal retrain / oracle rating sweep / MinTime | **Not started** — gated as before |
 | `UnarchitecturedHint` | **Stays default-off** |
 
 Full writeup: `docs/nnue-v4-training-recipe.md`.

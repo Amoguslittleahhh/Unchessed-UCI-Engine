@@ -2,7 +2,7 @@
 
 A broad sweep of arXiv across chess AI and LLM/efficiency research, triaged for
 what could actually affect **this** engine: a from-scratch Rust alpha-beta UCI
-engine with an NNUE evaluator, plus the default-off Unarchitectured v1
+engine with an NNUE evaluator, plus the default-off Unarchitectured Metal
 transformer.
 
 ## How to read this
@@ -72,7 +72,7 @@ Two concrete uses:
    ~7 orders of magnitude more scale, already public.
 2. **A calibration reference point.** They quantify how well Stockfish's search
    can be distilled into a feedforward net — directly comparable to the
-   Unarchitectured v1 question of whether a 4.2M student can carry useful policy
+   Unarchitectured Metal question of whether a 4.2M student can carry useful policy
    signal. Their answer: good but "perfect distillation is still beyond reach",
    which is consistent with the measured top-1 of 0.255.
 
@@ -113,7 +113,7 @@ criticality* is the transferable idea, and it does not require MCTS to use.
 parameters, trained on one T4. Conditions on last-20-move history and clock
 pressure.
 
-Directly comparable to Unarchitectured v1's design (history conditioning, time
+Directly comparable to Unarchitectured Metal's design (history conditioning, time
 class, Elo conditioning are all already in your input encoding). Useful as an
 external accuracy yardstick for the same conditioning signals.
 
@@ -125,7 +125,7 @@ decide well, and these want *contradictory* data (low-rated games give tracking
 diversity, high-rated games give decision quality). Introduces Elo-weighted
 training. 120M params, Lichess bullet 2570, 55.2% top-1.
 
-Worth reading before any further Unarchitectured v1 training: it is a concrete
+Worth reading before any further Unarchitectured Metal training: it is a concrete
 argument about **training-data mixture**, which is a live question for a student
 distilled from mixed-strength Lichess data.
 
@@ -149,7 +149,7 @@ Leela often computes the correct solution in intermediate layers, then
 *overrides* it in the final output due to learned safety priors; steering
 recovers 61.7% of these "forgotten puzzles".
 
-A useful caution for interpreting Unarchitectured v1's weak top-1: a low output
+A useful caution for interpreting Unarchitectured Metal's weak top-1: a low output
 accuracy does not by itself prove the representation lacks the information.
 
 ### B8. FP8 Quantization: The Power of the Exponent
@@ -167,7 +167,7 @@ post-hoc scaling.
 <https://arxiv.org/abs/2305.12356>
 
 Optimal quantization format varies **per layer**; mixing formats layer-wise beats
-committing to one. Applicable to `aegis_v4_runtime.rs`, which currently applies
+committing to one. Applicable to `unarchitectured_metal_runtime.rs`, which currently applies
 one scheme uniformly.
 
 ---
@@ -247,7 +247,7 @@ Concretely:
 - **MoE** — assessed separately in
   `docs/research-notes-moe-2507.11181.md`; rejected except as output-head
   bucketing.
-- **Distillation** is already the Unarchitectured v1 design (58M oracle → 4.2M
+- **Distillation** is already the Unarchitectured Metal design (58M oracle → 4.2M
   student), and round 6 measured the result: top-1 0.255. The blocker is
   latency-vs-value, not distillation technique.
 
@@ -263,7 +263,7 @@ post-hoc calibration.
    published node-count evidence.
 3. **2402.04494** (ChessBench) — free large-scale teacher-labelled data.
 4. **2603.29761** (dual-capability bottleneck) — before any further
-   Unarchitectured v1 training.
+   Unarchitectured Metal training.
 5. **2208.09225** (FP8) — before retrying int8 activations.
 
 ## Priority note

@@ -1,7 +1,7 @@
 """Tests for the ordering-risk analysis.
 
 These guard the two things that would silently invalidate the conclusion in
-`docs/unarchitectured-v1-why-the-hint-costs-elo.md`:
+`docs/unarchitectured-metal-why-the-hint-costs-elo.md`:
 
 1. The **baseline** must stay movegen order. The whole argument rests on
    comparing the hint against what it actually displaces. `go_with_root_hints`
@@ -25,9 +25,9 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-ARTIFACT = ROOT / "benchmarks" / "unarchitectured-v1" / "ordering-risk-2026-08-24.json"
+ARTIFACT = ROOT / "benchmarks" / "unarchitectured-metal" / "ordering-risk-2026-08-24.json"
 SEARCH_RS = ROOT / "unchessed-core" / "src" / "search.rs"
-DOC = ROOT / "docs" / "unarchitectured-v1-why-the-hint-costs-elo.md"
+DOC = ROOT / "docs" / "unarchitectured-metal-why-the-hint-costs-elo.md"
 
 # Metrics where a LOWER value is better.
 LOWER_IS_BETTER = (

@@ -8,7 +8,7 @@
     "unique_sections": true
   },
   "metadata": {
-    "architecture": "Unarchitectured v1",
+    "architecture": "Unarchitectured Metal",
     "architecture_sha256": "9b0795612bd56db13f5bfc6c3af697e61a89a4a4944b8d01642f5a3da84b0f44",
     "calibration": {
       "empirical_coverage": 0.9950000047683716,
@@ -68,7 +68,7 @@
   },
   "model_uuid": "62005b2352bf42f89b843f0c3150771b",
   "passed": true,
-  "path": "/root/data/unarchitectured-v1-final.unarchv1",
+  "path": "/root/data/unarchitectured-metal-final.unmetal",
   "schema": 1,
   "sections": [
     {

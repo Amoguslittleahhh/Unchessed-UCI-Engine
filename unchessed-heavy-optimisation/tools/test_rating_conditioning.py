@@ -23,7 +23,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 ARTIFACT = (
-    ROOT / "benchmarks" / "unarchitectured-v1" / "rating-conditioning-2026-08-25.json"
+    ROOT / "benchmarks" / "unarchitectured-metal" / "rating-conditioning-2026-08-25.json"
 )
 TOOL = ROOT / "tools" / "analyse_rating_conditioning.py"
 DOC = ROOT / "docs" / "rating-conditioning-finding.md"

@@ -52,7 +52,7 @@ Two conclusions, both important:
 
 **AVX-512 is a trap on this CPU.** For the accumulator update it is *slower than
 AVX2* (26.8 vs 13.9 ns) — the classic AVX-512 downclocking penalty, and exactly
-what `docs/unarchitectured-v1-runtime-optimization.md` already found for the
+what `docs/unarchitectured-metal-runtime-optimization.md` already found for the
 Chessformer VNNI experiment. Do not "upgrade" the round-1 kernels to AVX-512.
 
 **int16 at AVX2 width beats f32 at AVX-512 width, by a lot** (13.5 vs 50.1 ns).
@@ -116,7 +116,7 @@ was bit-exact or summation-order-only; quantization changes numbers.
   time, not by rounding a trained f32 net afterwards. Post-hoc rounding of your
   existing v3 net would lose accuracy for no good reason.
 - Your own history confirms this: the int8 *activation* prototype for
-  Unarchitectured v1 failed parity at 1.01e-2 vs the required 5e-3, and the
+  Unarchitectured Metal failed parity at 1.01e-2 vs the required 5e-3, and the
   arXiv survey's FP8 paper (2208.09225) diagnoses precisely this — outliers —
   concluding the difference vanishes under quantization-aware training.
 - Therefore int16 NNUE is a **retraining project** (trainer emits quantized
@@ -161,7 +161,7 @@ algorithm are a matched pair.** Bolting a GPU onto alpha-beta gets the worst of
 both.
 
 **Reason 3, specific to you: round 0 already ran this experiment.** The
-Unarchitectured v1 root hint added ~89 ms per move and lost **0-20-0**. A GPU
+Unarchitectured Metal root hint added ~89 ms per move and lost **0-20-0**. A GPU
 round trip is smaller than 89 ms but the mechanism is identical: fixed per-move
 latency stolen from the move clock. That failure is the empirical version of
 this argument.

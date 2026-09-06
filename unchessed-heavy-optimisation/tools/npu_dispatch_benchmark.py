@@ -11,7 +11,7 @@ Two model sizes are benchmarked:
 - "tiny": a single 256x1 linear layer, matching the NNUE output layer's
   shape. Isolates pure per-call dispatch overhead from compute time.
 - "student": a stack of 256x256 linear+ReLU layers sized to roughly match
-  Unarchitectured v1's ~4.2M runtime parameter count. Approximates a real
+  Unarchitectured Metal's ~4.2M runtime parameter count. Approximates a real
   per-move forward pass's dispatch-plus-compute cost, not just dispatch.
 
 Both are run on CPU and NPU for comparison. Output is machine-readable JSON
@@ -90,7 +90,7 @@ def main():
         "tiny_256x1": (build_tiny_model(np, ov), (1, 256)),
         "student_8x256": (build_student_model(np, ov, 8, 256), (1, 256)),
         # ~64 x 256x256 matmuls =~ 4.2M multiply-add params, roughly matching
-        # Unarchitectured v1's runtime student parameter count, to see
+        # Unarchitectured Metal's runtime student parameter count, to see
         # whether NPU throughput offsets its fixed dispatch overhead at
         # closer-to-real compute scale (this is still a flat MLP stand-in,
         # not the real attention/GAB architecture -- real compute is

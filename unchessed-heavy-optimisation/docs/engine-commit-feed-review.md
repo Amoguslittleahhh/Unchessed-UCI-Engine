@@ -24,7 +24,7 @@ through `search.rs` unit tests, no EPD file, no runner, no coverage record.
 It matters here more than it might elsewhere, because mate handling is this
 engine's weakest *measured* area:
 
-- `docs/unarchitectured-v1-theme-breakdown.md` put `mate_available` last of
+- `docs/unarchitectured-metal-theme-breakdown.md` put `mate_available` last of
   nine categories: top-1 **0.2105**, mean regret **408.7cp**, against
   0.7583 / 38.9cp for captures.
 - The round-8 disagreement work found the real checkpoint ranking a forced
@@ -55,7 +55,7 @@ LEB128, and guard against corrupted files", "Read hash_bytes tail bytes as
 unsigned", "Refuse a failed large-page allocation". Our equivalent surface is
 the two net loaders, and they are already guarded — `nnue.rs` rejects a bad
 magic, an unsupported version, a wrong `ft_in`/`acc`, and any truncation
-(`read_f32s` bounds-checks every read); `unarchitectured_v1.rs` has 18 distinct
+(`read_f32s` bounds-checks every read); `unarchitectured_metal.rs` has 18 distinct
 error returns. Rust also removes the specific UB class most of those commits
 address. Nothing to port.
 

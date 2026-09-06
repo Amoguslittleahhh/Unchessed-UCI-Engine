@@ -77,7 +77,7 @@ That's the whole ask for this trial — establishing whether this
 environment can do the one thing arena's sandbox categorically cannot.
 No engineering changes needed yet; if this works, there's a real backlog
 of open items in
-`scripts/research/arena_agent_unarchitectured_v1_runtime_speed_prompt.md`
+`scripts/research/arena_agent_unarchitectured_metal_runtime_speed_prompt.md`
 that could use a second environment capable of compiling Rust, but
 that's a separate follow-up conversation once this baseline is confirmed.
 
@@ -130,9 +130,9 @@ data generation).
    history and the current best next idea (relabeling existing shards
    with stronger search-derived scores, not more of the same data —
    `tools/nnue_relabel_existing.py`) are in the backlog doc below.
-2. **Unarchitectured v1** — an experimental transformer-based move-
-   ordering hint (`unchessed-core/src/aegis_v4_runtime.rs`,
-   `unarchitectured_v1.rs`). Real, measured runtime speedups exist
+2. **Unarchitectured Metal** — an experimental transformer-based move-
+   ordering hint (`unchessed-core/src/unarchitectured_metal_runtime.rs`,
+   `unarchitectured_metal.rs`). Real, measured runtime speedups exist
    (currently ~7.5ms/call forward pass on reference hardware), but the
    hint itself (`UnarchitecturedHint` UCI option) has **never once
    trended positive** across four real SPRT batches and **must stay
@@ -157,13 +157,13 @@ data generation).
   substitute — this project had one catastrophic failure early on from
   wiring an unvalidated hint directly into search, and treats that as
   the reason the rule exists.
-- **Any change to `aegis_v4_runtime.rs` must keep passing** these three
+- **Any change to `unarchitectured_metal_runtime.rs` must keep passing** these three
   tests exactly (`cargo test -p unchessed-core --release`):
   `start_position_matches_python_reference`,
   `midgame_position_matches_python_reference`,
   `position_to_input_matches_hand_built_start_position`. They're the
   only thing proving the Rust forward pass matches
-  `tools/reference_forward_unarchitectured_v1.py` numerically. Don't
+  `tools/reference_forward_unarchitectured_metal.py` numerically. Don't
   trade correctness for speed without re-checking against that reference.
 - **State benchmark numbers as host-specific.** Never imply a speed
   number measured on one machine transfers 1:1 to another.
@@ -196,20 +196,20 @@ that itself would be a finding.
 
 ### Key files to know about
 
-- `scripts/research/arena_agent_unarchitectured_v1_runtime_speed_prompt.md`
+- `scripts/research/arena_agent_unarchitectured_metal_runtime_speed_prompt.md`
   — the **living status/backlog document** for this project's ongoing
   engineering work. Read it for the actual current open-items list,
   round-by-round history, and the full pre-flight checklist referenced
   above. This is the single most useful file to read before doing any
   real engineering task here.
-- `unchessed-core/src/nnue.rs`, `unchessed-core/src/aegis_v4_runtime.rs`,
+- `unchessed-core/src/nnue.rs`, `unchessed-core/src/unarchitectured_metal_runtime.rs`,
   `unchessed-core/src/adapt.rs`, `unchessed-core/src/uci.rs` — the four
   files where almost all recent engineering work has happened.
 - `tools/train_nnue.py`, `tools/nnue_train_control.py`,
   `tools/nnue_relabel_existing.py` — NNUE training/relabeling tooling.
 - `docs/` — one markdown writeup per finding/round, all named
   descriptively (e.g. `nnue-v4-108m-recipe-result.md`,
-  `unarchitectured-v1-why-the-hint-costs-elo.md`). Grep this directory
+  `unarchitectured-metal-why-the-hint-costs-elo.md`). Grep this directory
   before assuming something hasn't been tried.
 - `scripts/setup-rust-toolchain.sh` — the toolchain bootstrap this trial
   is testing.
@@ -228,7 +228,7 @@ not by ease:
 
 1. **Raw playing strength ("brute force") has had almost no direct
    attention this whole project.** Every recent round has been NNUE
-   retraining, the Unarchitectured v1 hint, or persona/adapter behavior
+   retraining, the Unarchitectured Metal hint, or persona/adapter behavior
    — none of which have produced a strength gain yet (the hint never
    has; the best NNUE v4 retrain is still −155.6 Elo behind the shipped
    default). **Nobody has touched classic alpha-beta search tuning
@@ -262,7 +262,7 @@ not by ease:
    ship enabled, the flip-rate and misfire claims need a way to be
    measured from real game logs (not just PGN results), not just trusted
    from simulation. Nobody has built that measurement yet.
-4. **GAB (the attention-bias mechanism in Unarchitectured v1) is
+4. **GAB (the attention-bias mechanism in Unarchitectured Metal) is
    provisioned at roughly a quarter of the capacity used in the
    comparable published architecture** (`docs/gab-capacity-finding.md`),
    and **weights sit 2.06x outside the int8 quantization range**

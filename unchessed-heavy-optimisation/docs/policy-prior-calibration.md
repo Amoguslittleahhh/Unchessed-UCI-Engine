@@ -65,7 +65,7 @@ rounds, and it is narrow but genuine: **the policy's confidence is a usable
 signal, and we currently throw it away.**
 
 It does not resurrect the root hint. The negative SPRT results stand, and
-`docs/unarchitectured-v1-why-the-hint-costs-elo.md` explains why — the cost is
+`docs/unarchitectured-metal-why-the-hint-costs-elo.md` explains why — the cost is
 charged to every move while the benefit lands on the cheapest search pass.
 Calibration does not change that arithmetic.
 

@@ -71,7 +71,7 @@ my arithmetic, not a published figure):
 
 The savings become load-bearing only beyond ~500M–1B params, or when the
 constraint is a sub-48 GB card rather than an 80 GB one. Note the 58M-param
-Unarchitectured v1 oracle in this repo trained fine with ordinary
+Unarchitectured Metal oracle in this repo trained fine with ordinary
 backprop — the original A100 40-vs-80 GB sizing pain (44.5 GB peak on a
 *tiny* NNUE run) was batch-driven activation bloat in a dense lookup-table
 network, which is not a residual-block stack and is not fixable by

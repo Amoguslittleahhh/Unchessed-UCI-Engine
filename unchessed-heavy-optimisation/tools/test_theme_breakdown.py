@@ -4,7 +4,7 @@ The tagger's whole value is that it is *independent* of the model it judges --
 it reads the teacher's scores and the board only. These tests pin that
 property down, check the classifier on positions whose themes are obvious by
 construction, and assert the committed artifact still supports the claims in
-`docs/unarchitectured-v1-theme-breakdown.md`.
+`docs/unarchitectured-metal-theme-breakdown.md`.
 
 No torch required.
 """
@@ -18,8 +18,8 @@ from pathlib import Path
 import chess
 
 ROOT = Path(__file__).resolve().parent.parent
-ARTIFACT = ROOT / "benchmarks" / "unarchitectured-v1" / "theme-breakdown-2026-08-25.json"
-DOC = ROOT / "docs" / "unarchitectured-v1-theme-breakdown.md"
+ARTIFACT = ROOT / "benchmarks" / "unarchitectured-metal" / "theme-breakdown-2026-08-25.json"
+DOC = ROOT / "docs" / "unarchitectured-metal-theme-breakdown.md"
 
 import sys  # noqa: E402
 

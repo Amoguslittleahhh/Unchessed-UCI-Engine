@@ -1897,10 +1897,10 @@ mod tests {
     /// structured way, preferring natural-looking moves.
     ///
     /// These logits are not invented. They were measured by running
-    /// `artifacts/unarchitectured-v1-final.unarchv1` through
-    /// `tools/find_unarchitectured_v1_hint_disagreements.py`; the full output
+    /// `artifacts/unarchitectured-metal-final.unmetal` through
+    /// `tools/find_unarchitectured_metal_hint_disagreements.py`; the full output
     /// is committed at
-    /// `benchmarks/unarchitectured-v1/hint-disagreements-2026-08-24.json`.
+    /// `benchmarks/unarchitectured-metal/hint-disagreements-2026-08-24.json`.
     /// The model puts Ka2/Kg2 and four rook moves ahead of Ra8#.
     #[test]
     fn real_checkpoint_ranking_cannot_suppress_back_rank_mate() {

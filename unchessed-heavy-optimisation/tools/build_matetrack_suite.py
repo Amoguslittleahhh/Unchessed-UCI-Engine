@@ -17,7 +17,7 @@ scattered through `search.rs` unit tests and nothing else -- no EPD file, no
 runner, no coverage record.
 
 It matters here more than it might elsewhere. The theme breakdown
-(`docs/unarchitectured-v1-theme-breakdown.md`) measured `mate_available` as the
+(`docs/unarchitectured-metal-theme-breakdown.md`) measured `mate_available` as the
 policy's **worst** category: top-1 0.2105 and mean regret 408.7cp, against
 0.7583 / 38.9cp for captures. And the round-8 disagreement work found the real
 checkpoint ranking a forced back-rank mate **10th of 17**. Mate handling is the

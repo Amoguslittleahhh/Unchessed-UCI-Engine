@@ -24,10 +24,10 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-ARTIFACT = ROOT / "benchmarks" / "unarchitectured-v1" / "gab-ablation-2026-08-25.json"
-ORDERING = ROOT / "benchmarks" / "unarchitectured-v1" / "ordering-risk-2026-08-24.json"
+ARTIFACT = ROOT / "benchmarks" / "unarchitectured-metal" / "gab-ablation-2026-08-25.json"
+ORDERING = ROOT / "benchmarks" / "unarchitectured-metal" / "ordering-risk-2026-08-24.json"
 DOC = ROOT / "docs" / "gab-capacity-finding.md"
-PACKAGE = ROOT / "artifacts" / "unarchitectured-v1-final.unarchv1"
+PACKAGE = ROOT / "artifacts" / "unarchitectured-metal-final.unmetal"
 
 # The paper's own configurations, arXiv:2605.19091 Appendix A.1.
 PAPER_5M = {"d1": 32, "d2": 64, "d3": 64}

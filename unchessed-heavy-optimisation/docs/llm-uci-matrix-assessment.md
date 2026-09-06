@@ -26,12 +26,12 @@ no token decoder, so:
 - **Row 3 (long-context PGN history)** does not transfer directly. Our model
   does consume a history vector, but it is a 32-wide projection of *time
   control and rating only* (`history_len=0`, see
-  `tools/reference_forward_unarchitectured_v1.py`) — there is no move history
+  `tools/reference_forward_unarchitectured_metal.py`) — there is no move history
   in the input at all. Adding real history would be a format change plus a
   retrain, which the SPRT record does not justify.
 - **Row 4 (LLM policy + MCTS)** is the architecture this project already
   rejected on evidence. Four SPRT batches found the policy hint never trended
-  positive, and `docs/unarchitectured-v1-why-the-hint-costs-elo.md` explains
+  positive, and `docs/unarchitectured-metal-why-the-hint-costs-elo.md` explains
   why: the benefit lands on the cheapest search pass while the cost is charged
   to every move. Swapping alpha-beta for MCTS to deepen that coupling would be
   a very large change justified by nothing measured here.
@@ -44,7 +44,7 @@ ever produce a move that is not legal?* — is a real one, so I traced it.
 **The Rust runtime is structurally immune to the LLM version of this
 problem.** It never scores illegal moves in the first place: logits are
 computed by iterating `input.legal_actions` directly
-(`aegis_v4_runtime.rs`), so the output vector only ever contains real legal
+(`unarchitectured_metal_runtime.rs`), so the output vector only ever contains real legal
 moves. There is no masking step to get wrong. `validate` additionally rejects
 an empty action list, more than 218 actions, and any action outside
 `64*64*5`. The Python reference *does* use `masked_fill(~legal_mask, -1e4)`,

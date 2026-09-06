@@ -4,7 +4,7 @@
 Why
 ---
 
-`docs/unarchitectured-v1-runtime-optimization.md` lists calibrated int8
+`docs/unarchitectured-metal-runtime-optimization.md` lists calibrated int8
 activations as the first item of "Remaining performance work". The runtime
 already retains int8 *weights* and quantizes activations to **int16**. Going
 to int8 activations would let AVX2 use `maddubs`-style 8x8->16 products with
@@ -63,8 +63,8 @@ Usage
 -----
 
     python tools/analyse_int8_activation_calibration.py \
-        --package artifacts/unarchitectured-v1-final.unarchv1 \
-        --out benchmarks/unarchitectured-v1/int8-activation-calibration.json
+        --package artifacts/unarchitectured-metal-final.unmetal \
+        --out benchmarks/unarchitectured-metal/int8-activation-calibration.json
 
 Requires `torch` (same dependency as the reference forward it builds on).
 """
@@ -155,7 +155,7 @@ def patched_forward(w, batch, config, layers, width, scheme, sites, cost=None, *
     import torch
     import torch.nn.functional as F
 
-    import reference_forward_unarchitectured_v1 as ref
+    import reference_forward_unarchitectured_metal as ref
 
     real_linear = F.linear
     counter = {"n": 0}
@@ -217,7 +217,7 @@ def midgame_batch():
     import torch
     import chess
 
-    from unarchitectured_v1_position_encoding import encode_position
+    from unarchitectured_metal_position_encoding import encode_position
 
     board = chess.Board()
     board.push_san("e4")
@@ -273,7 +273,7 @@ def main():
         description="Measure whether calibrated int8 activations can pass 5e-3."
     )
     parser.add_argument(
-        "--package", default=str(ROOT / "artifacts" / "unarchitectured-v1-final.unarchv1")
+        "--package", default=str(ROOT / "artifacts" / "unarchitectured-metal-final.unmetal")
     )
     parser.add_argument("--out", default=None)
     parser.add_argument("--group-size", type=int, default=32)
@@ -305,7 +305,7 @@ def main():
     )
     args = parser.parse_args()
 
-    import reference_forward_unarchitectured_v1 as ref
+    import reference_forward_unarchitectured_metal as ref
 
     w = ref.read_package(args.package)
     config = {"d_model": 256, "heads": 8, "history_width": 32, "policy_adapter_rank": 16}
@@ -431,11 +431,11 @@ def main():
             import chess as _chess
             import torch as _torch
 
-            from unarchitectured_v1_position_encoding import (
+            from unarchitectured_metal_position_encoding import (
                 encode_position as _encode,
             )
 
-            _corpus = ROOT / "artifacts" / "unarchitectured-v1-calibration-corpus.jsonl"
+            _corpus = ROOT / "artifacts" / "unarchitectured-metal-calibration-corpus.jsonl"
             _rows = []
             with _corpus.open() as fh:
                 for line in fh:
@@ -541,9 +541,9 @@ def main():
         # the assignment is overfit and the finding is negative.
         import chess
 
-        from unarchitectured_v1_position_encoding import encode_position
+        from unarchitectured_metal_position_encoding import encode_position
 
-        corpus = ROOT / "artifacts" / "unarchitectured-v1-calibration-corpus.jsonl"
+        corpus = ROOT / "artifacts" / "unarchitectured-metal-calibration-corpus.jsonl"
         shared = set(report["shared_assignment"]["sites_int8"])
         rows = []
         with corpus.open() as fh:

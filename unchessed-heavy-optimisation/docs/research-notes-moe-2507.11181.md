@@ -94,12 +94,12 @@ So this note records the design rather than shipping a half-version.
   this model size.
 - **Hierarchical / two-level MoE (H-MoE, MixER).** Multi-stage routing for a
   512x1 layer is strictly overhead.
-- **Sparse expert scaling for Unarchitectured v1.** The 4.2M-param student is
+- **Sparse expert scaling for Unarchitectured Metal.** The 4.2M-param student is
   already too slow to pay per move (round 0), and its measured policy top-1 is
   0.255. More capacity is not the blocker; the blocker is that the forward pass
   costs more than it returns. MoE would raise capacity while *increasing*
   latency variance — the wrong direction.
-- **LoRA-MoE.** Already effectively present: Unarchitectured v1 has rank-16
+- **LoRA-MoE.** Already effectively present: Unarchitectured Metal has rank-16
   human/guide policy adapters routed by `policy_kind`, which is exactly the
   LoRA-MoE pattern the paper describes (`POLICY_ADAPTER_RANK = 16`,
   `policy_body/source/target.adapter_a/b`). Nothing to add.

@@ -52,7 +52,7 @@ Those tests establish the absolute-perspective update machinery, but **there is 
 
 The requested Cargo tests could not be executed in this sandbox. The checked-in `Cargo.lock` is version 4, while the available toolchain is `rustc 1.75.0`/`cargo 1.75.0`; Cargo terminated before compilation with `lock file version 4 requires -Znext-lockfile-bump`. No lockfile edit or toolchain workaround was applied. The report therefore distinguishes source proof and existing checked-in tests from newly executed tests: **new test execution: not run due to toolchain/lockfile incompatibility; source audit: completed.**
 
-The three master-brief `aegis_v4_runtime` parity gates are unrelated to this NNUE/search path and were not modified. Existing documentation records that those gates must remain passing for any changes to that runtime; no such change was made here.
+The three master-brief `unarchitectured_metal_runtime` parity gates are unrelated to this NNUE/search path and were not modified. Existing documentation records that those gates must remain passing for any changes to that runtime; no such change was made here.
 
 ## Authoritative external evidence
 

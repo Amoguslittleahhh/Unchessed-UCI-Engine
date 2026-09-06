@@ -26,7 +26,7 @@ moves. The standard way to get that is a two-stage design:
    resumed from the stage-1 best checkpoint: aligns the level axis
    and pulls in human style (the mixed corpus is engine-styled).
 
-Stage 1+2 run the **Unarchitectured v1 oracle architecture** with
+Stage 1+2 run the **Unarchitectured Metal oracle architecture** with
 two retrain-round changes:
 
 - **dual-elo conditioning** — the single-scalar rating path in
@@ -79,7 +79,7 @@ the epoch log and the checkpoint metrics.
 
 `tools/pretrain_move_dataset.py` + `tools/pretrain_move_predictor.py`
 (NumPy MLP, 256-wide) on the committed 13,076-row self-play
-reference — `benchmarks/unarchitectured-v1/pretrain-probe-2026-08-28.json`:
+reference — `benchmarks/unarchitectured-metal/pretrain-probe-2026-08-28.json`:
 
 | Metric | Value |
 |---|---|
