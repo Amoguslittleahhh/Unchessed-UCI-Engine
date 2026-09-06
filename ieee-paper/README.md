@@ -13,4 +13,6 @@ pdflatex -interaction=nonstopmode opponent_detection_latency.tex
 pdflatex -interaction=nonstopmode opponent_detection_latency.tex
 ```
 
-The supplied raw PGN and CSV were not present in this checkout. The paper therefore labels the detector trace as a reviewer-supplied private artifact and explicitly limits causal claims to the evidence available in the trace.
+The paper now also records the default-off `AcceleratedDetection` implementation and the 1,000-game real paired-game SPRT. It treats the mirror SPRT as an operational-safety and no-strength-cost result, not as a direct detection-latency measurement, and specifies the asymmetric telemetry experiment needed to measure moves-to-Full.
+
+The supplied raw PGN and CSV for the original Dragon game were not present in this checkout. The paper therefore labels that detector trace as a reviewer-supplied private artifact and explicitly limits causal claims to the evidence available in the trace.
