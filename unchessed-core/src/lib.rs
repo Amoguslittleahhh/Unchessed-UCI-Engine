@@ -10,6 +10,7 @@ pub mod fen;
 pub mod perft;
 pub mod san;
 pub mod eval;
+pub(crate) mod cpu;
 pub mod nnue;
 pub mod tt;
 pub mod search;

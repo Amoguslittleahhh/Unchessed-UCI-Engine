@@ -63,6 +63,7 @@
 //! two distinct rows since two kings can never occupy the same square.
 
 use crate::board::*;
+use crate::cpu;
 use crate::eval::{Eval, EvalState, NnueEvalState};
 
 pub const ACC: usize = 256;
@@ -176,22 +177,6 @@ fn read_f32s(buf: &[u8], off: &mut usize, n: usize) -> Result<Vec<f32>, String> 
 // the only path on non-x86).
 // ---------------------------------------------------------------------------
 
-#[cfg(target_arch = "x86_64")]
-#[inline]
-fn have_avx2() -> bool {
-    use std::sync::OnceLock;
-    static AVX2: OnceLock<bool> = OnceLock::new();
-    *AVX2.get_or_init(|| {
-        std::is_x86_feature_detected!("avx2") && std::is_x86_feature_detected!("fma")
-    })
-}
-
-#[cfg(not(target_arch = "x86_64"))]
-#[inline]
-fn have_avx2() -> bool {
-    false
-}
-
 #[inline]
 fn add_row_scalar(acc: &mut [f32], row: &[f32]) {
     for (a, w) in acc.iter_mut().zip(row) {
@@ -248,8 +233,8 @@ unsafe fn sub_row_avx2(acc: &mut [f32], row: &[f32]) {
 fn add_row(acc: &mut [f32], ft_w: &[f32], idx: usize) {
     let row = &ft_w[idx * ACC..(idx + 1) * ACC];
     #[cfg(target_arch = "x86_64")]
-    if have_avx2() {
-        // SAFETY: guarded by a runtime AVX2+FMA check; the kernel only
+    if cpu::has_avx2() {
+        // SAFETY: guarded by a runtime AVX2 check; the kernel only
         // touches `acc`/`row` within their shared length.
         unsafe {
             add_row_avx2(acc, row);
@@ -263,7 +248,7 @@ fn add_row(acc: &mut [f32], ft_w: &[f32], idx: usize) {
 fn sub_row(acc: &mut [f32], ft_w: &[f32], idx: usize) {
     let row = &ft_w[idx * ACC..(idx + 1) * ACC];
     #[cfg(target_arch = "x86_64")]
-    if have_avx2() {
+    if cpu::has_avx2() {
         // SAFETY: as above.
         unsafe {
             sub_row_avx2(acc, row);
@@ -341,7 +326,7 @@ unsafe fn crelu_dot_avx2(acc: &[f32], w: &[f32]) -> f32 {
 #[inline]
 fn screlu_dot(acc: &[f32], w: &[f32]) -> f32 {
     #[cfg(target_arch = "x86_64")]
-    if have_avx2() {
+    if cpu::has_avx2_fma() {
         // SAFETY: guarded by a runtime AVX2+FMA check.
         return unsafe { screlu_dot_avx2(acc, w) };
     }
@@ -356,7 +341,7 @@ fn screlu_dot(acc: &[f32], w: &[f32]) -> f32 {
 #[inline]
 fn crelu_dot(acc: &[f32], w: &[f32]) -> f32 {
     #[cfg(target_arch = "x86_64")]
-    if have_avx2() {
+    if cpu::has_avx2_fma() {
         // SAFETY: guarded by a runtime AVX2+FMA check.
         return unsafe { crelu_dot_avx2(acc, w) };
     }
@@ -809,7 +794,7 @@ mod tests {
         {
             let mut tmp = simd_acc.clone();
             #[cfg(target_arch = "x86_64")]
-            if have_avx2() {
+            if cpu::has_avx2() {
                 unsafe { add_row_avx2(&mut tmp, row) };
             } else {
                 add_row_scalar(&mut tmp, row);
@@ -829,7 +814,7 @@ mod tests {
         {
             let mut tmp = simd_acc.clone();
             #[cfg(target_arch = "x86_64")]
-            if have_avx2() {
+            if cpu::has_avx2() {
                 unsafe { sub_row_avx2(&mut tmp, row) };
             } else {
                 sub_row_scalar(&mut tmp, row);
