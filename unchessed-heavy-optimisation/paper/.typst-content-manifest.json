@@ -1,0 +1,14 @@
+{
+  "task_kind": "existing-typst",
+  "output": "pdf",
+  "signals": ["ieee", "charged-ieee"],
+  "hard_constraints": ["full research paper", "IEEE-style layout"],
+  "content_features": {
+    "code_blocks": 2,
+    "defined_terms": 12,
+    "portrait_images": 0,
+    "tables": 6,
+    "figures": 0,
+    "bibliography": true
+  }
+}
