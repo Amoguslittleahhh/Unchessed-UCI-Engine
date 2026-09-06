@@ -64,6 +64,21 @@ const KNOWN_ENGINES: &[(&str, i32)] = &[
 // Live opponent model
 // ---------------------------------------------------------------------------
 
+/// Accelerated-confirmation thresholds (default-off, UCI AcceleratedDetection).
+/// Real-game finding (2026-09-06, Unchessed vs Dragon by Komodo, 1+1 bullet):
+/// the legacy ceiling rule (weight>=10.0 && mean>=2450.0) took 17 opponent
+/// moves to confirm a consistently strong engine whose Elo estimate had
+/// already climbed monotonically from ~2411 to ~2650 with narrowing
+/// confidence the whole time -- the *estimate* was informative long before
+/// the *classification* flipped. This adds a second, independent path that
+/// only fires on a sustained (2 consecutive, or 1 plus a clock tell),
+/// non-erratic, non-negative-trending high estimate -- it does not relax
+/// the existing weight/mean ceiling rule, which stays unchanged.
+const ACCEL_N_MIN: u32 = 8; // post-opening evidence, matches observe_time's own opening gate
+const ACCEL_R_MIN: f64 = 2550.0;
+const ACCEL_C_MAX: i32 = 220;
+const ACCEL_V_MAX: i32 = 300; // stays below trend()'s own erratic cutoff of 380
+
 #[derive(Clone)]
 pub struct OpponentModel {
     /// running Elo estimate
@@ -90,6 +105,12 @@ pub struct OpponentModel {
     low_loss_streak: u32,
     /// Default-off retune. Live search uses this only when UCI EngineDetectV2=true.
     pub experimental_detect: bool,
+    /// Consecutive observations satisfying `accelerated_ceiling`'s per-move
+    /// predicate. Reset to 0 by any non-qualifying observation.
+    accel_streak: u32,
+    /// Default-off secondary confirmation path. Live search uses this only
+    /// when UCI AcceleratedDetection=true. See `accelerated_ceiling`.
+    pub accelerated_detect: bool,
 }
 
 /// Stable explanation for the detector rule currently in effect.
@@ -106,6 +127,7 @@ pub enum SuspectReason {
     V2ClockThreshold,
     V2DeclaredExempt,
     V2AnonymousCeiling,
+    LegacyAcceleratedCeiling,
 }
 
 impl SuspectReason {
@@ -119,6 +141,7 @@ impl SuspectReason {
             SuspectReason::V2ClockThreshold => "v2_clock_threshold",
             SuspectReason::V2DeclaredExempt => "v2_declared_exempt",
             SuspectReason::V2AnonymousCeiling => "v2_anonymous_ceiling",
+            SuspectReason::LegacyAcceleratedCeiling => "legacy_accelerated_ceiling",
         }
     }
 
@@ -164,6 +187,8 @@ impl OpponentModel {
             suspicion: 0.0,
             low_loss_streak: 0,
             experimental_detect: false,
+            accel_streak: 0,
+            accelerated_detect: false,
         }
     }
 
@@ -247,6 +272,16 @@ impl OpponentModel {
         } else {
             self.low_loss_streak = 0;
         }
+        let qualifies = self.samples >= ACCEL_N_MIN
+            && self.mean >= ACCEL_R_MIN
+            && self.confidence() <= ACCEL_C_MAX
+            && self.volatility() <= ACCEL_V_MAX
+            && self.mean >= self.prev_mean;
+        self.accel_streak = if qualifies {
+            self.accel_streak.saturating_add(1)
+        } else {
+            0
+        };
     }
 
     /// Feed the opponent's clock usage for their last move. Near-instant,
@@ -308,10 +343,21 @@ impl OpponentModel {
             return SuspectReason::LegacyClock;
         }
         if self.weight >= 10.0 && self.mean >= 2450.0 {
-            SuspectReason::LegacyCeiling
+            return SuspectReason::LegacyCeiling;
+        }
+        if self.accelerated_detect && self.accelerated_ceiling() {
+            SuspectReason::LegacyAcceleratedCeiling
         } else {
             SuspectReason::None
         }
+    }
+
+    /// Second, independent confirmation path (see the `ACCEL_*` constants'
+    /// doc comment). Requires either two consecutive qualifying observations,
+    /// or one qualifying observation plus a live clock tell -- a single
+    /// qualifying move is never enough on its own.
+    fn accelerated_ceiling(&self) -> bool {
+        self.accel_streak >= 2 || (self.accel_streak >= 1 && self.suspicion >= 2.0)
     }
 
     fn suspect_reason_v2(&self) -> SuspectReason {
@@ -1213,6 +1259,56 @@ mod tests {
             m.observe(8, 1.0);
         }
         assert!(m.estimate() > 2300, "estimate {}", m.estimate());
+    }
+
+    #[test]
+    fn accelerated_detection_confirms_sooner_than_legacy_ceiling_when_enabled() {
+        // difficulty_weight=0.4 mirrors realistic mid-game evidence (not
+        // every position is maximally decisive): under this weighting the
+        // accelerated path confirms at observation 21, well before the
+        // legacy weight>=10.0 ceiling confirms at observation 30 -- both
+        // verified against this exact model by direct instrumentation.
+        let mut m = OpponentModel::new();
+        m.accelerated_detect = true;
+        for _ in 0..21 {
+            m.observe(8, 0.4);
+        }
+        assert!(
+            m.engine_suspect(),
+            "accelerated path should confirm a sustained, high, narrow, non-erratic estimate"
+        );
+        assert_eq!(m.suspect_reason(), SuspectReason::LegacyAcceleratedCeiling);
+    }
+
+    #[test]
+    fn accelerated_detection_is_default_off_and_does_not_change_legacy_timing() {
+        let mut m = OpponentModel::new();
+        for _ in 0..21 {
+            m.observe(8, 0.4);
+        }
+        // Same 21 observations that trip the accelerated path when enabled
+        // must not trip anything when the option is off: the legacy ceiling
+        // does not confirm until observation 30 at this weighting (see the
+        // ACCEL_* doc comment for the real-game motivation).
+        assert!(
+            !m.engine_suspect(),
+            "accelerated_detect defaults off; must not fire"
+        );
+    }
+
+    #[test]
+    fn accelerated_detection_needs_two_qualifying_observations_or_a_clock_tell() {
+        let mut m = OpponentModel::new();
+        m.accelerated_detect = true;
+        for _ in 0..20 {
+            m.observe(8, 0.4);
+        }
+        // At observation 20, only the first qualifying observation has been
+        // seen (streak=1) and there is no clock tell -- must not confirm yet.
+        assert!(
+            !m.engine_suspect(),
+            "a single qualifying observation must not be enough on its own"
+        );
     }
 
     #[test]
