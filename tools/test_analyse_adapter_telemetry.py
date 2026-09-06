@@ -87,6 +87,18 @@ class AdapterTelemetryParserTests(unittest.TestCase):
         self.assertEqual(records[0]["accelerated_evidence_milli"], 0)
         self.assertEqual(records[0]["accelerated_streak"], 0)
 
+    def test_resilient_diagnostics_and_reason_parse(self):
+        resilient = OBS.format(game=4, ply=31, observation=3, options=OPTIONS, suspect=1)
+        resilient = resilient.replace(
+            "suspect_reason=none accelerated_score_milli=0 accelerated_evidence_milli=0 accelerated_streak=0 action_full=0",
+            "suspect_reason=legacy_accelerated_resilient accelerated_score_milli=0 accelerated_evidence_milli=0 accelerated_streak=0 accelerated_resilient_score_milli=712 accelerated_resilient_evidence_milli=533 accelerated_resilient_streak=2 action_full=1",
+        )
+        records = parse_telemetry_text(resilient)
+        self.assertEqual(records[0]["suspect_reason"], "legacy_accelerated_resilient")
+        self.assertEqual(records[0]["accelerated_resilient_score_milli"], 712)
+        self.assertEqual(records[0]["accelerated_resilient_evidence_milli"], 533)
+        self.assertEqual(records[0]["accelerated_resilient_streak"], 2)
+
     def test_malformed_unknown_schema_duplicate_field_and_duplicate_index_rejected(self):
         bad_schema = OBS.format(game=1, ply=23, observation=1, options=OPTIONS, suspect=0).replace("v=1", "v=2")
         with self.assertRaisesRegex(TelemetryError, "unknown schema version"):
