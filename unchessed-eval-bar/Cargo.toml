@@ -1,0 +1,7 @@
+[package]
+name = "unchessed-eval-bar"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+unchessed-core = { path = "../unchessed-core" }

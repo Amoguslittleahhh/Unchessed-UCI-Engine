@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["unchessed-core", "unchessed-adapter", "unchessed-reviewer", "unchessed-datagen"]
+members = ["unchessed-core", "unchessed-adapter", "unchessed-reviewer", "unchessed-datagen", "unchessed-eval-bar"]
 
 [profile.release]
 opt-level = 3
