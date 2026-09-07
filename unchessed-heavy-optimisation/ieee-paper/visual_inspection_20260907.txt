@@ -1,3 +1,3 @@
-Final visual QA after the matched 40-game conclusion update.
+Visual QA after adding the calibrated Maia-safe gate and fresh official-engine validation.
 
-The three-page IEEEtran PDF remains readable and structurally sound. The updated results paragraph fits in the two-column layout without clipping, the strict semantic result and 14/20 matched-ONNX result are legible, and the figure, table, references, headings, and equations remain intact. The paper uses the corrected interpretation: reason purity is fixed, but the ONNX false-positive rate is not claimed to improve. No undefined-reference or LaTeX build errors remain after the two-pass compilation.
+The final three-page IEEEtran PDF renders cleanly in two columns. The added bounded-volatility and clean-streak calibration text fits without clipping; the results, figure, table, references, equations, and headings remain readable. The conclusion correctly avoids claiming universal false-positive safety and distinguishes the 20-game official Maia baseline from the fresh 6-game calibrated probe. Two-pass compilation completed without undefined-reference or LaTeX errors.

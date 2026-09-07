@@ -1,0 +1,23 @@
+{
+  "calibrated_gate": {
+    "low_loss_streak_min": 2,
+    "volatility_max": 460,
+    "strict_reason": "legacy_accelerated_resilient"
+  },
+  "maia3_official_uci": {
+    "games_per_arm": 6,
+    "bands": [1500, 2000],
+    "clock_ms": 60000,
+    "max_plies": 32,
+    "standard": {"confirmed": 5, "games": 6, "mean_first_full_ply": 8.6, "low_time_skips": 0},
+    "accelerated": {"confirmed": 1, "games": 6, "mean_first_full_ply": 22.0, "low_time_skips": 0, "resilient_reason_events": 4}
+  },
+  "stockfish19": {
+    "games_per_arm": 3,
+    "clock_ms": 60000,
+    "max_plies": 32,
+    "standard": {"confirmed": 1, "games": 3, "first_full_plies": [30], "low_time_skips": 0},
+    "accelerated": {"confirmed": 2, "games": 3, "first_full_plies": [24, 28], "mean_first_full_ply": 26.0, "low_time_skips": 0, "resilient_reason_events": 2}
+  },
+  "interpretation": "The calibrated gate reduced confirmations in the targeted official-Maia probe while preserving earlier resilient confirmations in the small Stockfish-19 control. These are small samples and are not a universal guarantee."
+}

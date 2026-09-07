@@ -515,6 +515,13 @@ impl OpponentModel {
             && self.accel_resilient_evidence >= ACCEL_RESILIENT_EVIDENCE_MIN
             && self.accel_resilient_streak >= 2
             && self.accel_resilient_good_mass >= 3.0
+            // A noisy strong opponent may accumulate evidence, but promotion
+            // requires an independent engine-like consistency fingerprint too:
+            // two consecutive near-perfect moves and a bounded volatility.
+            // This prevents highly erratic traces from promoting while
+            // retaining sensitivity to genuinely engine-like clean runs.
+            && self.low_loss_streak >= 2
+            && self.volatility() <= 460
             && self.accel_resilient_bad_mass <= ACCEL_RESILIENT_BAD_MASS_MAX
     }
 
@@ -1473,6 +1480,22 @@ mod tests {
         assert_eq!(m.suspect_reason(), SuspectReason::LegacyAcceleratedResilient);
         assert!(m.accel_resilient_good_mass >= 3.0);
         assert!(m.accel_resilient_bad_mass <= ACCEL_RESILIENT_BAD_MASS_MAX);
+    }
+
+    #[test]
+    fn accelerated_resilient_requires_clean_streak_fingerprint() {
+        let mut m = OpponentModel::new();
+        m.accelerated_detect = true;
+        // The accumulator sees mostly excellent moves, but every third move
+        // breaks the clean streak. This must not promote on resilient mass
+        // alone.
+        for i in 0..48 {
+            m.observe(if i % 3 == 2 { 80 } else { 8 }, 1.0);
+        }
+        assert!(m.accel_resilient_score >= ACCEL_RESILIENT_SCORE_MIN);
+        assert!(m.accel_resilient_good_mass >= 3.0);
+        assert!(m.low_loss_streak < 2);
+        assert_eq!(m.suspect_reason(), SuspectReason::None);
     }
 
     #[test]

@@ -1,0 +1,150 @@
+{
+  "standard": [
+    {
+      "game": 1,
+      "adapter_white": true,
+      "elo_band": 1500,
+      "result": "*",
+      "plies": 32,
+      "first_full_ply": 6,
+      "suspect_reason_counts": {
+        "legacy_clock": 13
+      },
+      "obs_total": 15,
+      "obs_low_time_skips": 0
+    },
+    {
+      "game": 2,
+      "adapter_white": false,
+      "elo_band": 1500,
+      "result": "0-1",
+      "plies": 24,
+      "first_full_ply": null,
+      "suspect_reason_counts": {},
+      "obs_total": 12,
+      "obs_low_time_skips": 0
+    },
+    {
+      "game": 3,
+      "adapter_white": true,
+      "elo_band": 1500,
+      "result": "*",
+      "plies": 32,
+      "first_full_ply": 8,
+      "suspect_reason_counts": {
+        "legacy_clock": 12
+      },
+      "obs_total": 15,
+      "obs_low_time_skips": 0
+    },
+    {
+      "game": 1,
+      "adapter_white": true,
+      "elo_band": 2000,
+      "result": "*",
+      "plies": 32,
+      "first_full_ply": 10,
+      "suspect_reason_counts": {
+        "legacy_clock": 11
+      },
+      "obs_total": 15,
+      "obs_low_time_skips": 0
+    },
+    {
+      "game": 2,
+      "adapter_white": false,
+      "elo_band": 2000,
+      "result": "*",
+      "plies": 32,
+      "first_full_ply": 11,
+      "suspect_reason_counts": {
+        "legacy_clock": 11
+      },
+      "obs_total": 16,
+      "obs_low_time_skips": 0
+    },
+    {
+      "game": 3,
+      "adapter_white": true,
+      "elo_band": 2000,
+      "result": "*",
+      "plies": 32,
+      "first_full_ply": 8,
+      "suspect_reason_counts": {
+        "legacy_clock": 12
+      },
+      "obs_total": 15,
+      "obs_low_time_skips": 0
+    }
+  ],
+  "accelerated": [
+    {
+      "game": 1,
+      "adapter_white": true,
+      "elo_band": 1500,
+      "result": "*",
+      "plies": 32,
+      "first_full_ply": null,
+      "suspect_reason_counts": {},
+      "obs_total": 15,
+      "obs_low_time_skips": 0
+    },
+    {
+      "game": 2,
+      "adapter_white": false,
+      "elo_band": 1500,
+      "result": "*",
+      "plies": 32,
+      "first_full_ply": null,
+      "suspect_reason_counts": {},
+      "obs_total": 16,
+      "obs_low_time_skips": 0
+    },
+    {
+      "game": 3,
+      "adapter_white": true,
+      "elo_band": 1500,
+      "result": "*",
+      "plies": 32,
+      "first_full_ply": null,
+      "suspect_reason_counts": {},
+      "obs_total": 15,
+      "obs_low_time_skips": 0
+    },
+    {
+      "game": 1,
+      "adapter_white": true,
+      "elo_band": 2000,
+      "result": "*",
+      "plies": 32,
+      "first_full_ply": 22,
+      "suspect_reason_counts": {
+        "legacy_accelerated_resilient": 4
+      },
+      "obs_total": 15,
+      "obs_low_time_skips": 0
+    },
+    {
+      "game": 2,
+      "adapter_white": false,
+      "elo_band": 2000,
+      "result": "*",
+      "plies": 32,
+      "first_full_ply": null,
+      "suspect_reason_counts": {},
+      "obs_total": 16,
+      "obs_low_time_skips": 0
+    },
+    {
+      "game": 3,
+      "adapter_white": true,
+      "elo_band": 2000,
+      "result": "*",
+      "plies": 32,
+      "first_full_ply": null,
+      "suspect_reason_counts": {},
+      "obs_total": 15,
+      "obs_low_time_skips": 0
+    }
+  ]
+}

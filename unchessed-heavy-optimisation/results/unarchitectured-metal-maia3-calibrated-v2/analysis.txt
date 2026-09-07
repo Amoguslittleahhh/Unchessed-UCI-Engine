@@ -1,0 +1,34 @@
+{
+  "arm": "standard",
+  "games": 6,
+  "full_confirmed": 5,
+  "confirmation_rate": 0.8333333333333334,
+  "mean_first_full_ply": 8.6,
+  "median_first_full_ply": 8,
+  "range_first_full_ply": [
+    6,
+    11
+  ],
+  "total_low_time_skips": 0,
+  "reason_counts": {
+    "legacy_clock": 59
+  },
+  "all_confirmations_resilient": null
+}
+{
+  "arm": "accelerated",
+  "games": 6,
+  "full_confirmed": 1,
+  "confirmation_rate": 0.16666666666666666,
+  "mean_first_full_ply": 22,
+  "median_first_full_ply": 22,
+  "range_first_full_ply": [
+    22,
+    22
+  ],
+  "total_low_time_skips": 0,
+  "reason_counts": {
+    "legacy_accelerated_resilient": 4
+  },
+  "all_confirmations_resilient": true
+}
