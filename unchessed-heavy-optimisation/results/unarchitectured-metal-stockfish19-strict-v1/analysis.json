@@ -1,0 +1,98 @@
+{
+  "games": [
+    {
+      "arm": "standard",
+      "game_log": "standard/game_01_unchessed.log",
+      "observation_count": 23,
+      "first_suspect_ply": 32,
+      "first_suspect_reason": "legacy_ceiling",
+      "first_full_ply": 32,
+      "max_fusion_score_milli": 2688,
+      "max_fusion_evidence_milli": 399,
+      "last_estimate_elo": 2628,
+      "last_confidence_cp": 160
+    },
+    {
+      "arm": "standard",
+      "game_log": "standard/game_02_unchessed.log",
+      "observation_count": 23,
+      "first_suspect_ply": 32,
+      "first_suspect_reason": "legacy_ceiling",
+      "first_full_ply": 32,
+      "max_fusion_score_milli": 436,
+      "max_fusion_evidence_milli": 416,
+      "last_estimate_elo": 2670,
+      "last_confidence_cp": 159
+    },
+    {
+      "arm": "standard",
+      "game_log": "standard/game_03_unchessed.log",
+      "observation_count": 23,
+      "first_suspect_ply": 30,
+      "first_suspect_reason": "legacy_ceiling",
+      "first_full_ply": 30,
+      "max_fusion_score_milli": 4972,
+      "max_fusion_evidence_milli": 490,
+      "last_estimate_elo": 2757,
+      "last_confidence_cp": 137
+    },
+    {
+      "arm": "fusion",
+      "game_log": "fusion/game_04_unchessed.log",
+      "observation_count": 23,
+      "first_suspect_ply": 24,
+      "first_suspect_reason": "legacy_accelerated_resilient",
+      "first_full_ply": 24,
+      "max_fusion_score_milli": 8000,
+      "max_fusion_evidence_milli": 515,
+      "last_estimate_elo": 2725,
+      "last_confidence_cp": 123
+    },
+    {
+      "arm": "fusion",
+      "game_log": "fusion/game_05_unchessed.log",
+      "observation_count": 23,
+      "first_suspect_ply": 30,
+      "first_suspect_reason": "legacy_accelerated_resilient",
+      "first_full_ply": 30,
+      "max_fusion_score_milli": 17,
+      "max_fusion_evidence_milli": 279,
+      "last_estimate_elo": 2577,
+      "last_confidence_cp": 187
+    },
+    {
+      "arm": "fusion",
+      "game_log": "fusion/game_06_unchessed.log",
+      "observation_count": 23,
+      "first_suspect_ply": 28,
+      "first_suspect_reason": "legacy_accelerated_resilient",
+      "first_full_ply": 28,
+      "max_fusion_score_milli": 1136,
+      "max_fusion_evidence_milli": 410,
+      "last_estimate_elo": 2606,
+      "last_confidence_cp": 149
+    }
+  ],
+  "arms": {
+    "standard": {
+      "games": 3,
+      "full_confirmation_rate": 1.0,
+      "first_full_ply_mean": 31.333333333333332,
+      "first_full_ply_median": 32,
+      "max_fusion_score_mean": 2698.6666666666665,
+      "reasons": {
+        "legacy_ceiling": 3
+      }
+    },
+    "fusion": {
+      "games": 3,
+      "full_confirmation_rate": 1.0,
+      "first_full_ply_mean": 27.333333333333332,
+      "first_full_ply_median": 28,
+      "max_fusion_score_mean": 3051,
+      "reasons": {
+        "legacy_accelerated_resilient": 3
+      }
+    }
+  }
+}

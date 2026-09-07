@@ -82,7 +82,6 @@ const ACCEL_V_MAX: i32 = 300; // stays below trend()'s own erratic cutoff of 380
 // dependency-free: it borrows the one-sided CUSUM idea from sequential
 // change detection, but combines four weak, differently-shaped signals using
 // a harmonic mean so one noisy channel cannot dominate the decision.
-const ACCEL_FUSION_SCORE_MIN: f64 = 0.35;
 const ACCEL_FUSION_DECAY: f64 = 0.96;
 const ACCEL_FUSION_NEGATIVE_EVIDENCE: f64 = 0.20;
 const ACCEL_FUSION_EVIDENCE_MIN: f64 = 0.28;
@@ -392,41 +391,25 @@ impl OpponentModel {
         if self.is_computer {
             return SuspectReason::LegacyComputer;
         }
-        if self.suspicion >= 3.0
-            && (!self.accelerated_detect || self.accelerated_clock_corroborated())
-        {
+        // Strict opt-in policy: AcceleratedDetection may promote Full only
+        // after the resilient channel itself has satisfied every guard. Clock
+        // tells and stable-fusion scores remain diagnostic evidence but cannot
+        // independently promote a human-like opponent. This closes the Maia
+        // false-positive path where those signals were correlated but the
+        // dedicated resilient confirmation never fired.
+        if self.accelerated_detect {
+            if self.accelerated_resilient() {
+                return SuspectReason::LegacyAcceleratedResilient;
+            }
+            return SuspectReason::None;
+        }
+        if self.suspicion >= 3.0 {
             return SuspectReason::LegacyClock;
-        }
-        if self.accelerated_detect && self.accelerated_fusion() {
-            return SuspectReason::LegacyAcceleratedFusion;
-        }
-        if self.accelerated_detect && self.accelerated_resilient() {
-            return SuspectReason::LegacyAcceleratedResilient;
         }
         if self.weight >= 10.0 && self.mean >= 2450.0 {
             return SuspectReason::LegacyCeiling;
         }
-        if self.accelerated_detect && self.accelerated_ceiling() {
-            SuspectReason::LegacyAcceleratedCeiling
-        } else {
-            SuspectReason::None
-        }
-    }
-
-    /// Second, independent confirmation path (see the `ACCEL_*` constants'
-    /// doc comment). Requires either two consecutive qualifying observations,
-    /// or one qualifying observation plus a live clock tell -- a single
-    /// qualifying move is never enough on its own.
-    fn accelerated_clock_corroborated(&self) -> bool {
-        self.samples >= 10
-            && self.mean >= 2450.0
-            && self.accel_resilient_score >= 0.35
-            && self.accel_resilient_evidence >= 0.30
-            && self.accel_resilient_streak >= 2
-    }
-
-    fn accelerated_ceiling(&self) -> bool {
-        self.accel_streak >= 2 || (self.accel_streak >= 1 && self.suspicion >= 2.0)
+        SuspectReason::None
     }
 
     /// Homemade breakthrough: concordant sequential evidence fusion.
@@ -523,13 +506,6 @@ impl OpponentModel {
             + (self.accel_resilient_evidence - 0.40) * 3.0
             - bad_mass * 0.55)
             .clamp(-3.0, 8.0);
-    }
-
-    fn accelerated_fusion(&self) -> bool {
-        self.samples >= ACCEL_N_MIN
-            && self.accel_fusion_score >= ACCEL_FUSION_SCORE_MIN
-            && self.accel_fusion_evidence >= ACCEL_FUSION_EVIDENCE_MIN
-            && self.accel_fusion_streak >= 2
     }
 
     fn accelerated_resilient(&self) -> bool {
@@ -1440,18 +1416,15 @@ mod tests {
     #[test]
     fn accelerated_detection_confirms_sooner_than_legacy_ceiling_when_enabled() {
         // difficulty_weight=0.4 mirrors realistic mid-game evidence (not
-        // every position is maximally decisive). The calibrated fusion path
-        // confirms this sustained sequence before the legacy ceiling.
+        // every position is maximally decisive). Strict accelerated mode now
+        // requires the resilient channel itself, not only stable fusion.
         let mut m = OpponentModel::new();
         m.accelerated_detect = true;
         for _ in 0..21 {
             m.observe(8, 0.4);
         }
-        assert!(
-            m.engine_suspect(),
-            "accelerated path should confirm a sustained, high, narrow, non-erratic estimate"
-        );
-        assert_eq!(m.suspect_reason(), SuspectReason::LegacyAcceleratedFusion);
+        assert!(m.engine_suspect(), "resilient channel should confirm sustained strong play");
+        assert_eq!(m.suspect_reason(), SuspectReason::LegacyAcceleratedResilient);
     }
 
     #[test]
@@ -1459,17 +1432,20 @@ mod tests {
         let mut m = OpponentModel::new();
         m.accelerated_detect = true;
         let mut fusion_at = None;
+        let mut resilient_at = None;
         for observation in 1..=32 {
             m.observe(8, 0.4);
-            if m.suspect_reason() == SuspectReason::LegacyAcceleratedFusion {
+            if m.accel_fusion_evidence >= ACCEL_FUSION_EVIDENCE_MIN && fusion_at.is_none() {
                 fusion_at = Some(observation);
+            }
+            if m.suspect_reason() == SuspectReason::LegacyAcceleratedResilient {
+                resilient_at = Some(observation);
                 break;
             }
         }
-        assert!(fusion_at.is_some(), "fusion score should confirm sustained evidence");
-        let fusion_at = fusion_at.unwrap();
-        assert!(fusion_at <= 21, "fusion should confirm within the accelerated calibration window");
-        assert!(m.accel_fusion_evidence >= ACCEL_FUSION_EVIDENCE_MIN);
+        assert!(fusion_at.is_some(), "stable fusion evidence should accumulate");
+        assert!(resilient_at.is_some(), "resilient channel should eventually promote");
+        assert!(resilient_at.unwrap() <= 32);
     }
 
     #[test]
@@ -1480,7 +1456,7 @@ mod tests {
             m.observe(if i % 3 == 0 { 180 } else { 8 }, 0.4);
         }
         assert_ne!(m.suspect_reason(), SuspectReason::LegacyAcceleratedFusion);
-        assert!(m.accel_fusion_evidence < ACCEL_FUSION_EVIDENCE_MIN || m.accel_fusion_score < ACCEL_FUSION_SCORE_MIN);
+        assert!(m.accel_fusion_evidence < ACCEL_FUSION_EVIDENCE_MIN || m.accel_fusion_score < 0.35);
     }
 
     #[test]
@@ -1507,8 +1483,7 @@ mod tests {
             m.observe(8, 0.4);
             m.observe_time(50, true);
         }
-        assert_ne!(m.suspect_reason(), SuspectReason::LegacyClock);
-        assert!(m.accel_resilient_streak < 2 || m.mean < 2450.0);
+        assert_eq!(m.suspect_reason(), SuspectReason::None);
     }
 
     #[test]
@@ -1519,7 +1494,7 @@ mod tests {
         for loss in losses {
             m.observe(loss, 0.4);
         }
-        assert_ne!(m.suspect_reason(), SuspectReason::LegacyAcceleratedResilient);
+        assert_eq!(m.suspect_reason(), SuspectReason::None);
         assert!(m.accel_resilient_bad_mass > ACCEL_RESILIENT_BAD_MASS_MAX);
     }
 
