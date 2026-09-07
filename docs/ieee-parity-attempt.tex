@@ -1,0 +1,61 @@
+\documentclass[10pt,conference]{IEEEtran}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,booktabs,hyperref,microtype}
+\hypersetup{colorlinks=true,urlcolor=blue,linkcolor=black,citecolor=black}
+\title{Toward Practical SFNNv16 Parity: A Clean-Room Homemade Evaluator Attempt}
+\author{\IEEEauthorblockN{Manus AI}\IEEEauthorblockA{Unchessed UCI Engine Research\\September 2026}}
+\begin{document}
+\maketitle
+\begin{abstract}
+This update evaluates a stronger target for the Unchessed homemade evaluation bar: practical parity with SFNNv16 in observable score behavior, WDL stability, and engine-safe integration. The implementation remains clean-room. Stockfish 19 is used only as a black-box UCI reference, while all Unchessed features and runtime code are independently authored. Eleven handcrafted bitboard signals were retained as a research stack, a held-out subset was selected for production, and a compact linear parity model was attempted from black-box observations. On 120 legal real-game positions at Stockfish depth 10, the selected handcrafted stack achieved 178.925 cp mean absolute error, while the learned compact model reached 262.792 cp and was rejected. The result demonstrates disciplined progress toward parity but not parity itself.
+\end{abstract}
+
+\section{Target and Clean-Room Method}
+The revised target is practical parity rather than an unsupported superiority claim. The comparison asks whether a homemade bar can approximate the reference score, preserve WDL monotonicity, share incremental state safely, and avoid search-path bottlenecks. It does not equate a static score error with engine Elo.
+
+Public Stockfish documentation was used only to understand broad architectural ideas such as incremental accumulators, sparse updates, and quantization-aware inference [1] [2]. Official Stockfish 19 was executed as an external UCI process. No Stockfish source code, network tensor, feature-row index, or weight was imported into Unchessed. All formulas and coefficients reported here are project-owned.
+
+\section{Homemade Research Stack}
+The original stack has eleven signals: center-pressure lattice, pawn geometry, king shelter, activity-space, coordination mesh, passed-pawn race, outpost detection, bishop-pair topology, rook-file pressure, tempo polarity, and occupancy-derived phase gain. The runtime candidate uses a held-out selected subset of pawn geometry, king shelter, passed pawns, bishop-pair topology, and rook-file pressure. The complete stack remains available for ablation but is not forced into production when it increases validation error.
+
+The bar also includes an original bounded rational WDL projection, presentation-only smoothing, a material-indexed fast WDL tensor, and a read-only link carrying the bitboard snapshot and Elo-detector telemetry. These mechanisms are engineering components, not claims of matching the SFNNv16 trained network.
+
+\section{Reference Corpus and Protocol}
+The corpus contains 120 legal positions sampled from real annotated PGN games. The corpus contains no engine scores or network weights. For each FEN, the harness starts official Stockfish 19, requests depth 10, waits for `bestmove`, parses the final UCI score, then queries the Unchessed reviewer using `evalbar homemade` or `evalbar parity`. Scores are normalized to White's perspective. The harness exchanges text through UCI only.
+
+\begin{table}[t]
+\centering
+\caption{Direct reference comparison on 120 legal positions}
+\label{tab:results}
+\begin{tabular}{lrrr}
+\toprule
+Mode & MAE cp & Median cp & Max cp\\
+\midrule
+Selected handcrafted stack & 178.925 & 103.0 & 1204\\
+Compact parity model & 262.792 & 129.5 & 2499\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The compact parity model used original Unchessed signals, baseline HCE, material balance, phase, and selected interactions. Ridge regularization and a modulo-five holdout were used to reduce leakage. Its poor generalization is informative: a small corpus and a low-capacity linear model are insufficient to reproduce a modern neural evaluator.
+
+\section{Decision and Next Model}
+The selected handcrafted stack remains the production bar because it is more stable on the measured corpus. The compact learned model remains accessible through `evalbar parity` as an explicitly experimental negative control. Its rejection prevents overfitting from silently degrading the user-facing output.
+
+A credible next parity step requires substantially more real positions, outcome or deeper-search supervision, a trainable nonlinear model, leakage-safe game-level splits, quantized inference validation, and fixed-control engine matches. The current repository has the incremental NNUE and bitboard interfaces needed to add such a model without rescanning the board at every search node.
+
+\section{Validation and Limits}
+The current core suite passes 146 tests with 0 failures and 6 ignored tests. The fast WDL tensor remains 3.38x faster than the exact logistic reference in the final benchmark run (1,576,118 ns versus 5,333,868 ns) with zero per-mille WDL difference and identical checksums. This is a WDL projection measurement, not a claim about complete evaluator or engine speed.
+
+The direct score results do not establish SFNNv16 parity, engine Elo parity, or tactical equivalence. The evidence supports a narrower conclusion: the homemade stack is clean-room, reproducible, materially closer than the rejected compact fit on this corpus, and ready for a larger independently trained model.
+
+\section{Conclusion}
+The parity attempt improved the scientific standard rather than manufacturing a success claim. The stable handcrafted stack is retained, the learned model is rejected by held-out evidence, and the comparison harness now makes future training measurable. The project can reasonably target parity as a future research objective, but it cannot honestly declare parity until larger validation and playing-strength experiments support it.
+
+\begin{thebibliography}{00}
+\bibitem{sf19} Stockfish Team, ``Stockfish 19,'' Sep. 5, 2026. [Online]. Available: \url{https://stockfishchess.org/blog/2026/stockfish-19/}
+\bibitem{nnue} official-stockfish, ``NNUE,'' Stockfish Documentation. [Online]. Available: \url{https://official-stockfish.github.io/docs/nnue-pytorch-wiki/docs/nnue.html}
+\bibitem{uci} official-stockfish, ``UCI Protocol and Stockfish Commands,'' Stockfish Documentation. [Online]. Available: \url{https://official-stockfish.github.io/docs/stockfish-wiki/UCI-Protocol-and-Stockfish-Commands.html}
+\end{thebibliography}
+\end{document}

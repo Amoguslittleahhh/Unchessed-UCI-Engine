@@ -1,0 +1,97 @@
+Toward Practical SFNNv16 Parity: A Clean-Room
+            Homemade Evaluator Attempt
+
+                                                             Manus AI
+                                                     Unchessed UCI Engine Research
+
+                                                                September 2026
+
+   Abstract—This update evaluates a stronger target                                              TABLE I
+for the Unchessed homemade evaluation bar: practical           Direct reference comparison on 120 legal positions
+parity with SFNNv16 in observable score behavior,
+WDL stability, and engine-safe integration. The im-            Mode                        MAE cp    Median cp     Max cp
+plementation remains clean-room. Stockfish 19 is used
+only as a black-box UCI reference, while all Unchessed         Selected handcrafted stack   178.925         103.0      1204
+features and runtime code are independently authored.          Compact parity model         262.792         129.5      2499
+Eleven handcrafted bitboard signals were retained as
+a research stack, a held-out subset was selected for           mechanisms are engineering components, not claims of
+production, and a compact linear parity model was              matching the SFNNv16 trained network.
+attempted from black-box observations. On 120 legal
+real-game positions at Stockfish depth 10, the selected                 III. Reference Corpus and Protocol
+handcrafted stack achieved 178.925 cp mean absolute
+error, while the learned compact model reached 262.792            The corpus contains 120 legal positions sampled from
+cp and was rejected. The result demonstrates disciplined       real annotated PGN games. The corpus contains no engine
+progress toward parity but not parity itself.                  scores or network weights. For each FEN, the harness
+                                                               starts official Stockfish 19, requests depth 10, waits for
+          I. Target and Clean-Room Method                      ‘bestmove‘, parses the final UCI score, then queries the
+                                                               Unchessed reviewer using ‘evalbar homemade‘ or ‘evalbar
+   The revised target is practical parity rather than an un-   parity‘. Scores are normalized to White’s perspective. The
+supported superiority claim. The comparison asks whether       harness exchanges text through UCI only.
+a homemade bar can approximate the reference score,
+preserve WDL monotonicity, share incremental state safely,        The compact parity model used original Unchessed
+and avoid search-path bottlenecks. It does not equate a        signals, baseline HCE, material balance, phase, and selected
+static score error with engine Elo.                            interactions. Ridge regularization and a modulo-five hold-
+                                                               out were used to reduce leakage. Its poor generalization is
+   Public Stockfish documentation was used only to un-         informative: a small corpus and a low-capacity linear model
+derstand broad architectural ideas such as incremental         are insufficient to reproduce a modern neural evaluator.
+accumulators, sparse updates, and quantization-aware
+inference [1] [2]. Official Stockfish 19 was executed as an                   IV. Decision and Next Model
+external UCI process. No Stockfish source code, network
+tensor, feature-row index, or weight was imported into            The selected handcrafted stack remains the production
+Unchessed. All formulas and coefficients reported here are     bar because it is more stable on the measured corpus. The
+project-owned.                                                 compact learned model remains accessible through ‘evalbar
+                                                               parity‘ as an explicitly experimental negative control. Its
+              II. Homemade Research Stack                      rejection prevents overfitting from silently degrading the
+                                                               user-facing output.
+   The original stack has eleven signals: center-pressure
+lattice, pawn geometry, king shelter, activity-space, co-         A credible next parity step requires substantially more
+ordination mesh, passed-pawn race, outpost detection,          real positions, outcome or deeper-search supervision, a
+bishop-pair topology, rook-file pressure, tempo polarity, and  trainable nonlinear model, leakage-safe game-level splits,
+occupancy-derived phase gain. The runtime candidate uses       quantized inference validation, and fixed-control engine
+a held-out selected subset of pawn geometry, king shelter,     matches. The current repository has the incremental NNUE
+passed pawns, bishop-pair topology, and rook-file pressure.    and bitboard interfaces needed to add such a model without
+The complete stack remains available for ablation but is       rescanning the board at every search node.
+not forced into production when it increases validation
+error.                                                                            V. Validation and Limits
+
+   The bar also includes an original bounded rational             The current core suite passes 146 tests with 0 failures and
+WDL projection, presentation-only smoothing, a material-       6 ignored tests. The fast WDL tensor remains 3.38x faster
+indexed fast WDL tensor, and a read-only link carrying         than the exact logistic reference in the final benchmark
+the bitboard snapshot and Elo-detector telemetry. These
+run (1,576,118 ns versus 5,333,868 ns) with zero per-
+mille WDL difference and identical checksums. This is a
+WDL projection measurement, not a claim about complete
+evaluator or engine speed.
+
+   The direct score results do not establish SFNNv16
+parity, engine Elo parity, or tactical equivalence. The
+evidence supports a narrower conclusion: the homemade
+stack is clean-room, reproducible, materially closer than
+the rejected compact fit on this corpus, and ready for a
+larger independently trained model.
+
+                          VI. Conclusion
+
+   The parity attempt improved the scientific standard
+rather than manufacturing a success claim. The stable
+handcrafted stack is retained, the learned model is rejected
+by held-out evidence, and the comparison harness now
+makes future training measurable. The project can reason-
+ably target parity as a future research objective, but it
+cannot honestly declare parity until larger validation and
+playing-strength experiments support it.
+
+                             References
+
+ [1] Stockfish Team, “Stockfish 19,” Sep. 5, 2026. [Online]. Available:
+       https://stockfishchess.org/blog/2026/stockfish-19/
+
+ [2] official-stockfish, “NNUE,” Stockfish Documentation.
+       [Online]. Available: https://official-stockfish.github.io/docs/
+       nnue-pytorch-wiki/docs/nnue.html
+
+ [3] official-stockfish, “UCI Protocol and Stockfish Com-
+       mands,” Stockfish Documentation. [Online]. Available:
+       https://official-stockfish.github.io/docs/stockfish-wiki/
+       UCI-Protocol-and-Stockfish-Commands.html
+

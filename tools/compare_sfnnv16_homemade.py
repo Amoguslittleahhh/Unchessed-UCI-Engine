@@ -44,8 +44,8 @@ def run_stockfish(binary: str, fen: str, depth: int) -> int:
     return int(scores[-1])
 
 
-def run_homemade(binary: str, fen: str) -> int:
-    commands = f"uci\nisready\nposition fen {fen}\nevalbar homemade\nquit\n"
+def run_homemade(binary: str, fen: str, mode: str) -> int:
+    commands = f"uci\nisready\nposition fen {fen}\nevalbar {mode}\nquit\n"
     out = subprocess.check_output([binary], input=commands.encode(), stderr=subprocess.STDOUT)
     matches = re.findall(rb"evalbar cp (-?\d+)", out)
     if not matches:
@@ -64,6 +64,7 @@ def main() -> None:
     parser.add_argument("--epd", required=True)
     parser.add_argument("--depth", type=int, default=12)
     parser.add_argument("--out", required=True)
+    parser.add_argument("--mode", default="homemade")
     args = parser.parse_args()
 
     rows = []
@@ -78,14 +79,14 @@ def main() -> None:
                 raise ValueError(f"unsupported FEN/EPD line: {raw}")
             fen = " ".join(fields)
         sf_white = white_score(run_stockfish(args.stockfish, fen, args.depth), fen)
-        homemade = run_homemade(args.unchessed, fen)
+        homemade = run_homemade(args.unchessed, fen, args.mode)
         delta = homemade - sf_white
         rows.append((fen, sf_white, homemade, delta))
 
     abs_errors = [abs(row[3]) for row in rows]
     with Path(args.out).open("w") as handle:
         handle.write("# Direct SFNNv16 black-box comparison\n\n")
-        handle.write("The Stockfish value is obtained only through UCI from the official Stockfish 19 binary and published network; no Stockfish source or weights are imported into Unchessed. The homemade value is obtained through `evalbar homemade`.\n\n")
+        handle.write("The Stockfish value is obtained only through UCI from the official Stockfish 19 binary and published network; no Stockfish source or weights are imported into Unchessed. The homemade value is obtained through the selected Unchessed UCI mode.\n\n")
         handle.write(f"positions={len(rows)}\nstockfish_depth={args.depth}\n")
         handle.write(f"mae_cp={statistics.mean(abs_errors):.3f}\n")
         handle.write(f"median_abs_error_cp={statistics.median(abs_errors):.3f}\n")

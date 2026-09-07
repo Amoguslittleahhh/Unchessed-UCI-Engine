@@ -536,10 +536,12 @@ pub fn run(ident: EngineIdent) {
                 println!("hash: {:016x}", game.current.hash);
             }
             "evalbar" => {
-                let homemade = toks
-                    .next()
-                    .is_some_and(|token| token.eq_ignore_ascii_case("homemade"));
-                let source = if homemade {
+                let mode = toks.next().unwrap_or("");
+                let homemade = mode.eq_ignore_ascii_case("homemade");
+                let parity = mode.eq_ignore_ascii_case("parity");
+                let source = if parity {
+                    EvalBarSource::HomemadeParityModel
+                } else if homemade {
                     EvalBarSource::HomemadeFusion
                 } else if eval_is_hce {
                     EvalBarSource::HceProxy
@@ -547,7 +549,9 @@ pub fn run(ident: EngineIdent) {
                     EvalBarSource::LoadedNnueProxy
                 };
                 let raw_stm = eval_impl.eval(&game.current);
-                let sample = if homemade {
+                let sample = if parity {
+                    eval_bar.sample_parity_from_score(&game.current, raw_stm)
+                } else if homemade {
                     eval_bar.sample_homemade_from_score(&game.current, raw_stm)
                 } else {
                     eval_bar.sample_from_score(&game.current, raw_stm, source)
