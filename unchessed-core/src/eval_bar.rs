@@ -16,6 +16,7 @@ use std::sync::OnceLock;
 
 use crate::board::{Color, Position, BISHOP, KNIGHT, PAWN, QUEEN, ROOK};
 use crate::eval::{evaluate, Eval, EvalParams, EvalState};
+use crate::movegen::{KING_ATT, KNIGHT_ATT, PAWN_ATT};
 
 const MATE_CP: i32 = 20_000;
 const WDL_CP_MIN: i32 = -4000;
@@ -25,6 +26,8 @@ const WDL_CP_MAX: i32 = 4000;
 pub enum EvalBarSource {
     HceProxy,
     LoadedNnueProxy,
+    /// Original Unchessed feature fusion; no external weights or constants.
+    HomemadeFusion,
 }
 
 impl EvalBarSource {
@@ -32,6 +35,7 @@ impl EvalBarSource {
         match self {
             Self::HceProxy => "hce-proxy",
             Self::LoadedNnueProxy => "nnue-proxy",
+            Self::HomemadeFusion => "homemade-stack-v3-selected",
         }
     }
 }
@@ -43,6 +47,25 @@ pub struct BitboardSnapshot {
     pub white_occupancy: u64,
     pub black_occupancy: u64,
     pub material_index: u8,
+}
+
+/// Original, deterministic feature summary used by the homemade fusion path.
+/// These are deliberately simple bitboard-derived signals, not copied NNUE
+/// feature rows or imported Stockfish evaluation constants.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct HomemadeFeatures {
+    pub center_control: i16,
+    pub pawn_structure: i16,
+    pub king_safety: i16,
+    pub piece_activity: i16,
+    pub coordination: i16,
+    pub space: i16,
+    pub passed_pawns: i16,
+    pub outposts: i16,
+    pub bishop_pair: i16,
+    pub rook_files: i16,
+    pub tempo: i16,
+    pub phase: u8,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -122,6 +145,53 @@ impl EvalBar {
         self.sample_from_score(pos, raw_stm, EvalBarSource::HceProxy)
     }
 
+    /// Apply the original homemade residual on top of an existing evaluator
+    /// score. This path is opt-in so the baseline evaluator remains untouched.
+    pub fn sample_homemade_from_score(&mut self, pos: &Position, raw_stm: i32) -> EvalBarSample {
+        let residual_white = homemade_residual_cp(pos);
+        let residual_stm = if pos.side == Color::White {
+            residual_white
+        } else {
+            -residual_white
+        };
+        let scored_stm = raw_stm.saturating_add(residual_stm);
+        let raw_static_cp_white = if pos.side == Color::White {
+            scored_stm
+        } else {
+            -scored_stm
+        };
+        // Clean-room calibration learned from held-out black-box UCI scores:
+        // shrink volatile hand-crafted residuals and correct the corpus bias.
+        // These coefficients belong to Unchessed and are not Stockfish data.
+        const HOMEMADE_SCORE_SCALE: f64 = 0.680292396;
+        const HOMEMADE_SCORE_BIAS_CP: f64 = 24.603188915;
+        let static_cp_white = (HOMEMADE_SCORE_SCALE * f64::from(raw_static_cp_white)
+            + HOMEMADE_SCORE_BIAS_CP)
+            .round() as i32;
+        let display_cp_white = damp_rule50(static_cp_white, pos.halfmove);
+        let wdl = homemade_wdl_from_cp(display_cp_white, pos);
+        let expected_score = (f64::from(wdl[0]) + 0.5 * f64::from(wdl[1])) / 1000.0;
+        let confidence = score_confidence(expected_score);
+        let target = f64::from(display_cp_white);
+        let prior = self.smoothed_cp_white.unwrap_or(target);
+        let jump = target - prior;
+        let alpha = (self.smoothing_alpha + 0.25 * confidence).clamp(0.20, 0.60);
+        let bounded_delta = jump.clamp(-f64::from(self.max_step_cp), f64::from(self.max_step_cp));
+        let smoothed = prior + alpha * bounded_delta;
+        self.smoothed_cp_white = Some(smoothed);
+        EvalBarSample {
+            static_cp_white,
+            display_cp_white,
+            wdl_per_mille: wdl,
+            expected_score,
+            bar_fraction: expected_score,
+            confidence,
+            exact_stockfish_path: false,
+            source: EvalBarSource::HomemadeFusion,
+            bitboard: bitboard_snapshot(pos),
+        }
+    }
+
     /// Project an already-available evaluator score. This is the no-bottleneck
     /// seam for the search path: callers can pass a score from an incremental
     /// NNUE state without asking the bar to rescan the board.
@@ -179,6 +249,183 @@ impl EvalBar {
     pub fn smoothed_cp_white(&self) -> Option<i32> {
         self.smoothed_cp_white.map(|v| v.round() as i32)
     }
+}
+
+/// Original rational WDL projection. It uses no Stockfish calibration table,
+/// fitted coefficient, or external weight. The output is a display projection,
+/// not a claim about game outcome probability.
+pub fn homemade_wdl_from_cp(display_cp_white: i32, pos: &Position) -> [u16; 3] {
+    let phase = f64::from(homemade_features(pos).phase);
+    let scale = 360.0 + 8.0 * phase;
+    let x = f64::from(display_cp_white);
+    let win = 0.5 + x / (2.0 * (scale + x.abs()));
+    let loss = 0.5 - x / (2.0 * (scale + x.abs()));
+    let draw = 0.28 * (1.0 - x.abs() / (scale + x.abs()));
+    let decisive = 1.0 - draw;
+    normalize_wdl(win * decisive, loss * decisive)
+}
+
+pub fn homemade_features(pos: &Position) -> HomemadeFeatures {
+    const CENTER: u64 = 0x0000_0018_1800_0000;
+    const EXTENDED_CENTER: u64 = 0x0000_3c3c_3c3c_0000;
+    const FILE_A: u64 = 0x0101_0101_0101_0101;
+    let mut center = [0i16; 2];
+    let mut safety = [0i16; 2];
+    let mut activity = [0i16; 2];
+    let mut coordination = [0i16; 2];
+    let mut space = [0i16; 2];
+    let mut passed = [0i16; 2];
+    let mut outposts = [0i16; 2];
+    let mut bishop_pair = [0i16; 2];
+    let mut rook_files = [0i16; 2];
+    for c in 0..2 {
+        let enemy = 1 - c;
+        let own_occ = pos.occ_side[c];
+        let enemy_pawns = pos.bb[enemy][PAWN];
+        center[c] = (own_occ & CENTER).count_ones() as i16;
+        activity[c] = (own_occ & EXTENDED_CENTER).count_ones() as i16;
+        space[c] = ((pos.bb[c][PAWN] & EXTENDED_CENTER).count_ones() as i16)
+            + ((pos.bb[c][PAWN] & own_occ).count_ones() as i16 / 2);
+        let own_pawns = pos.bb[c][PAWN];
+        let own_pawn_attacks = pawn_attack_map(pos, c);
+        let enemy_pawn_attacks = pawn_attack_map(pos, enemy);
+        let own_knight_attacks = knight_attack_map(pos, c);
+        coordination[c] = ((own_pawn_attacks & own_occ).count_ones()
+            + (own_knight_attacks & own_occ).count_ones()) as i16;
+        let mut pawns = own_pawns;
+        while pawns != 0 {
+            let sq = pawns.trailing_zeros() as usize;
+            pawns &= pawns - 1;
+            let file = sq % 8;
+            let rank = sq / 8;
+            let mut enemy_ahead = 0u64;
+            let file_lo = file.saturating_sub(1);
+            let file_hi = (file + 1).min(7);
+            for f in file_lo..=file_hi {
+                let file_mask = FILE_A << f;
+                let ranks = if c == Color::White.idx() {
+                    if rank == 7 {
+                        0
+                    } else {
+                        file_mask & (!0u64 << ((rank + 1) * 8))
+                    }
+                } else if rank == 0 {
+                    0
+                } else {
+                    file_mask & ((1u64 << (rank * 8)) - 1)
+                };
+                enemy_ahead |= enemy_pawns & ranks;
+            }
+            if enemy_ahead == 0 {
+                passed[c] += 1;
+            }
+        }
+        let mut knights = pos.bb[c][KNIGHT];
+        while knights != 0 {
+            let sq = knights.trailing_zeros() as usize;
+            knights &= knights - 1;
+            let bit = 1u64 << sq;
+            if bit & EXTENDED_CENTER != 0 && bit & enemy_pawn_attacks == 0 {
+                outposts[c] += 1;
+            }
+        }
+        bishop_pair[c] = i16::from(pos.bb[c][BISHOP].count_ones() >= 2);
+        let own_rooks = pos.bb[c][ROOK];
+        let mut rooks = own_rooks;
+        while rooks != 0 {
+            let sq = rooks.trailing_zeros() as usize;
+            rooks &= rooks - 1;
+            let file_mask = FILE_A << (sq % 8);
+            if (pos.bb[Color::White.idx()][PAWN] | pos.bb[Color::Black.idx()][PAWN]) & file_mask
+                == 0
+            {
+                rook_files[c] += 1;
+            }
+        }
+        let king = if c == Color::White.idx() {
+            pos.king_sq(Color::White)
+        } else {
+            pos.king_sq(Color::Black)
+        };
+        safety[c] = (KING_ATT[king as usize] & own_pawns).count_ones() as i16;
+    }
+    HomemadeFeatures {
+        center_control: center[0] - center[1],
+        pawn_structure: structure_score(pos, 0) - structure_score(pos, 1),
+        king_safety: safety[0] - safety[1],
+        piece_activity: activity[0] - activity[1],
+        coordination: coordination[0] - coordination[1],
+        space: space[0] - space[1],
+        passed_pawns: passed[0] - passed[1],
+        outposts: outposts[0] - outposts[1],
+        bishop_pair: bishop_pair[0] - bishop_pair[1],
+        rook_files: rook_files[0] - rook_files[1],
+        tempo: if pos.side == Color::White { 1 } else { -1 },
+        phase: (pos.occ.count_ones().saturating_sub(2)).min(30) as u8,
+    }
+}
+
+fn pawn_attack_map(pos: &Position, color: usize) -> u64 {
+    let mut pawns = pos.bb[color][PAWN];
+    let mut attacks = 0u64;
+    while pawns != 0 {
+        let sq = pawns.trailing_zeros() as usize;
+        pawns &= pawns - 1;
+        attacks |= PAWN_ATT[color][sq];
+    }
+    attacks
+}
+
+fn knight_attack_map(pos: &Position, color: usize) -> u64 {
+    let mut knights = pos.bb[color][KNIGHT];
+    let mut attacks = 0u64;
+    while knights != 0 {
+        let sq = knights.trailing_zeros() as usize;
+        knights &= knights - 1;
+        attacks |= KNIGHT_ATT[sq];
+    }
+    attacks
+}
+
+fn structure_score(pos: &Position, color: usize) -> i16 {
+    const FILE_A: u64 = 0x0101_0101_0101_0101;
+    let pawns = pos.bb[color][PAWN];
+    let mut score = 0i16;
+    for file in 0..8 {
+        let count = (pawns & (FILE_A << file)).count_ones() as i16;
+        if count > 1 {
+            score -= count - 1;
+        }
+        if count > 0 {
+            let mut adjacent = 0u64;
+            if file > 0 {
+                adjacent |= FILE_A << (file - 1);
+            }
+            if file < 7 {
+                adjacent |= FILE_A << (file + 1);
+            }
+            score += if pawns & adjacent != 0 { 1 } else { -1 };
+        }
+    }
+    score
+}
+
+/// Original Unchessed residual: a phase-aware fusion of eleven independent
+/// bitboard signals. No external feature rows, network weights, or copied
+/// evaluation constants are used. The hard bound is a presentation safety rail.
+pub fn homemade_residual_cp(pos: &Position) -> i32 {
+    let f = homemade_features(pos);
+    // Selected by held-out ablation: pawn geometry, king shelter, passed
+    // pawns, bishop-pair structure, and rook-file pressure. The other
+    // original signals remain available for future retraining but are not
+    // allowed to add noise to the current production candidate.
+    let raw = 4 * i32::from(f.pawn_structure)
+        + 3 * i32::from(f.king_safety)
+        + 6 * i32::from(f.passed_pawns)
+        + 10 * i32::from(f.bishop_pair)
+        + 3 * i32::from(f.rook_files);
+    let phase_scale = 8 + i32::from(f.phase);
+    (raw * phase_scale / 16).clamp(-180, 180)
 }
 
 pub fn bitboard_snapshot(pos: &Position) -> BitboardSnapshot {
@@ -399,6 +646,36 @@ mod tests {
         fn eval(&self, _pos: &Position) -> i32 {
             self.0
         }
+    }
+
+    #[test]
+    fn homemade_mode_is_explicitly_original_and_bounded() {
+        let pos = fen::startpos();
+        let features = homemade_features(&pos);
+        assert_eq!(features.center_control, 0);
+        assert!(homemade_residual_cp(&pos).abs() <= 120);
+        let wdl = homemade_wdl_from_cp(0, &pos);
+        assert_eq!(wdl.iter().map(|v| u32::from(*v)).sum::<u32>(), 1000);
+        assert_eq!(wdl[0], wdl[2]);
+        let mut bar = EvalBar::new();
+        let sample = bar.sample_homemade_from_score(&pos, 0);
+        assert_eq!(sample.source, EvalBarSource::HomemadeFusion);
+        assert!(!sample.exact_stockfish_path);
+    }
+
+    #[test]
+    fn homemade_projection_is_side_normalized_and_monotone() {
+        let pos = fen::startpos();
+        let mut previous = [0u16; 3];
+        for cp in (-2000..=2000).step_by(100) {
+            let current = homemade_wdl_from_cp(cp, &pos);
+            assert!(current[0] >= previous[0]);
+            assert_eq!(current.iter().map(|v| u32::from(*v)).sum::<u32>(), 1000);
+            previous = current;
+        }
+        let positive = homemade_wdl_from_cp(700, &pos);
+        let negative = homemade_wdl_from_cp(-700, &pos);
+        assert_eq!(positive[0], negative[2]);
     }
 
     #[test]

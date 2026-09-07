@@ -536,13 +536,22 @@ pub fn run(ident: EngineIdent) {
                 println!("hash: {:016x}", game.current.hash);
             }
             "evalbar" => {
-                let source = if eval_is_hce {
+                let homemade = toks
+                    .next()
+                    .is_some_and(|token| token.eq_ignore_ascii_case("homemade"));
+                let source = if homemade {
+                    EvalBarSource::HomemadeFusion
+                } else if eval_is_hce {
                     EvalBarSource::HceProxy
                 } else {
                     EvalBarSource::LoadedNnueProxy
                 };
                 let raw_stm = eval_impl.eval(&game.current);
-                let sample = eval_bar.sample_from_score(&game.current, raw_stm, source);
+                let sample = if homemade {
+                    eval_bar.sample_homemade_from_score(&game.current, raw_stm)
+                } else {
+                    eval_bar.sample_from_score(&game.current, raw_stm, source)
+                };
                 let elo_snapshot = model.lock().unwrap().telemetry_snapshot();
                 let link = EvalBarLink::from_sample(
                     &sample,

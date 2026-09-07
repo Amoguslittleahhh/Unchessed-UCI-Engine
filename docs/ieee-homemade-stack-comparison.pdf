@@ -1,0 +1,128 @@
+A Clean-Room Homemade Evaluation Stack: Direct
+ SFNNv16 Comparison, Ablation, and Provenance
+
+                                                               Manus AI
+                                                       Unchessed UCI Engine Research
+
+                                                                  September 2026
+
+   Abstract—This paper documents a clean-room, in-                                      TABLE I
+dependently authored evaluation stack for Unchessed.          Original Unchessed breakthrough families
+Stockfish 19 and SFNNv16 are used only as public archi-
+tectural references and as an external black-box score        Family                Homemade construction
+target. No Stockfish source, network weight, feature row,
+implementation constant, or copied code is included           Center-pressure lat-  Four-square central occupancy field
+in the project. The homemade stack combines eleven            tice
+original bitboard-derived signal families, a conservative     Pawn-geometry ana-    Doubled, isolated, and connected-file
+held-out feature selection policy, an independently           lyzer                 structure
+fitted score shrinkage, and an original rational WDL          King-shelter ring     Own pawn cover in the king attack ring
+projection. On 120 legal real-game positions, completed       Activity-space field  Extended-center occupation
+Stockfish 19 depth-10 UCI scores were compared with           Coordination mesh     Own pawn/knight attack overlap
+the homemade ‘evalbar homemade‘ output. The selected          Passed-pawn race      Adjacent-file enemy-ahead test
+stack achieved 178.925 cp mean absolute error, 103            Outpost detector      Central knight squares outside enemy
+cp median absolute error, and 1204 cp maximum                                       pawn attacks
+error. The result is an engineering comparison, not           Bishop-pair           Two-bishop same-side indicator
+a claim of SFNNv16 strength parity or superiority; that       topology
+claim requires an independently trained network and           Rook-file pressure    Rooks on files without pawns
+statistically significant engine matches.                     Tempo polarity        Side-to-move sign for experimental
+                                                                                    residual only
+                                                              Phase-aware gain      Occupancy-derived phase multiplier
+
+                   I. Clean-Room Boundary                        The runtime residual is bounded to [−180, 180] cp. The
+                                                              selected production subset contains pawn geometry, king
+   The design process used public Stockfish documentation     shelter, passed pawns, bishop-pair topology, and rook-
+only to understand general ideas: incremental state, sparse   file pressure. The other original signals remain in the
+bitboard updates, quantization-friendly arithmetic, and       implementation and ablation harness but are not allowed
+training-aware calibration [1] [2]. The direct comparison     to add noise until a larger independent training set justifies
+used the official Stockfish 19 executable as a black-box      them.
+UCI oracle and did not inspect its runtime memory, source
+implementation, network tensor, feature indices, or weights.                 III. Independent Calibration
+The official network repository describes downloadable
+networks and their licensing [3], but none of those weights      The score calibration belongs to Unchessed. It was fit
+are copied into Unchessed.                                    from a held-out split of black-box UCI observations, using
+                                                              a linear shrinkage and bias after the homemade residual:
+   All homemade code lives in ‘unchessed-
+core/src/eval_bar.rs‘, the experiment CLI, and the                      shome = 0.680292396 sraw + 24.603188915. (1)
+reproducible tools under ‘tools/‘. The public boundary
+is enforced by provenance labels, a comparison script         These coefficients are not Stockfish coefficients and were not
+that exchanges only UCI text, and documentation that          derived from Stockfish source or weights. The homemade
+marks the result as a proxy. The runtime source label is      WDL projection is also original: it uses a bounded rational
+‘homemade-stack-v3-selected‘; official or loaded NNUE         curve whose scale depends on the homemade phase signal,
+paths retain separate labels.                                 followed by per-mille normalization. It is not the Stockfish
+                                                              WDL polynomial.
+            II. Original Breakthrough Stack
+
+   The homemade stack is a modular bitboard program                       IV. Direct Comparison Protocol
+rather than a reimplementation of SFNNv16. Its features
+are computed from current board occupancy and attack             The corpus contains 120 legal positions
+tables already exposed by the Unchessed engine. The broad     extracted from real annotated PGN games by
+research stack contains eleven signals, while the runtime     ‘tools/extract_pgn_positions.py‘. It contains no engine
+uses a held-out selected subset.                              scores or network data. For each FEN, the harness starts
+                                                              official Stockfish 19, requests depth 10, waits for ‘bestmove‘,
+                        TABLE II                                          complete repository suite must remain green before commit.
+
+Direct score comparison on 120 legal real-game positions The UCI smoke command is:
+
+Metric                               Selected homemade stack              position startpos
+                                                                          evalbar homemade
+Reference engine        Stockfish 19 / SFNNv16-era binary
+Reference depth                                                       10  The output includes ‘source=homemade-stack-v3-selected‘
+Positions                                                                 and a read-only link containing the bitboard hash, oc-
+Mean absolute error                                                 120   cupancy, material index, Elo estimate, confidence, and
+Median absolute error                                     178.925 cp      detector reason.
+Maximum absolute error
+                                                                103 cp
+                                                               1204 cp
+
+                            TABLE III                                     VII. What the Evidence Does and Does Not Show
+Ablation summary before final runtime rerun
+                                                                             The homemade stack is original and now directly com-
+Variant                           MAE cp                                  pared to an official Stockfish 19/SFNNv16-era black-box. It
+                                                                          does not yet rival or surpass SFNNv16 in playing strength.
+Base                               180.442                                A score MAE on 120 positions cannot establish Elo, tactical
+Pawn geometry                      177.633                                reliability, or search strength. A defensible superiority claim
+King shelter                       179.875                                requires an independently trained network or evaluator,
+Bishop/rook                        180.408                                thousands of unseen positions, calibration metrics such as
+Full stack, calibrated             182.083                                MAE and Brier score, and statistically significant engine
+Selected stack, calibrated         177.183                                matches under fixed hardware and time controls. The
+                                                                          present work provides the clean-room feature stack, the
+records the final UCI score, then starts the Unchessed                    comparison harness, and the measurement discipline needed
+reviewer and records ‘evalbar homemade‘. Scores are                       for that next phase.
+normalized to White’s perspective. This is a black-box
+numerical comparison; it is not a playing-strength match.                                          VIII. Conclusion
+
+   A prior full-stack calibration run on the same 120                        The project now contains a large set of homemade
+positions measured 184.792 cp MAE. The selected runtime                   evaluator ideas, but it does not equate quantity with quality.
+stack measured 178.925 cp MAE, an absolute reduction                      Ablation is used to reject noisy components, calibration is
+of 5.867 cp in this fixed corpus. The 30-position depth-8                 learned only from black-box observations, and the runtime
+check measured 231.200 cp MAE after the selected runtime                  remains conservative. SFNNv16 informs the architectural
+change. These numbers are reproducible artifacts, not                     questions; every implementation artifact, feature formula,
+universal strength estimates.                                             score projection, and runtime policy in this update comes
+                                                                          from Unchessed.
+              V. Ablation and Performance
+                                                                                                       References
+   The ablation report evaluates feature families against the
+completed direct report. Before the final selection, pawn                  [1] Stockfish Team, “Stockfish 19,” Sep. 5, 2026. [Online]. Available:
+geometry was the most useful single family. A selected                           https://stockfishchess.org/blog/2026/stockfish-19/
+combination of pawn geometry, king shelter, passed pawns,
+bishop-pair topology, and rook-file pressure produced the                  [2] official-stockfish, “NNUE,” Stockfish Documentation.
+best modeled generalization among the tested combinations.                       [Online]. Available: https://official-stockfish.github.io/docs/
+Full-stack inclusion was rejected because more signals                           nnue-pytorch-wiki/docs/nnue.html
+increased variance on the available corpus.
+                                                                           [3] official-stockfish, “Evaluation networks for Stockfish,” GitHub.
+   The WDL tensor path remains separately optimized: the                         [Online]. Available: https://github.com/official-stockfish/
+prior real-corpus benchmark measured 1,643,798 ns for the                        networks
+fast tensor path versus 4,974,389 ns for the exact logistic
+reference, a 3.03x projection speedup with zero per-mille                  [4] official-stockfish, “UCI Protocol and Stockfish Com-
+WDL delta and identical checksums. This measures WDL                             mands,” Stockfish Documentation. [Online]. Available:
+conversion, not whole-engine nodes per second. Homemade                          https://official-stockfish.github.io/docs/stockfish-wiki/
+feature extraction is used only by the on-demand eval-bar                        UCI-Protocol-and-Stockfish-Commands.html
+command and does not execute at every search node.
+
+       VI. Correctness and Provenance Tests
+
+   The eval-bar tests cover WDL conservation, symmetry,
+monotonicity, bounded smoothing, bitboard snapshot iden-
+tity, incremental-state reuse, homemade source labeling,
+bounded residuals, and homemade WDL monotonicity. The
+
