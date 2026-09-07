@@ -18,7 +18,7 @@ use crate::aegis_v4_runtime::{
 use crate::board::*;
 use crate::book::{Book, BookEntry, Tier};
 use crate::eval::{Eval, EvalParams, Hce};
-use crate::eval_bar::EvalBar;
+use crate::eval_bar::{EvalBar, EvalBarLink, EvalBarSource};
 use crate::fen;
 use crate::movegen::{legal, parse_uci_move};
 use crate::nnue::Nnue;
@@ -536,15 +536,40 @@ pub fn run(ident: EngineIdent) {
                 println!("hash: {:016x}", game.current.hash);
             }
             "evalbar" => {
-                let sample = eval_bar.sample(&game.current);
+                let source = if eval_is_hce {
+                    EvalBarSource::HceProxy
+                } else {
+                    EvalBarSource::LoadedNnueProxy
+                };
+                let raw_stm = eval_impl.eval(&game.current);
+                let sample = eval_bar.sample_from_score(&game.current, raw_stm, source);
+                let elo_snapshot = model.lock().unwrap().telemetry_snapshot();
+                let link = EvalBarLink::from_sample(
+                    &sample,
+                    elo_snapshot.estimate_elo,
+                    elo_snapshot.confidence_cp,
+                    elo_snapshot.suspect,
+                    elo_snapshot.suspect_reason.name(),
+                );
                 println!(
-                    "info string [Unchessed] evalbar cp {} wdl {} {} {} bar {:.3} smoothed_cp {} provenance=proxy",
+                    "info string [Unchessed] evalbar cp {} wdl {} {} {} bar {:.3} smoothed_cp {} source={} provenance=proxy",
                     sample.display_cp_white,
                     sample.wdl_per_mille[0],
                     sample.wdl_per_mille[1],
                     sample.wdl_per_mille[2],
                     sample.bar_fraction,
                     eval_bar.smoothed_cp_white().unwrap_or(sample.display_cp_white),
+                    sample.source.label(),
+                );
+                println!(
+                    "info string [Unchessed] evalbar-link hash {:016x} occ {:016x} material {} elo {} +/-{} suspect={} reason={}",
+                    link.bitboard.position_hash,
+                    link.bitboard.occupancy,
+                    link.bitboard.material_index,
+                    link.elo_estimate,
+                    link.elo_confidence_cp,
+                    link.elo_suspect,
+                    link.elo_suspect_reason,
                 );
             }
             // debug: "policy [elo]" prints the human policy for the position

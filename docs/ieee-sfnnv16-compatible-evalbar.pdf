@@ -1,0 +1,139 @@
+ Toward SFNNv16-Compatible Evaluation: Shared
+Bitboards, Incremental State, and a Provenance-Safe
+
+                       Eval-Bar Link
+
+             Manus AI
+Unchessed UCI Engine Research
+
+           September 2026
+
+   Abstract—This paper reports a branch-local evalu-           move updates only the changed feature rows; null moves
+ator integration inspired by the public architectural          reuse the parent state, and king-relative feature schemes
+principles of Stockfish 19’s SFNNv16. The implemen-            rebuild only when the relevant king moves. The new bar
+tation does not copy unavailable proprietary weights           does not create a second evaluator. ‘sample_with_state‘
+or claim exact SFNNv16 strength. Instead, it reuses            consumes an already available evaluator state and calls
+the engine’s existing incremental NNUE accumulator             ‘eval_with_state‘, preserving the accumulator’s perfor-
+seam, adds a zero-copy bitboard snapshot, routes the           mance contract.
+on-demand eval bar through the currently selected
+evaluator, and exposes a read-only link carrying Elo-          B. Shared bitboard snapshot
+detector telemetry. The design targets the high-value
+properties documented by Stockfish: sparse feature                The connection layer computes a compact immutable
+updates, accumulator reuse, quantized/integer-friendly         snapshot containing the position hash, total occupancy,
+inference, and training-aware provenance. On the real          White occupancy, Black occupancy, and the Stockfish-
+seven-position Matetrack corpus, the tensorized WDL            style material index. These values are copied from existing
+conversion measured a 3.03x speedup over the exact             bitboards; no board scan, heap allocation, lock, or feature
+logistic reference with zero per-mille output difference.      rebuild is required. The snapshot is carried in ‘EvalBarSam-
+The complete core suite passed 144 tests, and the UCI          ple‘ and ‘EvalBarLink‘, providing a stable join key for UI,
+smoke test emitted the linked score, bitboard hash,            telemetry, and Elo-analysis consumers.
+material index, Elo estimate, confidence, and detector
+verdict without adding work to the search-node hot             C. Evaluator routing
+path.
+                                                                  The UCI ‘evalbar‘ command routes through the current
+               I. Scope and Reproducibility                    evaluator object. The default hand-crafted evaluator is
+                                                               labeled ‘hce-proxy‘; a loaded project NNUE is labeled ‘nnue-
+   Stockfish 19 publicly reports that SFNNv16 removes          proxy‘. A future exact SFNNv16-compatible weight file
+redundant threat features, adds pawn-pair features, retires    can use the same route without changing the connection
+the secondary network used in an earlier release, and          contract. The source label prevents a proxy score from
+applies Quantization-Aware Training to very large rescored     being mistaken for an official Stockfish score.
+datasets [1]. The official NNUE documentation describes
+sparse features, feature-transformer accumulators, multiple    D. Fast WDL projection
+perspectives, incremental updates, clipped activations,
+and quantized inference [2]. These public principles are          The bar uses Stockfish’s public material-dependent
+reproducible. The exact SFNNv16 weights and full training      calibration and WDL semantics [3]. For the normal display
+pipeline are not present in this project, so the implementa-   domain [−4000, 4000], a one-time tensor stores rounded
+tion is an independent compatible prototype rather than        (W, D, L) per mille values for each material class and
+reverse-engineered weights.                                    centipawn value. Runtime conversion is an integer offset
+                                                               and array access. Scores outside the domain use the exact
+   All changes were made only on ‘manus/research-              fallback, and mate sentinels remain discrete.
+facilities‘. The public implementation seams are ‘unchessed-
+core/src/eval_bar.rs‘, ‘unchessed-core/src/uci.rs‘, and                          III. Connection Interface
+‘docs/evalbar-elo-bitboard-link.md‘. The previous Stockfish
+19 evaluation research is retained in ‘docs/ieee-stockfish19-     The stable Rust interface is:
+evalbar-research.pdf‘.
+
+II. Architecture Derived from Public SFNNv16                   let sample = bar.sample_with_state(
+                              Principles                             &position, &evaluator, &state,
+                                                                     EvalBarSource::LoadedNnueProxy);
+A. Existing incremental evaluator seam
+                                                               let link = EvalBarLink::from_sample(
+   The engine already maintains one accumulator per                  &sample, elo.estimate_elo, elo.confidence_cp,
+perspective and threads ‘EvalState‘ through search. A real
+                                  TABLE I                             occupancy ‘ffff00000000ffff‘, material index 78, Elo estimate
+Architecture components and bottleneck controls                       1500, confidence ±450, ‘suspect=false‘, and ‘reason=none‘.
+
+Component        Reused or added capa-      Bottleneck control                      V. Limitations and Next Steps
+NNUE state       bility
+                                            No duplicate fea-            The measured 3.03x speedup applies only to WDL
+Bitboard link    Existing             per-  ture rebuild              projection, not whole-engine nodes per second. The UCI
+Elo link                                                              command is intentionally on-demand. Search integration
+Evaluator route  perspective incremental    Copy-only, fixed-         should use ‘sample_with_state‘ at an existing evalua-
+WDL tensor                                  size snapshot             tor boundary rather than calling the HCE convenience
+                 accumulator                Read-only teleme-         method at every node. Exact SFNNv16 quality cannot
+                                            try snapshot              be established without the matching trained weights,
+                 Hash, occupancy, mate-     On-demand UCI             feature definition, QAT procedure, and large rescored
+                                            call only                 training corpus. A higher-quality independent version
+                 rial, and side data        No runtime expo-          would therefore require a licensed or independently trained
+                                            nential in normal         network, a provenance-matched SF19 output corpus, and
+                 Estimate, confidence,      range                     SPRT/MAE/Brier calibration experiments.
+
+                 suspect, reason                                                                VI. Conclusion
+
+                 HCE or loaded NNUE                                      The implementation captures the most valuable public
+                                                                      SFNNv16 ideas without pretending to reproduce un-
+                 source label                                         available artifacts: sparse incremental state, accumulator
+                                                                      reuse, integer-friendly inference, and architecture-aware
+                 Cached material/cp                                   performance discipline. It also provides the requested eval-
+                                                                      bar connection to Elo detection and bitboards through a
+                 lookup                                               stable read-only link. The result is a stronger and safer
+                                                                      foundation for a future trained evaluator, while its proxy
+                           TABLE II                                   labels and benchmark scope keep the claims scientifically
+                 Final measured results                               defensible.
+
+Metric                                                      Result                                 References
+
+Core tests                 144 passed, 0 failed, 6 ignored             [1] Stockfish Team, “Stockfish 19,” Sep. 5, 2026. [Online]. Available:
+Eval-bar tests                               8 passed, 0 failed              https://stockfishchess.org/blog/2026/stockfish-19/
+EPD positions                                                      7
+Rounds                                                      10,000     [2] official-stockfish, “NNUE,” Stockfish Documentation.
+Exact reference                                     4,974,389 ns             [Online]. Available: https://official-stockfish.github.io/docs/
+Fast tensor path                                    1,643,798 ns             nnue-pytorch-wiki/docs/nnue.html
+Speedup                                                      3.03x
+Maximum WDL delta                                     0 per mille      [3] official-stockfish, “WDL model,” GitHub. [Online]. Available:
+Checksums                                                                    https://github.com/official-stockfish/WDL_model
+                                    62,020,000 / 62,020,000
+                                                                       [4] official-stockfish, “UCI Protocol and Stockfish Com-
+      elo.suspect, elo.suspect_reason.name());                               mands,” Stockfish Documentation. [Online]. Available:
+                                                                             https://official-stockfish.github.io/docs/stockfish-wiki/
+The UCI equivalent is ‘position ...‘ followed by ‘evalbar‘.                  UCI-Protocol-and-Stockfish-Commands.html
+The engine emits a score line and a machine-readable link
+line containing ‘hash‘, ‘occ‘, ‘material‘, ‘elo‘, confidence,
+‘suspect‘, and ‘reason‘. The interface is documented in
+‘docs/evalbar-elo-bitboard-link.md‘.
+
+   The connection is deliberately one-way and read-only. It
+cannot change the Elo model, move selection, search limits,
+NNUE accumulator, or random state. This separation is
+important: a display feature must not become a hidden
+playing-strength feature.
+
+               IV. Testing and Performance
+
+   The complete core library passed 144 tests with zero
+failures and six ignored tests. The eval-bar-specific suite
+passed eight tests. These tests cover bitboard-key equality,
+side-to-move normalization, rule-50 damping, WDL sum
+conservation, fast-versus-exact WDL agreement, symmetry,
+monotonicity, bounded smoothing, and the incremental-
+state seam.
+
+   The performance benchmark uses the repository’s seven-
+position legal Matetrack EPD corpus. It runs 10,000 rounds
+after tensor warm-up. The exact method evaluates the
+public logistic equations with ‘exp‘; the fast method loads
+the precomputed tensor.
+
+   The final UCI smoke test returned ‘cp 14‘, ‘wdl 32 957 11‘,
+‘bar 0.510‘, and ‘source=hce-proxy‘ for the start position.
+Its link line returned position hash ‘1780828403df6413‘,
+
