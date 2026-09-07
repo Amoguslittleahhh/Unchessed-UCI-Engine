@@ -33,6 +33,20 @@ data for the neural components.
 | Training data | ✅ four committed, move-legality-validated corpora: `data/training/` (71,961 games, rating-banded), `data/training-elo/` (35,812 games, every 100-elo band 100-3200), `data/selfplay/` (real Maia-3 at random UCI elo), `data/archive/` (123,385 games, 1834-2022, era/theme curated) |
 | Toolchain | ✅ zero external Rust deps; Python tooling from `tools/requirements-dev.txt`; sandbox build recipe in `docs/dev-environment.md` |
 
+## AcceleratedDetection: shipped research implementation
+
+The `manus/research-facilities` branch contains the current `unarchitectured-metal` opponent-detection research release. `AcceleratedDetection` is **default-off** and preserves the legacy detector when disabled. When enabled, promotion to `Mode::Full` is strict and resilient-channel-only: a suspected engine must satisfy sequential evidence fusion, resilient good-mass, catastrophic-error, clean-streak, and bounded-volatility guards. Clock tells and stable-fusion evidence remain diagnostic and cannot bypass the resilient proof obligation. This policy was designed to reduce false positives against human-like Maia-3 behavior while retaining sensitivity to strong classical engines.
+
+The release also includes a probe-economics breakthrough for long games. Opponent move quality is measured by a real search before the engine's own move search, so the probe is expensive. While the detector is still forming a verdict, the probe uses depth 14 / 400,000 nodes and retains the depth-12 / 250,000-node fallback when necessary. After the public engine verdict has held for ten completed observations, the next probe downgrades to depth 9 / 60,000 nodes and suppresses the fallback search. The current observation is evaluated using the pre-observation saturation state, so a fresh clock tell cannot make its own evidence cheap. A later non-suspect observation resets saturation and restores high-fidelity probing. Telemetry exposes `suspect_streak`, `observation_saturated`, `probe_high_fidelity`, and `probe_saturated` so the behavior is directly auditable.
+
+The implementation is intentionally dependency-free and interpretable: it combines bounded sequential evidence fusion, harmonic-mean agreement, leaky CUSUM-style accumulators, resilient evidence mass, held-verdict hysteresis, and clock-safe probe budgeting. The branch includes deterministic regression tests for accelerated detection, Maia-safe reason purity, catastrophic erratic rejection, held-verdict saturation, fresh clock-tell non-saturation, and accelerated-path compatibility.
+
+### Real validation and reproduction
+
+The final telemetry-enabled Stockfish 19 UCI smoke test used the committed `artifacts/unarchitectured-metal-final.unmetal` package, one thread, 64 MiB hash, real 60-second clocks, fixed openings, `Adaptive=true`, `OwnBook=false`, `AdapterTelemetry=true`, and `UCI_Opponent=- - human UnknownOpponent`. All four games produced 23 observations and zero low-time skips. Standard first-Full confirmation averaged 30 plies; accelerated confirmation averaged 25 plies; both accelerated confirmations used `legacy_accelerated_resilient`. One accelerated game recorded three saturated observations. An additional 80-ply real run recorded nine saturated observations in the standard arm. These are targeted real-UCI smoke tests, not claims of universal throughput or playing-strength improvement.
+
+Recreate the experiments with [`docs/reproduce_resilient_detection_experiments.md`](docs/reproduce_resilient_detection_experiments.md), run the series-scoped driver at [`tools/run_unarchitectured_metal_asymmetric_latency.py`](tools/run_unarchitectured_metal_asymmetric_latency.py), and analyze telemetry with [`tools/analyse_unarchitectured_metal_asymmetric_latency.py`](tools/analyse_unarchitectured_metal_asymmetric_latency.py). The IEEE-style research paper is [`ieee-paper/accelerated_detection_asymmetric_latency.pdf`](ieee-paper/accelerated_detection_asymmetric_latency.pdf), with source at [`ieee-paper/accelerated_detection_asymmetric_latency.tex`](ieee-paper/accelerated_detection_asymmetric_latency.tex).
+
 **Honest goals note:** beating full-strength Stockfish is not a realistic
 outcome for any hand-built engine — Stockfish is 15+ years of distributed
 testing. The achievable target this architecture is built for: play
@@ -205,6 +219,8 @@ before the hint is trusted.
 | `UCI_Opponent` | — | standard GUI-supplied opponent info; seeds the model for engines |
 | `PersonaSmooth` | false | EMA+dwell persona filter; **off until Adaptive-on SPRT** |
 | `EngineDetectV2` | false | high-level Elo-detector retune; **off until Adaptive-on SPRT** |
+| `AcceleratedDetection` | false | strict resilient-only engine promotion with sequential evidence fusion and Maia-safe calibration |
+| `AdapterTelemetry` | false | opt-in machine-readable detector/persona telemetry, including saturation and probe profiles |
 | `UnarchitecturedHint` | false | experimental root-ordering candidate; stays off until the retrain + SPRT gates above pass |
 | `UnarchitecturedFile` | — | explicit `UNARCHV1` model package (default: auto-located `artifacts/unarchitectured-v1-final.unarchv1`) |
 | `UnarchitecturedMinTime` | 30000 | minimum remaining clock (ms) before the candidate may submit and wait up to 100 ms for a shallow exact-position hint |
@@ -231,10 +247,14 @@ before the hint is trusted.
    ~1011)`.
 4. **Engine-tell detection:** near-instant, near-perfect replies in
    positions with real choice raise a suspicion score (fed by the
-   opponent's clock usage). A suspected engine gets full-strength chess
-   and zero trolling; erratic play (brilliancies mixed with blunders)
-   widens the model's uncertainty instead of narrowing it — the
-   sandbagger pattern.
+   opponent's clock usage). With `AcceleratedDetection=true`, a suspected
+   engine must pass the resilient sequential-evidence proof before it can
+   promote Full; clock and stable-fusion channels cannot bypass that gate.
+   Once the public verdict has held for ten observations, the opponent probe
+   switches to the cheaper saturated profile so search time is not wasted on
+   evidence that can no longer change the mode. Erratic play (brilliancies
+   mixed with blunders) widens the model's uncertainty instead of narrowing
+   it — the sandbagger pattern.
 5. **UCI_Elo semantics:** with `UCI_LimitStrength` on, the engine plays
    *at* `UCI_Elo` in every mode, matching standard UCI behavior.
 6. **Book:** popularity-weighted theory with ECO names; a separately-
