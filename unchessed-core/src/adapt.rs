@@ -102,6 +102,7 @@ const ACCEL_FUSION_EVIDENCE_MIN: f64 = 0.28;
 const ACCEL_RESILIENT_SCORE_MIN: f64 = 0.55;
 const ACCEL_RESILIENT_EVIDENCE_MIN: f64 = 0.48;
 const ACCEL_RESILIENT_BAD_MASS_MAX: f64 = 1.80;
+const ACCEL_RESILIENT_CLEAN_STREAK_MIN: u32 = 3;
 /// Number of consecutive settled engine verdicts required before the expensive
 /// opponent probe can be downgraded. A single clock tell must never make the
 /// search path cheaper; the verdict must survive a long enough evidence run.
@@ -566,10 +567,10 @@ impl OpponentModel {
             && self.accel_resilient_good_mass >= 3.0
             // A noisy strong opponent may accumulate evidence, but promotion
             // requires an independent engine-like consistency fingerprint too:
-            // two consecutive near-perfect moves and a bounded volatility.
+            // three consecutive near-perfect moves and a bounded volatility.
             // This prevents highly erratic traces from promoting while
             // retaining sensitivity to genuinely engine-like clean runs.
-            && self.low_loss_streak >= 2
+            && self.low_loss_streak >= ACCEL_RESILIENT_CLEAN_STREAK_MIN
             && self.volatility() <= 460
             && self.accel_resilient_bad_mass <= ACCEL_RESILIENT_BAD_MASS_MAX
     }
@@ -1538,12 +1539,30 @@ mod tests {
         // substantial, non-catastrophic mistakes. The stable harmonic lane
         // should be cautious, while the resilient lane should confirm.
         for i in 0..48 {
-            let loss = if i % 6 == 3 { 80 } else { 8 };
+            let loss = if i % 8 == 3 { 80 } else { 8 };
             m.observe(loss, 1.0);
         }
         assert_eq!(m.suspect_reason(), SuspectReason::LegacyAcceleratedResilient);
         assert!(m.accel_resilient_good_mass >= 3.0);
         assert!(m.accel_resilient_bad_mass <= ACCEL_RESILIENT_BAD_MASS_MAX);
+    }
+
+    #[test]
+    fn accelerated_resilient_requires_three_move_clean_streak() {
+        let mut m = OpponentModel::new();
+        m.accelerated_detect = true;
+        for _ in 0..10 {
+            m.observe(8, 1.0);
+        }
+        m.observe(80, 1.0);
+        for _ in 0..2 {
+            m.observe(8, 1.0);
+        }
+        assert_eq!(m.low_loss_streak, 2);
+        assert_eq!(m.suspect_reason(), SuspectReason::None);
+        m.observe(8, 1.0);
+        assert!(m.low_loss_streak >= ACCEL_RESILIENT_CLEAN_STREAK_MIN);
+        assert_eq!(m.suspect_reason(), SuspectReason::LegacyAcceleratedResilient);
     }
 
     #[test]
