@@ -154,6 +154,14 @@ pub struct OpponentModel {
     accel_resilient_good_mass: f64,
     /// Leaky mass of catastrophic or highly damaging observations.
     accel_resilient_bad_mass: f64,
+    /// Consecutive `observe()` calls (any detector path) that ended with
+    /// `engine_suspect()` already true. Unlike `confidence()`, which floors
+    /// out around ~97cp once `weight` hits its cap and can never reach a
+    /// tight-enough threshold on its own (see `observation_saturated`),
+    /// this directly answers "has the verdict been holding," which is the
+    /// actual real-game signal a full-depth re-probe stops being worth its
+    /// cost.
+    suspect_streak: u32,
 }
 
 /// Stable explanation for the detector rule currently in effect.
@@ -251,6 +259,7 @@ impl OpponentModel {
             accel_resilient_streak: 0,
             accel_resilient_good_mass: 0.0,
             accel_resilient_bad_mass: 0.0,
+            suspect_streak: 0,
         }
     }
 
@@ -345,6 +354,11 @@ impl OpponentModel {
             0
         };
         self.update_accelerated_fusion(cp_loss);
+        self.suspect_streak = if self.engine_suspect() {
+            self.suspect_streak.saturating_add(1)
+        } else {
+            0
+        };
     }
 
     /// Feed the opponent's clock usage for their last move. Near-instant,
@@ -390,6 +404,24 @@ impl OpponentModel {
     /// this separately).
     pub fn engine_suspect(&self) -> bool {
         self.suspect_reason().is_suspect()
+    }
+
+    /// True once the engine-suspect verdict has held for `suspect_streak`
+    /// consecutive observations, meaning another full-depth probe (depth
+    /// 14/400_000 nodes, see `run_go`) has near-zero chance of changing it.
+    /// Every further probe at full cost is then pure per-move search-time
+    /// tax with no decision left for it to inform -- found via a real game
+    /// replay showing the same-cost probe still firing at move 45+ of a
+    /// game where the model had been pinned at its measurement ceiling
+    /// since move ~14.
+    ///
+    /// Deliberately not based on `confidence()`: `weight` is capped at 14.0
+    /// (see `observe`), so `confidence()`'s floor is ~600*0.6/sqrt(14) =~
+    /// 96 cp even for a perfectly consistent opponent -- it can never reach
+    /// a "tight enough" threshold on its own, so a confidence-based check
+    /// would never actually throttle anything.
+    pub fn observation_saturated(&self) -> bool {
+        self.engine_suspect() && self.suspect_streak >= 10
     }
 
     /// Return the stable detector rule which determines `engine_suspect()`.
@@ -1497,6 +1529,47 @@ mod tests {
         assert_eq!(m.suspect_reason(), SuspectReason::LegacyAcceleratedResilient);
         assert!(m.accel_resilient_good_mass >= 3.0);
         assert!(m.accel_resilient_bad_mass <= ACCEL_RESILIENT_BAD_MASS_MAX);
+    }
+
+    #[test]
+    fn observation_saturated_only_after_a_long_held_verdict() {
+        let mut m = OpponentModel::new();
+        assert!(!m.observation_saturated(), "fresh model has no verdict yet");
+        // Sustained strong, consistent play: verdict locks (legacy ceiling)
+        // quickly, but observation_saturated should still require the
+        // verdict to have held for a real streak, not just be true once.
+        let mut just_locked = false;
+        for _ in 0..40 {
+            let was_suspect = m.engine_suspect();
+            m.observe(8, 1.0);
+            if !was_suspect && m.engine_suspect() && !just_locked {
+                just_locked = true;
+                assert_eq!(m.suspect_streak, 1, "streak should start counting from this observation");
+                assert!(!m.observation_saturated(), "verdict just locked, streak too short");
+            }
+        }
+        assert!(just_locked, "expected the verdict to lock at some point in 40 observations");
+        assert!(m.engine_suspect());
+        assert!(
+            m.observation_saturated(),
+            "streak={} after 40 consistent observations should have crossed the threshold",
+            m.suspect_streak
+        );
+    }
+
+    #[test]
+    fn observation_not_saturated_right_after_a_fresh_clock_tell() {
+        let mut m = OpponentModel::new();
+        // A single overwhelming clock tell can flip engine_suspect() near-
+        // instantly (LegacyClock), long before the verdict has held long
+        // enough to trust a cheap probe over the full-depth one.
+        m.observe(8, 1.0);
+        m.observe_time(50, true);
+        m.observe_time(50, true);
+        m.observe_time(50, true);
+        if m.engine_suspect() {
+            assert!(!m.observation_saturated(), "verdict just formed, streak too short");
+        }
     }
 
     #[test]

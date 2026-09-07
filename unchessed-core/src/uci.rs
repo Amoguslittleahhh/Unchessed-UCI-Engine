@@ -1506,10 +1506,31 @@ fn run_go(
             // a second even at bullet time controls, well clear of the
             // existing low_time (<10s) safety cutoff that skips this probe
             // entirely when the clock is actually tight.
-            let quick = Limits {
-                depth: Some(14),
-                nodes: Some(400_000),
-                ..Default::default()
+            //
+            // Once the model is already verdict-locked and tight
+            // (`observation_saturated`), a full-depth probe every remaining
+            // move of the game buys nothing -- there's no decision left for
+            // it to inform, only a per-move search-time tax charged against
+            // the real move's own budget (see the module comment on
+            // `run_go` and `observation_saturated`'s doc comment for the
+            // real-game evidence this was found from). Drop back to the
+            // pre-bump depth/node budget in that regime; it's shallow
+            // enough to occasionally misjudge a top engine's best move as a
+            // "loss", but that only matters while a verdict is still being
+            // formed, not after.
+            let saturated = m.observation_saturated();
+            let quick = if saturated {
+                Limits {
+                    depth: Some(9),
+                    nodes: Some(60_000),
+                    ..Default::default()
+                }
+            } else {
+                Limits {
+                    depth: Some(14),
+                    nodes: Some(400_000),
+                    ..Default::default()
+                }
             };
             let pre_lines = search::go(
                 &obs.pre,
@@ -1547,6 +1568,13 @@ fn run_go(
             let played = pre_lines.iter().find(|l| l.mv == obs.mv).map(|l| l.score);
             let played_score = match played {
                 Some(s) => s,
+                // Saturated: skip the second uncharged search entirely and
+                // fall back to `best` (slightly overstates cp-loss on moves
+                // outside the shallow probe's PV, but there's no verdict
+                // left riding on the precision, and it's the second, more
+                // expensive half of the original "up to ~130x movetime"
+                // overhead this whole saturation check exists to avoid).
+                None if saturated => best,
                 None => {
                     // evaluate the move they actually played
                     let after = obs.pre.make(obs.mv);
