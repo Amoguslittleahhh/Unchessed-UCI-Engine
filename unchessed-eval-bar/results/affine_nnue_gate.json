@@ -1,0 +1,12 @@
+{
+  "positions": 500,
+  "test": 100,
+  "field": "loaded_eval_white_cp",
+  "raw_test_mae_cp": 118.87,
+  "calibrated_test_mae_cp": 117.64577081106964,
+  "calibrated_train_mae_cp": 113.0655140516829,
+  "lambda": 100000.0,
+  "bias": 1.043819470278358,
+  "scale": 0.9259594353876753,
+  "strict_100_gate": false
+}
