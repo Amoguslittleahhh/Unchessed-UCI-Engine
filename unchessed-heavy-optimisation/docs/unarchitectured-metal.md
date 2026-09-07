@@ -10,7 +10,7 @@ must not be presented as released product versions.
 This naming reset does not fabricate maturity. Unarchitectured Metal is currently:
 
 ```text
-architecture: frozen canonical Unarchitectured Metal
+architecture: frozen canonical v1
 training pipeline: executed; calibrated checkpoint committed
 trained checkpoint: artifacts/unarchitectured-metal-final.unmetal
 checkpoint SHA-256: 5fd9fc3fbf47bd2620c2e832e24c98525b59feeea791abf1c7ae32b9d311b16d
@@ -43,11 +43,8 @@ Unarchitectured Metal canonically consists of:
 The canonical runtime package magic is:
 
 ```text
-UNMETAL1
+UNARCHV1
 ```
-
-The loader accepts the historical `UNARCHV1` magic for compatibility; it is not
-the active product identity.
 
 A real calibrated package now exists and is accepted by the strict loader. It
 remains unwired because deployment calibration, clock-budget integration,
@@ -80,7 +77,7 @@ tools/unarchitectured_metal_watchdog.py
 
 Current data, teacher-label, student, Oracle/distillation, calibration,
 reference-forward, and readiness entry points now use canonical Unarchitectured
-Metal names. The trainers, throughput calibrator, and Python reference require
+v1 names. The trainers, throughput calibrator, and Python reference require
 NumPy/PyTorch; data, teacher, readiness, safety, and package tools remain
 standalone on CPU ingestion hosts. Frozen `UNCHD3R0`/`UNCHD4R0` descriptors
 retain predecessor-era text
