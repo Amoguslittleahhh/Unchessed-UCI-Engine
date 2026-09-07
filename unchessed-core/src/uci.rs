@@ -17,7 +17,7 @@ use crate::aegis_v4_runtime::{
 };
 use crate::board::*;
 use crate::book::{Book, BookEntry, Tier};
-use crate::eval::{Eval, EvalParams, Hce};
+use crate::eval::{Eval, EvalParams, Hce, NonlinearHce};
 use crate::eval_bar::{EvalBar, EvalBarLink, EvalBarSource};
 use crate::fen;
 use crate::movegen::{legal, parse_uci_move};
@@ -56,6 +56,7 @@ struct Options {
     search: SearchParams,
     threads: usize,
     eval_params: EvalParams,
+    nonlinear_eval: bool,
     /// Experimental Unarchitectured v1 root ordering candidate. Default-off;
     /// alpha-beta remains authoritative and every legal move remains searched.
     unarchitectured_hint: bool,
@@ -116,6 +117,7 @@ impl Default for Options {
             search: SearchParams::default(),
             threads: default_threads(),
             eval_params: EvalParams::default(),
+            nonlinear_eval: false,
             unarchitectured_hint: false,
             unarchitectured_hint_exit: InferenceExit::Layer2Width128,
             unarchitectured_file: String::new(),
@@ -342,6 +344,7 @@ pub fn run(ident: EngineIdent) {
                 // Knight outpost: 100 is SPRT-validated (+12.0 +/- 7.8 Elo,
                 // 2026-08-10, 4873 games, LLR crossed the upper bound).
                 println!("option name KnightOutpostPct type spin default 100 min 0 max 200");
+                println!("option name HomemadeNonlinear type check default false");
                 println!("uciok");
                 println!("info string [Unchessed] eval: {}", eval_desc);
                 if ident.adaptive_engine {
@@ -625,6 +628,14 @@ fn load_default_nnue() -> Option<Arc<Nnue>> {
 }
 
 /// Default evaluator: NNUE weights next to the executable, else HCE.
+fn make_hce(params: EvalParams, nonlinear: bool) -> Arc<dyn Eval> {
+    if nonlinear {
+        Arc::new(NonlinearHce::new(params))
+    } else {
+        Arc::new(Hce::new(params))
+    }
+}
+
 fn load_default_eval(params: EvalParams) -> (Arc<dyn Eval>, String, bool) {
     match load_default_nnue() {
         Some(net) => {
@@ -853,11 +864,17 @@ fn handle_setoption(
         "probcutseefilter" => {
             opt.search.probcut_see_filter = value.eq_ignore_ascii_case("true");
         }
+        "homemadenonlinear" => {
+            opt.nonlinear_eval = value.eq_ignore_ascii_case("true");
+            if *eval_is_hce {
+                *eval_impl = make_hce(opt.eval_params, opt.nonlinear_eval);
+            }
+        }
         "passedpawnmgpct" => {
             if let Ok(v) = value.parse::<i32>() {
                 opt.eval_params.passed_mg_pct = v.clamp(0, 200);
                 if *eval_is_hce {
-                    *eval_impl = Arc::new(Hce::new(opt.eval_params));
+                    *eval_impl = make_hce(opt.eval_params, opt.nonlinear_eval);
                 }
             }
         }
@@ -865,7 +882,7 @@ fn handle_setoption(
             if let Ok(v) = value.parse::<i32>() {
                 opt.eval_params.passed_eg_pct = v.clamp(0, 200);
                 if *eval_is_hce {
-                    *eval_impl = Arc::new(Hce::new(opt.eval_params));
+                    *eval_impl = make_hce(opt.eval_params, opt.nonlinear_eval);
                 }
             }
         }
@@ -873,7 +890,7 @@ fn handle_setoption(
             if let Ok(v) = value.parse::<i32>() {
                 opt.eval_params.mobility_pct = v.clamp(0, 200);
                 if *eval_is_hce {
-                    *eval_impl = Arc::new(Hce::new(opt.eval_params));
+                    *eval_impl = make_hce(opt.eval_params, opt.nonlinear_eval);
                 }
             }
         }
@@ -881,7 +898,7 @@ fn handle_setoption(
             if let Ok(v) = value.parse::<i32>() {
                 opt.eval_params.rook_pct = v.clamp(0, 200);
                 if *eval_is_hce {
-                    *eval_impl = Arc::new(Hce::new(opt.eval_params));
+                    *eval_impl = make_hce(opt.eval_params, opt.nonlinear_eval);
                 }
             }
         }
@@ -889,7 +906,7 @@ fn handle_setoption(
             if let Ok(v) = value.parse::<i32>() {
                 opt.eval_params.knight_outpost_pct = v.clamp(0, 200);
                 if *eval_is_hce {
-                    *eval_impl = Arc::new(Hce::new(opt.eval_params));
+                    *eval_impl = make_hce(opt.eval_params, opt.nonlinear_eval);
                 }
             }
         }
@@ -2172,7 +2189,7 @@ mod tests {
         let policy = Arc::new(Mutex::new(None));
         let unarchitectured = Arc::new(Mutex::new(None));
         let mut opt = Options::default();
-        let mut eval: Arc<dyn Eval> = Arc::new(Hce::new(opt.eval_params));
+        let mut eval: Arc<dyn Eval> = make_hce(opt.eval_params, opt.nonlinear_eval);
         let mut desc = String::new();
         let mut is_hce = true;
         handle_setoption(

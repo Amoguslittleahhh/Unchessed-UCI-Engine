@@ -1,0 +1,74 @@
+\documentclass[10pt,conference]{IEEEtran}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,booktabs,hyperref,microtype}
+\hypersetup{colorlinks=true,urlcolor=blue,linkcolor=black,citecolor=black}
+\title{A Lightweight Clean-Room Nonlinear Evaluator: Hot-Path Review and Stockfish 19 Calibration Tournament}
+\author{\IEEEauthorblockN{Manus AI}\IEEEauthorblockA{Unchessed UCI Engine Research\\September 2026}}
+\begin{document}
+\maketitle
+\begin{abstract}
+This paper documents a from-scratch nonlinear evaluator experiment and a fixed-control calibration tournament against Stockfish 19. The nonlinear model is intentionally small: it reuses the existing Unchessed handcrafted evaluator as a backbone and adds bounded interactions between score, material imbalance, pawn phase, and king geometry. It shares no code or weights with SFNNv16. The search integration follows the existing evaluator state seam and does not add eval-bar work to the presentation path. On a seven-position depth-eight benchmark, the nonlinear mode retained 86.22\% of baseline nodes per second, while median search time was nearly unchanged in the small sample. In 24 candidate-versus-Stockfish games across 30, 100, and 300 ms movetimes, default HCE and the nonlinear mode tied at 0.167 average game points per game; the default HCE was retained because the sample is too small to justify a strength change and the nonlinear path costs throughput.
+\end{abstract}
+
+\section{Research Target and Clean-Room Boundary}
+The target is practical parity in evaluation behavior and engine contribution, not an unsupported claim of SFNNv16 equivalence. Public Stockfish documentation was used only for broad architectural context such as incremental state and efficient arithmetic [1] [2]. Stockfish 19 was used as an external UCI opponent. No Stockfish source, network tensor, feature index, or weight was imported into the nonlinear evaluator.
+
+The implementation is original to Unchessed. It adds the `HomemadeNonlinear` UCI option and a `NonlinearHce` evaluator wrapper. The search calls the wrapper through the existing `Eval` trait, so the bar remains a read-only diagnostic and does not rescan positions during search.
+
+\section{Lightweight Nonlinear Architecture}
+Let $h(s)$ be the existing handcrafted score for position $s$. The homemade model computes three inexpensive context signals: signed material imbalance $m(s)$, pawn-count phase $p(s)$, and Manhattan king separation $k(s)$. The correction is
+\begin{equation}
+\Delta(s)=\operatorname{clip}\left(\frac{h(s)m(s)}{18000}+c(h)+g(k,p),-120,120\right),
+\end{equation}
+where $c(h)=h/24$ outside a neutral band and $g(k,p)$ is a bounded king-geometry interaction that is down-weighted as the pawn phase becomes endgame-like. The final score is $h(s)+\Delta(s)$. Integer arithmetic and clamping prevent pathological feedback and keep the implementation allocation-free.
+
+This model is deliberately not a copied neural architecture. It is a small nonlinear residual over a stable HCE baseline, suitable for future replacement by a trained compact network once a sufficiently large leakage-safe corpus is available.
+
+\section{Hot-Path Review}
+The main search already performs incremental evaluator-state updates after futility pruning. This is the correct placement because a pruned move does not recurse and therefore should not pay accumulator-update cost. The nonlinear wrapper is stateless and uses only board bitboards, so it does not allocate or modify the NNUE accumulator. The remaining cost is a handful of population counts, integer products, and a king-distance calculation at each evaluated node.
+
+\begin{table}[t]
+\centering
+\caption{Release-mode nonlinear overhead benchmark}
+\begin{tabular}{lrr}
+\toprule
+Metric & Base HCE & Nonlinear HCE\\
+\midrule
+Median NPS & 1,763,088 & 1,520,187\\
+Median time (ms) & 69 & 68\\
+NPS ratio & 0.8622 & --\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The benchmark used the same seven legal positions at depth 8 with one thread. The NPS reduction is approximately 13.8\% in this small sample and is the primary optimization warning. The median time result is not sufficient to claim a speedup because the workload is short and noisy. Future optimization should replace repeated context extraction with incremental scalar state, use a precomputed king-distance table, and keep the correction disabled by default until larger matches justify the cost.
+
+\section{Tournament Protocol}
+The tournament used the official Stockfish 19 executable as the reference opponent. Candidate variants were default HCE, mobility at 110\%, passed-pawn terms at 110\%, and the original nonlinear mode. Each variant played two games at each fixed movetime of 30, 100, and 300 ms, with colors reversed. Games were capped at 120 plies to bound runtime. The result is a calibration tournament, not a statistically significant Elo estimate.
+
+\begin{table}[t]
+\centering
+\caption{Candidate game points against Stockfish 19}
+\begin{tabular}{lrrr}
+\toprule
+Variant & 30 ms & 100 ms & 300 ms\\
+\midrule
+Default HCE & 0.250 & 0.000 & 0.250\\
+Mobility +10\% & 0.000 & 0.250 & 0.000\\
+Passed pawns +10\% & 0.000 & 0.000 & 0.250\\
+Homemade nonlinear & 0.000 & 0.250 & 0.250\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Default HCE and the nonlinear mode both scored 0.500 total points from six games, or 0.167 points per game. The two weight perturbations were lower in this sample. Because the tournament is small and Stockfish is substantially stronger, it cannot resolve small Elo differences. The evidence supports retaining the existing HCE defaults and keeping the nonlinear path experimental.
+
+\section{Conclusion}
+The experiment provides a useful design path for a compact homemade nonlinear evaluator: preserve the proven evaluator backbone, add bounded interactions, integrate through the existing evaluator seam, and measure both node throughput and games. The current nonlinear model is a safe prototype rather than an SFNNv16 replacement. The next credible step is a trained small network with game-level splits, a much larger real-position corpus, quantized inference, and hundreds or thousands of paired games per control before any promotion decision.
+
+\begin{thebibliography}{00}
+\bibitem{sf19} Stockfish Team, ``Stockfish 19,'' Sep. 5, 2026. [Online]. Available: \url{https://stockfishchess.org/blog/2026/stockfish-19/}
+\bibitem{nnue} official-stockfish, ``NNUE,'' Stockfish Documentation. [Online]. Available: \url{https://official-stockfish.github.io/docs/nnue-pytorch-wiki/docs/nnue.html}
+\end{thebibliography}
+\end{document}
