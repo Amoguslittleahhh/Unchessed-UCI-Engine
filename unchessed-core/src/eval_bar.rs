@@ -28,6 +28,8 @@ pub enum EvalBarSource {
     LoadedNnueProxy,
     /// Original Unchessed feature fusion; no external weights or constants.
     HomemadeFusion,
+    /// Original compact model fit only from black-box UCI observations.
+    HomemadeParityModel,
 }
 
 impl EvalBarSource {
@@ -36,6 +38,7 @@ impl EvalBarSource {
             Self::HceProxy => "hce-proxy",
             Self::LoadedNnueProxy => "nnue-proxy",
             Self::HomemadeFusion => "homemade-stack-v3-selected",
+            Self::HomemadeParityModel => "homemade-parity-linear-v1",
         }
     }
 }
@@ -188,6 +191,41 @@ impl EvalBar {
             confidence,
             exact_stockfish_path: false,
             source: EvalBarSource::HomemadeFusion,
+            bitboard: bitboard_snapshot(pos),
+        }
+    }
+
+    /// Apply the original compact parity model. Its coefficients are Unchessed
+    /// parameters fit from black-box UCI outputs; it does not contain network
+    /// weights or implementation material from Stockfish.
+    pub fn sample_parity_from_score(&mut self, pos: &Position, raw_stm: i32) -> EvalBarSample {
+        let raw_static_cp_white = if pos.side == Color::White {
+            raw_stm
+        } else {
+            -raw_stm
+        };
+        let residual_white = homemade_residual_cp(pos);
+        let base_hce_white = raw_static_cp_white - residual_white;
+        let static_cp_white = parity_model_cp_white(pos, base_hce_white);
+        let display_cp_white = damp_rule50(static_cp_white, pos.halfmove);
+        let wdl = homemade_wdl_from_cp(display_cp_white, pos);
+        let expected_score = (f64::from(wdl[0]) + 0.5 * f64::from(wdl[1])) / 1000.0;
+        let confidence = score_confidence(expected_score);
+        let target = f64::from(display_cp_white);
+        let prior = self.smoothed_cp_white.unwrap_or(target);
+        let jump = target - prior;
+        let alpha = (self.smoothing_alpha + 0.25 * confidence).clamp(0.20, 0.60);
+        let bounded_delta = jump.clamp(-f64::from(self.max_step_cp), f64::from(self.max_step_cp));
+        self.smoothed_cp_white = Some(prior + alpha * bounded_delta);
+        EvalBarSample {
+            static_cp_white,
+            display_cp_white,
+            wdl_per_mille: wdl,
+            expected_score,
+            bar_fraction: expected_score,
+            confidence,
+            exact_stockfish_path: false,
+            source: EvalBarSource::HomemadeParityModel,
             bitboard: bitboard_snapshot(pos),
         }
     }
@@ -428,6 +466,72 @@ pub fn homemade_residual_cp(pos: &Position) -> i32 {
     (raw * phase_scale / 16).clamp(-180, 180)
 }
 
+fn parity_model_cp_white(pos: &Position, hce_white: i32) -> i32 {
+    let f = homemade_features(pos);
+    let material = material_balance(pos) as f64;
+    let phase = f64::from(f.phase);
+    let signals = [
+        f.center_control,
+        f.pawn_structure,
+        f.king_safety,
+        f.piece_activity,
+        f.coordination,
+        f.space,
+        f.passed_pawns,
+        f.outposts,
+        f.bishop_pair,
+        f.rook_files,
+        f.tempo,
+    ];
+    let mut value = 29.0756183042
+        + 165.050011876 * (f64::from(hce_white) / 1000.0)
+        + 33.3111274764 * (material / 20.0)
+        - 28.1279586099 * (phase / 30.0);
+    let weights = [
+        14.5404607618,
+        53.9593866715,
+        89.0217440204,
+        22.5674077942,
+        6.36106482837,
+        11.5142968358,
+        47.504983524,
+        24.2963794598,
+        16.4149212044,
+        44.7864979209,
+        7.44361477216e-14,
+    ];
+    for (signal, weight) in signals.iter().zip(weights) {
+        value += weight * (f64::from(*signal) / 10.0);
+    }
+    let phase_norm = phase / 30.0;
+    for (index, weight) in [
+        11.9471892712,
+        46.4900769586,
+        24.5292930088,
+        12.0971006247,
+        27.0766769686,
+    ]
+    .iter()
+    .enumerate()
+    {
+        let signal = signals[[1, 2, 6, 8, 9][index]];
+        value += weight * (f64::from(signal) * phase_norm / 10.0);
+    }
+    value += 16.2443705529 * (material / 20.0) * phase_norm;
+    value.round().clamp(-4000.0, 4000.0) as i32
+}
+
+fn material_balance(pos: &Position) -> i32 {
+    const VALUES: [i32; 6] = [100, 320, 330, 500, 900, 0];
+    let white = pos.bb[Color::White.idx()];
+    let black = pos.bb[Color::Black.idx()];
+    (0..6)
+        .map(|piece| {
+            VALUES[piece] * (white[piece].count_ones() as i32 - black[piece].count_ones() as i32)
+        })
+        .sum()
+}
+
 pub fn bitboard_snapshot(pos: &Position) -> BitboardSnapshot {
     BitboardSnapshot {
         position_hash: pos.hash,
@@ -660,6 +764,24 @@ mod tests {
         let mut bar = EvalBar::new();
         let sample = bar.sample_homemade_from_score(&pos, 0);
         assert_eq!(sample.source, EvalBarSource::HomemadeFusion);
+        assert!(!sample.exact_stockfish_path);
+    }
+
+    #[test]
+    fn parity_model_is_explicitly_experimental_and_bounded() {
+        let pos = fen::startpos();
+        let mut bar = EvalBar::new();
+        let sample = bar.sample_parity_from_score(&pos, 0);
+        assert_eq!(sample.source, EvalBarSource::HomemadeParityModel);
+        assert!((-4000..=4000).contains(&sample.static_cp_white));
+        assert_eq!(
+            sample
+                .wdl_per_mille
+                .iter()
+                .map(|v| u32::from(*v))
+                .sum::<u32>(),
+            1000
+        );
         assert!(!sample.exact_stockfish_path);
     }
 

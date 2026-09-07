@@ -34,7 +34,7 @@ The direct result on 120 legal real-game positions at Stockfish depth 10 was:
 
 This is a score-proxy comparison, not an Elo match and not evidence that the homemade evaluator is stronger than SFNNv16. Establishing parity or superiority requires a trained independent network, fixed test suites, and statistically significant engine matches.
 
-The UCI connection remains:
+The stable UCI connection remains:
 
 ```text
 position startpos
@@ -42,3 +42,5 @@ evalbar homemade
 ```
 
 The output label `source=homemade-stack-v3-selected` makes the provenance explicit. The link line carries the shared bitboard snapshot and Elo-detector telemetry without changing search or detector state.
+
+A second command, `evalbar parity`, exposes an experimental compact linear model trained from black-box Stockfish score observations and original Unchessed features. It is deliberately not promoted: on the same 120-position depth-10 corpus it measured 262.792 cp MAE versus 178.925 cp for the selected handcrafted stack. The failed experiment is retained as a reproducible negative result and a warning against fitting a small corpus too aggressively.
