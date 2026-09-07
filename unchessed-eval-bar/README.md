@@ -1,21 +1,44 @@
-# Unchessed Eval Bar Experiment
+# Unchessed Homemade Eval-Bar Stack
 
-This folder contains the experimental harness for the engine-integrated evaluation bar in `unchessed-core/src/eval_bar.rs`. The implementation is intentionally **Stockfish-19-inspired but not an exact Stockfish clone**: it reuses Unchessed’s current static HCE score, converts it to a White-centric score, applies a presentation-only rule-50 dampener, and maps it through the pinned Stockfish 19 material-dependent WDL calibration.
+This folder contains an independently authored Unchessed evaluator and bar projection. Stockfish/SFNNv16 is used only as a public architectural reference and an external black-box comparison target. No Stockfish source files, network weights, feature rows, constants, or implementation code are imported into this stack.
 
-The core engine exposes the same projection through the diagnostic UCI command:
+The current runtime label is `homemade-stack-v3-selected`. It combines an existing evaluator score with an original, bounded bitboard residual and an original rational WDL projection. The broader research stack contains eleven independently implemented signals:
+
+| Breakthrough family | Original Unchessed signal |
+|---|---|
+| Center-pressure lattice | Occupancy in a four-square central lattice |
+| Pawn-geometry analyzer | Doubled, isolated, and connected-file structure |
+| King-shelter ring | Own pawn cover around the king |
+| Activity-space field | Extended-center occupation |
+| Coordination mesh | Own pawn and knight attack overlap |
+| Passed-pawn race | Enemy-ahead occupancy test on adjacent files |
+| Outpost detector | Central knight squares outside enemy pawn reach |
+| Bishop-pair topology | Same-side two-bishop indicator |
+| Rook-file pressure | Rooks on pawn-free files |
+| Tempo polarity | Side-to-move sign, used only in the experimental residual |
+| Phase-aware gain | Occupancy-derived phase multiplier |
+
+The complete stack is intentionally not forced into production. A held-out ablation selected pawn geometry, king shelter, passed pawns, bishop-pair topology, and rook-file pressure because that subset generalized better than the full noisy combination on the direct reference corpus. The rejected signals remain available for future independent training rather than being silently discarded.
+
+The runtime calibration uses Unchessed-owned coefficients learned from a held-out split of black-box UCI score observations: a score scale of `0.680292396` and a bias of `24.603188915` cp. These values are not Stockfish coefficients and are not used by the baseline or official engine.
+
+The comparison harness is `tools/compare_sfnnv16_homemade.py`. It launches official Stockfish 19 and the Unchessed reviewer as separate processes, sends identical FEN positions through UCI, and records only returned scores. The 120-position corpus was extracted from real PGN games by `tools/extract_pgn_positions.py`; it contains no engine scores or weights.
+
+The direct result on 120 legal real-game positions at Stockfish depth 10 was:
+
+| Metric | Selected homemade stack |
+|---|---:|
+| Mean absolute error | 178.925 cp |
+| Median absolute error | 103 cp |
+| Maximum absolute error | 1204 cp |
+
+This is a score-proxy comparison, not an Elo match and not evidence that the homemade evaluator is stronger than SFNNv16. Establishing parity or superiority requires a trained independent network, fixed test suites, and statistically significant engine matches.
+
+The UCI connection remains:
 
 ```text
 position startpos
-evalbar
+evalbar homemade
 ```
 
-The output includes the White-centric display score, WDL per mille tuple, expected score, smoothed score, and `provenance=proxy`. The smoothing layer is bounded and presentation-only; it never feeds back into search or move selection.
-
-The standalone harness accepts either no argument, `startpos`, or a FEN string:
-
-```bash
-cargo run -p unchessed-eval-bar -- startpos
-cargo run -p unchessed-eval-bar -- '4k3/8/8/8/8/8/4Q3/4K3 w - - 0 1'
-```
-
-Exact Stockfish 19 parity would require the SFNNv16 network, its feature transformer, quantization constants, and matching source/build configuration. This experiment therefore reports its provenance rather than presenting a proxy as an official Stockfish score.
+The output label `source=homemade-stack-v3-selected` makes the provenance explicit. The link line carries the shared bitboard snapshot and Elo-detector telemetry without changing search or detector state.
