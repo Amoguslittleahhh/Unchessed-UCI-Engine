@@ -3538,7 +3538,7 @@ mod tests {
             let (
                 (baseline_lines, baseline_nodes, baseline_time),
                 (hinted_lines, hinted_nodes, hinted_time, inference_time),
-            ) = if position_index.is_multiple_of(2) {
+            ) = if position_index % 2 == 0 {
                 (run_baseline(), run_hinted())
             } else {
                 let hinted_result = run_hinted();

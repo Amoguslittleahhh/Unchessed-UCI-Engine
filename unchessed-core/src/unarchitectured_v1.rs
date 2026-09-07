@@ -115,7 +115,7 @@ impl<'a> TensorPackage<'a> {
             if !names.insert(name) {
                 return Err(format!("duplicate UNARCHV1 section {name:?}"));
             }
-            if !offset.is_multiple_of(ALIGNMENT) {
+            if offset % ALIGNMENT != 0 {
                 return Err(format!("unaligned UNARCHV1 section {name:?}"));
             }
             let end = offset
