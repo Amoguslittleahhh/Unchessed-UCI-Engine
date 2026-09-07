@@ -11,6 +11,7 @@ pub mod perft;
 pub mod san;
 pub mod eval;
 pub(crate) mod cpu;
+pub mod eval_bar;
 pub mod nnue;
 pub mod tt;
 pub mod search;

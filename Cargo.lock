@@ -21,6 +21,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "unchessed-eval-bar"
+version = "0.1.0"
+dependencies = [
+ "unchessed-core",
+]
+
+[[package]]
 name = "unchessed-reviewer"
 version = "0.2.4"
 dependencies = [

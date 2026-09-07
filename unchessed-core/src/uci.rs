@@ -18,6 +18,7 @@ use crate::aegis_v4_runtime::{
 use crate::board::*;
 use crate::book::{Book, BookEntry, Tier};
 use crate::eval::{Eval, EvalParams, Hce};
+use crate::eval_bar::EvalBar;
 use crate::fen;
 use crate::movegen::{legal, parse_uci_move};
 use crate::nnue::Nnue;
@@ -247,6 +248,7 @@ pub fn run(ident: EngineIdent) {
     // moved past).
     let mut pending_ponder: Option<GoJob> = None;
     let mut game = Game::new(0);
+    let mut eval_bar = EvalBar::new();
     // `ucinewgame` owns logical game boundaries. The initial pre-newgame
     // position remains game 0 for permissive UCI clients.
     let mut next_game_id = 0u64;
@@ -383,6 +385,7 @@ pub fn run(ident: EngineIdent) {
                 last_opp_clock = None;
                 next_game_id = next_game_id.saturating_add(1);
                 game = Game::new(next_game_id);
+                eval_bar.reset();
                 if opt.unarchitectured_hint {
                     match load_unarchitectured_candidate(&opt.unarchitectured_file) {
                         Ok(candidate) => {
@@ -531,6 +534,18 @@ pub fn run(ident: EngineIdent) {
                 print!("{}", game.current.pretty());
                 println!("fen: {}", fen::serialize(&game.current));
                 println!("hash: {:016x}", game.current.hash);
+            }
+            "evalbar" => {
+                let sample = eval_bar.sample(&game.current);
+                println!(
+                    "info string [Unchessed] evalbar cp {} wdl {} {} {} bar {:.3} smoothed_cp {} provenance=proxy",
+                    sample.display_cp_white,
+                    sample.wdl_per_mille[0],
+                    sample.wdl_per_mille[1],
+                    sample.wdl_per_mille[2],
+                    sample.bar_fraction,
+                    eval_bar.smoothed_cp_white().unwrap_or(sample.display_cp_white),
+                );
             }
             // debug: "policy [elo]" prints the human policy for the position
             "policy" => {
