@@ -16,7 +16,7 @@ use std::sync::OnceLock;
 
 use crate::board::{Color, Position, BISHOP, KNIGHT, PAWN, QUEEN, ROOK};
 use crate::eval::{evaluate, Eval, EvalParams, EvalState};
-use crate::movegen::{KING_ATT, KNIGHT_ATT, PAWN_ATT};
+use crate::movegen::{in_check, legal, KING_ATT, KNIGHT_ATT, PAWN_ATT};
 
 const MATE_CP: i32 = 20_000;
 const WDL_CP_MIN: i32 = -4000;
@@ -241,6 +241,20 @@ impl EvalBar {
     /// Stockfish code, network weights, or feature rows are used.
     pub fn sample_teacher_calibrated_from_score(&mut self, pos: &Position, raw_stm: i32) -> EvalBarSample {
         let raw_white = if pos.side == Color::White { raw_stm } else { -raw_stm };
+        if mate_in_one_score_white(pos).is_some() {
+            let static_cp_white = mate_in_one_score_white(pos).unwrap();
+            let display_cp_white = static_cp_white;
+            let wdl = homemade_wdl_from_cp(display_cp_white, pos);
+            let expected_score = (f64::from(wdl[0]) + 0.5 * f64::from(wdl[1])) / 1000.0;
+            let confidence = score_confidence(expected_score);
+            self.smoothed_cp_white = Some(f64::from(display_cp_white));
+            return EvalBarSample {
+                static_cp_white, display_cp_white, wdl_per_mille: wdl,
+                expected_score, bar_fraction: expected_score, confidence,
+                exact_stockfish_path: false, source: EvalBarSource::HomemadeTeacherCalibrated,
+                bitboard: bitboard_snapshot(pos),
+            };
+        }
         let f = homemade_features(pos);
         let phase = f64::from(f.phase);
         let signals = [
@@ -462,6 +476,17 @@ pub fn homemade_features(pos: &Position) -> HomemadeFeatures {
         tempo: if pos.side == Color::White { 1 } else { -1 },
         phase: (pos.occ.count_ones().saturating_sub(2)).min(30) as u8,
     }
+}
+
+fn mate_in_one_score_white(pos: &Position) -> Option<i32> {
+    let us = pos.side;
+    for mv in legal(pos).as_slice() {
+        let next = pos.make(*mv);
+        if in_check(&next) && legal(&next).moves.is_empty() {
+            return Some(if us == Color::White { MATE_CP - 1 } else { -(MATE_CP - 1) });
+        }
+    }
+    None
 }
 
 fn pawn_attack_map(pos: &Position, color: usize) -> u64 {
