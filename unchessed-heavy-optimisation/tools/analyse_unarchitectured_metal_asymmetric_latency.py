@@ -47,6 +47,9 @@ def main() -> None:
                 "max_fusion_evidence_milli": max(evidence) if evidence else None,
                 "last_estimate_elo": int(obs[-1]["estimate_elo"]) if obs else None,
                 "last_confidence_cp": int(obs[-1]["confidence_cp"]) if obs else None,
+                "saturated_observation_count": sum(r.get("observation_saturated") == "1" for r in obs),
+                "max_suspect_streak": max((int(r.get("suspect_streak", "0")) for r in obs), default=0),
+                "probe_profiles": dict(Counter(r.get("source", "unknown") for r in obs)),
             })
     by_arm = defaultdict(list)
     for row in summaries:
@@ -61,6 +64,10 @@ def main() -> None:
             "first_full_ply_mean": statistics.mean(latencies) if latencies else None,
             "first_full_ply_median": statistics.median(latencies) if latencies else None,
             "max_fusion_score_mean": statistics.mean(scores) if scores else None,
+            "saturated_observation_total": sum(r["saturated_observation_count"] for r in rows),
+            "games_with_saturation": sum(r["saturated_observation_count"] > 0 for r in rows),
+            "max_suspect_streak": max((r["max_suspect_streak"] for r in rows), default=0),
+            "probe_profiles": dict(Counter(profile for r in rows for profile in r["probe_profiles"])),
             "reasons": dict(Counter(r["first_suspect_reason"] for r in rows)),
         }
     print(json.dumps(report, indent=2))

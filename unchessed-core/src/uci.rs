@@ -1264,7 +1264,7 @@ fn emit_observation_telemetry(
         .map(|n| n.to_string())
         .unwrap_or_else(|| "none".to_string());
     println!(
-        "info string [UnchessedTelemetry] v=1 event={event} run={} game={} ply={ply} observation={observation} source={source}{reason_fields} adaptive={adaptive} limit_strength={limit_strength} persona_smooth={persona_smooth} engine_detect_v2={engine_detect_v2} own_book={own_book} adapter_telemetry=1 low_time={} clock_available={clock_available} opp_time_used_ms={opp_time_used_ms} cp_loss={cp_loss} difficulty_weight_milli={difficulty_weight_milli} legal_count={legal_count} had_choice={had_choice} estimate_elo={} confidence_cp={} weight_milli={} suspicion_milli={} low_loss_streak={} samples={} is_computer={} declared_elo={declared_elo} suspect={} suspect_reason={} accelerated_score_milli={} accelerated_evidence_milli={} accelerated_streak={} accelerated_fusion_streak={} accelerated_resilient_score_milli={} accelerated_resilient_evidence_milli={} accelerated_resilient_streak={} action_full={}",
+        "info string [UnchessedTelemetry] v=1 event={event} run={} game={} ply={ply} observation={observation} source={source}{reason_fields} adaptive={adaptive} limit_strength={limit_strength} persona_smooth={persona_smooth} engine_detect_v2={engine_detect_v2} own_book={own_book} adapter_telemetry=1 low_time={} clock_available={clock_available} opp_time_used_ms={opp_time_used_ms} cp_loss={cp_loss} difficulty_weight_milli={difficulty_weight_milli} legal_count={legal_count} had_choice={had_choice} estimate_elo={} confidence_cp={} weight_milli={} suspicion_milli={} low_loss_streak={} suspect_streak={} observation_saturated={} samples={} is_computer={} declared_elo={declared_elo} suspect={} suspect_reason={} accelerated_score_milli={} accelerated_evidence_milli={} accelerated_streak={} accelerated_fusion_streak={} accelerated_resilient_score_milli={} accelerated_resilient_evidence_milli={} accelerated_resilient_streak={} action_full={}",
         job.telemetry_run,
         job.game_id,
         low_time as u8,
@@ -1273,6 +1273,8 @@ fn emit_observation_telemetry(
         snapshot.weight_milli,
         snapshot.suspicion_milli,
         snapshot.low_loss_streak,
+        snapshot.suspect_streak,
+        snapshot.observation_saturated as u8,
         snapshot.samples,
         snapshot.is_computer as u8,
         snapshot.suspect as u8,
@@ -1415,23 +1417,23 @@ fn run_go(
                 continue;
             }
             // Analysis of the pre-move position (opponent to move) used as the
-            // yardstick for judging their move's quality. This budget used to
-            // be depth 9 / 60_000 nodes -- at this engine's measured throughput
-            // (~4M+ nodes/sec on the hand-crafted eval), that completes in a
-            // handful of milliseconds, far too shallow to recognize many of a
-            // top engine's genuinely best moves as best. That shallow probe
-            // systematically over-counted cp-loss against strong opponents,
-            // dragging the live Elo estimate down and making engine_suspect()
-            // slower to trigger (or never triggering), leaving the Adapter
-            // playing a deliberately weakened MATCH-mode target Elo against
-            // opponents like Stockfish instead of switching to Mode::Full.
-            // Bumped to depth 14 / 400_000 nodes -- still a small fraction of
-            // a second even at bullet time controls, well clear of the
-            // existing low_time (<10s) safety cutoff that skips this probe
-            // entirely when the clock is actually tight.
+            // yardstick for judging their move's quality. While the verdict is
+            // still forming, use the high-fidelity depth-14/400k budget: the
+            // earlier depth-9 probe systematically over-counted cp-loss against
+            // strong engines and delayed correct promotion to Mode::Full.
+            //
+            // Homemade efficiency breakthrough: once the public engine verdict
+            // has held for ten completed observations, the expensive probe no
+            // longer changes a mode decision. Keep a shallow depth-9/60k probe
+            // to prevent the Elo model from freezing, but do not pay for a
+            // second fallback search when the played move is absent from the
+            // shallow PV. The saturation state is read before this observation
+            // is applied, so a fresh clock tell cannot retroactively cheapen the
+            // sample that created it.
+            let observation_saturated = m.observation_saturated();
             let quick = Limits {
-                depth: Some(14),
-                nodes: Some(400_000),
+                depth: Some(if observation_saturated { 9 } else { 14 }),
+                nodes: Some(if observation_saturated { 60_000 } else { 400_000 }),
                 ..Default::default()
             };
             let pre_lines = search::go(
@@ -1470,8 +1472,16 @@ fn run_go(
             let played = pre_lines.iter().find(|l| l.mv == obs.mv).map(|l| l.score);
             let played_score = match played {
                 Some(s) => s,
+                None if observation_saturated => {
+                    // After saturation, precision is no longer mode-critical.
+                    // The shallow PV's best score is a conservative fallback
+                    // and avoids the second real search that caused the
+                    // long-game probe tax.
+                    best
+                }
                 None => {
-                    // evaluate the move they actually played
+                    // Before saturation, evaluate the move they actually played
+                    // with an independent depth-12/250k fallback.
                     let after = obs.pre.make(obs.mv);
                     let q2 = Limits {
                         depth: Some(12),
@@ -1513,7 +1523,11 @@ fn run_go(
                     "opponent_observation",
                     observation.expect("telemetry observation index"),
                     obs.ply,
-                    "probe",
+                    if observation_saturated {
+                        "probe_saturated"
+                    } else {
+                        "probe_high_fidelity"
+                    },
                     None,
                     low_time,
                     Some(cp_loss),

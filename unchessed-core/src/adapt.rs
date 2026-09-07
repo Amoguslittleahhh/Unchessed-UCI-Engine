@@ -91,6 +91,10 @@ const ACCEL_FUSION_EVIDENCE_MIN: f64 = 0.28;
 const ACCEL_RESILIENT_SCORE_MIN: f64 = 0.55;
 const ACCEL_RESILIENT_EVIDENCE_MIN: f64 = 0.48;
 const ACCEL_RESILIENT_BAD_MASS_MAX: f64 = 1.80;
+/// Number of consecutive settled engine verdicts required before the expensive
+/// opponent probe can be downgraded. A single clock tell must never make the
+/// search path cheaper; the verdict must survive a long enough evidence run.
+const OBSERVATION_SATURATION_STREAK: u32 = 10;
 
 #[derive(Clone)]
 pub struct OpponentModel {
@@ -116,6 +120,11 @@ pub struct OpponentModel {
     /// for the ceiling tell so the climb from the 1500 prior does not
     /// inflate `var_accum` into a veto.
     low_loss_streak: u32,
+    /// Consecutive completed observations for which the general detector
+    /// verdict has remained positive. This is intentionally separate from
+    /// every accelerated-path streak: it tracks the public verdict that
+    /// controls probe economics, not one detector's internal evidence.
+    suspect_streak: u32,
     /// Default-off retune. Live search uses this only when UCI EngineDetectV2=true.
     pub experimental_detect: bool,
     /// Consecutive observations satisfying `accelerated_ceiling`'s per-move
@@ -194,6 +203,8 @@ pub struct OpponentTelemetrySnapshot {
     pub weight_milli: i32,
     pub suspicion_milli: i32,
     pub low_loss_streak: u32,
+    pub suspect_streak: u32,
+    pub observation_saturated: bool,
     pub samples: u32,
     pub is_computer: bool,
     pub declared_elo: Option<i32>,
@@ -229,6 +240,7 @@ impl OpponentModel {
             var_accum: 90_000.0, // start wide (~300 sd)
             suspicion: 0.0,
             low_loss_streak: 0,
+            suspect_streak: 0,
             experimental_detect: false,
             accel_streak: 0,
             accelerated_detect: false,
@@ -334,6 +346,14 @@ impl OpponentModel {
             0
         };
         self.update_accelerated_fusion(cp_loss);
+        // Update only after the complete observation, so a fresh clock tell
+        // cannot retroactively make the probe cheap for the sample that
+        // created it. This is the key anti-shortcut invariant.
+        self.suspect_streak = if self.engine_suspect() {
+            self.suspect_streak.saturating_add(1)
+        } else {
+            0
+        };
     }
 
     /// Feed the opponent's clock usage for their last move. Near-instant,
@@ -379,6 +399,15 @@ impl OpponentModel {
     /// this separately).
     pub fn engine_suspect(&self) -> bool {
         self.suspect_reason().is_suspect()
+    }
+
+    /// Whether the detector verdict has held long enough to downgrade the
+    /// expensive opponent-observation probe. The threshold is deliberately
+    /// based on a held public verdict rather than confidence: confidence has
+    /// a hard floor because model weight is capped, so it cannot certify
+    /// saturation even for perfectly consistent play.
+    pub fn observation_saturated(&self) -> bool {
+        self.suspect_streak >= OBSERVATION_SATURATION_STREAK
     }
 
     /// Return the stable detector rule which determines `engine_suspect()`.
@@ -556,6 +585,8 @@ impl OpponentModel {
             weight_milli: (self.weight * 1000.0).round() as i32,
             suspicion_milli: (self.suspicion * 1000.0).round() as i32,
             low_loss_streak: self.low_loss_streak,
+            suspect_streak: self.suspect_streak,
+            observation_saturated: self.observation_saturated(),
             samples: self.samples,
             is_computer: self.is_computer,
             declared_elo: self.declared_elo,
@@ -1496,6 +1527,60 @@ mod tests {
         assert!(m.accel_resilient_good_mass >= 3.0);
         assert!(m.low_loss_streak < 2);
         assert_eq!(m.suspect_reason(), SuspectReason::None);
+    }
+
+    #[test]
+    fn observation_saturated_only_after_a_long_held_verdict() {
+        let mut m = OpponentModel::new();
+        let first_suspect = (1..=40).find(|_| {
+            m.observe(8, 1.0);
+            m.engine_suspect()
+        });
+        assert!(first_suspect.is_some());
+        assert_eq!(m.suspect_streak, 1);
+        assert!(!m.observation_saturated());
+        for _ in 0..9 {
+            m.observe(8, 1.0);
+        }
+        assert_eq!(m.suspect_streak, 10);
+        assert!(m.observation_saturated());
+        // A fresh model with a single strong verdict is never saturated: a
+        // clock tell or ceiling edge cannot make the expensive probe cheap.
+        let mut fresh = OpponentModel::new();
+        for _ in 0..10 {
+            fresh.observe(8, 1.0);
+        }
+        assert!(!fresh.observation_saturated());
+    }
+
+    #[test]
+    fn observation_not_saturated_right_after_a_fresh_clock_tell() {
+        let mut m = OpponentModel::new();
+        for _ in 0..8 {
+            m.observe(5, 1.0);
+        }
+        assert!(!m.observation_saturated());
+        m.observe_time(80, true);
+        m.observe_time(80, true);
+        m.observe_time(80, true);
+        assert!(m.engine_suspect());
+        // Clock evidence arrives after the move observation. It may change the
+        // live verdict, but cannot pretend that ten observations held it.
+        assert_eq!(m.suspect_streak, 0);
+        assert!(!m.observation_saturated());
+    }
+
+    #[test]
+    fn observation_saturation_works_with_accelerated_resilient_detector() {
+        let mut m = OpponentModel::new();
+        m.accelerated_detect = true;
+        for _ in 0..32 {
+            m.observe(8, 0.4);
+        }
+        assert!(m.engine_suspect());
+        assert!(m.suspect_streak >= 10);
+        assert!(m.observation_saturated());
+        assert_eq!(m.suspect_reason(), SuspectReason::LegacyAcceleratedResilient);
     }
 
     #[test]

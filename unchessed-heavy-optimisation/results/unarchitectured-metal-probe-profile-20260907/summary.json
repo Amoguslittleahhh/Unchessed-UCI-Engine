@@ -1,0 +1,27 @@
+{
+  "series": "unarchitectured-metal",
+  "date": "2026-09-07",
+  "adapter": "target/release/unchessed-adapter",
+  "opponent": "Stockfish 19 Linux universal",
+  "games_per_arm": 2,
+  "max_plies": 48,
+  "clock_ms": 60000,
+  "threads": 1,
+  "observation_coverage": {
+    "standard": {"games": 2, "observations_per_game": [23, 23], "low_time_skips": 0},
+    "fusion": {"games": 2, "observations_per_game": [23, 23], "low_time_skips": 0}
+  },
+  "first_full_ply": {
+    "standard": {"values": [30, 30], "mean": 30.0},
+    "fusion": {"values": [26, 24], "mean": 25.0}
+  },
+  "reasons": {
+    "standard": {"legacy_ceiling": 2},
+    "fusion": {"legacy_accelerated_resilient": 2}
+  },
+  "probe_profiles": {
+    "standard": {"book": 2, "probe_high_fidelity": 2, "saturated_observations": 0},
+    "fusion": {"book": 2, "probe_high_fidelity": 2, "saturated_observations": 3, "games_with_saturation": 1}
+  },
+  "interpretation": "The four-game real-UCI probe demonstrates auditable saturation engagement with no low-time starvation or reason-purity regression. It is a smoke test, not a strength or universal throughput estimate."
+}

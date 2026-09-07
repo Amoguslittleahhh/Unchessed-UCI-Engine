@@ -1,3 +1,7 @@
 Visual QA after adding the calibrated Maia-safe gate and fresh official-engine validation.
 
 The final three-page IEEEtran PDF renders cleanly in two columns. The added bounded-volatility and clean-streak calibration text fits without clipping; the results, figure, table, references, equations, and headings remain readable. The conclusion correctly avoids claiming universal false-positive safety and distinguishes the 20-game official Maia baseline from the fresh 6-game calibrated probe. Two-pass compilation completed without undefined-reference or LaTeX errors.
+
+Visual QA after the observation-probe saturation update.
+
+The regenerated three-page IEEEtran PDF renders cleanly in two columns. The new compatibility/telemetry paragraph, adaptive probe-budget description, calibration results, discussion, and conclusion fit without clipping or overflow. Equations, table, figure, references, and code-style identifiers remain readable. Two-pass pdflatex compilation completed with no undefined-reference, multiply-defined, fatal, or math-mode errors.
