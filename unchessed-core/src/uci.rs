@@ -412,10 +412,11 @@ pub fn run(ident: EngineIdent) {
                 // no longer applies to anything, so it's discarded, not
                 // started stale.
                 pending_ponder = None;
-                if let Some(g) = parse_position(&line, &game) {
-                    game = g;
-                } else {
-                    println!("info string [Unchessed] could not parse: {}", line);
+                match parse_position(&line, &game) {
+                    Ok(g) => game = g,
+                    Err(reason) => {
+                        println!("info string [Unchessed] could not parse position ({reason}): {line}");
+                    }
                 }
             }
             "go" => {
@@ -1018,10 +1019,10 @@ fn carry_observed_plies(old: &Game, new_positions: &[Position]) -> usize {
     }
 }
 
-fn parse_position(line: &str, old: &Game) -> Option<Game> {
+fn parse_position(line: &str, old: &Game) -> Result<Game, String> {
     let mut toks = line.split_whitespace().peekable();
     toks.next(); // "position"
-    let start = match toks.next()? {
+    let start = match toks.next().ok_or("missing position type (startpos/fen)")? {
         "startpos" => fen::startpos(),
         "fen" => {
             let mut fen_str = String::new();
@@ -1038,7 +1039,7 @@ fn parse_position(line: &str, old: &Game) -> Option<Game> {
                 Some(f) => (f.trim().to_string(), true),
                 None => (fen_str.trim().to_string(), false),
             };
-            let pos = fen::parse(&fen_part).ok()?;
+            let pos = fen::parse(&fen_part)?;
             let mut game = Game {
                 positions: vec![pos],
                 current: pos,
@@ -1050,15 +1051,16 @@ fn parse_position(line: &str, old: &Game) -> Option<Game> {
             };
             if saw_moves {
                 for t in toks {
-                    let mv = parse_uci_move(&game.current, t)?;
+                    let mv = parse_uci_move(&game.current, t)
+                        .ok_or_else(|| format!("bad move '{t}'"))?;
                     game.current = game.current.make(mv);
                     game.positions.push(game.current);
                 }
             }
             game.observed_plies = carry_observed_plies(old, &game.positions);
-            return Some(game);
+            return Ok(game);
         }
-        _ => return None,
+        other => return Err(format!("expected 'startpos' or 'fen', got '{other}'")),
     };
     let mut game = Game {
         positions: vec![start],
@@ -1072,13 +1074,13 @@ fn parse_position(line: &str, old: &Game) -> Option<Game> {
     if toks.peek() == Some(&"moves") {
         toks.next();
         for t in toks {
-            let mv = parse_uci_move(&game.current, t)?;
+            let mv = parse_uci_move(&game.current, t).ok_or_else(|| format!("bad move '{t}'"))?;
             game.current = game.current.make(mv);
             game.positions.push(game.current);
         }
     }
     game.observed_plies = carry_observed_plies(old, &game.positions);
-    Some(game)
+    Ok(game)
 }
 
 fn parse_go(line: &str) -> Limits {
@@ -2218,6 +2220,33 @@ mod tests {
             &mut is_hce,
         );
         assert!(!opt.adapter_telemetry);
+    }
+
+    #[test]
+    fn parse_position_surfaces_the_real_rejection_reason() {
+        let game = Game::new(0);
+        // Queen on e2 attacks straight up the open e-file to the Black king
+        // on e8 -- Black (not to move) is in check, an impossible position.
+        match parse_position("position fen 4k3/8/8/8/8/8/4Q3/4K3 w - - 0 1", &game) {
+            Err(err) => assert!(
+                err.contains("in check"),
+                "expected the real fen::parse rejection reason, got: {err}"
+            ),
+            Ok(_) => panic!("side not to move in check must be rejected"),
+        }
+
+        match parse_position("position fen not-a-real-fen w - - 0 1", &game) {
+            Err(err) => assert!(!err.is_empty()),
+            Ok(_) => panic!("garbage placement must be rejected"),
+        }
+
+        match parse_position("position startpos moves e2e4 not-a-move", &game) {
+            Err(err) => assert!(
+                err.contains("not-a-move"),
+                "expected the bad move named in the error: {err}"
+            ),
+            Ok(_) => panic!("bad move token must be rejected"),
+        }
     }
 
     #[test]
