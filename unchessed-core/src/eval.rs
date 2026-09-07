@@ -18,6 +18,72 @@ pub struct NnueEvalState {
     pub acc: [[f32; crate::nnue::ACC]; 2],
 }
 
+/// Quantized scalar context shared by the nonlinear evaluator.
+#[derive(Clone, Copy, Default)]
+pub struct QuantResidualState {
+    pub material_cp: i32,
+    pub pawn_count: u8,
+    pub king_distance: u8,
+}
+
+impl QuantResidualState {
+    #[inline]
+    fn piece_value(piece: usize) -> i32 {
+        [100, 320, 330, 500, 900, 0][piece]
+    }
+
+    #[inline]
+    fn signed_color(color: Color) -> i32 {
+        if color == Color::White { 1 } else { -1 }
+    }
+
+    pub fn from_position(pos: &Position) -> Self {
+        let material_cp = (0..5)
+            .map(|piece| {
+                let value = [100, 320, 330, 500, 900][piece];
+                value * (pos.bb[Color::White.idx()][piece].count_ones() as i32
+                    - pos.bb[Color::Black.idx()][piece].count_ones() as i32)
+            })
+            .sum();
+        let pawn_count = (pos.bb[Color::White.idx()][PAWN].count_ones()
+            + pos.bb[Color::Black.idx()][PAWN].count_ones())
+        .min(16) as u8;
+        let white = pos.king_sq(Color::White);
+        let black = pos.king_sq(Color::Black);
+        let king_distance = (((white % 8) as i32 - (black % 8) as i32).abs()
+            + ((white / 8) as i32 - (black / 8) as i32).abs()) as u8;
+        Self { material_cp, pawn_count, king_distance }
+    }
+
+    pub fn after_move(before: &Position, after: &Position, mv: Move, old: Self) -> Self {
+        let mut next = old;
+        let white = after.king_sq(Color::White);
+        let black = after.king_sq(Color::Black);
+        next.king_distance = (((white % 8) as i32 - (black % 8) as i32).abs()
+            + ((white / 8) as i32 - (black / 8) as i32).abs()) as u8;
+        if mv == Move::NONE { return next; }
+        let us = before.side;
+        let them = us.flip();
+        let from = mv.from();
+        let to = mv.to();
+        let (_, moving) = before.piece_on(from).expect("quant state: missing moving piece");
+        let sign = Self::signed_color(us);
+        let placed = if mv.is_promo() { mv.promo_piece() } else { moving };
+        next.material_cp += sign * (Self::piece_value(placed) - Self::piece_value(moving));
+        if mv.kind() == MK_EP {
+            next.material_cp -= Self::signed_color(them) * Self::piece_value(PAWN);
+            next.pawn_count = next.pawn_count.saturating_sub(1);
+        } else if mv.kind() != MK_CASTLE {
+            if let Some((captured_color, captured_piece)) = before.piece_on(to) {
+                next.material_cp -= Self::signed_color(captured_color) * Self::piece_value(captured_piece);
+                if captured_piece == PAWN { next.pawn_count = next.pawn_count.saturating_sub(1); }
+            }
+        }
+        if mv.is_promo() { next.pawn_count = next.pawn_count.saturating_sub(1); }
+        next
+    }
+}
+
 /// Ply-indexed evaluator state threaded through the search so NNUE can
 /// update its accumulators incrementally (add/remove the handful of
 /// feature rows a move actually changed) instead of a full recompute on
@@ -25,6 +91,7 @@ pub struct NnueEvalState {
 #[derive(Clone, Copy)]
 pub struct EvalState {
     pub nnue: NnueEvalState,
+    pub quant: QuantResidualState,
 }
 
 impl EvalState {
@@ -33,6 +100,7 @@ impl EvalState {
             nnue: NnueEvalState {
                 acc: [[0.0; crate::nnue::ACC]; 2],
             },
+            quant: QuantResidualState { material_cp: 0, pawn_count: 0, king_distance: 0 },
         }
     }
 }
@@ -501,28 +569,48 @@ impl Eval for Hce {
     }
 }
 
-impl Eval for NonlinearHce {
-    fn eval(&self, pos: &Position) -> i32 {
-        let base = self.base.eval(pos);
-        let material = (0..5)
-            .map(|piece| {
-                let value = [100, 320, 330, 500, 900][piece];
-                value
-                    * (pos.bb[Color::White.idx()][piece].count_ones() as i32
-                        - pos.bb[Color::Black.idx()][piece].count_ones() as i32)
-            })
-            .sum::<i32>();
-        let phase = (pos.bb[Color::White.idx()][PAWN].count_ones()
-            + pos.bb[Color::Black.idx()][PAWN].count_ones())
-        .min(16) as i32;
-        let kings = [pos.king_sq(Color::White), pos.king_sq(Color::Black)];
-        let king_gap = ((kings[0] % 8) as i32 - (kings[1] % 8) as i32).abs()
-            + ((kings[0] / 8) as i32 - (kings[1] / 8) as i32).abs();
+impl NonlinearHce {
+    #[inline]
+    fn residual(base: i32, q: QuantResidualState) -> i32 {
+        let material = q.material_cp;
+        let phase = i32::from(q.pawn_count);
+        let king_gap = i32::from(q.king_distance);
         let interaction = (base.clamp(-1800, 1800) * material.clamp(-1800, 1800)) / 18000;
         let curvature = if base.abs() > 600 { base / 24 } else { 0 };
         let geometry = (7 - king_gap).max(0) * if base >= 0 { 1 } else { -1 };
         let bonus = (interaction + curvature + geometry * (16 - phase)) / 4;
         base.saturating_add(bonus.clamp(-120, 120))
+    }
+}
+
+impl Eval for NonlinearHce {
+    fn eval(&self, pos: &Position) -> i32 {
+        let q = QuantResidualState::from_position(pos);
+        Self::residual(self.base.eval(pos), q)
+    }
+
+    fn initial_state(&self, pos: &Position) -> EvalState {
+        EvalState {
+            nnue: NnueEvalState { acc: [[0.0; crate::nnue::ACC]; 2] },
+            quant: QuantResidualState::from_position(pos),
+        }
+    }
+
+    fn update_state(
+        &self,
+        before: &Position,
+        after: &Position,
+        mv: Move,
+        state: &EvalState,
+    ) -> EvalState {
+        EvalState {
+            nnue: NnueEvalState { acc: [[0.0; crate::nnue::ACC]; 2] },
+            quant: QuantResidualState::after_move(before, after, mv, state.quant),
+        }
+    }
+
+    fn eval_with_state(&self, pos: &Position, state: &EvalState) -> i32 {
+        Self::residual(self.base.eval(pos), state.quant)
     }
 }
 
@@ -1028,6 +1116,21 @@ mod tests {
             evaluate(&pressing, &params),
             evaluate(&off_7th, &params)
         );
+    }
+
+    #[test]
+    fn quantized_residual_move_delta_matches_full_recompute() {
+        let pos = fen::parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap();
+        let old = QuantResidualState::from_position(&pos);
+        let moves = crate::movegen::legal(&pos);
+        for &mv in moves.as_slice() {
+            let after = pos.make(mv);
+            let delta = QuantResidualState::after_move(&pos, &after, mv, old);
+            let full = QuantResidualState::from_position(&after);
+            assert_eq!(delta.material_cp, full.material_cp, "material delta failed for {}", mv.uci());
+            assert_eq!(delta.pawn_count, full.pawn_count, "pawn delta failed for {}", mv.uci());
+            assert_eq!(delta.king_distance, full.king_distance, "king delta failed for {}", mv.uci());
+        }
     }
 
     #[test]

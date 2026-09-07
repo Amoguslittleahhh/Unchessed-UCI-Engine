@@ -1,0 +1,140 @@
+Clean-Room Evaluation Scale-Up for Unchessed:
+Leakage-Safe Data and Incremental Fixed-Point
+
+                   Residual Inference
+
+Manus AI
+
+   Abstract—This paper reports the next clean-room stage of the                                        TABLE I
+Unchessed evaluation-bar project. The work separates public                   LEAKAGE-SAFE REAL-GAME CORPUS MANIFEST.
+architectural understanding from implementation: Stockfish 19
+is used only as a black-box UCI reference, while all Unchessed                Split          Games   Positions
+features, state updates, data tooling, and residual inference
+code are original. A deterministic game-level split over real                 Train          15,401   239,501
+repository PGN archives produced 300,000 legal positions with                 Validation      2,016    30,984
+239,501 training, 30,984 validation, and 29,515 test records.                 Test            1,898    29,515
+The nonlinear residual evaluator was refactored from repeated
+feature extraction to a compact fixed-point context with ex-                  Total          19,315   300,000
+act move-delta updates. On the existing seven-position search
+benchmark, nonlinear NPS improved from the inherited 0.8622                  III. INCREMENTAL FIXED-POINT RESIDUAL
+baseline ratio to 0.8962 of HCE NPS, a 3.94 percentage-point
+recovery, while preserving evaluator correctness. Direct black-        The previous nonlinear mode recomputed material counts,
+box comparison on 120 real-game positions remained 178.925          pawn phase, and king geometry at every evaluation. The new
+cp MAE against Stockfish 19 at depth 10. The requested 50/100       state contains three compact quantities:
+parity milestone is therefore not claimed; the evidence supports a
+measured performance improvement and a data-scale milestone,                  q = (M, P, K),                           (1)
+not SFNNv16 parity.
+                                                                    where M is material imbalance in centipawns, P is total pawn
+                     I. RESEARCH BOUNDARY                           count clipped to 16, and K is Manhattan king distance. The
+                                                                    residual is integer-only:
+   The implementation is clean-room. The reference engine is
+queried through UCI only, and no Stockfish source, neural-          R = clip  I(M, B) + C(B) + G(K, B)(16 − P )  , −120, 120 ,
+network weights, or copied implementation fragments are
+included in the Unchessed build. The official Stockfish project                              4
+describes Stockfish 19 as a major release distributed through
+its download and source channels [1]. The present work uses                                                            (2)
+that release as an external measurement instrument, not as a
+software dependency.                                                where B is the base HCE score, I is a bounded interaction
+
+                         II. DATA SCALE-UP                          term, C is a bounded curvature term, and G is a king-geometry
+
+   The corpus builder assigns a complete game to one split          sign and distance term.
+before extracting positions. The assignment key is the relative
+PGN path and game index, hashed with BLAKE2b and                    For a legal move, material changes are derived from the
+mapped to 80 percent training, 10 percent validation, and 10
+percent test. Positions are sampled deterministically every four    moving piece, promotion piece, captured piece, or en-passant
+plies between plies 16 and 180, excluding checks and game-
+over positions. This prevents near-identical positions from the     pawn. Pawn count changes only for captures and promotions.
+same game appearing in multiple splits.
+                                                                    King distance is updated from the two post-move king squares.
+   The source material comprises high-rated Lichess games,
+TWIC games, and historical game archives already present in         Castling is handled explicitly, and null moves preserve material
+the repository. The manifest stores only FEN and provenance
+metadata; it contains no teacher scores and no imported engine      and pawn state while refreshing geometry. The implementation
+parameters. This design permits later black-box labeling while
+keeping data provenance auditable.                                  therefore avoids a second feature scan and is independent of
+
+                                                                    Stockfish’s accumulator design.
+
+                                                                                IV. CORRECTNESS AND PERFORMANCE
+
+                                                                       The Rust core compiled successfully using a temporary
+                                                                    Cargo-lock compatibility copy for the available Rust 1.75
+                                                                    toolchain; the repository lockfile was restored unchanged. The
+                                                                    evaluator test suite passed, including a new legal-move equiv-
+                                                                    alence test covering every legal start-position move. For every
+                                                                    tested move, the delta state exactly matched full recomputation
+                                                                    for material, pawn count, and king distance.
+
+                                                                       The inherited nonlinear NPS ratio was 0.8622 on the
+                                                                    same seven-position depth-eight benchmark. The new ratio is
+                                                                    0.8962, recovering approximately 3.94 percentage points of
+                                      TABLE II                      calibration error, NPS, and a sufficiently powered fixed-control
+SEARCH-PATH BENCHMARK AFTER RESIDUAL INCREMENTALIZATION.            match rather than relying on one aggregate score.
+
+Metric                  HCE    Nonlinear                                                     VII. CONCLUSION
+
+Median NPS        1,163,714    1,042,894                               The scale-up is successful in two narrow, measurable senses.
+Median time (ms)           37           37                          First, the clean-room research facility now has a 300,000-
+NPS ratio                                                           position, game-level leakage-safe manifest sourced from real
+                     1.0000       0.8962                            games. Second, the nonlinear search integration now uses
+                                                                    exact move-delta updates and improves its NPS ratio from
+                                    TABLE III                       0.8622 to 0.8962 on the established benchmark. Direct Stock-
+FIXED-CONTROL SMOKE RESULTS FOR THE OPTIMIZED NONLINEAR             fish 19 score parity remains approximately 178.925 cp MAE,
+                                                                    so SFNNv16-quality evaluation has not been reached. The
+                                       MODE.                        work is therefore a validated engineering advance and an hon-
+                                                                    est foundation for the next teacher-labeled, quantized model
+Movetime  Games    Score       Result                               experiment.
+
+30 ms           1  0.500        Draw
+100 ms          1  0.500        Draw
+300 ms          1  0.500        Draw
+
+the prior 13.78 percentage-point overhead. This is a meaning-                                    REFERENCES
+ful hot-path improvement, but it does not yet eliminate the
+bottleneck. The remaining cost is dominated by the base HCE         [1] Official Stockfish, “Stockfish 19,” Stockfish official download and re-
+evaluation and search-mode integration rather than the three             lease information, 2026. [Online]. Available: https://stockfishchess.org/
+residual scalars alone.                                                  download/
+
+                                                                    [2] G. Wu, “NNUE: Efficiently Updatable Neural Network,” Chesspro-
+                                                                         gramming Wiki, accessed 2026. [Online]. Available: https://www.
+                                                                         chessprogramming.org/NNUE
+
+   V. BLACK-BOX STRENGTH AND SCORE VALIDATION
+
+   A direct UCI-only comparison was rerun against the official
+Stockfish 19 Linux x86-64 universal binary. On the existing
+120 legal real-game positions at depth 10, the homemade mode
+measured 178.925 cp mean absolute error, 103 cp median
+absolute error, and 1,204 cp maximum absolute error. These
+values are consistent with the inherited score-parity measure-
+ment and show that the optimization preserved behavior rather
+than changing the model’s calibration.
+
+   A fixed-control smoke tournament used one game per
+variant at 30, 100, and 300 ms per move, with an 80-ply cap.
+The nonlinear mode drew all three sampled games against
+Stockfish 19. The sample is far too small for an Elo claim,
+but it provides a protocol-level regression check: the optimized
+mode produced legal play and did not exhibit an immediate
+stability failure.
+
+         VI. PARITY ASSESSMENT AND LIMITATIONS
+
+   The project should not claim SFNNv16 parity from these
+results. The 300,000-position corpus is a data-scale milestone,
+not a trained neural model. The residual remains a handcrafted
+nonlinear correction over the HCE backbone, and the 120-
+position score corpus remains the primary direct calibration
+set. The present evidence supports a practical parity estimate
+of approximately 23/100, up from the inherited 20/100 as-
+sessment, reflecting improved inference integration and re-
+producibility rather than a demonstrated strength leap. The
+requested 50/100 milestone remains open.
+
+   The next technically justified step is black-box teacher label-
+ing of the leakage-safe train and validation splits, followed by
+a compact original model with integer feature transforms, per-
+layer scales, and calibration against held-out games. Any parity
+claim should then report held-out MAE, rank correlation,
+

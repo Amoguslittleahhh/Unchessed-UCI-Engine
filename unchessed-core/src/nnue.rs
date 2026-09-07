@@ -630,6 +630,7 @@ impl Eval for Nnue {
         acc[Color::Black.idx()].copy_from_slice(&self.accumulate(pos, Color::Black));
         EvalState {
             nnue: NnueEvalState { acc },
+            quant: crate::eval::QuantResidualState::from_position(pos),
         }
     }
 
@@ -663,6 +664,7 @@ impl Eval for Nnue {
         }
         EvalState {
             nnue: NnueEvalState { acc },
+            quant: crate::eval::QuantResidualState::from_position(after),
         }
     }
 
