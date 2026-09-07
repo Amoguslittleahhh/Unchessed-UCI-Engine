@@ -15,11 +15,35 @@
 use std::sync::OnceLock;
 
 use crate::board::{Color, Position, BISHOP, KNIGHT, PAWN, QUEEN, ROOK};
-use crate::eval::{evaluate, EvalParams};
+use crate::eval::{evaluate, Eval, EvalParams, EvalState};
 
 const MATE_CP: i32 = 20_000;
 const WDL_CP_MIN: i32 = -4000;
 const WDL_CP_MAX: i32 = 4000;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum EvalBarSource {
+    HceProxy,
+    LoadedNnueProxy,
+}
+
+impl EvalBarSource {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::HceProxy => "hce-proxy",
+            Self::LoadedNnueProxy => "nnue-proxy",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct BitboardSnapshot {
+    pub position_hash: u64,
+    pub occupancy: u64,
+    pub white_occupancy: u64,
+    pub black_occupancy: u64,
+    pub material_index: u8,
+}
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct EvalBarSample {
@@ -31,9 +55,42 @@ pub struct EvalBarSample {
     /// A presentation confidence estimate, not a playing-strength claim.
     pub confidence: f64,
     pub exact_stockfish_path: bool,
+    pub source: EvalBarSource,
+    pub bitboard: BitboardSnapshot,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct EvalBarLink {
+    pub bitboard: BitboardSnapshot,
+    pub display_cp_white: i32,
+    pub bar_fraction: f64,
+    pub elo_estimate: i32,
+    pub elo_confidence_cp: i32,
+    pub elo_suspect: bool,
+    pub elo_suspect_reason: &'static str,
+}
+
+impl EvalBarLink {
+    pub const fn from_sample(
+        sample: &EvalBarSample,
+        elo_estimate: i32,
+        elo_confidence_cp: i32,
+        elo_suspect: bool,
+        elo_suspect_reason: &'static str,
+    ) -> Self {
+        Self {
+            bitboard: sample.bitboard,
+            display_cp_white: sample.display_cp_white,
+            bar_fraction: sample.bar_fraction,
+            elo_estimate,
+            elo_confidence_cp,
+            elo_suspect,
+            elo_suspect_reason,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct EvalBar {
     smoothing_alpha: f64,
     max_step_cp: i32,
@@ -59,10 +116,21 @@ impl EvalBar {
         self.smoothed_cp_white = None;
     }
 
-    /// Project the current engine position to a stable, White-centric bar.
-    /// The HCE source means this remains a calibrated proxy, not exact SFNNv16.
+    /// Project the current HCE score to a stable, White-centric bar.
     pub fn sample(&mut self, pos: &Position) -> EvalBarSample {
         let raw_stm = evaluate(pos, &EvalParams::default());
+        self.sample_from_score(pos, raw_stm, EvalBarSource::HceProxy)
+    }
+
+    /// Project an already-available evaluator score. This is the no-bottleneck
+    /// seam for the search path: callers can pass a score from an incremental
+    /// NNUE state without asking the bar to rescan the board.
+    pub fn sample_from_score(
+        &mut self,
+        pos: &Position,
+        raw_stm: i32,
+        source: EvalBarSource,
+    ) -> EvalBarSample {
         let static_cp_white = if pos.side == Color::White {
             raw_stm
         } else {
@@ -90,11 +158,36 @@ impl EvalBar {
             bar_fraction: expected_score,
             confidence,
             exact_stockfish_path: false,
+            source,
+            bitboard: bitboard_snapshot(pos),
         }
+    }
+
+    /// Use the evaluator's incremental state directly. This keeps the bar
+    /// from becoming a second full-board evaluator when a search already has
+    /// the accumulator available.
+    pub fn sample_with_state(
+        &mut self,
+        pos: &Position,
+        evaluator: &dyn Eval,
+        state: &EvalState,
+        source: EvalBarSource,
+    ) -> EvalBarSample {
+        self.sample_from_score(pos, evaluator.eval_with_state(pos, state), source)
     }
 
     pub fn smoothed_cp_white(&self) -> Option<i32> {
         self.smoothed_cp_white.map(|v| v.round() as i32)
+    }
+}
+
+pub fn bitboard_snapshot(pos: &Position) -> BitboardSnapshot {
+    BitboardSnapshot {
+        position_hash: pos.hash,
+        occupancy: pos.occ,
+        white_occupancy: pos.occ_side[Color::White.idx()],
+        black_occupancy: pos.occ_side[Color::Black.idx()],
+        material_index: material_index(pos) as u8,
     }
 }
 
@@ -287,5 +380,39 @@ mod tests {
         let _sample = bar.sample(&second);
         let smooth = bar.smoothed_cp_white().unwrap();
         assert!((smooth - prior).abs() <= 108);
+    }
+
+    #[test]
+    fn bitboard_snapshot_is_a_lossless_link_key() {
+        let pos = fen::startpos();
+        let snapshot = bitboard_snapshot(&pos);
+        assert_eq!(snapshot.position_hash, pos.hash);
+        assert_eq!(snapshot.occupancy, pos.occ);
+        assert_eq!(snapshot.white_occupancy, pos.occ_side[Color::White.idx()]);
+        assert_eq!(snapshot.black_occupancy, pos.occ_side[Color::Black.idx()]);
+        assert_eq!(snapshot.material_index, material_index(&pos) as u8);
+    }
+
+    struct FixedEval(i32);
+
+    impl Eval for FixedEval {
+        fn eval(&self, _pos: &Position) -> i32 {
+            self.0
+        }
+    }
+
+    #[test]
+    fn incremental_state_seam_uses_existing_score_without_rescanning() {
+        let pos = fen::startpos();
+        let evaluator = FixedEval(123);
+        let mut bar = EvalBar::new();
+        let sample = bar.sample_with_state(
+            &pos,
+            &evaluator,
+            &EvalState::stateless(),
+            EvalBarSource::LoadedNnueProxy,
+        );
+        assert_eq!(sample.static_cp_white, 123);
+        assert_eq!(sample.source, EvalBarSource::LoadedNnueProxy);
     }
 }
