@@ -172,6 +172,7 @@ pub enum SuspectReason {
     LegacyAcceleratedCeiling,
     LegacyAcceleratedFusion,
     LegacyAcceleratedResilient,
+    ComposedAcceleratedResilient,
 }
 
 impl SuspectReason {
@@ -188,6 +189,7 @@ impl SuspectReason {
             SuspectReason::LegacyAcceleratedCeiling => "legacy_accelerated_ceiling",
             SuspectReason::LegacyAcceleratedFusion => "legacy_accelerated_fusion",
             SuspectReason::LegacyAcceleratedResilient => "legacy_accelerated_resilient",
+            SuspectReason::ComposedAcceleratedResilient => "composed_accelerated_resilient",
         }
     }
 
@@ -415,6 +417,23 @@ impl OpponentModel {
     /// Keeping this in the model makes telemetry observational: the UCI layer
     /// never reaches into private detector state or reimplements thresholds.
     pub fn suspect_reason(&self) -> SuspectReason {
+        // The two opt-in detectors are intentionally composable. EngineDetectV2
+        // supplies conservative V2 evidence, while AcceleratedDetection can
+        // promote on its independent resilient lane; neither silently shadows
+        // the other when both UCI options are enabled.
+        if self.experimental_detect && self.accelerated_detect {
+            if self.is_computer && self.mean >= 2400.0 {
+                return SuspectReason::V2ComputerThreshold;
+            }
+            if self.accelerated_resilient() {
+                return SuspectReason::ComposedAcceleratedResilient;
+            }
+            let v2 = self.suspect_reason_v2();
+            if v2.is_suspect() {
+                return v2;
+            }
+            return SuspectReason::None;
+        }
         if self.experimental_detect {
             return self.suspect_reason_v2();
         }
@@ -565,10 +584,13 @@ impl OpponentModel {
         if self.declared_elo.is_some() {
             return SuspectReason::V2DeclaredExempt;
         }
+        let resilient_mass_fallback = self.accel_resilient_good_mass >= 4.0
+            && self.accel_resilient_bad_mass <= ACCEL_RESILIENT_BAD_MASS_MAX
+            && self.accel_resilient_evidence >= ACCEL_RESILIENT_EVIDENCE_MIN;
         if self.weight >= 11.0
             && self.samples >= 16
             && self.mean >= 2500.0
-            && self.low_loss_streak >= 12
+            && (self.low_loss_streak >= 12 || resilient_mass_fallback)
         {
             SuspectReason::V2AnonymousCeiling
         } else {
@@ -1913,6 +1935,32 @@ mod tests {
         s.update(&cfg, &m, 80, 20);
         let mode = s.update(&cfg, &m, 90, 20);
         assert_eq!(mode, Mode::Punish);
+    }
+
+    #[test]
+    fn composed_detectors_do_not_shadow_accelerated_confirmation() {
+        let mut m = OpponentModel::new();
+        m.experimental_detect = true;
+        m.accelerated_detect = true;
+        for i in 0..48 {
+            let loss = if i % 8 == 3 { 80 } else { 8 };
+            m.observe(loss, 1.0);
+        }
+        assert_eq!(m.suspect_reason(), SuspectReason::ComposedAcceleratedResilient);
+        assert!(m.engine_suspect());
+    }
+
+    #[test]
+    fn v2_noisy_strong_play_uses_bounded_mass_fallback() {
+        let mut m = OpponentModel::new();
+        m.experimental_detect = true;
+        for i in 0..56 {
+            let loss = if i % 7 == 4 { 80 } else { 5 };
+            m.observe(loss, 1.0);
+        }
+        assert!(m.estimate() >= 2500, "estimate {}", m.estimate());
+        assert!(m.low_loss_streak < 12);
+        assert_eq!(m.suspect_reason(), SuspectReason::V2AnonymousCeiling);
     }
 
     #[test]

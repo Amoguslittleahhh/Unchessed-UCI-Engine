@@ -44,8 +44,10 @@ def run_stockfish(binary: str, fen: str, depth: int) -> int:
     return int(scores[-1])
 
 
-def run_homemade(binary: str, fen: str, mode: str) -> int:
-    commands = f"uci\nisready\nposition fen {fen}\nevalbar {mode}\nquit\n"
+def run_homemade(binary: str, fen: str, mode: str, evalfile: str | None = None) -> int:
+    option = f"setoption name EvalFile value {evalfile}\n" if evalfile else ""
+    command = f"evalbar {mode}" if mode else "evalbar"
+    commands = f"uci\n{option}isready\nposition fen {fen}\n{command}\nquit\n"
     out = subprocess.check_output([binary], input=commands.encode(), stderr=subprocess.STDOUT)
     matches = re.findall(rb"evalbar cp (-?\d+)", out)
     if not matches:
@@ -65,6 +67,7 @@ def main() -> None:
     parser.add_argument("--depth", type=int, default=12)
     parser.add_argument("--out", required=True)
     parser.add_argument("--mode", default="homemade")
+    parser.add_argument("--evalfile", default=None)
     args = parser.parse_args()
 
     rows = []
@@ -79,7 +82,7 @@ def main() -> None:
                 raise ValueError(f"unsupported FEN/EPD line: {raw}")
             fen = " ".join(fields)
         sf_white = white_score(run_stockfish(args.stockfish, fen, args.depth), fen)
-        homemade = run_homemade(args.unchessed, fen, args.mode)
+        homemade = run_homemade(args.unchessed, fen, args.mode, args.evalfile)
         delta = homemade - sf_white
         rows.append((fen, sf_white, homemade, delta))
 

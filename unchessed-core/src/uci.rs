@@ -932,10 +932,16 @@ fn handle_setoption(
         "enginedetectv2" => {
             opt.engine_detect_v2 = value.eq_ignore_ascii_case("true");
             model.lock().unwrap().experimental_detect = opt.engine_detect_v2;
+            if opt.engine_detect_v2 && opt.accelerated_detect {
+                println!("info string [Unchessed] EngineDetectV2 + AcceleratedDetection enabled: composable detectors; accelerated resilient evidence can promote independently");
+            }
         }
         "accelerateddetection" => {
             opt.accelerated_detect = value.eq_ignore_ascii_case("true");
             model.lock().unwrap().accelerated_detect = opt.accelerated_detect;
+            if opt.engine_detect_v2 && opt.accelerated_detect {
+                println!("info string [Unchessed] EngineDetectV2 + AcceleratedDetection enabled: composable detectors; accelerated resilient evidence can promote independently");
+            }
         }
         "uci_opponent" => {
             let log = model.lock().unwrap().seed_from_uci_opponent(value);

@@ -26,6 +26,7 @@ def main() -> None:
     ap.add_argument("--stride", type=int, default=4)
     ap.add_argument("--min-ply", type=int, default=16)
     ap.add_argument("--max-ply", type=int, default=180)
+    ap.add_argument("--quiet-only", action="store_true", help="keep positions with no legal capture/check immediately before or after sampling")
     args = ap.parse_args()
 
     candidates = [
@@ -57,10 +58,13 @@ def main() -> None:
                     games[split] += 1
                     board = game.board()
                     for ply, move in enumerate(game.mainline_moves(), start=1):
+                        pre_quiet = not board.is_check() and not any(board.is_capture(candidate) for candidate in board.legal_moves)
                         board.push(move)
                         if ply < args.min_ply or ply > args.max_ply or ply % args.stride:
                             continue
                         if board.is_check() or board.is_game_over():
+                            continue
+                        if args.quiet_only and not pre_quiet:
                             continue
                         if total >= args.max_positions:
                             break
@@ -70,6 +74,7 @@ def main() -> None:
                             "game": game_index,
                             "ply": ply,
                             "fen": board.fen(),
+                            "quiet_filter": args.quiet_only,
                         }
                         out.write(json.dumps(record, separators=(",", ":")) + "\n")
                         counts[split] += 1
@@ -77,7 +82,7 @@ def main() -> None:
                     game_index += 1
                 if total >= args.max_positions:
                     break
-    summary = {"sources": [str(p.relative_to(args.root)) for p in sources], "positions": counts, "games": games, "total": total, "split_rule": "blake2b(game provenance) modulo 100: 0-79 train, 80-89 valid, 90-99 test"}
+    summary = {"sources": [str(p.relative_to(args.root)) for p in sources], "positions": counts, "games": games, "total": total, "quiet_only": args.quiet_only, "split_rule": "blake2b(game provenance) modulo 100: 0-79 train, 80-89 valid, 90-99 test"}
     args.out.with_suffix(".summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(summary, indent=2))
 

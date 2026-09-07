@@ -1,0 +1,23 @@
+{
+  "sources": [
+    "data/training/lichess-2022-10-05/elo-2300-2600.pgn",
+    "data/training/lichess-2022-10-05/elo-2000-2300.pgn",
+    "data/training/twic/twic1649.pgn",
+    "data/archive/1946-1970/nostalgia-1961-1970.pgn",
+    "data/archive/1946-1970/nostalgia-1941-1960.pgn",
+    "data/archive/1900-1945/nostalgia-1921-1940.pgn"
+  ],
+  "positions": {
+    "train": 79728,
+    "valid": 10100,
+    "test": 10172
+  },
+  "games": {
+    "train": 43574,
+    "valid": 5628,
+    "test": 5575
+  },
+  "total": 100000,
+  "quiet_only": true,
+  "split_rule": "blake2b(game provenance) modulo 100: 0-79 train, 80-89 valid, 90-99 test"
+}

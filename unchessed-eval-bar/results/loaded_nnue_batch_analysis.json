@@ -1,0 +1,8 @@
+{
+  "positions": 500,
+  "test": 100,
+  "all_mae_cp": 114.22,
+  "test_mae_cp": 118.87,
+  "median_test_abs_cp": 79.5,
+  "max_test_abs_cp": 955
+}
