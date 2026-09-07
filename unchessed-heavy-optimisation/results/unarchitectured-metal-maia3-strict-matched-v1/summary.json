@@ -1,0 +1,57 @@
+{
+  "condition": "matched 40-game Maia-3 simplified ONNX replication",
+  "protocol": {
+    "model": "mcognetta/simple-maia3-inference ONNX export",
+    "backend": "onnxruntime",
+    "sampling": "temperature-1 policy sampling",
+    "clock_ms": 60000,
+    "increment_ms": 0,
+    "max_plies": 48,
+    "elo_bands": [1500, 2000],
+    "games_per_arm_per_band": 10,
+    "total_games": 40,
+    "fixed_openings": true,
+    "alternating_colors": true,
+    "adaptive": true,
+    "own_book": false,
+    "opponent_declaration": "- - human UnknownOpponent"
+  },
+  "arms": {
+    "standard_legacy": {
+      "games": 20,
+      "full_confirmed": 20,
+      "full_confirmation_rate": 1.0,
+      "mean_confirmation_ply": 10.0,
+      "confirmation_ply_range": [6, 19],
+      "reason": "legacy_clock"
+    },
+    "accelerated_prior_clock_corroboration": {
+      "games": 20,
+      "full_confirmed": 13,
+      "full_confirmation_rate": 0.65,
+      "mean_confirmation_ply": 24.6,
+      "confirmation_ply_range": [19, 36],
+      "reason_counts": {
+        "legacy_clock": 11,
+        "legacy_accelerated_fusion": 5,
+        "legacy_accelerated_resilient": 0
+      }
+    },
+    "accelerated_strict_resilient_only": {
+      "games": 20,
+      "full_confirmed": 14,
+      "full_confirmation_rate": 0.70,
+      "mean_confirmation_ply": 25.7,
+      "confirmation_ply_range": [22, 34],
+      "reason_counts": {
+        "legacy_accelerated_resilient": 14
+      },
+      "reason_purity": 1.0
+    }
+  },
+  "interpretation": {
+    "semantic_fix": "success: every strict accelerated confirmation used the resilient reason",
+    "false_positive_rate_change": "not improved in this simplified ONNX pipeline; strict arm was 70 percent",
+    "official_maia_comparison": "not interchangeable with this ONNX runtime because official Maia-3 includes different inference behavior"
+  }
+}

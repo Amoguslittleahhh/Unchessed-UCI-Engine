@@ -1,3 +1,3 @@
-Visual QA completed after the complete Maia false-positive fix.
+Final visual QA after the matched 40-game conclusion update.
 
-The PDF is a clean three-page IEEEtran two-column document. The strict-policy explanation, independent 40-game failure evidence, official Maia-3 results, and Stockfish 19 sensitivity results fit without clipping. The existing experiment table and figure remain readable. References fit on the final page. No headings, equations, tables, captions, or paragraphs are clipped; the remaining lower-page whitespace is intentional after the conclusion and references.
+The three-page IEEEtran PDF remains readable and structurally sound. The updated results paragraph fits in the two-column layout without clipping, the strict semantic result and 14/20 matched-ONNX result are legible, and the figure, table, references, headings, and equations remain intact. The paper uses the corrected interpretation: reason purity is fixed, but the ONNX false-positive rate is not claimed to improve. No undefined-reference or LaTeX build errors remain after the two-pass compilation.
