@@ -102,6 +102,10 @@ const ACCEL_FUSION_EVIDENCE_MIN: f64 = 0.28;
 const ACCEL_RESILIENT_SCORE_MIN: f64 = 0.55;
 const ACCEL_RESILIENT_EVIDENCE_MIN: f64 = 0.48;
 const ACCEL_RESILIENT_BAD_MASS_MAX: f64 = 1.80;
+/// Number of consecutive settled engine verdicts required before the expensive
+/// opponent probe can be downgraded. A single clock tell must never make the
+/// search path cheaper; the verdict must survive a long enough evidence run.
+const OBSERVATION_SATURATION_STREAK: u32 = 10;
 
 #[derive(Clone)]
 pub struct OpponentModel {
@@ -213,6 +217,8 @@ pub struct OpponentTelemetrySnapshot {
     pub weight_milli: i32,
     pub suspicion_milli: i32,
     pub low_loss_streak: u32,
+    pub suspect_streak: u32,
+    pub observation_saturated: bool,
     pub samples: u32,
     pub is_computer: bool,
     pub declared_elo: Option<i32>,
@@ -421,7 +427,7 @@ impl OpponentModel {
     /// a "tight enough" threshold on its own, so a confidence-based check
     /// would never actually throttle anything.
     pub fn observation_saturated(&self) -> bool {
-        self.engine_suspect() && self.suspect_streak >= 10
+        self.suspect_streak >= OBSERVATION_SATURATION_STREAK
     }
 
     /// Return the stable detector rule which determines `engine_suspect()`.
@@ -558,6 +564,13 @@ impl OpponentModel {
             && self.accel_resilient_evidence >= ACCEL_RESILIENT_EVIDENCE_MIN
             && self.accel_resilient_streak >= 2
             && self.accel_resilient_good_mass >= 3.0
+            // A noisy strong opponent may accumulate evidence, but promotion
+            // requires an independent engine-like consistency fingerprint too:
+            // two consecutive near-perfect moves and a bounded volatility.
+            // This prevents highly erratic traces from promoting while
+            // retaining sensitivity to genuinely engine-like clean runs.
+            && self.low_loss_streak >= 2
+            && self.volatility() <= 460
             && self.accel_resilient_bad_mass <= ACCEL_RESILIENT_BAD_MASS_MAX
     }
 
@@ -592,6 +605,8 @@ impl OpponentModel {
             weight_milli: (self.weight * 1000.0).round() as i32,
             suspicion_milli: (self.suspicion * 1000.0).round() as i32,
             low_loss_streak: self.low_loss_streak,
+            suspect_streak: self.suspect_streak,
+            observation_saturated: self.observation_saturated(),
             samples: self.samples,
             is_computer: self.is_computer,
             declared_elo: self.declared_elo,
@@ -1532,6 +1547,22 @@ mod tests {
     }
 
     #[test]
+    fn accelerated_resilient_requires_clean_streak_fingerprint() {
+        let mut m = OpponentModel::new();
+        m.accelerated_detect = true;
+        // The accumulator sees mostly excellent moves, but every third move
+        // breaks the clean streak. This must not promote on resilient mass
+        // alone.
+        for i in 0..48 {
+            m.observe(if i % 3 == 2 { 80 } else { 8 }, 1.0);
+        }
+        assert!(m.accel_resilient_score >= ACCEL_RESILIENT_SCORE_MIN);
+        assert!(m.accel_resilient_good_mass >= 3.0);
+        assert!(m.low_loss_streak < 2);
+        assert_eq!(m.suspect_reason(), SuspectReason::None);
+    }
+
+    #[test]
     fn observation_saturated_only_after_a_long_held_verdict() {
         let mut m = OpponentModel::new();
         assert!(!m.observation_saturated(), "fresh model has no verdict yet");
@@ -1570,6 +1601,19 @@ mod tests {
         if m.engine_suspect() {
             assert!(!m.observation_saturated(), "verdict just formed, streak too short");
         }
+    }
+
+    #[test]
+    fn observation_saturation_works_with_accelerated_resilient_detector() {
+        let mut m = OpponentModel::new();
+        m.accelerated_detect = true;
+        for _ in 0..32 {
+            m.observe(8, 0.4);
+        }
+        assert!(m.engine_suspect());
+        assert!(m.suspect_streak >= 10);
+        assert!(m.observation_saturated());
+        assert_eq!(m.suspect_reason(), SuspectReason::LegacyAcceleratedResilient);
     }
 
     #[test]

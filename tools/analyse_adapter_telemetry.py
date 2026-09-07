@@ -57,7 +57,8 @@ DECISION_REQUIRED = COMMON_FIELDS | {
     "dwell", "emergency", "suspect", "action_full", "selected_move",
 }
 OBSERVATION_ALLOWED = OBSERVATION_REQUIRED | {
-    "reason", "accelerated_score_milli", "accelerated_evidence_milli", "accelerated_streak", "accelerated_fusion_streak", "accelerated_resilient_score_milli", "accelerated_resilient_evidence_milli", "accelerated_resilient_streak"
+    "reason", "accelerated_score_milli", "accelerated_evidence_milli", "accelerated_streak", "accelerated_fusion_streak", "accelerated_resilient_score_milli", "accelerated_resilient_evidence_milli", "accelerated_resilient_streak",
+    "suspect_streak", "observation_saturated",
 }
 DECISION_ALLOWED = DECISION_REQUIRED
 
@@ -169,7 +170,7 @@ def validate_record(fields: dict[str, str], origin: str, line_no: int) -> dict[s
             raise fail(origin, line_no, "selected_move has invalid UCI syntax")
     else:
         source = fields["source"]
-        if source not in {"probe", "book"}:
+        if source not in {"probe", "probe_saturated", "probe_high_fidelity", "book"}:
             raise fail(origin, line_no, f"source has invalid value {source!r}")
         result.update(
             observation=uint(fields["observation"], "observation", origin, line_no),
@@ -187,6 +188,8 @@ def validate_record(fields: dict[str, str], origin: str, line_no: int) -> dict[s
             weight_milli=sint(fields["weight_milli"], "weight_milli", origin, line_no),
             suspicion_milli=sint(fields["suspicion_milli"], "suspicion_milli", origin, line_no),
             low_loss_streak=uint(fields["low_loss_streak"], "low_loss_streak", origin, line_no),
+            suspect_streak=uint(fields.get("suspect_streak", "0"), "suspect_streak", origin, line_no),
+            observation_saturated=bit(fields.get("observation_saturated", "0"), "observation_saturated", origin, line_no),
             samples=uint(fields["samples"], "samples", origin, line_no),
             is_computer=bit(fields["is_computer"], "is_computer", origin, line_no),
             declared_elo=optional_sint(fields["declared_elo"], "declared_elo", origin, line_no),
@@ -205,7 +208,7 @@ def validate_record(fields: dict[str, str], origin: str, line_no: int) -> dict[s
             raise fail(origin, line_no, "suspect_reason has invalid value")
         if result["clock_available"] != (result["opp_time_used_ms"] is not None):
             raise fail(origin, line_no, "clock_available must match opp_time_used_ms")
-        if event == "opponent_observation" and result["source"] == "probe":
+        if event == "opponent_observation" and result["source"] in {"probe", "probe_saturated", "probe_high_fidelity"}:
             for name in ("cp_loss", "difficulty_weight_milli", "legal_count", "had_choice"):
                 if result[name] is None:
                     raise fail(origin, line_no, f"{name} is required for probe observation")
