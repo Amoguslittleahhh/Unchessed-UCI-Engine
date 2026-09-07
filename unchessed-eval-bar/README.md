@@ -45,6 +45,8 @@ The output label `source=homemade-stack-v3-selected` makes the provenance explic
 
 A second command, `evalbar parity`, exposes an experimental compact linear model trained from black-box Stockfish score observations and original Unchessed features. It is deliberately not promoted: on the same 120-position depth-10 corpus it measured 262.792 cp MAE versus 178.925 cp for the selected handcrafted stack. The failed experiment is retained as a reproducible negative result and a warning against fitting a small corpus too aggressively.
 
+The opt-in command `evalbar calibrated` applies a newer original affine-plus-interaction calibration trained from 5,000 leakage-safe quiet real-game labels. On the ordinary non-mate subset of 4,992 positions, the offline held-out calibration reached 53.47 cp MAE, but this does not transfer automatically to arbitrary tactical or mate positions. On a regenerated 120-position depth-10 direct corpus, the loaded-NNUE calibrated mode measured 422.575 cp MAE because of a 29,887 cp mate outlier; the median absolute error was 106 cp. It therefore remains experimental and is not the default search evaluator. The mode is exposed for transparent reproduction, not as evidence of SFNNv16 parity.
+
 
 ## Nonlinear search experiment
 

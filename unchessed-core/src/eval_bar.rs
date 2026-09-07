@@ -30,6 +30,9 @@ pub enum EvalBarSource {
     HomemadeFusion,
     /// Original compact model fit only from black-box UCI observations.
     HomemadeParityModel,
+    /// Original teacher-calibrated model fit from 5,000 black-box labels and
+    /// homemade bitboard features; opt-in and presentation-only.
+    HomemadeTeacherCalibrated,
 }
 
 impl EvalBarSource {
@@ -39,6 +42,7 @@ impl EvalBarSource {
             Self::LoadedNnueProxy => "nnue-proxy",
             Self::HomemadeFusion => "homemade-stack-v3-selected",
             Self::HomemadeParityModel => "homemade-parity-linear-v1",
+            Self::HomemadeTeacherCalibrated => "homemade-teacher-calibrated-v1",
         }
     }
 }
@@ -226,6 +230,63 @@ impl EvalBar {
             confidence,
             exact_stockfish_path: false,
             source: EvalBarSource::HomemadeParityModel,
+            bitboard: bitboard_snapshot(pos),
+        }
+    }
+
+    /// Apply the original 5,000-position teacher calibration to an already
+    /// available evaluator score. This is opt-in and presentation-only: the
+    /// search evaluator remains untouched. The coefficients were fitted from
+    /// Stockfish UCI labels and original Unchessed bitboard signals; no
+    /// Stockfish code, network weights, or feature rows are used.
+    pub fn sample_teacher_calibrated_from_score(&mut self, pos: &Position, raw_stm: i32) -> EvalBarSample {
+        let raw_white = if pos.side == Color::White { raw_stm } else { -raw_stm };
+        let f = homemade_features(pos);
+        let phase = f64::from(f.phase);
+        let signals = [
+            f.center_control, f.pawn_structure, f.king_safety, f.piece_activity,
+            f.coordination, f.space, f.passed_pawns, f.outposts, f.bishop_pair,
+            f.rook_files, f.tempo,
+        ];
+        let mut value = -4.172527714120014
+            + 627.4074064989893 * (f64::from(raw_white) / 1000.0)
+            + 3.41303882089065 * (phase / 30.0);
+        let weights = [
+            -2.784548995458911, 15.09246925460668, 9.754923260521622,
+            0.501334898209607, -5.892604746791196, 10.117275303106599,
+            29.015908572590188, 8.049217041921155, 5.175420838421003,
+            21.735708371254233, 0.0,
+        ];
+        for (signal, weight) in signals.iter().zip(weights) {
+            value += weight * (f64::from(*signal) / 10.0);
+        }
+        let phase_norm = phase / 30.0;
+        for (signal, weight) in [
+            signals[1], signals[2], signals[6], signals[8], signals[9],
+        ].iter().zip([
+            -2.6391156762900914, -5.171169016106844, 3.69814318527974,
+            3.3828920186060865, 1.7581095484204152,
+        ]) {
+            value += weight * (f64::from(*signal) * phase_norm / 10.0);
+        }
+        value += 3.4130388208906273 * if pos.side == Color::White { phase_norm } else { -phase_norm };
+        value += -3.210290712812883 * f64::from(signals[1]) * f64::from(signals[2]) / 100.0;
+        value += -6.060674712045301 * f64::from(signals[6]) * f64::from(signals[8]) / 10.0;
+        let static_cp_white = value.round() as i32;
+        let display_cp_white = damp_rule50(static_cp_white, pos.halfmove);
+        let wdl = homemade_wdl_from_cp(display_cp_white, pos);
+        let expected_score = (f64::from(wdl[0]) + 0.5 * f64::from(wdl[1])) / 1000.0;
+        let confidence = score_confidence(expected_score);
+        let target = f64::from(display_cp_white);
+        let prior = self.smoothed_cp_white.unwrap_or(target);
+        let jump = target - prior;
+        let alpha = (self.smoothing_alpha + 0.25 * confidence).clamp(0.20, 0.60);
+        let bounded_delta = jump.clamp(-f64::from(self.max_step_cp), f64::from(self.max_step_cp));
+        self.smoothed_cp_white = Some(prior + alpha * bounded_delta);
+        EvalBarSample {
+            static_cp_white, display_cp_white, wdl_per_mille: wdl,
+            expected_score, bar_fraction: expected_score, confidence,
+            exact_stockfish_path: false, source: EvalBarSource::HomemadeTeacherCalibrated,
             bitboard: bitboard_snapshot(pos),
         }
     }

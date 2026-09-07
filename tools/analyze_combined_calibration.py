@@ -6,8 +6,10 @@ import chess,numpy as np
 from fit_homemade_features import feature_vector
 
 def main():
- ap=argparse.ArgumentParser(); ap.add_argument('labels'); ap.add_argument('--out',required=True); a=ap.parse_args()
+ ap=argparse.ArgumentParser(); ap.add_argument('labels'); ap.add_argument('--out',required=True); ap.add_argument('--max-abs-cp',type=int,default=0); a=ap.parse_args()
  rows=[json.loads(x) for x in Path(a.labels).read_text().splitlines() if x.strip()]
+ if a.max_abs_cp:
+  rows=[r for r in rows if abs(int(r['stockfish_stm_cp'])) <= a.max_abs_cp]
  y=np.array([r['stockfish_stm_cp'] if chess.Board(r['fen']).turn==chess.WHITE else -r['stockfish_stm_cp'] for r in rows],float)
  x=[]
  for r in rows:

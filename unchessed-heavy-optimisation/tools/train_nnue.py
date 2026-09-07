@@ -515,6 +515,7 @@ def train(shards, out_path, epochs):
     if use_bucket_weights:
         print(f"per-bucket loss weighting enabled: {BUCKET_WEIGHT.tolist()}", flush=True)
     n_train = len(train_idx)
+    n_val = len(val_idx)
     print(
         f"recipe: max_epochs={epochs} early_stop_patience={patience} "
         f"min_delta={min_delta}cp batch={BATCH_SIZE} device={DEVICE} "

@@ -1,0 +1,9 @@
+{
+  "positions": 4992,
+  "test": 999,
+  "max_abs_target_cp": 2000,
+  "all_mae_cp": 103.71314102564102,
+  "test_mae_cp": 105.44344344344344,
+  "median_test_abs_cp": 54.0,
+  "max_test_abs_cp": 1161
+}

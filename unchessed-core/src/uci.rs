@@ -498,7 +498,11 @@ pub fn run(ident: EngineIdent) {
                 let mode = toks.next().unwrap_or("");
                 let homemade = mode.eq_ignore_ascii_case("homemade");
                 let parity = mode.eq_ignore_ascii_case("parity");
-                let source = if parity {
+                let teacher = mode.eq_ignore_ascii_case("teacher")
+                    || mode.eq_ignore_ascii_case("calibrated");
+                let source = if teacher {
+                    EvalBarSource::HomemadeTeacherCalibrated
+                } else if parity {
                     EvalBarSource::HomemadeParityModel
                 } else if homemade {
                     EvalBarSource::HomemadeFusion
@@ -508,7 +512,9 @@ pub fn run(ident: EngineIdent) {
                     EvalBarSource::LoadedNnueProxy
                 };
                 let raw_stm = eval_impl.eval(&game.current);
-                let sample = if parity {
+                let sample = if teacher {
+                    eval_bar.sample_teacher_calibrated_from_score(&game.current, raw_stm)
+                } else if parity {
                     eval_bar.sample_parity_from_score(&game.current, raw_stm)
                 } else if homemade {
                     eval_bar.sample_homemade_from_score(&game.current, raw_stm)
