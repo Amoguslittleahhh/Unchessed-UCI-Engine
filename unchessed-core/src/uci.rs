@@ -554,7 +554,7 @@ pub fn run(ident: EngineIdent) {
                 );
                 if let Some(heads) = tactical_heads {
                     println!(
-                        "info string [Unchessed] tactical legal={} checks={} forcing_captures={} escapes={} pinned={} promotions={} terminal={} mate_distance={} terminal_prob={} confidence={} provenance=original_clean_room_research_only",
+                        "info string [Unchessed] tactical legal={} checks={} forcing_captures={} escapes={} pinned={} promotions={} terminal={} terminal_score_cp={} mate_distance={} terminal_prob={} confidence={} provenance=original_clean_room_research_only",
                         heads.features.legal_moves,
                         heads.features.checking_moves,
                         heads.features.forcing_captures,
@@ -562,6 +562,7 @@ pub fn run(ident: EngineIdent) {
                         heads.features.pinned_piece_count,
                         heads.features.promotion_moves,
                         heads.features.terminal_class,
+                        heads.terminal_score_cp,
                         heads.mate_distance,
                         heads.terminal_per_mille,
                         heads.confidence_per_mille,

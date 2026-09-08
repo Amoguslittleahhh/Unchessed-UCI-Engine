@@ -27,6 +27,9 @@ pub struct TacticalFeatures {
 pub struct TacticalHeads {
     pub bounded_static_cp: i32,
     pub tactical_delta_cp: i32,
+    /// Separate terminal score in side-to-move perspective. Zero means the
+    /// position is non-terminal or stalemate; checkmate is an explicit loss.
+    pub terminal_score_cp: i32,
     pub terminal_per_mille: u16,
     pub mate_distance: i8,
     pub confidence_per_mille: u16,
@@ -108,6 +111,10 @@ pub fn heads_from_score(base_stm_cp: i32, pos: &Position) -> TacticalHeads {
             + if features.side_in_check { 120 } else { 0 })
         .min(900),
     };
+    let terminal_score_cp = match features.terminal_class {
+        1 => -32_000,
+        _ => 0,
+    };
     let confidence = (350
         + u16::from(features.checking_moves) * 90
         + u16::from(features.forcing_captures) * 40
@@ -117,6 +124,7 @@ pub fn heads_from_score(base_stm_cp: i32, pos: &Position) -> TacticalHeads {
     TacticalHeads {
         bounded_static_cp: base_stm_cp.saturating_add(delta),
         tactical_delta_cp: delta,
+        terminal_score_cp,
         terminal_per_mille: terminal,
         mate_distance: if features.terminal_class == 1 {
             0
@@ -167,6 +175,15 @@ mod tests {
         let heads = heads_from_score(0, &pos);
         assert!(heads.confidence_per_mille > 350);
         assert!(heads.tactical_delta_cp.abs() <= SCORE_LIMIT_CP);
+    }
+
+    #[test]
+    fn terminal_score_is_separate_from_static_score() {
+        let mate = fen::parse("7k/6Q1/6K1/8/8/8/8/8 b - - 0 1").unwrap();
+        let stale = fen::parse("7k/5Q2/6K1/8/8/8/8/8 b - - 0 1").unwrap();
+        assert_eq!(heads_from_score(137, &mate).terminal_score_cp, -32_000);
+        assert_eq!(heads_from_score(137, &stale).terminal_score_cp, 0);
+        assert_eq!(heads_from_score(137, &mate).bounded_static_cp, 161);
     }
 }
 
