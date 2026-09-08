@@ -393,19 +393,10 @@ pub fn run(ident: EngineIdent) {
             }
             "position" => {
                 join_worker(&mut worker, &stop);
-                // A new position while still pondering the old one means the
-                // opponent's actual move has already been established some
-                // other way (or the GUI is resetting) -- the pondered guess
-                // no longer applies to anything, so it's discarded, not
-                // started stale.
-                pending_ponder = None;
-                match parse_position(&line, &game) {
-                    Ok(g) => game = g,
-                    Err(reason) => {
-                        println!(
-                            "info string [Unchessed] could not parse position ({reason}): {line}"
-                        );
-                }
+                if let Some(g) = parse_position(&line, &game) {
+                    game = g;
+                } else {
+                    println!("info string [Unchessed] could not parse: {}", line);
                 }
             }
             "go" => {
