@@ -35,6 +35,8 @@ On the existing 120-position comparison corpus at depth 8, the measured results 
 | Tactical multi-head | 181.767 | 113.0 | 1,389 |
 | Parity linear | 264.908 | 135.0 | 2,447 |
 
+The authorized shipped `unchessed-nnue.bin` was also tested explicitly. It achieved `148.683` cp MAE, `80.5` cp median absolute error, and `1,352` cp maximum error on the same 120 positions at depth 8. This is the best measured result so far and improves on the calibrated research mode by 14.35%, but it remains above the strict 100 cp gate. Five-fold cross-validated low-dimensional material/phase residual corrections did not improve it; raw network output was better than both affine and feature corrections.
+
 These results are materially better than the earlier 29,887 cp mate-mismatch maximum on the prior reference setup, but they do not satisfy the strict all-position 100 cp gate. No stable 100/100 claim is made.
 
 ## Runtime smoke result
