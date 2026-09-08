@@ -14,10 +14,23 @@ OUT=$1
 EPOCHS=$2
 shift 2
 
-THREADS=${THREADS:-$(nproc)}
-# Use all logical CPU threads for host-side decoding and BLAS unless the caller
-# deliberately caps THREADS. This is throughput-oriented, not a safe setting
-# for thermally constrained laptops or shared machines.
+if [[ -z "${DEVICE:-}" ]]; then
+  if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi -L >/dev/null 2>&1; then
+    DEVICE=cuda
+  elif [[ "${PYTORCH_ENABLE_MPS_FALLBACK:-0}" == "1" ]]; then
+    DEVICE=mps
+  else
+    DEVICE=cpu
+  fi
+fi
+
+# Reserve the 180/360-core machine for explicit CPU work. GPU jobs default to a
+# bounded host-thread count so the accelerator is not starved by oversubscribed
+# BLAS/decoding threads; set THREADS explicitly when the data pipeline needs
+# more. CPU jobs use every logical thread by default.
+if [[ -z "${THREADS:-}" ]]; then
+  if [[ "$DEVICE" == cpu ]]; then THREADS=$(nproc); else THREADS=16; fi
+fi
 export OMP_NUM_THREADS=${OMP_NUM_THREADS:-$THREADS}
 export MKL_NUM_THREADS=${MKL_NUM_THREADS:-$THREADS}
 export OPENBLAS_NUM_THREADS=${OPENBLAS_NUM_THREADS:-$THREADS}
@@ -29,15 +42,6 @@ export TOKENIZERS_PARALLELISM=${TOKENIZERS_PARALLELISM:-false}
 # PyTorch exposes CUDA for NVIDIA CUDA and AMD ROCm builds. DEVICE can be set
 # explicitly to cuda, cuda:0, mps, or cpu. Intel/oneAPI and other backends
 # should use a PyTorch build exposing the desired device and pass DEVICE.
-if [[ -z "${DEVICE:-}" ]]; then
-  if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi -L >/dev/null 2>&1; then
-    DEVICE=cuda
-  elif [[ "${PYTORCH_ENABLE_MPS_FALLBACK:-0}" == "1" ]]; then
-    DEVICE=mps
-  else
-    DEVICE=cpu
-  fi
-fi
 export DEVICE
 
 # CUDA/ROCm throughput knobs. TF32 is enabled by the trainer runtime where
