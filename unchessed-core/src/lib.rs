@@ -11,6 +11,7 @@ pub mod perft;
 pub mod san;
 pub mod eval;
 pub mod eval_bar;
+pub mod tactical_eval;
 pub mod nnue;
 pub mod tt;
 pub mod search;

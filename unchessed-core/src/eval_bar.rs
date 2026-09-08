@@ -17,6 +17,7 @@ use std::sync::OnceLock;
 use crate::board::{Color, Position, BISHOP, KNIGHT, PAWN, QUEEN, ROOK};
 use crate::eval::{evaluate, Eval, EvalParams, EvalState};
 use crate::movegen::{in_check, legal, KING_ATT, KNIGHT_ATT, PAWN_ATT};
+use crate::tactical_eval::{heads_from_score, TacticalHeads};
 
 const MATE_CP: i32 = 20_000;
 const WDL_CP_MIN: i32 = -4000;
@@ -33,6 +34,8 @@ pub enum EvalBarSource {
     /// Original teacher-calibrated model fit from 5,000 black-box labels and
     /// homemade bitboard features; opt-in and presentation-only.
     HomemadeTeacherCalibrated,
+    /// Original gated score/WDL/terminal research head; opt-in and not search-enabled.
+    TacticalMultiHead,
 }
 
 impl EvalBarSource {
@@ -43,6 +46,7 @@ impl EvalBarSource {
             Self::HomemadeFusion => "homemade-stack-v3-selected",
             Self::HomemadeParityModel => "homemade-parity-linear-v1",
             Self::HomemadeTeacherCalibrated => "homemade-teacher-calibrated-v1",
+            Self::TacticalMultiHead => "unchessed-tactical-multi-head-v1",
         }
     }
 }
@@ -343,6 +347,46 @@ impl EvalBar {
             source,
             bitboard: bitboard_snapshot(pos),
         }
+    }
+
+    /// Apply the original gated tactical head to an available score. The
+    /// returned heads expose terminal and mate-distance metadata separately;
+    /// this method is presentation-only until all research gates pass.
+    pub fn sample_tactical_from_score(
+        &mut self,
+        pos: &Position,
+        raw_stm: i32,
+    ) -> (EvalBarSample, TacticalHeads) {
+        let heads = heads_from_score(raw_stm, pos);
+        let static_cp_white = if pos.side == Color::White {
+            heads.bounded_static_cp
+        } else {
+            -heads.bounded_static_cp
+        };
+        let display_cp_white = damp_rule50(static_cp_white, pos.halfmove);
+        let wdl = homemade_wdl_from_cp(display_cp_white, pos);
+        let expected_score = (f64::from(wdl[0]) + 0.5 * f64::from(wdl[1])) / 1000.0;
+        let confidence = f64::from(heads.confidence_per_mille) / 1000.0;
+        let target = f64::from(display_cp_white);
+        let prior = self.smoothed_cp_white.unwrap_or(target);
+        let bounded_delta =
+            (target - prior).clamp(-f64::from(self.max_step_cp), f64::from(self.max_step_cp));
+        self.smoothed_cp_white =
+            Some(prior + (0.35 + 0.25 * confidence).clamp(0.20, 0.60) * bounded_delta);
+        (
+            EvalBarSample {
+                static_cp_white,
+                display_cp_white,
+                wdl_per_mille: wdl,
+                expected_score,
+                bar_fraction: expected_score,
+                confidence,
+                exact_stockfish_path: false,
+                source: EvalBarSource::TacticalMultiHead,
+                bitboard: bitboard_snapshot(pos),
+            },
+            heads,
+        )
     }
 
     /// Use the evaluator's incremental state directly. This keeps the bar

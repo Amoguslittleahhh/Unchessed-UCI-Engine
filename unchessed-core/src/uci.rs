@@ -393,10 +393,19 @@ pub fn run(ident: EngineIdent) {
             }
             "position" => {
                 join_worker(&mut worker, &stop);
-                if let Some(g) = parse_position(&line, &game) {
-                    game = g;
-                } else {
-                    println!("info string [Unchessed] could not parse: {}", line);
+                // A new position while still pondering the old one means the
+                // opponent's actual move has already been established some
+                // other way (or the GUI is resetting) -- the pondered guess
+                // no longer applies to anything, so it's discarded, not
+                // started stale.
+                pending_ponder = None;
+                match parse_position(&line, &game) {
+                    Ok(g) => game = g,
+                    Err(reason) => {
+                        println!(
+                            "info string [Unchessed] could not parse position ({reason}): {line}"
+                        );
+                }
                 }
             }
             "go" => {
@@ -500,26 +509,39 @@ pub fn run(ident: EngineIdent) {
                 let parity = mode.eq_ignore_ascii_case("parity");
                 let teacher = mode.eq_ignore_ascii_case("teacher")
                     || mode.eq_ignore_ascii_case("calibrated");
+                let tactical = mode.eq_ignore_ascii_case("tactical");
                 let source = if teacher {
                     EvalBarSource::HomemadeTeacherCalibrated
                 } else if parity {
                     EvalBarSource::HomemadeParityModel
                 } else if homemade {
                     EvalBarSource::HomemadeFusion
+                } else if tactical {
+                    EvalBarSource::TacticalMultiHead
                 } else if eval_is_hce {
                     EvalBarSource::HceProxy
                 } else {
                     EvalBarSource::LoadedNnueProxy
                 };
                 let raw_stm = eval_impl.eval(&game.current);
-                let sample = if teacher {
-                    eval_bar.sample_teacher_calibrated_from_score(&game.current, raw_stm)
+                let (sample, tactical_heads) = if teacher {
+                    (eval_bar.sample_teacher_calibrated_from_score(&game.current, raw_stm), None)
                 } else if parity {
-                    eval_bar.sample_parity_from_score(&game.current, raw_stm)
+                    (eval_bar.sample_parity_from_score(&game.current, raw_stm), None)
                 } else if homemade {
-                    eval_bar.sample_homemade_from_score(&game.current, raw_stm)
+                    (
+                        eval_bar.sample_homemade_from_score(&game.current, raw_stm),
+                        None,
+                    )
+                } else if tactical {
+                    let (sample, heads) =
+                        eval_bar.sample_tactical_from_score(&game.current, raw_stm);
+                    (sample, Some(heads))
                 } else {
-                    eval_bar.sample_from_score(&game.current, raw_stm, source)
+                    (
+                        eval_bar.sample_from_score(&game.current, raw_stm, source),
+                        None,
+                    )
                 };
                 let elo_snapshot = model.lock().unwrap().telemetry_snapshot();
                 let link = EvalBarLink::from_sample(
@@ -539,6 +561,21 @@ pub fn run(ident: EngineIdent) {
                     eval_bar.smoothed_cp_white().unwrap_or(sample.display_cp_white),
                     sample.source.label(),
                 );
+                if let Some(heads) = tactical_heads {
+                    println!(
+                        "info string [Unchessed] tactical legal={} checks={} forcing_captures={} escapes={} pinned={} promotions={} terminal={} mate_distance={} terminal_prob={} confidence={} provenance=original_clean_room_research_only",
+                        heads.features.legal_moves,
+                        heads.features.checking_moves,
+                        heads.features.forcing_captures,
+                        heads.features.king_escape_count,
+                        heads.features.pinned_piece_count,
+                        heads.features.promotion_moves,
+                        heads.features.terminal_class,
+                        heads.mate_distance,
+                        heads.terminal_per_mille,
+                        heads.confidence_per_mille,
+                    );
+                }
                 println!(
                     "info string [Unchessed] evalbar-link hash {:016x} occ {:016x} material {} elo {} +/-{} suspect={} reason={}",
                     link.bitboard.position_hash,
