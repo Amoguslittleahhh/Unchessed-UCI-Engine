@@ -9,7 +9,7 @@
 \maketitle
 
 \begin{abstract}
-This paper reports an original, opt-in tactical and terminal evaluator added to the Unchessed chess engine. The implementation is comparable to the supplied SFNNv16 architecture diagrams at the level of public design principles: sparse board-state signals, a reusable existing score, bounded integer-friendly inference, confidence gating, and separated score, terminal, and mate-distance outputs. It does not reproduce Stockfish source code, weights, feature rows, or implementation constants. The default search evaluator is unchanged. The post-change workspace passes 155 tests with six ignored, and a release build plus UCI terminal smoke test succeed. The evidence does not establish numerical SFNNv16 parity or a stable 100/100 result. The remaining requirements are an untouched stratified corpus, independent training, a strict speed gate, and a powered fixed-control match.
+This paper reports an original, opt-in tactical and terminal evaluator added to the Unchessed chess engine. The implementation is comparable to the supplied SFNNv16 architecture diagrams at the level of public design principles: sparse board-state signals, a reusable existing score, bounded integer-friendly inference, confidence gating, and separated score, terminal, and mate-distance outputs. It does not reproduce Stockfish source code, weights, feature rows, or implementation constants. The default search evaluator is unchanged. The post-change workspace passes 153 tests with six ignored, and a release build plus UCI terminal smoke test succeed. The evidence does not establish numerical SFNNv16 parity or a stable 100/100 result. The remaining requirements are an untouched stratified corpus, independent training, a strict speed gate, and a powered fixed-control match.
 \end{abstract}
 
 \section{Introduction}
@@ -42,7 +42,7 @@ Table~\ref{tab:validation} summarizes the measured gates. The baseline was froze
 \toprule
 Gate & Measurement & Status\\
 \midrule
-Workspace tests & 155 passed, 6 ignored & Pass\\
+Workspace tests & 153 passed, 6 ignored & Pass\\
 Focused tactical tests & 3 passed & Pass\\
 Release build & Completed & Pass\\
 Checkmate classification & terminal class 1, probability 1000 & Pass\\

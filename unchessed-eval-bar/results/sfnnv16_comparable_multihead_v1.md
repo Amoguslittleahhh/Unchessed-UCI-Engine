@@ -10,7 +10,7 @@ The implementation is `unchessed-core/src/tactical_eval.rs`. The `evalbar tactic
 
 | Gate | Frozen baseline | Post-change result | Status |
 |---|---:|---:|---|
-| Workspace library/binary tests | 152 passed, 6 ignored | 155 passed, 6 ignored | Passed |
+| Workspace library/binary tests | 152 passed, 6 ignored | 153 passed, 6 ignored | Passed |
 | Focused tactical tests | Not applicable | 3 passed | Passed |
 | Release build | Existing baseline | `unchessed-eval-bar` release build passed | Passed |
 | Terminal classification | Existing bounded probe | Checkmate and stalemate separated by unit test and UCI smoke | Passed |
