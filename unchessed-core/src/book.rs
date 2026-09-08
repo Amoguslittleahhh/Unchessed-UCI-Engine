@@ -92,13 +92,28 @@ const EMBEDDED_LINES: &[&str] = &[
     "troll2;6;C21;Danish Gambit;e2e4 e7e5 d2d4 e5d4 c2c3 d4c3 f1c4 c3b2 c1b2",
 ];
 
+/// Every ECO-classified opening + variation from the Lichess/chess-openings
+/// dataset (huggingface.co/datasets/Lichess/chess-openings, CC0), stripped
+/// to `eco;name;uci moves` -- no images, no popularity data (the dataset
+/// has none; see ECO_DEFAULT_WEIGHT below).
+const ECO_LINES: &str = include_str!("openings_eco.txt");
+
+/// Flat weight for dataset-sourced ECO lines: below every hand-curated
+/// `main` weight (20-90) so the curated repertoire still wins wherever it
+/// overlaps, but still above troll-tier weights so real theory is always
+/// preferred over meme lines when both are legal in a position.
+const ECO_DEFAULT_WEIGHT: u32 = 15;
+
 pub struct Book {
     embedded: HashMap<u64, Vec<BookEntry>>,
     poly: Option<PolyglotBook>,
 }
 
 impl Book {
-    /// Build the embedded book, validating every line replays legally.
+    /// Build the embedded book: the hand-curated repertoire (validated --
+    /// any illegal line is a build-time bug) plus the full ECO dataset
+    /// (tolerant -- a bad row is skipped, not fatal, since it's third-party
+    /// data we don't hand-verify line by line).
     pub fn new() -> Result<Book, String> {
         let mut map: HashMap<u64, Vec<BookEntry>> = HashMap::new();
         for line in EMBEDDED_LINES {
@@ -145,6 +160,35 @@ impl Book {
                 pos = pos.make(mv);
             }
         }
+
+        for line in ECO_LINES.lines() {
+            let mut parts = line.splitn(3, ';');
+            let (Some(eco), Some(name), Some(moves)) =
+                (parts.next(), parts.next(), parts.next())
+            else {
+                continue;
+            };
+            let mut pos = fen::startpos();
+            for tok in moves.split_whitespace() {
+                let Some(mv) = parse_uci_move(&pos, tok) else {
+                    break;
+                };
+                let entries = map.entry(pos.hash).or_default();
+                if let Some(e) = entries.iter_mut().find(|e| e.mv == mv) {
+                    e.weight = e.weight.max(ECO_DEFAULT_WEIGHT);
+                } else {
+                    entries.push(BookEntry {
+                        mv,
+                        weight: ECO_DEFAULT_WEIGHT,
+                        name,
+                        eco,
+                        tier: Tier::Main,
+                    });
+                }
+                pos = pos.make(mv);
+            }
+        }
+
         Ok(Book {
             embedded: map,
             poly: None,

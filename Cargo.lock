@@ -4,14 +4,14 @@ version = 4
 
 [[package]]
 name = "unchessed-adapter"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "unchessed-core",
 ]
 
 [[package]]
 name = "unchessed-core"
-version = "0.2.5"
+version = "0.2.6"
 
 [[package]]
 name = "unchessed-datagen"
@@ -29,7 +29,7 @@ dependencies = [
 
 [[package]]
 name = "unchessed-reviewer"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "unchessed-core",
 ]
