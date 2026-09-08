@@ -23,6 +23,10 @@ data for the neural components.
 
 ## Status: current milestone
 
+### Evaluation-parity research handoff
+
+The clean-room evaluation work is documented in [`../docs/research-handoff-mate-distance-parity.md`](../docs/research-handoff-mate-distance-parity.md). The branch contains an original eval-bar, quantized incremental residual experiments, leakage-safe 5,000-position quiet and all-position manifests, black-box Stockfish 19 labeling, an opt-in teacher-calibrated projection, and a bounded three-ply forced-mate probe. The strict stable 100/100 parity target remains open: ordinary held-out MAE reached 99.523 cp, but all-position held-out MAE remained 155.049 cp and direct comparisons remain sensitive to mate-distance outliers. The forced-mate probe is presentation-only and must not be moved into the search hot path without an incremental tactical-state design and a speed gate. Image recognition is appropriate for screenshots, board/UI validation, and coordinate debugging, but exact FEN/bitboards remain necessary for evaluator training and mate-distance analysis.
+
 | Component | State |
 |---|---|
 | Bitboard movegen | ✅ perft-verified (startpos d6 = 119,060,324; Kiwipete d5 = 193,690,690, exact) |

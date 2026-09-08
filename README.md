@@ -23,6 +23,10 @@ data for the neural components.
 
 ## Status: current milestone
 
+### Evaluation-parity research handoff
+
+The clean-room evaluation research is maintained on `manus/research-facilities`. The current stack includes a homemade eval-bar, leakage-safe real-game manifests, black-box Stockfish 19 comparison tools, an opt-in teacher-calibrated mode, and a bounded three-ply forced-mate presentation probe. The strict stable 100/100 SFNNv16-parity target is **not yet achieved**: the strongest measured ordinary-position held-out result is 99.523 cp MAE, while the all-position result remains 155.049 cp MAE and the calibrated 120-position direct test is sensitive to mate outliers. See [`docs/research-handoff-mate-distance-parity.md`](docs/research-handoff-mate-distance-parity.md) for the complete context, measurements, provenance boundary, and next steps. Image recognition is reserved for board/UI verification; exact FEN and bitboard state remain mandatory for evaluation research.
+
 | Component | State |
 |---|---|
 | Bitboard movegen | ✅ perft-verified (startpos d6 = 119,060,324; Kiwipete d5 = 193,690,690, exact) |

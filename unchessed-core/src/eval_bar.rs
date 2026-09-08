@@ -241,8 +241,7 @@ impl EvalBar {
     /// Stockfish code, network weights, or feature rows are used.
     pub fn sample_teacher_calibrated_from_score(&mut self, pos: &Position, raw_stm: i32) -> EvalBarSample {
         let raw_white = if pos.side == Color::White { raw_stm } else { -raw_stm };
-        if mate_in_one_score_white(pos).is_some() {
-            let static_cp_white = mate_in_one_score_white(pos).unwrap();
+        if let Some(static_cp_white) = forced_mate_score_white(pos, 3) {
             let display_cp_white = static_cp_white;
             let wdl = homemade_wdl_from_cp(display_cp_white, pos);
             let expected_score = (f64::from(wdl[0]) + 0.5 * f64::from(wdl[1])) / 1000.0;
@@ -478,12 +477,45 @@ pub fn homemade_features(pos: &Position) -> HomemadeFeatures {
     }
 }
 
-fn mate_in_one_score_white(pos: &Position) -> Option<i32> {
-    let us = pos.side;
-    for mv in legal(pos).as_slice() {
-        let next = pos.make(*mv);
-        if in_check(&next) && legal(&next).moves.is_empty() {
-            return Some(if us == Color::White { MATE_CP - 1 } else { -(MATE_CP - 1) });
+fn forced_mate_score_white(pos: &Position, max_plies: u8) -> Option<i32> {
+    forced_mate_in(pos, max_plies).map(|plies| {
+        let score = MATE_CP - i32::from(plies);
+        if pos.side == Color::White { score } else { -score }
+    })
+}
+
+/// Return the shortest forced mate for the side to move within `depth` plies.
+/// This is an original bounded proof probe for the presentation path; it is
+/// deliberately not called from the main search evaluator.
+fn forced_mate_in(pos: &Position, depth: u8) -> Option<u8> {
+    if depth == 0 {
+        return None;
+    }
+    let moves = legal(pos);
+    for mv in moves.as_slice() {
+        let child = pos.make(*mv);
+        let replies = legal(&child);
+        if replies.moves.is_empty() {
+            if in_check(&child) {
+                return Some(1);
+            }
+            continue;
+        }
+        if depth < 2 {
+            continue;
+        }
+        let mut all_replies_fail = true;
+        let mut longest = 0u8;
+        for reply in replies.as_slice() {
+            if let Some(distance) = forced_mate_in(&child.make(*reply), depth - 1) {
+                longest = longest.max(distance);
+            } else {
+                all_replies_fail = false;
+                break;
+            }
+        }
+        if all_replies_fail {
+            return Some(1 + longest);
         }
     }
     None
