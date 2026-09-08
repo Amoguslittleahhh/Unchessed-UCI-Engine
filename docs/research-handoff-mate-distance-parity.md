@@ -103,6 +103,79 @@ Image recognition is useful only for board-state ingestion, UI verification, scr
 | `tools/labels_to_nnue_records.py` | Original label-to-training-record conversion |
 | `tools/compare_sfnnv16_homemade.py` | Direct score comparison |
 
+## Next work: execution plan
+
+The following sequence is the recommended continuation. It is deliberately ordered so that each expensive step produces evidence needed by the next step. Do not skip directly to a 100/100 claim: the current failure is concentrated in terminal and tactical positions, while the ordinary non-mate score gate is already close to its target.
+
+### Stage 0 — Freeze the baseline
+
+Create a baseline record before changing model code. Record the branch commit, compiler version, CPU description, binary checksum, evaluator file checksum, Stockfish reference checksum, corpus manifest checksums, and the exact command lines. Re-run the full core suite and the direct 120-position comparison. Preserve the resulting files under `unchessed-eval-bar/results/baseline/` rather than overwriting prior reports.
+
+The baseline acceptance record must include the current values: 150 core tests passed with 6 ignored; ordinary held-out MAE 99.523 cp on the broader-corpus non-mate subset; all-position held-out MAE 155.049 cp; calibrated 120-position depth-10 direct MAE 422.575 cp with median absolute error 106 cp; and nonlinear/HCE NPS ratio approximately 0.8896. If these numbers move unexpectedly before implementation, stop and diagnose the environment or corpus first.
+
+### Stage 1 — Build a stratified tactical and terminal corpus
+
+Extend `tools/build_parity_dataset.py` or add a new script rather than manually editing label files. Preserve game-level splitting: no positions from one game may cross train, validation, and test partitions. Add explicit strata and report counts for quiet, checking, capture, promotion, low-material endgame, king-exposed, high-mobility, and terminal or mate-like positions.
+
+Use the persistent black-box labeler in `tools/label_stockfish_batch.py`. Store the teacher protocol, depth, hash, threads, binary checksum, and date in a sidecar manifest. Keep the raw labels outside the normal source commit if they are large; commit the manifest, checksums, summaries, and small reproducibility samples. At minimum, reserve a game-disjoint tactical test set of 2,000 positions and a terminal test set of every available mate-like example.
+
+The data gate is a minimum of 100,000 labeled positions for a serious retrain, with the tactical and terminal strata reported separately. A 5,000-position experiment is useful for iteration but is not sufficient evidence for stable parity.
+
+### Stage 2 — Define separate targets instead of one raw centipawn head
+
+Do not force mate scores such as 30,003 cp into an ordinary static regression target. Convert each teacher result into separate targets: bounded static score, expected score or WDL class, terminal class, and mate distance where the teacher reports a forced mate. Use a robust score loss such as Huber or clipped absolute loss for ordinary positions, a classification loss for terminal status, and a distance loss only on positions with reliable mate-distance labels.
+
+The model should remain original and compact. A practical first design is the existing incremental NNUE score head plus a small quantized tactical head over independently authored features: checking-move pressure, legal checking destinations, forcing-capture count, king escape count, pinned or overloaded-piece indicators, promotion-race distance, and bounded quiescence swing. The tactical head should be gated by a confidence or terminal probability, not added unconditionally to every quiet position.
+
+The training split must be by game, and hyperparameters must be chosen only on validation games. The test set must remain untouched until the model, calibration, and threshold are frozen.
+
+### Stage 3 — Implement mate-distance recognition safely
+
+Keep the current `forced_mate_in` probe as a correctness reference only. It recursively generates legal moves and is unsuitable for the ordinary search hot path. Use it to generate labels and unit-test positions, not as a per-node evaluator call.
+
+For runtime, implement a bounded proof cache or incremental tactical state. A safe progression is: first recognize checkmate and stalemate exactly; then add mate-in-one; then add a depth-limited proof only when the position is already in check, has a checking move, has very low material, or has a high tactical-confidence trigger. Cache by position hash, side to move, remaining proof depth, and rule state. Do not run the proof on every quiet node.
+
+Required correctness tests include both colors, checking captures, promotions, underpromotions, interpositions, double check, stalemate, castling rights, en-passant legality, and positions where a tempting checking move is not mate. Every new test should compare the fast path with the slow legal-move reference.
+
+### Stage 4 — Optimize before enabling broadly
+
+Benchmark the tactical path independently and inside search. Measure nodes per second, evaluator calls per second, p50/p95/p99 evaluation latency, allocations, cache hit rate, and branch-trigger frequency. The strict speed target is no more than 5% overhead against the same binary and time-control settings. If the tactical path exceeds that threshold, keep it opt-in and reduce its trigger rate or move more state into incremental updates.
+
+Avoid floating-point work, repeated full-board feature scans, and repeated legal-move generation on quiet positions. Reuse move lists where the architecture permits, use compact integer features, and keep the WDL projection outside search. The presentation evalbar may be more expensive than the search evaluator, but its cost must be documented separately.
+
+### Stage 5 — Calibrate and validate on untouched data
+
+After freezing the model and thresholds, evaluate the untouched game-disjoint test set. Report overall MAE, non-mate MAE, tactical MAE, terminal classification accuracy, mate-distance exact accuracy, mate-distance within-one accuracy, sign accuracy, median absolute error, and worst-case error. Always show the number of examples in every stratum.
+
+The strict score gate should require all-position MAE at or below 100 cp on a predeclared test set, not merely on a filtered non-mate subset. The terminal gate should require no missed mate-in-one cases in the dedicated suite and an explicitly reported mate-distance tolerance. The speed gate should require no more than 5% overhead. The reliability gate remains a full green core test suite and deterministic repeated-run output.
+
+### Stage 6 — Run a powered engine match
+
+Only after the score, terminal, speed, and reliability gates pass should the tactical head be allowed to influence the playing evaluator. Run a fixed-control match against the same Stockfish 19 reference and against the previous Unchessed baseline. Fix openings, threads, hash, time controls, adjudication, and random seeds where possible. Use enough games for an actual confidence interval; the earlier smoke tournaments are not statistically powered.
+
+Report wins, draws, losses, average score, estimated Elo difference with uncertainty, color balance, termination reasons, average depth, nodes per second, and time forfeits. Revert the feature from default-on if it loses strength, creates instability, or fails the speed gate even when its offline MAE improves.
+
+### Stage 7 — Documentation and release discipline
+
+Update the IEEE paper and this handoff with the frozen dataset checksum, model checksum, exact training command, target definitions, test split, all metrics, and match configuration. Add a negative-results section for every failed model. Keep Stockfish source and weights out of the repository; black-box binaries and raw labels are reference artifacts, not implementation dependencies.
+
+The final 100/100 claim may be made only when every predeclared gate passes on untouched data and the powered match is complete. If any gate fails, report the achieved gate vector instead of converting it into a single inflated score.
+
+### Suggested command sequence
+
+The next researcher should begin with commands of this form, adapting paths to the available corpus:
+
+```sh
+cd /home/ubuntu/Unchessed-UCI-Engine
+sha256sum unchessed-nnue.bin target/release/unchessed-adapter
+cargo test -p unchessed-core --lib
+python3 tools/build_parity_dataset.py --help
+python3 tools/label_stockfish_batch.py --help
+python3 tools/compare_sfnnv16_homemade.py --help
+```
+
+Use a temporary compatible `Cargo.lock` only when the installed Rust toolchain requires it, and always restore the tracked lockfile before committing. Keep all changes on `manus/research-facilities`; never edit or merge the protected main branch for this research stream.
+
 ## Final interpretation
 
 This branch contains meaningful original engineering progress: incremental residual state, leakage-safe corpus construction, black-box calibration, an opt-in teacher-calibrated evalbar, and a bounded forced-mate probe. It does not contain stable SFNNv16 parity. The repository is ready for the next researcher to continue from measured evidence without repeating the audit, data construction, provenance correction, or failed calibration experiments.
