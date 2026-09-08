@@ -1,0 +1,118 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{url}
+\usepackage{microtype}
+\title{Conflict-Free Multi-Teacher Supervision for an Original\ SFNNv16-Oriented Chess Evaluator}
+\author{\IEEEauthorblockN{Manus AI Research}\IEEEauthorblockA{Unchessed-UCI-Engine\\Clean-room research branch: manus/research-facilities}}
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This paper specifies a training procedure that combines Stockfish, Leela Chess Zero (LC0), and Maia-3 supervision without allowing incompatible teacher targets to create uncontrolled gradients during quantization-aware training (QAT). The central design is a shared sparse board representation with task-specific heads, masked teacher losses, scheduled loss weights, stop-gradient teacher targets, and optional gradient conflict projection. Stockfish supplies parity, tactical, and terminal supervision; LC0 supplies long-horizon value and policy supervision; Maia-3 supplies rating-conditioned human move supervision. Their scalar outputs are never averaged as if they represented the same quantity. Fake quantization is applied in the forward path to the deployable evaluation layers, while the straight-through estimator supplies controlled gradients. The procedure is an original engineering design informed by public architecture principles. It is not a claim of exact SFNNv16 reconstruction, because the original training corpus, teacher checkpoints, and production training recipe are not available.
+\end{abstract}
+
+\section{Introduction}
+SFNNv16 is described publicly as a Stockfish neural evaluation architecture trained with quantization-aware techniques and very large position corpora rescored by a strong Leela network \cite{sf19}. A separate objective is humanisation: Maia-3 predicts the move selected by a human at a specified skill level using a Chessformer transformer trained on human games \cite{maia3, chessformer}. These objectives are complementary but not interchangeable. A Stockfish score is an engine evaluation target, an LC0 value is a neural search or game-outcome target, and a Maia-3 policy is a conditional human-action distribution.
+
+Naively mixing their labels into one scalar creates two failures. First, the labels have different semantics and scales. Second, the shared representation receives gradients that may point in incompatible directions. The proposed procedure resolves both problems with explicit task heads and controlled gradient aggregation.
+
+\section{Teacher Semantics and Data Contract}
+Each position record contains a canonical board state, source-game identifier, split identifier, and a set of optional teacher observations. The source-game identifier is used before position sampling so that adjacent positions from one game cannot leak across train, validation, and test sets.
+
+\begin{table}[t]
+\centering
+\caption{Teacher roles and supervised heads}
+\label{tab:teachers}
+\begin{tabular}{p{0.20\columnwidth}p{0.29\columnwidth}p{0.36\columnwidth}}
+\toprule
+Teacher & Primary target & Permitted role\\
+\midrule
+Stockfish & Static/search score, WDL, terminal class, mate distance & Parity, tactical, and terminal calibration\\
+LC0/Leela & Value, WDL, policy or visit distribution & Long-horizon strategic supervision\\
+Maia-3 & Rating-conditioned move distribution & Humanisation and persona policy\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The target tensors are retained in separate fields. Missing observations are represented by masks rather than imputed values. A Stockfish score is not converted into a Maia target, and a Maia centipawn-compatible display value is not treated as a Stockfish evaluation. This separation is the first protection against conflicting gradients.
+
+\section{Multi-Head Model}
+Let $z=f_{\theta}(x)$ be a shared board representation for position $x$. The deployable evaluator has a score head $h_s$, a WDL head $h_w$, a terminal head $h_t$, and a mate-distance head $h_m$. A separate policy head $h_p$ predicts source-destination moves and may be conditioned on a rating embedding $r$:
+\begin{equation}
+ y_s=h_s(z),\quad y_w=h_w(z),\quad y_t=h_t(z),\quad y_m=h_m(z),\quad y_p=h_p(z,r).
+\end{equation}
+The Maia policy head is not used to replace the strength evaluator. At runtime its contribution is zero in strength mode and is enabled only in an explicitly selected humanised mode.
+
+The per-position objective is
+\begin{equation}
+\mathcal{L}=\lambda_s m_s\mathcal{L}_s+\lambda_w(m_{SF}\mathcal{L}_{SF,w}+m_{LC0}\mathcal{L}_{LC0,w})
++\lambda_t m_t\mathcal{L}_t+\lambda_m m_m\mathcal{L}_m+\lambda_p m_{Maia}\mathcal{L}_p.
+\end{equation}
+Here, each $m$ is a binary availability mask. The score loss uses a robust Huber or bounded regression loss; WDL uses calibrated cross-entropy or a declared distributional loss; terminal uses class-weighted cross-entropy; mate distance uses a masked ordinal or Huber loss; and Maia policy uses legal-move-masked cross-entropy. Teacher labels are constants during student backpropagation, so no teacher graph can receive gradients.
+
+\section{Conflict-Free Gradient Aggregation}
+Even with separate heads, shared parameters can receive conflicting task gradients. Let $g_i=\nabla_{\theta}\mathcal{L}_i$ for active tasks $i$. The baseline aggregation is a weighted sum with normalized task gradients:
+\begin{equation}
+ g=\sum_i \lambda_i\frac{g_i}{\operatorname{EMA}(\|g_i\|_2)+\epsilon}.
+\end{equation}
+The exponential moving average prevents a high-magnitude Maia policy loss or terminal class imbalance from dominating the shared trunk.
+
+For a stricter guard, pairwise conflict projection is applied when $g_i^\top g_j<0$:
+\begin{equation}
+ g_i\leftarrow g_i-\frac{g_i^\top g_j}{\|g_j\|_2^2+\epsilon}g_j.
+\end{equation}
+The projected task gradients are then averaged and passed to the optimizer. This is applied only to shared parameters. Head-specific gradients are left untouched because the heads encode distinct tasks. A simpler production alternative is alternating microbatches: one Stockfish/LC0 update, followed by one Maia update, with trunk gradient accumulation reset between optimizer steps.
+
+Loss weights are scheduled rather than fixed blindly. The early stage emphasizes Stockfish score/WDL and LC0 value to establish a strong representation. A middle stage increases terminal and tactical weights. Maia policy is introduced after the strength trunk is stable, and its weight is capped so humanisation cannot degrade the strength objective. The final calibration stage freezes or nearly freezes the policy head while optimizing the deployable evaluation heads.
+
+\begin{table}[t]
+\centering
+\caption{Recommended training phases}
+\label{tab:phases}
+\begin{tabular}{p{0.18\columnwidth}p{0.35\columnwidth}p{0.29\columnwidth}}
+\toprule
+Phase & Active supervision & Purpose\\
+\midrule
+Pilot & Stockfish score/WDL, small LC0 sample & ABI and numerical self-check\\
+Representation & Stockfish plus LC0 value/WDL & Strength and strategic coverage\\
+Tactical & Stockfish terminal/mate strata & Tail and mate correctness\\
+Humanisation & Maia policy with capped weight & Rating-conditioned move behavior\\
+QAT calibration & All deployable heads, frozen teacher targets & Integer-path fidelity\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Quantization-Aware Training}
+Let $Q_a$ and $Q_w$ be fake quantizers for activations and weights. During the forward pass, the deployable path is simulated as
+\begin{equation}
+ \widehat{w}=Q_w(w),\qquad \widehat{a}=Q_a(a),\qquad a_{k+1}=\phi(\widehat{w}_k\widehat{a}_k+\widehat{b}_k).
+\end{equation}
+The backward pass uses a straight-through estimator inside the non-saturated range:
+\begin{equation}
+ \frac{\partial Q(x)}{\partial x}\approx \mathbf{1}[x\text{ is not clipped}].
+\end{equation}
+Feature-transformer accumulators require a wider range than later activations. The initial QAT experiment should therefore preserve a wider accumulator representation and quantize later affine layers first. Per-channel weight scales and activation observers are preferable to one global scale when the head has heterogeneous channels. Calibration statistics must be collected on a representative, source-disjoint sample containing quiet, tactical, endgame, and terminal positions.
+
+QAT does not solve teacher conflict by itself. Quantization changes the geometry of the student optimization problem, so loss masking, gradient normalization, and conflict projection must remain active during QAT. The exported model is accepted only after position-by-position comparison between the fake-quantized training graph and the runtime loader.
+
+\section{Data and Sampling}
+Lichess games supply realistic human position distribution and played-move targets. LC0 positions or Leela-rescored Lichess positions supply strategic value targets. Stockfish labels are collected through a separately built reference executable for parity and tactical validation. Maia-3 is an optional policy teacher for humanisation; its released model is intended for human move prediction rather than maximum playing strength \cite{maia3}.
+
+Sampling is stratified and source-disjoint. A position may carry all available labels, but each loss consumes only its own target field. The test set is untouched by architecture search, loss-weight selection, calibration, and early stopping. Raw archives, third-party checkpoints, and generated labels remain external; Git stores only manifests, hashes, commands, and schema versions.
+
+\section{Evaluation Gates}
+The multi-teacher model is not accepted on a single blended score. Strength gates include overall and stratum-specific Stockfish MAE, WDL calibration, terminal accuracy, mate-distance accuracy, sign accuracy, exported-model determinism, p95 latency, and search overhead. Humanisation gates include move-matching accuracy, rating-conditioned calibration, negative-log likelihood, and style consistency. QAT gates include fake-quantized versus runtime output tolerance and saturation rates.
+
+A model may pass humanisation while failing strength, or pass strength while failing humanisation. The runtime therefore exposes separate modes and keeps the Maia contribution disabled in the default strength evaluator until all strength and speed gates pass.
+
+\section{Conclusion}
+The conflict-free strategy is a multi-task model with semantically separate heads, masked targets, normalized and optionally projected shared gradients, scheduled loss weights, and QAT applied to the deployable path. Stockfish, LC0, and Maia-3 are complementary teachers only when their targets remain explicitly typed. Lichess provides the human position distribution, LC0 supplies strategic supervision, Stockfish supplies parity and tactical supervision, and Maia-3 supplies human policy supervision. This procedure can produce an original SFNNv16-oriented evaluator and a separate humanised policy mode, but it cannot establish exact SFNNv16 parity without the unavailable production corpus, weights, and complete training recipe.
+
+\begin{thebibliography}{00}
+\bibitem{sf19} Stockfish Team, ``Stockfish 19,'' Stockfish Blog, 2026. [Online]. Available: \url{https://stockfishchess.org/blog/2026/stockfish-19/}
+\bibitem{nnue} official-stockfish, ``NNUE,'' Stockfish Documentation. [Online]. Available: \url{https://official-stockfish.github.io/docs/nnue-pytorch-wiki/docs/nnue.html}
+\bibitem{chessformer} D. Monroe, G. Eilender, P. Chalmers, Z. Tang, and A. Anderson, ``Chessformer: A Unified Architecture for Chess Modeling,'' ICLR, 2026. [Online]. Available: \url{https://arxiv.org/abs/2605.19091}
+\bibitem{maia3} CSSLab, ``Maia-3: human-like chess play and analysis engine,'' 2026. [Online]. Available: \url{https://github.com/CSSLab/maia3}
+\end{thebibliography}
+\end{document}
