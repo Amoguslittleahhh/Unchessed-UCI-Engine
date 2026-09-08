@@ -35,7 +35,6 @@ from pathlib import Path
 CP = re.compile(r"score cp (-?\d+)")
 MATE = re.compile(r"score mate (-?\d+)")
 WDL = re.compile(r"wdl (-?\d+) (-?\d+) (-?\d+)")
-MATE_SCORE_CP = 30_000
 
 
 class EngineDied(Exception):
@@ -65,8 +64,14 @@ class Engine:
         # stalled after exactly one line. A background reader thread feeding a
         # Queue (the same pattern every other UCI-driving script in this repo
         # already uses) sidesteps the issue entirely.
+        # Bind this pump thread to THIS process's stdout and THIS queue by
+        # value, not by looking up self.proc/self.q at call time -- restart()
+        # reassigns both, and a race between the dying old thread's final
+        # EOF-sentinel put() and that reassignment can otherwise poison the
+        # brand-new engine's queue with a stale death signal, declaring it
+        # dead on arrival and potentially restart-looping forever.
         self.q = queue.Queue()
-        threading.Thread(target=self._pump, daemon=True).start()
+        threading.Thread(target=self._pump, args=(self.proc.stdout, self.q), daemon=True).start()
         self._send("uci")
         self._wait_for("uciok", timeout=30)
         for opt in self.options:
@@ -75,11 +80,11 @@ class Engine:
         self._send("isready")
         self._wait_for("readyok", timeout=30)
 
-    def _pump(self) -> None:
-        assert self.proc and self.proc.stdout
-        for line in iter(self.proc.stdout.readline, ""):
-            self.q.put(line)
-        self.q.put(None)  # EOF sentinel
+    @staticmethod
+    def _pump(stdout, q: "queue.Queue[str | None]") -> None:
+        for line in iter(stdout.readline, ""):
+            q.put(line)
+        q.put(None)  # EOF sentinel, into the SAME queue this thread was born with
 
     def restart(self) -> None:
         try:
@@ -186,20 +191,30 @@ def main() -> None:
     ap.add_argument("--option", action="append", default=[], help="UCI option as NAME=VALUE")
     ap.add_argument("--timeout-sec", type=float, default=30.0,
                      help="max wall time to wait for one position's bestmove before recording timed_out=true")
-    ap.add_argument("--max-restarts", type=int, default=5,
-                     help="give up after this many engine deaths in one run")
+    ap.add_argument("--max-restarts", type=int, default=200,
+                     help="give up on the WHOLE run after this many total engine deaths "
+                          "(a sanity backstop -- each individual restart is cheap and "
+                          "expected occasionally on a long run; this only fires if the "
+                          "engine/host looks systemically broken)")
+    ap.add_argument("--max-retries-per-position", type=int, default=3,
+                     help="skip a single position (recorded as label_failed=true) after "
+                          "this many consecutive engine deaths on it specifically, rather "
+                          "than letting one poisoned/adversarial FEN burn the whole "
+                          "--max-restarts budget and abort every position after it")
     args = ap.parse_args()
 
     engine = Engine(args.engine, args.option)
     go_cmd = f"go nodes {args.nodes}" if args.nodes else f"go depth {args.depth}"
-    restarts = 0
+    total_restarts = 0
     n_timed_out = 0
     n_terminal = 0
     n_labeled = 0
+    n_failed = 0
 
     with Path(args.out).open("w") as out:
         rows = [json.loads(r) for r in Path(args.manifest).read_text().splitlines() if r.strip()]
         i = 0
+        position_retries = 0
         while i < len(rows):
             row = rows[i]
             try:
@@ -207,13 +222,32 @@ def main() -> None:
                     row["fen"], go_cmd, args.timeout_sec
                 )
             except EngineDied as exc:
-                restarts += 1
-                if restarts > args.max_restarts:
-                    print(f"engine died {restarts} times, giving up at position {i}: {exc}", file=sys.stderr)
+                total_restarts += 1
+                position_retries += 1
+                if total_restarts > args.max_restarts:
+                    print(f"engine died {total_restarts} times total, giving up at position {i}: {exc}", file=sys.stderr)
                     break
-                print(f"engine died ({exc}), restarting (attempt {restarts}/{args.max_restarts})", file=sys.stderr)
+                if position_retries > args.max_retries_per_position:
+                    print(f"position {i} killed the engine {position_retries} times in a row, "
+                          f"skipping it and moving on: {exc}", file=sys.stderr)
+                    n_failed += 1
+                    out.write(json.dumps(
+                        dict(row, teacher=args.teacher, depth=args.depth, nodes=args.nodes,
+                             bestmove=None, score_cp=None, score_mate=None, wdl=None,
+                             timed_out=False, terminal=False, label_failed=True),
+                        sort_keys=True,
+                    ) + "\n")
+                    out.flush()
+                    engine.restart()
+                    position_retries = 0
+                    i += 1
+                    continue
+                print(f"engine died ({exc}), restarting (position {i}, attempt "
+                      f"{position_retries}/{args.max_retries_per_position}, "
+                      f"{total_restarts} total this run)", file=sys.stderr)
                 engine.restart()
                 continue  # retry the same position on the fresh process
+            position_retries = 0
             if timed_out:
                 n_timed_out += 1
             if terminal:
@@ -230,7 +264,7 @@ def main() -> None:
             result = dict(
                 row, teacher=args.teacher, depth=args.depth, nodes=args.nodes,
                 bestmove=bestmove, score_cp=cp, score_mate=mate, wdl=wdl,
-                timed_out=timed_out, terminal=terminal,
+                timed_out=timed_out, terminal=terminal, label_failed=False,
             )
             out.write(json.dumps(result, sort_keys=True) + "\n")
             out.flush()
@@ -239,7 +273,7 @@ def main() -> None:
     engine.quit()
     print(
         f"labeled={n_labeled} terminal={n_terminal} timed_out={n_timed_out} "
-        f"restarts={restarts} total={len(rows)}",
+        f"failed={n_failed} total_restarts={total_restarts} total={len(rows)}",
         file=sys.stderr,
     )
 
