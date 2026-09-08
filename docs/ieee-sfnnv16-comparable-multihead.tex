@@ -56,6 +56,8 @@ Stable 100/100 parity & Not established & No claim\\
 
 The focused tests verify that the start position is non-terminal, checkmate and stalemate are distinct, and a forcing position produces a confidence signal with a bounded score residual. The UCI smoke test on \texttt{7k/6Q1/6K1/8/8/8/8/8 b - - 0 1} returned zero legal moves, terminal class 1, mate distance zero, terminal probability 1000, and the explicit clean-room provenance label.
 
+The reduced source archive supplied for audit was not independently buildable because it omitted core engine and layer translation units. The exact upstream commit named in its provenance record, \texttt{edb0d9db6731067ec50ce619ff372b463bc4dd5d}, was checked out and built separately as a UCI reference. On the existing 120-position corpus at depth 8, the default, homemade, calibrated, tactical, and parity modes measured 184.492, 174.592, 173.033, 181.767, and 264.908 cp MAE, respectively. The calibrated mode had the best measured result, but its 173.033 cp MAE remains above the strict 100 cp all-position gate.
+
 \section{Limitations and Required Next Experiments}
 The implementation is architecture-comparable, not network-equivalent. Exact numerical parity cannot be inferred from diagrams because the matching trained weights, quantization-aware training recipe, rescored corpus, and evaluation protocol are not present. The next corpus must be game-disjoint and stratified across quiet, checking, capture, promotion, endgame, king-exposed, tactical, and terminal positions. Separate bounded-score, WDL, terminal, and mate-distance targets are required.
 
