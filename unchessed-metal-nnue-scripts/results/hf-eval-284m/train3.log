@@ -1,0 +1,32 @@
+loaded 40651198 records from /data/nnue-eval-corpus/f0000-train.bin
+loaded 36934284 records from /data/nnue-eval-corpus/f0001-train.bin
+loaded 35670830 records from /data/nnue-eval-corpus/f0002-train.bin
+loaded 34481751 records from /data/nnue-eval-corpus/f0003-train.bin
+loaded 33775795 records from /data/nnue-eval-corpus/f0004-train.bin
+loaded 34285318 records from /data/nnue-eval-corpus/f0005-train.bin
+loaded 34027013 records from /data/nnue-eval-corpus/f0006-train.bin
+loaded 33726598 records from /data/nnue-eval-corpus/f0007-train.bin
+total 283552787 records: 283352787 train / 200000 val
+device: cuda (NVIDIA A100-SXM4-80GB), batch size: 16384, ft_in (export): 22528
+GPU-resident mode: transferring full dataset (29.5 GB) to cuda...
+Adam fused=True
+AMP autocast bfloat16
+speed: tf32 on, cudnn.benchmark on
+persona_active=True unarch_hint=False (Adaptive stays on; hint stays off)
+recipe: max_epochs=15 early_stop_patience=3 min_delta=0.1cp batch=16384 device=cuda n_train=283352787
+epoch 1/15: lr 1.0e-03 train-loss 0.011828 val-loss 0.020395 val-mae 3572.5cp samples-seen 283352787 (2276522 samples/s, 124s) *best*
+epoch 2/15: lr 1.0e-03 train-loss 0.010301 val-loss 0.019693 val-mae 3567.4cp samples-seen 566705574 (2278476 samples/s, 124s) *best*
+epoch 3/15: lr 1.0e-03 train-loss 0.009928 val-loss 0.019422 val-mae 3565.4cp samples-seen 850058361 (2282231 samples/s, 124s) *best*
+epoch 4/15: lr 1.0e-03 train-loss 0.009718 val-loss 0.019236 val-mae 3565.4cp samples-seen 1133411148 (2275031 samples/s, 125s) (no-improve 1/3)
+epoch 5/15: lr 1.0e-03 train-loss 0.009575 val-loss 0.019079 val-mae 3565.0cp samples-seen 1416763935 (2274091 samples/s, 125s) *best*
+epoch 6/15: lr 1.0e-03 train-loss 0.009469 val-loss 0.018995 val-mae 3564.4cp samples-seen 1700116722 (2274505 samples/s, 125s) *best*
+epoch 7/15: lr 1.0e-03 train-loss 0.009384 val-loss 0.018966 val-mae 3565.1cp samples-seen 1983469509 (2277058 samples/s, 124s) (no-improve 1/3)
+epoch 8/15: lr 1.0e-03 train-loss 0.009316 val-loss 0.018872 val-mae 3564.3cp samples-seen 2266822296 (2277112 samples/s, 124s) (no-improve 2/3)
+epoch 9/15: lr 1.0e-03 train-loss 0.009259 val-loss 0.018849 val-mae 3563.8cp samples-seen 2550175083 (2277693 samples/s, 124s) *best*
+epoch 10/15: lr 3.0e-04 train-loss 0.008826 val-loss 0.018384 val-mae 3558.2cp samples-seen 2833527870 (2275124 samples/s, 125s) *best*
+epoch 11/15: lr 3.0e-04 train-loss 0.008738 val-loss 0.018354 val-mae 3556.7cp samples-seen 3116880657 (2277008 samples/s, 124s) *best*
+epoch 12/15: lr 3.0e-04 train-loss 0.008706 val-loss 0.018354 val-mae 3556.6cp samples-seen 3400233444 (2277341 samples/s, 124s) (no-improve 1/3)
+epoch 13/15: lr 9.0e-05 train-loss 0.008548 val-loss 0.018212 val-mae 3554.3cp samples-seen 3683586231 (2278509 samples/s, 124s) *best*
+epoch 14/15: lr 9.0e-05 train-loss 0.008526 val-loss 0.018204 val-mae 3554.3cp samples-seen 3966939018 (2276676 samples/s, 124s) (no-improve 1/3)
+epoch 15/15: lr 9.0e-05 train-loss 0.008515 val-loss 0.018200 val-mae 3554.0cp samples-seen 4250291805 (2278329 samples/s, 124s) *best*
+wrote /data/run/unchessed-metal-nnue-hf-eval-284m.bin (23086132 bytes) best-epoch 15/15 best-mae 3554.0cp stopped-early=False

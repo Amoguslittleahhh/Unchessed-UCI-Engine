@@ -16,6 +16,12 @@ import os
 # Operator must type this exact string. Anything else is a no-go.
 CLOUD_GO_TOKEN = "I_ACCEPT_SPRT_GATES"
 
+# Raised from 500M to 1B (2026-09-09) to fit the real 809M-record
+# Lichess/chess-position-evaluations-derived train split -- still a real
+# cap, not a removal of one, so an unexpectedly larger accidental run is
+# still refused.
+SAFE_MAX_RECORDS = 1_000_000_000
+
 DEFAULTS = {
     "ALLOW_TF32": "1",
     "USE_AMP": "1",  # bf16 autocast on CUDA; ignored on CPU
@@ -61,7 +67,7 @@ def preflight_errors(n_records, device_type, go_required=True):
       - persona must stay on
       - UnarchitecturedHint must stay off (not part of this train)
       - GO token required when go_required (cloud launcher)
-      - record count must be enough to train and not exceed 500M safety cap
+      - record count must be enough to train and not exceed SAFE_MAX_RECORDS
       - AMP/TF32 only claimed on CUDA
     """
     errors = []
@@ -76,8 +82,8 @@ def preflight_errors(n_records, device_type, go_required=True):
         )
     if n_records < 1000:
         errors.append(f"only {n_records} records — refusing to train")
-    if n_records > 500_000_000:
-        errors.append(f"{n_records} records exceed SAFE_MAX_RECORDS=500000000")
+    if n_records > SAFE_MAX_RECORDS:
+        errors.append(f"{n_records} records exceed SAFE_MAX_RECORDS={SAFE_MAX_RECORDS}")
     if flags["use_amp"] and device_type != "cuda":
         # not an error: trainer must ignore AMP on CPU
         pass
