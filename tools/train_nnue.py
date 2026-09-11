@@ -342,22 +342,55 @@ def batches(data, idx, bs):
         yield make_batch(data[idx[s : s + bs]])
 
 
-def batches_resident(bb_all, score_all, wdl_all, idx_t, bs):
-    for s in range(0, len(idx_t), bs):
-        yield make_batch_resident(bb_all, score_all, wdl_all, idx_t[s : s + bs])
+def batches_resident(bb_all, score_all, wdl_all, idx_t, bs, perm_t=None):
+    """perm_t, if given, is a permutation of range(len(idx_t)) applied
+    lazily per-batch via index_select rather than materializing
+    idx_t[perm_t] up front -- doing that eagerly (the epoch shuffle's old
+    `train_idx = train_idx[torch.randperm(...)]`) allocates a SECOND
+    full-dataset-sized index tensor on top of the perm itself, which is
+    exactly what pushed VRAM over the edge in the real 500M-record OOM
+    (needed 7.51 GiB more with only 6.48 GiB free). Composing per-batch
+    keeps only the one perm tensor resident."""
+    n = len(idx_t)
+    for s in range(0, n, bs):
+        if perm_t is not None:
+            sel = idx_t.index_select(0, perm_t[s : s + bs])
+        else:
+            sel = idx_t[s : s + bs]
+        yield make_batch_resident(bb_all, score_all, wdl_all, sel)
+
+
+MATE_SCORE_THRESHOLD = 29000  # matches evaluate_gates.py's is_decisive_reference cutoff
 
 
 def evaluate_iter(model, batch_iter):
-    """(val MSE loss, val MAE in centipawns), given any iterable of batches
-    (either batches() or batches_resident())."""
-    se = ae = n = 0.0
+    """(val MSE loss, ordinary-position val MAE, mate-position val MAE, in
+    centipawns), given any iterable of batches (either batches() or
+    batches_resident()).
+
+    Mate-labeled positions (see hf_eval_to_shard.py's mate_signed_cp-style
+    encoding) carry raw scores near +-30000, far outside the range the
+    model's raw*400 output ever lands near -- blending them into one MAE
+    average lets the ~14% mate slice's tens-of-thousands-of-cp error swamp
+    the real, decision-relevant ordinary-position signal. The
+    hf-eval-284m run's misleading 3554.0cp blended val-MAE (vs. 175.6cp
+    real ordinary-position MAE) was exactly this. best-checkpoint
+    selection and early-stopping key off ordinary MAE only; mate MAE is
+    still tracked and reported, just not used to pick or stop training.
+    """
+    se = ae_ord = ae_mate = n = n_mate = 0.0
     with torch.no_grad():
         for si, so, sv, ni, no, nv, target, score, bkt in batch_iter:
             raw = model(si, so, sv, ni, no, nv, bkt)
             se += ((torch.sigmoid(raw) - target) ** 2).sum().item()
-            ae += (raw * 400.0 - score).abs().sum().item()
+            abs_err = (raw * 400.0 - score).abs()
+            mate_mask = score.abs() >= MATE_SCORE_THRESHOLD
+            ae_mate += abs_err[mate_mask].sum().item()
+            ae_ord += abs_err[~mate_mask].sum().item()
+            n_mate += int(mate_mask.sum().item())
             n += len(target)
-    return se / max(n, 1), ae / max(n, 1)
+    n_ord = max(n - n_mate, 0)
+    return se / max(n, 1), ae_ord / max(n_ord, 1), ae_mate / max(n_mate, 1)
 
 
 def coalesced_export_weights(model):
@@ -411,10 +444,70 @@ def export_net(model, path):
     os.replace(tmp, path)
 
 
+def _fits_gpu_resident(n, device):
+    """Whether the full dataset can safely live resident on `device` for
+    training. Bytes/record actually transferred: bb 12*8 + score 2 + wdl 1
+    = 99, plus an 8-byte int64 train_idx entry per record kept resident for
+    the whole run. `reserve` covers CUDA context, model/optimizer state,
+    the per-epoch shuffle permutation tensor, and allocator overhead -- the
+    real 500M-record run left only 6.48 GiB free with 79.25 GiB total after
+    loading, i.e. ~23 GiB of overhead beyond the theoretical data size, so
+    this reserves comfortably more than that were observed."""
+    if device.type != "cuda":
+        return False
+    total = torch.cuda.get_device_properties(device).total_memory
+    data_bytes = n * (99 + 8)
+    reserve = 16_000_000_000
+    return data_bytes + reserve <= total
+
+
+def _load_shards_for_gpu_resident(shards, counts, n):
+    """Stream each shard directly into three separate, already-contiguous
+    host arrays (bb[n,12] u8x8, score[n] i2, wdl[n] u1) instead of building
+    one combined REC-dtype array first. REC's "bb" field is NOT contiguous
+    across records (it's interleaved with score/wdl/pad every 104 bytes),
+    so np.ascontiguousarray(data["bb"]) on the full array made a full ~78GB
+    transient copy on top of the already-loaded ~84GB dataset -- the real
+    cause of a host-RAM OOM (dmesg: Killed process ..., anon-rss 121GB) at
+    809M records. Building the destination arrays directly means the only
+    per-shard transient is that one shard's own REC buffer, not the whole
+    dataset's."""
+    bb_host = np.empty((n, 12), dtype="<u8")
+    score_host = np.empty(n, dtype="<i2")
+    wdl_host = np.empty(n, dtype="u1")
+    offset = 0
+    for p, cnt in zip(shards, counts):
+        part = np.fromfile(p, dtype=REC, count=cnt)
+        if len(part) and (part["wdl"].max() > 2 or (part["pad"] != 0).any()):
+            raise SystemExit(f"ERROR: {p} does not look like an NNUE sample file "
+                             f"(wdl>2 or nonzero padding) — wrong shard?")
+        print(f"loaded {len(part)} records from {p}", flush=True)
+        bb_host[offset : offset + cnt] = part["bb"]
+        score_host[offset : offset + cnt] = part["score"]
+        wdl_host[offset : offset + cnt] = part["wdl"]
+        offset += cnt
+    del part
+    return bb_host, score_host, wdl_host
+
+
+def _load_shards_combined(shards, counts, n):
+    """Host-resident (CPU-training) path: one combined REC-dtype array,
+    needed for batches()/make_batch()'s structured-array fancy indexing."""
+    data = np.empty(n, dtype=REC)
+    offset = 0
+    for p, cnt in zip(shards, counts):
+        part = np.fromfile(p, dtype=REC, count=cnt)
+        if len(part) and (part["wdl"].max() > 2 or (part["pad"] != 0).any()):
+            raise SystemExit(f"ERROR: {p} does not look like an NNUE sample file "
+                             f"(wdl>2 or nonzero padding) — wrong shard?")
+        print(f"loaded {len(part)} records from {p}", flush=True)
+        data[offset : offset + cnt] = part
+        offset += cnt
+    del part
+    return data
+
+
 def train(shards, out_path, epochs):
-    # Read shard sizes up front and allocate the full array once, then read
-    # each shard directly into its slice -- avoids ever holding both the
-    # per-shard arrays AND their concatenation in memory simultaneously.
     counts = []
     for p in shards:
         size = os.path.getsize(p)
@@ -429,17 +522,7 @@ def train(shards, out_path, epochs):
         raise SystemExit("ERROR: cloud/train preflight failed:\n  - " + "\n  - ".join(blockers))
     if n < 1000:
         raise SystemExit(f"ERROR: only {n} records total — refusing to train")
-    data = np.empty(n, dtype=REC)
-    offset = 0
-    for p, cnt in zip(shards, counts):
-        part = np.fromfile(p, dtype=REC, count=cnt)
-        if len(part) and (part["wdl"].max() > 2 or (part["pad"] != 0).any()):
-            raise SystemExit(f"ERROR: {p} does not look like an NNUE sample file "
-                             f"(wdl>2 or nonzero padding) — wrong shard?")
-        print(f"loaded {len(part)} records from {p}", flush=True)
-        data[offset : offset + cnt] = part
-        offset += cnt
-    del part
+
     n_val = min(200_000, max(1, n // 50))  # 200k, or 2% if smaller
     rng = np.random.default_rng(42)
     perm = rng.permutation(n)
@@ -449,17 +532,28 @@ def train(shards, out_path, epochs):
           + (f" ({torch.cuda.get_device_name(DEVICE)})" if DEVICE.type == "cuda" else "")
           + f", batch size: {BATCH_SIZE}, ft_in (export): {FT_IN}", flush=True)
 
-    gpu_resident = DEVICE.type == "cuda"
+    gpu_resident = _fits_gpu_resident(n, DEVICE)
+    if DEVICE.type == "cuda" and not gpu_resident:
+        print(f"NOTE: {n} records won't safely fit GPU-resident on this device "
+              f"-- falling back to host-resident (per-batch transfer) mode. "
+              f"Slower, but avoids the VRAM OOM a too-large resident load hits.",
+              flush=True)
+
     if gpu_resident:
+        bb_host, score_host, wdl_host = _load_shards_for_gpu_resident(shards, counts, n)
         print(f"GPU-resident mode: transferring full dataset "
-              f"({data.nbytes / 1e9:.1f} GB) to {DEVICE}...", flush=True)
-        bb_all = torch.from_numpy(np.ascontiguousarray(data["bb"]).view(np.int64)).to(DEVICE)
-        score_all = torch.from_numpy(np.ascontiguousarray(data["score"])).to(DEVICE)
-        wdl_all = torch.from_numpy(np.ascontiguousarray(data["wdl"])).to(DEVICE)
-        del data
+              f"({(bb_host.nbytes + score_host.nbytes + wdl_host.nbytes) / 1e9:.1f} GB) "
+              f"to {DEVICE}...", flush=True)
+        bb_all = torch.from_numpy(bb_host.view(np.int64)).to(DEVICE)
+        del bb_host
+        score_all = torch.from_numpy(score_host).to(DEVICE)
+        del score_host
+        wdl_all = torch.from_numpy(wdl_host).to(DEVICE)
+        del wdl_host
         train_idx = torch.from_numpy(train_idx_np).to(DEVICE)
         val_idx = torch.from_numpy(val_idx_np).to(DEVICE)
     else:
+        data = _load_shards_combined(shards, counts, n)
         train_idx, val_idx = train_idx_np, val_idx_np
 
     model = Nnue().to(DEVICE)
@@ -510,8 +604,8 @@ def train(shards, out_path, epochs):
         for g in opt.param_groups:
             g["lr"] = lr
         if gpu_resident:
-            train_idx = train_idx[torch.randperm(len(train_idx), device=DEVICE)]
-            train_iter = batches_resident(bb_all, score_all, wdl_all, train_idx, BATCH_SIZE)
+            epoch_perm = torch.randperm(len(train_idx), device=DEVICE)
+            train_iter = batches_resident(bb_all, score_all, wdl_all, train_idx, BATCH_SIZE, perm_t=epoch_perm)
         else:
             train_idx = rng.permutation(train_idx)
             train_iter = batches(data, train_idx, BATCH_SIZE)
@@ -534,15 +628,19 @@ def train(shards, out_path, epochs):
             val_iter = batches_resident(bb_all, score_all, wdl_all, val_idx, BATCH_SIZE)
         else:
             val_iter = batches(data, val_idx, BATCH_SIZE)
-        val_loss, val_mae = evaluate_iter(model, val_iter)
+        val_loss, val_mae, val_mate_mae = evaluate_iter(model, val_iter)
         last_epoch = ep + 1
         samples_seen = last_epoch * n_train
+        # Best-checkpoint / early-stop keys off ordinary-position MAE only --
+        # see evaluate_iter's docstring for why the mate-labeled slice must
+        # not drive this decision.
         is_best, should_stop = stopper.update(val_mae)
         mark = " *best*" if is_best else f" (no-improve {stopper.bad}/{patience or 'off'})"
         print(
             f"epoch {last_epoch}/{epochs}: lr {lr:.1e} "
             f"train-loss {running / max(steps, 1):.6f} "
             f"val-loss {val_loss:.6f} val-mae {val_mae:.1f}cp "
+            f"val-mate-mae {val_mate_mae:.1f}cp "
             f"samples-seen {samples_seen} "
             f"({n_train / max(t_train, 1e-9):.0f} samples/s, "
             f"{t_train:.0f}s){mark}",
@@ -557,6 +655,7 @@ def train(shards, out_path, epochs):
                     "train_loss": running / max(steps, 1),
                     "val_loss": val_loss,
                     "val_mae_cp": val_mae,
+                    "val_mate_mae_cp": val_mate_mae,
                     "samples_seen": samples_seen,
                     "is_best": is_best,
                     "persona_active": True,

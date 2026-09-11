@@ -53,7 +53,7 @@ class TrainNnueBestCheckpointTests(unittest.TestCase):
                 pass
             i = state["i"]
             state["i"] += 1
-            return losses[i], maes[i]
+            return losses[i], maes[i], 0.0
 
         env_patch = patch.dict(
             os.environ,

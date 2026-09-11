@@ -20,6 +20,17 @@ verified against known-good/known-bad opening moves) as being from
 WHITE's point of view always, unlike the UCI/STM-relative convention
 used elsewhere in this project's own label_uci.py pipeline. Every score
 here is explicitly converted: STM-relative = cp if White to move else -cp.
+
+Mate scores use the same graduated-magnitude convention as
+evaluate_gates.py's mate_signed_cp() (sign * (30000 - min(plies, 100))),
+NOT a flat +-30000. A first run (hf-eval-284m, SPRT-rejected at -178 Elo
+vs the shipped net) used a flat +-30000 for every mate regardless of
+distance; real post-training eval through the actual Rust inference path
+showed the ~14% mate-labeled slice hitting 28,391.7cp MAE vs 175.6cp on
+ordinary positions, i.e. those positions carried no usable distance
+signal at all. Graduating the magnitude by ply-distance at least gives
+the trainer something to fit even though sigmoid(cp/400) is already
+saturated well below 29900cp either way.
 """
 from __future__ import annotations
 import argparse, glob, hashlib, math, struct, sys
@@ -124,7 +135,9 @@ def main() -> None:
                     white_to_move = board.turn == chess.WHITE
                     if row.mate is not None and not (isinstance(row.mate, float) and math.isnan(row.mate)):
                         mate_white = int(row.mate)
-                        cp_stm = 30000 if (mate_white > 0) == white_to_move else -30000
+                        mate_plies_stm = mate_white if white_to_move else -mate_white
+                        sign = 1 if mate_plies_stm > 0 else -1
+                        cp_stm = sign * (30000 - min(abs(mate_plies_stm), 100))
                     elif row.cp is not None and not (isinstance(row.cp, float) and math.isnan(row.cp)):
                         cp_white = int(row.cp)
                         cp_stm = cp_white if white_to_move else -cp_white
