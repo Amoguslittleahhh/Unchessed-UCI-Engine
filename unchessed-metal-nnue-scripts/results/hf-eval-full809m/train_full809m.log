@@ -1,0 +1,37 @@
+total 809065000 records: 808865000 train / 200000 val
+device: cuda (NVIDIA H200), batch size: 262144, ft_in (export): 22528
+loaded 40651198 records from local-data/hf-chess-position-evaluations/shards/f0000-train.bin
+loaded 36934284 records from local-data/hf-chess-position-evaluations/shards/f0001-train.bin
+loaded 35670830 records from local-data/hf-chess-position-evaluations/shards/f0002-train.bin
+loaded 34481751 records from local-data/hf-chess-position-evaluations/shards/f0003-train.bin
+loaded 33775795 records from local-data/hf-chess-position-evaluations/shards/f0004-train.bin
+loaded 34285318 records from local-data/hf-chess-position-evaluations/shards/f0005-train.bin
+loaded 34027013 records from local-data/hf-chess-position-evaluations/shards/f0006-train.bin
+loaded 33726598 records from local-data/hf-chess-position-evaluations/shards/f0007-train.bin
+loaded 39061047 records from local-data/hf-chess-position-evaluations/shards/f0008-train.bin
+loaded 42785570 records from local-data/hf-chess-position-evaluations/shards/f0009-train.bin
+loaded 44573567 records from local-data/hf-chess-position-evaluations/shards/f0010-train.bin
+loaded 44851344 records from local-data/hf-chess-position-evaluations/shards/f0011-train.bin
+loaded 45022697 records from local-data/hf-chess-position-evaluations/shards/f0012-train.bin
+loaded 45428844 records from local-data/hf-chess-position-evaluations/shards/f0013-train.bin
+loaded 44897136 records from local-data/hf-chess-position-evaluations/shards/f0014-train.bin
+loaded 44685779 records from local-data/hf-chess-position-evaluations/shards/f0015-train.bin
+loaded 43939631 records from local-data/hf-chess-position-evaluations/shards/f0016-train.bin
+loaded 43998751 records from local-data/hf-chess-position-evaluations/shards/f0017-train.bin
+loaded 43211646 records from local-data/hf-chess-position-evaluations/shards/f0018-train.bin
+loaded 43056201 records from local-data/hf-chess-position-evaluations/shards/f0019-train.bin
+GPU-resident mode: transferring full dataset (80.1 GB) to cuda...
+Adam fused=True
+AMP autocast bfloat16
+speed: tf32 on, cudnn.benchmark on
+persona_active=True unarch_hint=False (Adaptive stays on; hint stays off)
+recipe: max_epochs=15 early_stop_patience=3 min_delta=0.1cp batch=262144 device=cuda n_train=808865000
+epoch 1/15: lr 1.0e-03 train-loss 0.012845 val-loss 0.021229 val-mae 225.1cp val-mate-mae 28835.4cp samples-seen 808865000 (5353614 samples/s, 151s) *best*
+epoch 2/15: lr 1.0e-03 train-loss 0.010811 val-loss 0.020292 val-mae 224.3cp val-mate-mae 28776.6cp samples-seen 1617730000 (5365255 samples/s, 151s) *best*
+epoch 3/15: lr 1.0e-03 train-loss 0.010408 val-loss 0.019923 val-mae 224.5cp val-mate-mae 28734.1cp samples-seen 2426595000 (5365368 samples/s, 151s) (no-improve 1/3)
+epoch 4/15: lr 1.0e-03 train-loss 0.010202 val-loss 0.019735 val-mae 223.2cp val-mate-mae 28710.0cp samples-seen 3235460000 (5365312 samples/s, 151s) *best*
+epoch 5/15: lr 1.0e-03 train-loss 0.010069 val-loss 0.019600 val-mae 224.8cp val-mate-mae 28680.4cp samples-seen 4044325000 (5364407 samples/s, 151s) (no-improve 1/3)
+epoch 6/15: lr 1.0e-03 train-loss 0.009974 val-loss 0.019482 val-mae 223.6cp val-mate-mae 28667.3cp samples-seen 4853190000 (5364882 samples/s, 151s) (no-improve 2/3)
+epoch 7/15: lr 1.0e-03 train-loss 0.009900 val-loss 0.019386 val-mae 223.3cp val-mate-mae 28654.9cp samples-seen 5662055000 (5365066 samples/s, 151s) (no-improve 3/3)
+early-stop at epoch 7: no val-mae improvement >= 0.1cp for 3 epochs (best epoch 4 at 223.2cp)
+wrote results/unchessed-metal-nnue-hf-eval-full809m.bin (23086132 bytes) best-epoch 4/7 best-mae 223.2cp stopped-early=True
